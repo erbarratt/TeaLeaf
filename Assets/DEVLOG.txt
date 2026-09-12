@@ -1,0 +1,65 @@
+TeaLeaf Development Log
+========================
+
+This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
+(Unity, OpenXR + XR Interaction Toolkit). Newest updates are at the top.
+
+
+2026-09-08
+----------
+- Reorganized PlayerLocomotion.cs's inspector fields into grouped [Header] sections
+  (Turning, Movement, Gravity, Height) so related settings sit together in the
+  Inspector instead of being interleaved in declaration order.
+- Moved standalone input debug scripts (InputTest.cs, VRDebugInput.cs) into the
+  Scripts/Player/Debug folder, matching the project convention of keeping
+  debug/diagnostic MonoBehaviours separate from runtime gameplay code.
+- Continued tuning of Main.unity (scene hierarchy/component adjustments alongside
+  the script changes above).
+- Confirmed working so far: head/controller tracking, stick movement, smooth turn,
+  snap turn, gravity, falling off platforms, and room-scale movement via the
+  PlayerInputXR / PlayerTracking / PlayerLocomotion split.
+- Verified in Play Mode that controls still function the same after the
+  PlayerLocomotion.cs Inspector header reorganization (as expected, since it was
+  a field-ordering change only, no logic changes).
+- Verified Quest 3 input and headset tracking work as expected (roadmap item 1
+  complete - see Next up list below, now updated).
+- Built a CharacterController test scene with a 0.2m step, a 30 degree ramp, and
+  a 60 degree ramp. Initially could climb all three (including the 60 degree
+  ramp, which shouldn't be climbable). Fixed by setting the CharacterController's
+  Slope Limit to 45 degrees and Step Offset to 0.3m on the player rig in
+  Main.unity - now correctly climbs the 0.2m step and 30 degree ramp but not the
+  60 degree ramp (roadmap item 2 complete).
+- Added a button-driven crouch system to PlayerLocomotion.cs/PlayerInputXR.cs:
+  a new HandleCrouch() toggles _isCrouching on each press of a new CrouchPressed
+  input, then smoothly moves the CharacterController's height between the
+  existing minimumHeight field (now doing double duty as the crouched height)
+  and the standing height captured from the Inspector at startup, keeping the
+  controller's centre and a new cameraOffsetTransform in sync each frame so the
+  player's view drops even though they haven't physically crouched.
+- Wired up the crouch system (crouch button binding + Camera Offset transform
+  assignment) and set Tracking Origin Mode to Device with Camera Y Offset 1.6
+  on the XR Origin. Hit a bug: crouching dropped the view under the floor,
+  because HandleCrouch() was overwriting the Camera Offset transform's Y
+  position outright instead of adjusting it, discarding the XR Origin's 1.6
+  baseline. Fixed by making the crouch code apply a relative delta (however
+  much the CharacterController's height changed that frame) instead of an
+  absolute value, so it nudges whatever offset is already there rather than
+  replacing it. Confirmed working correctly in-headset (roadmap item 3
+  complete).
+
+Next up (planned order):
+  1. [DONE 2026-09-08] Verify Quest 3 input (MoveAxis/TurnAxis/Trigger/Grip) and
+     headset tracking - confirmed working as expected.
+  2. [DONE 2026-09-08] Validate CharacterController settings - Slope Limit 45,
+     Step Offset 0.3 climbs the step/30 degree ramp but blocks the 60 degree ramp.
+  3. [DONE 2026-09-08] Button-driven crouch system - confirmed working in-headset.
+  4. Add a sprint system.
+  5. Add custom ladder climbing (grip + measure controller delta).
+  6. Build a settings framework to make locomotion values user-configurable.
+
+
+Earlier history (from commit log)
+----------------------------------
+- f3e67a8 "basic movement" - initial PlayerLocomotion movement/turning/gravity pass.
+- 1e1cf92 / 08a9082 / 98fed6f - initial project setup (XRI, Input System, scene,
+  player rig).

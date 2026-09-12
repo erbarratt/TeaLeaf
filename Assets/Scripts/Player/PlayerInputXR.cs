@@ -23,7 +23,12 @@ namespace Player
         // Using Snap Turn rather than Turn because the HP Reverb G2 with Oasis
         // drivers does not currently populate the Turn action correctly.
         [SerializeField] private InputActionReference turnAction;
-        
+
+        [Header("Crouch")]
+        // Reference to the crouch button action. Read as a single press rather
+        // than a held value, since crouch is a toggle - see PlayerLocomotion.
+        [SerializeField] private InputActionReference crouchAction;
+
         public float LeftGrip => leftGrip.action.ReadValue<float>();
         public float LeftTrigger => leftTrigger.action.ReadValue<float>();
 
@@ -45,6 +50,9 @@ namespace Player
         // X = horizontal turning.
         // Y is unused for now.
             public Vector2 TurnAxis => turnAction.action.ReadValue<Vector2>();
-        
+
+        // True for exactly one frame when the crouch button is pressed.
+        public bool CrouchPressed => crouchAction.action.WasPressedThisFrame();
+
     }
 }
