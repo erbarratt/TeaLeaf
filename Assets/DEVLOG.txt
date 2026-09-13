@@ -5,6 +5,57 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 (Unity, OpenXR + XR Interaction Toolkit). Newest updates are at the top.
 
 
+2026-09-13
+----------
+- Replaced the placeholder hand controller models with the real hand models,
+  correctly oriented in the game world.
+- Designed and started building a hand finger-animation system. Added a
+  HandState enum (Idle vs Climbing) inside a new PlayerHandAnimation.cs -
+  Idle drives finger curl from live grip/trigger input, Climbing (and any
+  future interaction states) intentionally does nothing yet, since a gripped
+  ledge should own the hand's pose instead once that's built.
+- Added IsLeftHandGripping/IsRightHandGripping to PlayerClimbing.cs (reading
+  the existing per-hand _leftGrabbedEdge/_rightGrabbedEdge fields directly),
+  since the existing IsClimbing only reflects whichever hand is the primary
+  movement-driving hand, not each hand's own grip state - PlayerHandAnimation
+  needs the latter.
+- Wired PlayerHandAnimation.Tick() into PlayerLocomotion.Update(), right
+  after playerClimbing.Tick(), so it always reads this frame's grab state
+  rather than last frame's.
+- Settled on a per-hand Animator approach for finger curl: each hand's
+  Animator Controller gets one masked layer per finger group (index; middle
+  + ring + pinky), each a 1D blend tree between an Open and a Closed pose
+  clip, driven by GripCurl (middle/ring/pinky) and TriggerCurl (index) float
+  parameters read from PlayerInputXR. Thumb is left untouched for now.
+- Confirmed the hand FBX's Animation Type is Generic (not Humanoid), and
+  got the bone hierarchy for one hand's fingers (J_Left_Hand_Index1-4,
+  mirrored per finger and per side).
+- Learned the Animation window's per-bone workflow: Add Property (not the
+  Add Keyframe diamond) is what actually creates a curve for a
+  not-yet-animated bone, and pose clips used in blend trees need exactly ONE
+  keyframe each (a static pose) rather than an open-to-closed sequence
+  within a single clip - otherwise the Animator plays that clip's own
+  internal timeline independently of the curl parameter.
+- Built and verified the index finger end-to-end on both hands: recorded
+  Hand_L/R_Index_Open and Hand_L/R_Index_Closed pose clips, added a
+  TriggerCurl parameter and 1D blend tree to each hand's Animator
+  Controller, and assigned both real Animators into PlayerHandAnimation's
+  Left Hand Animator / Right Hand Animator slots. Confirmed in Play Mode
+  that pulling either trigger smoothly curls that hand's index finger.
+- Hit a "Parameter 'Hash ...' does not exist" console error once both hands
+  were wired up - UpdateHand() always sets both GripCurl and TriggerCurl
+  every frame, but neither controller had a GripCurl parameter defined yet
+  (that layer isn't built). Fixed by adding an unused GripCurl float
+  parameter to both controllers now, ready for when the middle/ring/pinky
+  layer is added.
+
+Still to do next: middle+ring+pinky Open/Closed pose clips (posed together,
+per hand), an Avatar Mask per finger group per hand (index-only; middle +
+ring + pinky-only) so each blend tree layer only touches its own bones, and
+the second masked layer + blend tree on each hand's Animator Controller
+before this feature is complete.
+
+
 2026-09-08
 ----------
 - Reorganized PlayerLocomotion.cs's inspector fields into grouped [Header] sections

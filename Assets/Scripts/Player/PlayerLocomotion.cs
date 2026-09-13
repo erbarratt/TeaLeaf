@@ -40,6 +40,11 @@ namespace Player
         /// explicitly for the same reason as playerClimbing.
         [SerializeField] private PlayerHandInteraction playerHandInteraction;
 
+        /// Drives hand finger-curl animation. Ticked explicitly, after
+        /// playerClimbing, so it sees this frame's grab state rather than
+        /// last frame's.
+        [SerializeField] private PlayerHandAnimation playerHandAnimation;
+
         /// The transform whose Y rotation defines the player's movement direction.
         /// We use the rig root rather than the headset so that looking left/right does
         /// not change which direction "forward" moves the player.
@@ -128,6 +133,7 @@ namespace Player
             HandleCrouch();
             playerHandInteraction.Tick();
             playerClimbing.Tick();
+            playerHandAnimation.Tick();
 
             bool isClimbing = playerClimbing.IsClimbing;
 

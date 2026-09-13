@@ -83,6 +83,16 @@ namespace Player
         /// True while a hand is gripping an edge and driving climb movement.
         public bool IsClimbing { get; private set; }
 
+        /// True while the left hand is gripping a climbable edge, regardless
+        /// of whether it's the primary hand currently driving movement -
+        /// e.g. hand animation needs to know per-hand grip state, not just
+        /// which hand (if any) is steering.
+        public bool IsLeftHandGripping => _leftGrabbedEdge is not null;
+
+        /// True while the right hand is gripping a climbable edge - mirrors
+        /// IsLeftHandGripping.
+        public bool IsRightHandGripping => _rightGrabbedEdge is not null;
+
         /// This frame's climb movement, for PlayerLocomotion to add to its
         /// own frame movement accumulator.
         public Vector3 FrameMovement { get; private set; }
