@@ -128,6 +128,12 @@ namespace Player
 
         private void Update()
         {
+            // Must run first - every other Tick() call below, plus
+            // HandleMovement()/HandleTurning()/HandleCrouch() further down,
+            // read this frame's input through playerInput and need it
+            // guaranteed fresh regardless of Unity's own Update() order
+            // relative to PlayerInputXR's own (self-sufficient) Update().
+            playerInput.Tick();
 
             UpdateCharacterControllerCentre();
             HandleCrouch();

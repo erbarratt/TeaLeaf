@@ -25,6 +25,13 @@ namespace Player
         // leftHandRayLength/rightHandRayLength.
         [SerializeField] private float rayLength = 0.5f;
 
+        // Layers hand rays can hit. Defaults to everything so behaviour is
+        // unchanged until this is narrowed in the Inspector - restricting
+        // it to just an "Interactable"-style layer avoids an unrelated
+        // trigger volume (AI perception, item pickup, etc.) silently
+        // blocking the ray before it reaches the intended IHighlightable.
+        [SerializeField] private LayerMask interactableLayers = ~0;
+
         // Euler angle applied on top of the left hand's own rotation before
         // casting its ray, so the ray can point somewhere other than
         // straight out of the controller model (e.g. angled down along a
@@ -57,6 +64,26 @@ namespace Player
         /// Whatever the right hand's ray is currently pointing at, or null.
         public IHighlightable RightTarget => _rightHighlighted;
 
+        /// World-space origin of the left hand's ray this frame - exposed
+        /// for HandRayDebug (Scripts/Player/Debug) to visualize while
+        /// tuning leftHandRayAngleOffset.
+        public Vector3 LeftRayOrigin { get; private set; }
+
+        /// Direction (unit length, not scaled by rayLength) of the left
+        /// hand's ray this frame.
+        public Vector3 LeftRayDirection { get; private set; }
+
+        /// World-space origin of the right hand's ray this frame.
+        public Vector3 RightRayOrigin { get; private set; }
+
+        /// Direction (unit length, not scaled by rayLength) of the right
+        /// hand's ray this frame.
+        public Vector3 RightRayDirection { get; private set; }
+
+        /// Configured length of each hand's ray, in metres - exposed so
+        /// HandRayDebug can draw the ray at its true length.
+        public float RayLength => rayLength;
+
         /// <summary>
         /// Casts both hand rays, updates highlighting for whatever they hit,
         /// and moves each hand's reticle to wherever its ray currently
@@ -64,23 +91,32 @@ namespace Player
         /// </summary>
         public void Tick()
         {
-            IHighlightable leftHit = RaycastForHighlightable(
-                playerTracking.LeftHandPosition,
-                RayDirection(playerTracking.LeftHand, leftHandRayAngleOffset),
-                out Vector3 leftPoint);
+            // Cached on the public Left/RightRay* properties below as well
+            // as passed straight into the raycasts, so HandRayDebug can
+            // visualize exactly the ray actually being cast, not a
+            // recomputed approximation of it.
+            LeftRayOrigin = playerTracking.LeftHandPosition;
+            LeftRayDirection = RayDirection(playerTracking.LeftHand, leftHandRayAngleOffset);
 
-            IHighlightable rightHit = RaycastForHighlightable(
-                playerTracking.RightHandPosition,
-                RayDirection(playerTracking.RightHand, rightHandRayAngleOffset),
-                out Vector3 rightPoint);
+            RightRayOrigin = playerTracking.RightHandPosition;
+            RightRayDirection = RayDirection(playerTracking.RightHand, rightHandRayAngleOffset);
+
+            IHighlightable leftHit = RaycastForHighlightable(LeftRayOrigin, LeftRayDirection, out Vector3 leftPoint);
+            IHighlightable rightHit = RaycastForHighlightable(RightRayOrigin, RightRayDirection, out Vector3 rightPoint);
 
             // Both hits are computed above before either hand's highlight
             // state is updated, so each UpdateHighlighted() call below can
             // check what the OTHER hand is pointing at this frame - not what
             // it was highlighting last frame - to avoid un-highlighting an
             // edge that's still targeted by the other hand.
-            UpdateHighlighted(ref _leftHighlighted, leftHit, rightHit);
-            UpdateHighlighted(ref _rightHighlighted, rightHit, leftHit);
+            // _rightHighlighted/_leftHighlighted are passed a second time
+            // here (as otherHandCurrentHighlighted), read at each call's own
+            // point in this sequence - for the left call that's still last
+            // frame's value (right hasn't run yet), for the right call it's
+            // already this frame's value (left just updated it above) - see
+            // UpdateHighlighted's comment for why that ordering matters.
+            UpdateHighlighted(ref _leftHighlighted, leftHit, rightHit, _rightHighlighted);
+            UpdateHighlighted(ref _rightHighlighted, rightHit, leftHit, _leftHighlighted);
 
             leftReticle.Tick(leftHit is not null, leftPoint, playerTracking.HeadPosition);
             rightReticle.Tick(rightHit is not null, rightPoint, playerTracking.HeadPosition);
@@ -116,7 +152,7 @@ namespace Player
                 direction,
                 out RaycastHit hit,
                 rayLength,
-                Physics.AllLayers,
+                interactableLayers,
                 QueryTriggerInteraction.Collide);
 
             point = rayHit ? hit.point : default;
@@ -136,10 +172,23 @@ namespace Player
         /// frame cost that shows up as stutter while the player is also
         /// moving.
         /// </summary>
+        /// <summary>
+        /// otherHandCurrentHighlighted is the other hand's CURRENT stored
+        /// highlight state at the point this is called (not necessarily
+        /// this frame's raw hit, unlike otherHandHit) - since Tick() always
+        /// processes the left hand before the right, that means it's still
+        /// last frame's value when called for the left hand, but already
+        /// this frame's freshly-updated value when called for the right
+        /// hand. Either way it answers "does the other hand already have
+        /// this object highlighted", which is exactly what's needed to
+        /// avoid calling SetHighlighted(true) on the same object twice in
+        /// one frame when both hands land on it together.
+        /// </summary>
         private static void UpdateHighlighted(
             ref IHighlightable highlighted,
             IHighlightable newHit,
-            IHighlightable otherHandHit)
+            IHighlightable otherHandHit,
+            IHighlightable otherHandCurrentHighlighted)
         {
             if (ReferenceEquals(highlighted, newHit)) {
                 return;
@@ -149,7 +198,7 @@ namespace Player
                 highlighted.SetHighlighted(false);
             }
 
-            if (newHit is not null) {
+            if (newHit is not null && !ReferenceEquals(newHit, otherHandCurrentHighlighted)) {
                 newHit.SetHighlighted(true);
             }
 

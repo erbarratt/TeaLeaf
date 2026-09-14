@@ -37,7 +37,11 @@ silently reformat) existing code that doesn't yet match:
   encouraged where they aid learning (this project doubles as a teaching exercise for the
   maintainer — prefer building new systems step-by-step with explanation over handing over a
   finished file all at once). Never insert empty comment lines.
-- **Braces:** opening brace on the same line, e.g. `if (condition) {`.
+- **Braces:** hybrid style, consistent across the whole codebase. Control-flow braces
+  (`if`/`for`/`while`/`switch`) go on the same line, e.g. `if (condition) {`. Class/method/
+  property declaration braces go on their own line (Allman) instead, e.g. `public class Foo`
+  followed by `{` on the next line. Don't unify these to one style - this is the established
+  convention, not a deviation from it.
 - **Debug scripts:** always in a system-specific `Debug` subfolder (`Scripts/Player/Debug`,
   `Scripts/Inventory/Debug`, `Scripts/AI/Debug`, ...), never alongside runtime gameplay code.
 

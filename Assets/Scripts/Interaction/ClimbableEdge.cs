@@ -29,7 +29,7 @@ namespace Interaction
         // since Shader.PropertyToID() hashes a string every call. If the
         // ledge material's shader ever changes to one that reads colour from
         // "_Color" instead (e.g. Built-in Standard), this needs updating too.
-        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int _baseColorId = Shader.PropertyToID("_BaseColor");
 
         private BoxCollider _boxCollider;
 
@@ -84,6 +84,11 @@ namespace Interaction
             return _boxCollider.ClosestPoint(point);
         }
 
+        /// World-space axis-aligned bounds of this edge's BoxCollider -
+        /// exposed so PlayerClimbing can cheaply reject far-away edges
+        /// before calling the more expensive Overlaps() below.
+        public Bounds Bounds => _boxCollider.bounds;
+
         /// <summary>
         /// Whether a sphere of the given radius centred on point overlaps
         /// this edge's box, respecting the box's rotation (unlike an
@@ -120,7 +125,7 @@ namespace Interaction
         {
             Color color = _baseColor;
             color.a = highlighted ? highlightedOpacity : baseOpacity;
-            _propertyBlock.SetColor(BaseColorId, color);
+            _propertyBlock.SetColor(_baseColorId, color);
             targetRenderer.SetPropertyBlock(_propertyBlock);
         }
     }

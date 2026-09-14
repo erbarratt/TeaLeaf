@@ -27,30 +27,69 @@ namespace Player
         // than a held value, since crouch is a toggle - see PlayerLocomotion.
         [SerializeField] private InputActionReference crouchAction;
 
-        public float LeftGrip => leftGrip.action.ReadValue<float>();
-        public float LeftTrigger => leftTrigger.action.ReadValue<float>();
+        // All properties below are cached once per frame in Tick() rather
+        // than reading the Input System live on every access - several
+        // systems (PlayerLocomotion, PlayerClimbing, PlayerHandAnimation)
+        // read the same value more than once per frame, and ReadValue<T>()
+        // isn't free to call repeatedly.
 
-        public float RightGrip => rightGrip.action.ReadValue<float>();
-        public float RightTrigger => rightTrigger.action.ReadValue<float>();
+        public float LeftGrip { get; private set; }
+        public float LeftTrigger { get; private set; }
+
+        public float RightGrip { get; private set; }
+        public float RightTrigger { get; private set; }
 
         public bool IsLeftGrabbing => LeftGrip > 0.5f;
         public bool IsRightGrabbing => RightGrip > 0.5f;
 
         public bool IsLeftUsing => LeftTrigger > 0.5f;
         public bool IsRightUsing => RightTrigger > 0.5f;
-        
-        // Returns the left thumbstick movement vector.
+
+        // Left thumbstick movement vector.
         // X = left/right strafe.
         // Y = forward/backward movement.
-            public Vector2 MoveAxis => moveAction.action.ReadValue<Vector2>();
+        public Vector2 MoveAxis { get; private set; }
 
-        // Returns the right thumbstick turning vector.
+        // Right thumbstick turning vector.
         // X = horizontal turning.
         // Y is unused for now.
-            public Vector2 TurnAxis => turnAction.action.ReadValue<Vector2>();
+        public Vector2 TurnAxis { get; private set; }
 
         // True for exactly one frame when the crouch button is pressed.
-        public bool CrouchPressed => crouchAction.action.WasPressedThisFrame();
+        public bool CrouchPressed { get; private set; }
 
+        private void Update()
+        {
+            // Self-sufficient fallback for anything that reads this class
+            // without explicitly calling Tick() itself - e.g. the
+            // standalone Debug/ input test scripts, which are meant to work
+            // without a full PlayerLocomotion set up. Redundant with, but
+            // harmless alongside, the explicit call PlayerLocomotion makes
+            // below - both just cache the same live Input System state
+            // again in the same frame.
+            Tick();
+        }
+
+        /// <summary>
+        /// Caches this frame's raw input values. Called explicitly, and
+        /// first, by PlayerLocomotion.Update() - before anything else reads
+        /// this frame's input - so every Tick()-sequenced system
+        /// (PlayerClimbing, PlayerHandInteraction, PlayerHandAnimation) is
+        /// guaranteed fresh values regardless of Unity's own (unspecified)
+        /// Update() order between this component and PlayerLocomotion.
+        /// </summary>
+        public void Tick()
+        {
+            LeftGrip = leftGrip.action.ReadValue<float>();
+            LeftTrigger = leftTrigger.action.ReadValue<float>();
+
+            RightGrip = rightGrip.action.ReadValue<float>();
+            RightTrigger = rightTrigger.action.ReadValue<float>();
+
+            MoveAxis = moveAction.action.ReadValue<Vector2>();
+            TurnAxis = turnAction.action.ReadValue<Vector2>();
+
+            CrouchPressed = crouchAction.action.WasPressedThisFrame();
+        }
     }
 }

@@ -122,8 +122,22 @@ namespace Player
         /// </summary>
         public void Tick()
         {
-            UpdateLeftHand();
-            UpdateRightHand();
+            UpdateHandGrab(
+                Hand.Left, Hand.Right,
+                playerInput.IsLeftGrabbing, playerInput.IsRightGrabbing,
+                playerTracking.LeftHandPosition, playerTracking.RightHandPosition,
+                leftHandSphere, leftHandVisual, _leftVisualOriginalLocalPosition,
+                ref _leftGrabbedEdge, ref _leftSnapPosition,
+                _rightGrabbedEdge);
+
+            UpdateHandGrab(
+                Hand.Right, Hand.Left,
+                playerInput.IsRightGrabbing, playerInput.IsLeftGrabbing,
+                playerTracking.RightHandPosition, playerTracking.LeftHandPosition,
+                rightHandSphere, rightHandVisual, _rightVisualOriginalLocalPosition,
+                ref _rightGrabbedEdge, ref _rightSnapPosition,
+                _leftGrabbedEdge);
+
             UpdateFrameMovement();
         }
 
@@ -136,6 +150,18 @@ namespace Player
         private static ClimbableEdge FindEdgeOverlapping(Vector3 point, float radius)
         {
             foreach (ClimbableEdge edge in ClimbableEdge.Active) {
+
+                // Cheap AABB reject before the oriented ClosestPoint check
+                // inside Overlaps() - ClosestPoint is a real physics query,
+                // so with many ledges in a level this skips most of them
+                // without ever touching a collider.
+                Bounds bounds = edge.Bounds;
+                bounds.Expand(radius * 2f);
+
+                if (!bounds.Contains(point)) {
+                    continue;
+                }
+
                 if (edge.Overlaps(point, radius)) {
                     return edge;
                 }
@@ -145,113 +171,80 @@ namespace Player
         }
 
         /// <summary>
-        /// Handles the left hand grabbing whatever climbable edge it's inside,
-        /// or releasing whatever it's currently gripping.
+        /// Handles one hand grabbing whatever climbable edge it's inside, or
+        /// releasing whatever it's currently gripping. UpdateLeftHand()/
+        /// UpdateRightHand() used to be separate, hand-mirrored copies of
+        /// this method - unified here so a future change can't be applied
+        /// to one hand and forgotten on the other.
+        ///
+        /// hand/otherHand identify which hand this call is for, so a single
+        /// _primaryHand field (shared between both hands) can still be set
+        /// correctly. otherGrabbedEdge/otherIsGrabbing/otherHandPosition
+        /// describe the OTHER hand's current state, needed for the
+        /// hand-off check at the bottom - see its comment for why passing
+        /// these in (rather than reading the other hand's fields directly)
+        /// keeps this order-independent between the two Tick() calls.
         /// </summary>
-        private void UpdateLeftHand()
+        private void UpdateHandGrab(
+            Hand hand,
+            Hand otherHand,
+            bool isGrabbing,
+            bool otherIsGrabbing,
+            Vector3 handPosition,
+            Vector3 otherHandPosition,
+            SphereCollider handSphere,
+            Transform handVisual,
+            Vector3 visualOriginalLocalPosition,
+            ref ClimbableEdge grabbedEdge,
+            ref Vector3 snapPosition,
+            ClimbableEdge otherGrabbedEdge)
         {
-            if (_leftGrabbedEdge is null) {
+            if (grabbedEdge is null) {
 
-                if (!playerInput.IsLeftGrabbing) {
+                if (!isGrabbing) {
                     return;
                 }
 
-                ClimbableEdge edge = FindEdgeOverlapping(playerTracking.LeftHandPosition, leftHandSphere.radius);
+                ClimbableEdge edge = FindEdgeOverlapping(handPosition, handSphere.radius);
 
                 if (edge is null) {
                     return;
                 }
 
-                _leftGrabbedEdge = edge;
-                _leftSnapPosition = _leftGrabbedEdge.ClosestPoint(playerTracking.LeftHandPosition);
+                grabbedEdge = edge;
+                snapPosition = grabbedEdge.ClosestPoint(handPosition);
 
                 // Every new grab takes over movement, even if the other hand
                 // is already gripping something - the most recently grabbed
                 // hand always drives climbing.
-                _primaryHand = Hand.Left;
-                _primaryHandLastLocalPosition =
-                    playerTransform.InverseTransformPoint(playerTracking.LeftHandPosition);
+                _primaryHand = hand;
+                _primaryHandLastLocalPosition = playerTransform.InverseTransformPoint(handPosition);
 
                 return;
             }
 
-            if (playerInput.IsLeftGrabbing) {
+            if (isGrabbing) {
                 // Still gripping - keep the visual pinned to the fixed grab
                 // point, regardless of where tracking moved the real hand.
-                leftHandVisual.position = _leftSnapPosition;
+                handVisual.position = snapPosition;
                 return;
             }
 
             // Released.
-            _leftGrabbedEdge = null;
-            leftHandVisual.localPosition = _leftVisualOriginalLocalPosition;
+            grabbedEdge = null;
+            handVisual.localPosition = visualOriginalLocalPosition;
 
-            if (_primaryHand != Hand.Left) {
+            if (_primaryHand != hand) {
                 return;
             }
 
-            // Hand off to the right hand if it's still gripping, checking its
-            // actual current state rather than assuming - this must not
-            // depend on whether UpdateLeftHand() or UpdateRightHand() ran
-            // first this frame.
-            if (_rightGrabbedEdge is not null && playerInput.IsRightGrabbing) {
-                _primaryHand = Hand.Right;
-                _primaryHandLastLocalPosition =
-                    playerTransform.InverseTransformPoint(playerTracking.RightHandPosition);
-            } else {
-                _primaryHand = Hand.None;
-            }
-        }
-
-        /// <summary>
-        /// Handles the right hand grabbing whatever climbable edge it's
-        /// inside, or releasing whatever it's currently gripping. Mirrors
-        /// UpdateLeftHand().
-        /// </summary>
-        private void UpdateRightHand()
-        {
-            if (_rightGrabbedEdge is null) {
-
-                if (!playerInput.IsRightGrabbing) {
-                    return;
-                }
-
-                ClimbableEdge edge = FindEdgeOverlapping(playerTracking.RightHandPosition, rightHandSphere.radius);
-
-                if (edge is null) {
-                    return;
-                }
-
-                _rightGrabbedEdge = edge;
-                _rightSnapPosition = _rightGrabbedEdge.ClosestPoint(playerTracking.RightHandPosition);
-
-                // Every new grab takes over movement, even if the other hand
-                // is already gripping something - the most recently grabbed
-                // hand always drives climbing.
-                _primaryHand = Hand.Right;
-                _primaryHandLastLocalPosition =
-                    playerTransform.InverseTransformPoint(playerTracking.RightHandPosition);
-
-                return;
-            }
-
-            if (playerInput.IsRightGrabbing) {
-                rightHandVisual.position = _rightSnapPosition;
-                return;
-            }
-
-            // Released.
-            _rightGrabbedEdge = null;
-            rightHandVisual.localPosition = _rightVisualOriginalLocalPosition;
-
-            if (_primaryHand != Hand.Right) {
-                return;
-            }
-
-            if (_leftGrabbedEdge is not null && playerInput.IsLeftGrabbing) {
-                _primaryHand = Hand.Left;
-                _primaryHandLastLocalPosition =
-                    playerTransform.InverseTransformPoint(playerTracking.LeftHandPosition);
+            // Hand off to the other hand if it's still gripping, checking
+            // its actual current state rather than assuming - this must not
+            // depend on which hand's UpdateHandGrab() call runs first this
+            // frame.
+            if (otherGrabbedEdge is not null && otherIsGrabbing) {
+                _primaryHand = otherHand;
+                _primaryHandLastLocalPosition = playerTransform.InverseTransformPoint(otherHandPosition);
             } else {
                 _primaryHand = Hand.None;
             }

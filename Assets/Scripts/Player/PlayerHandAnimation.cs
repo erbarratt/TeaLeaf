@@ -35,8 +35,8 @@ namespace Player
         // a string every frame - StringToHash avoids the Animator doing a
         // string lookup internally on every single call, which matters
         // since this runs twice a frame (once per hand).
-        private static readonly int GripCurlParam = Animator.StringToHash("GripCurl");
-        private static readonly int TriggerCurlParam = Animator.StringToHash("TriggerCurl");
+        private static readonly int _gripCurlParam = Animator.StringToHash("GripCurl");
+        private static readonly int _triggerCurlParam = Animator.StringToHash("TriggerCurl");
 
         /// <summary>
         /// Updates both hands' finger-curl animation for this frame.
@@ -77,8 +77,8 @@ namespace Player
             switch (state) {
 
                 case HandState.Idle:
-                    handAnimator.SetFloat(GripCurlParam, gripValue);
-                    handAnimator.SetFloat(TriggerCurlParam, triggerValue);
+                    handAnimator.SetFloat(_gripCurlParam, gripValue);
+                    handAnimator.SetFloat(_triggerCurlParam, triggerValue);
                     break;
 
                 case HandState.Climbing:
