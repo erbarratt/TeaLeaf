@@ -134,11 +134,20 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
 ### Player systems (`Assets/Scripts/Player/`, namespace `Player`)
 
 - **`PlayerInputXR`** — the single source of truth for controller input. Wraps Input System
-  `InputActionReference`s (grip/trigger per hand, move/turn thumbsticks, crouch) and caches them
-  once per frame in `Tick()` as typed properties (`MoveAxis`, `TurnAxis`, `LeftGrip`,
-  `IsLeftGrabbing`, `CrouchPressed`, etc.). Also calls `Tick()` from its own `Update()` as a
-  fallback so Debug scripts work without a full rig. Gameplay code should always read input
-  through this class rather than referencing Input Actions directly.
+  `InputActionReference`s (grip/trigger per hand, move/turn thumbsticks, crouch, sprint) and
+  caches them once per frame in `Tick()` as typed properties (`MoveAxis`, `TurnAxis`, `LeftGrip`,
+  `IsLeftGrabbing`, `CrouchPressed`, `SprintPressed`, etc.). Enables every action it reads in
+  `OnEnable()`, since they come from two assets (see below). Also calls `Tick()` from its own
+  `Update()` as a fallback so Debug scripts work without a full rig. Gameplay code should always
+  read input through this class rather than referencing Input Actions directly.
+
+  **Input assets:** grip/trigger/move/turn still reference XRI's sample
+  `XRI Default Input Actions` (enabled by the Input Action Manager on Player). New gameplay
+  actions go in the project-owned, project-wide `Assets/InputSystem_Actions.inputactions`
+  (`Player` map, auto-enabled by Unity) with an `XR`-group binding, not in the XRI sample asset,
+  which a package update could overwrite. Current XR bindings there: `Crouch` = right A
+  (`{RightHand}/{PrimaryButton}`), `Sprint` = left stick click
+  (`{LeftHand}/{Primary2DAxisClick}`). Its `Jump` action is free for the planned jump.
 - **`PlayerTracking`** — the single source of truth for tracked XR transforms (head, left
   hand, right hand), exposing position/rotation accessors. Other systems should query this
   class instead of walking the XR Rig hierarchy.
@@ -225,6 +234,10 @@ handedness-dependent.
   release: letting go of a climb keeps its momentum (a few-frame average of the applied climb
   velocity), so pushing off a ledge launches the player. Landing will emit a noise event scaled
   by fall speed.
+- **Sprint is click-to-toggle** (left stick click) rather than hold, because holding a stick
+  click while pushing the stick is tiring in VR. `sprintSpeed` replaces `moveSpeed`. The sprint
+  ends when the stick returns to centre, on a second click, on crouch or on climb, and can't
+  start while crouched. `PlayerLocomotion.IsSprinting` is the value other systems read.
 - **Crouch is a button-driven toggle, not physical** — `HandleCrouch()` smoothly moves the
   CharacterController height between the standing height (captured in `Awake`) and
   `minimumHeight`, keeps `center.y` in sync, and shifts `cameraOffsetTransform` by the

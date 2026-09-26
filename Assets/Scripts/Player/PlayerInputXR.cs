@@ -22,10 +22,15 @@ namespace Player
         // drivers does not currently populate the Turn action correctly.
         [SerializeField] private InputActionReference turnAction;
 
-        [Header("Crouch")]
+        [Header("Stance")]
         // Reference to the crouch button action. Read as a single press rather
         // than a held value, since crouch is a toggle - see PlayerLocomotion.
         [SerializeField] private InputActionReference crouchAction;
+
+        // Reference to the sprint button action (left stick click). Also read
+        // as a single press, since sprint is a click-to-toggle that ends by
+        // itself - see PlayerLocomotion.UpdateSprint().
+        [SerializeField] private InputActionReference sprintAction;
 
         // All properties below are cached once per frame in Tick() rather
         // than reading the Input System live on every access - several
@@ -57,6 +62,29 @@ namespace Player
 
         // True for exactly one frame when the crouch button is pressed.
         public bool CrouchPressed { get; private set; }
+
+        // True for exactly one frame when the sprint button is pressed.
+        public bool SprintPressed { get; private set; }
+
+        /// <summary>
+        /// Makes sure every action this class reads is enabled. The actions
+        /// come from two different assets - XRI's Default Input Actions
+        /// (enabled by the Input Action Manager on Player) and the
+        /// project-wide InputSystem_Actions (enabled by Unity at startup) -
+        /// so rather than relying on either of those, this class enables what
+        /// it needs itself. Enabling an already-enabled action does nothing.
+        /// </summary>
+        private void OnEnable()
+        {
+            leftGrip.action.Enable();
+            leftTrigger.action.Enable();
+            rightGrip.action.Enable();
+            rightTrigger.action.Enable();
+            moveAction.action.Enable();
+            turnAction.action.Enable();
+            crouchAction.action.Enable();
+            sprintAction.action.Enable();
+        }
 
         private void Update()
         {
@@ -91,6 +119,7 @@ namespace Player
             TurnAxis = turnAction.action.ReadValue<Vector2>();
 
             CrouchPressed = crouchAction.action.WasPressedThisFrame();
+            SprintPressed = sprintAction.action.WasPressedThisFrame();
         }
     }
 }

@@ -7,6 +7,25 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 
 2026-09-26
 ----------
+- Sprint (Phase 1). Click-to-toggle on the left stick click rather than
+  hold-to-sprint, since holding a stick click while pushing that stick is
+  tiring. sprintSpeed (4.5 m/s vs 3 walk) replaces moveSpeed while sprinting;
+  the sprint ends when the stick returns to centre, on a second click, on
+  crouch or on climb, and can't start while crouched. Exposed as
+  PlayerLocomotion.IsSprinting. Verified working in headset.
+- Input: found crouch was wired to XRI's "Jump" action (right A), a
+  confusingly named action in the XRI sample asset. New gameplay actions now
+  live in the project-wide Assets/InputSystem_Actions.inputactions (Unity 6
+  creates and auto-enables it) instead: gave its Player/Sprint action an XR
+  binding (left stick click - it had a placeholder "any controller trigger"
+  binding) and added an XR binding for Player/Crouch (right A). Jump will use
+  its Player/Jump action on right B instead of A. PlayerInputXR now enables
+  every action it reads in OnEnable(), since they come from two assets
+  enabled by two different things.
+- Roadmap change: deferred the Phase 0 Quest 3 standalone baseline build to
+  Phase 10. Development stays PCVR-first for now; Quest 3 standalone is still
+  the eventual target, so the Quest-minded performance habits continue. That
+  closes out Phase 0 - next up is Phase 1 (sprint first).
 - Restructured the player in Main.unity: unpacked the XR Origin prefab,
   renamed PlayerRig to Player, deleted XRI's unused Locomotion object, and
   moved PlayerHandInteraction/PlayerHandAnimation onto a new Hands object

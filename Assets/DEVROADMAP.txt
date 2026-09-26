@@ -7,6 +7,7 @@ objective item, escape - with a fail/restart loop when caught. No settings
 menu, main menu, save system or final art required.
 
 Written 2026-09-26. Tick items off as [x] and log details in DEVLOG.txt.
+[-] marks an item deferred to a later phase (the item says where).
 
 
 Vertical slice feature list (agreed scope)
@@ -54,22 +55,26 @@ Phase 0 - Finish in-progress work
     (ShadowVolume/NoiseOccluder dropped - not needed, see DEVLOG). Layer
     collision matrix trimmed; hand rays masked to Environment/Interactable/
     Climbable.
-[ ] Quest 3 standalone baseline: make one standalone build of Main.unity now
-    and record frame time, so later regressions can be spotted early.
+[-] Quest 3 standalone baseline: deferred (2026-09-26) - development stays
+    PCVR-first for now; the first standalone build and frame-time baseline
+    move to Phase 10. Quest 3 standalone is still the eventual target, so
+    the performance habits in CLAUDE.md still apply to all new code.
 
 
 Phase 1 - Locomotion completion (Player)
 ----------------------------------------
 Scripting:
-[ ] Sprint: hold-to-sprint input on PlayerInputXR (e.g. left stick click),
-    sprintSpeed field on PlayerLocomotion, adds to _frameMovement like
-    normal movement. Crouching cancels sprint. Expose IsSprinting and a
-    CurrentMoveSpeed/MovementState for the noise and visibility systems.
+[x] Sprint: click-to-toggle on the left stick click (project-wide
+    InputSystem_Actions Player/Sprint), sprintSpeed replaces moveSpeed.
+    Ends when the stick returns to centre, on a second click, on crouch or
+    on climb; can't start while crouched. Exposes IsSprinting. Verified
+    in headset.
 [ ] Expose a single PlayerStance/MovementState (Still, Crouched, Walking,
     Sprinting, Climbing, Airborne) so AI, noise and the wrist gem read one
     value instead of each re-deriving it.
-[ ] Jump: a jump button on PlayerInputXR (e.g. right A / primary button -
-    check it's free of other bindings on both headsets). Only when
+[ ] Jump: a jump button on PlayerInputXR (right A is crouch, so e.g. right
+    B / secondary button, via the project-wide Player/Jump action - check
+    it's free of other bindings on both headsets). Only when
     grounded and not climbing; sets _verticalVelocity from a tunable
     jumpHeight (v = sqrt(2 * jumpHeight * -gravity), so height is what's
     tuned, not a raw speed). Needs:
@@ -440,7 +445,8 @@ Phase 9 - Game loop, feedback and slice polish
 
 Phase 10 - Quest 3 performance pass
 -----------------------------------
-[ ] Standalone build; profile with the Unity Profiler + OVR Metrics Tool.
+[ ] First standalone build (the baseline deferred from Phase 0); profile
+    with the Unity Profiler + OVR Metrics Tool.
     Target a stable 72Hz minimum (90Hz stretch).
 [ ] Rendering: draw call/batch count, SRP Batcher compatibility, MSAA vs
     cost, shadows (likely off for realtime lights), foveation, render

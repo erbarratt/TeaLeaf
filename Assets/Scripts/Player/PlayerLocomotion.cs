@@ -65,6 +65,12 @@ namespace Player
         /// Minimum stick movement required before movement input is accepted.
         [SerializeField] private float moveDeadzone = 0.2f;
 
+        [Header("Sprint")]
+
+        /// Movement speed in metres per second while sprinting. Replaces
+        /// moveSpeed rather than adding to it, so the two can be tuned
+        /// independently.
+        [SerializeField] private float sprintSpeed = 4.5f;
 
         [Header("Gravity")]
 
@@ -110,6 +116,13 @@ namespace Player
         /// TickMovement().
         private bool _wasClimbing;
 
+        /// <summary>
+        /// True while the player is sprinting. Read by future systems (noise,
+        /// visibility, the movement state) rather than each re-deriving it
+        /// from input.
+        /// </summary>
+        public bool IsSprinting { get; private set; }
+
         private void Awake()
         {
             _standingHeight = characterController.height;
@@ -148,6 +161,10 @@ namespace Player
                     _verticalVelocity = 0f;
                 }
 
+                // Grabbing a ledge ends a sprint - letting go again shouldn't
+                // drop you straight back into sprint speed.
+                IsSprinting = false;
+
                 return Vector3.zero;
             }
 
@@ -173,7 +190,11 @@ namespace Player
             Vector2 moveInput = playerInput.MoveAxis;
 
             // Ignore tiny thumbstick movements and controller noise.
-            if (moveInput.magnitude < moveDeadzone) {
+            bool isMoving = moveInput.magnitude >= moveDeadzone;
+
+            UpdateSprint(isMoving);
+
+            if (!isMoving) {
                 return Vector3.zero;
             }
 
@@ -186,7 +207,29 @@ namespace Player
             // Prevent diagonal movement from being faster than straight movement.
             movement = Vector3.ClampMagnitude(movement, 1f);
 
-            return movement * (moveSpeed * Time.deltaTime);
+            float speed = IsSprinting ? sprintSpeed : moveSpeed;
+
+            return movement * (speed * Time.deltaTime);
+        }
+
+        /// <summary>
+        /// Click-to-toggle sprint. Clicking the sprint button while moving
+        /// starts a sprint; clicking again stops it. It also ends on its own
+        /// when the stick returns to centre, so a sprint only lasts for one
+        /// "run" and the player never starts walking again already sprinting.
+        /// Crouching and climbing also end it (see HandleCrouch() and
+        /// TickMovement()), and it can't be started while crouched.
+        /// </summary>
+        private void UpdateSprint(bool isMoving)
+        {
+            if (!isMoving) {
+                IsSprinting = false;
+                return;
+            }
+
+            if (playerInput.SprintPressed && !_isCrouching) {
+                IsSprinting = !IsSprinting;
+            }
         }
 
         /// <summary>
@@ -266,6 +309,12 @@ namespace Player
         {
             if (playerInput.CrouchPressed) {
                 _isCrouching = !_isCrouching;
+
+                // Crouching cancels a sprint. (Standing back up doesn't
+                // restart it - that needs a fresh click.)
+                if (_isCrouching) {
+                    IsSprinting = false;
+                }
             }
 
             float targetHeight = _isCrouching ? minimumHeight : _standingHeight;
