@@ -63,8 +63,8 @@ namespace Player
             // Self-sufficient fallback for anything that reads this class
             // without explicitly calling Tick() itself - e.g. the
             // standalone Debug/ input test scripts, which are meant to work
-            // without a full PlayerLocomotion set up. Redundant with, but
-            // harmless alongside, the explicit call PlayerLocomotion makes
+            // without a full PlayerController set up. Redundant with, but
+            // harmless alongside, the explicit call PlayerController makes
             // below - both just cache the same live Input System state
             // again in the same frame.
             Tick();
@@ -72,11 +72,12 @@ namespace Player
 
         /// <summary>
         /// Caches this frame's raw input values. Called explicitly, and
-        /// first, by PlayerLocomotion.Update() - before anything else reads
+        /// first, by PlayerController.Update() - before anything else reads
         /// this frame's input - so every Tick()-sequenced system
-        /// (PlayerClimbing, PlayerHandInteraction, PlayerHandAnimation) is
-        /// guaranteed fresh values regardless of Unity's own (unspecified)
-        /// Update() order between this component and PlayerLocomotion.
+        /// (PlayerLocomotion, PlayerClimbing, PlayerHandInteraction,
+        /// PlayerHandAnimation) is guaranteed fresh values regardless of
+        /// Unity's own (unspecified) Update() order between this component
+        /// and PlayerController.
         /// </summary>
         public void Tick()
         {

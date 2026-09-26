@@ -9,10 +9,9 @@ namespace Player
     /// (if any). Any object implementing IHighlightable is supported
     /// without this class needing to know about it specifically.
     ///
-    /// This class does not run its own Update(). Instead PlayerLocomotion
-    /// calls Tick() explicitly once per frame, the same way it already
-    /// sequences PlayerClimbing.Tick() - see PlayerClimbing's class comment
-    /// for why.
+    /// This class does not run its own Update(). Instead PlayerController
+    /// calls Tick() explicitly once per frame - see PlayerController's class
+    /// comment for why.
     /// </summary>
     public class PlayerHandInteraction : MonoBehaviour
     {

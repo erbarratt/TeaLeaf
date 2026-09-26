@@ -7,7 +7,7 @@ namespace Player
     /// controller input, except while some other system owns the hand's
     /// pose (e.g. gripping a climbable edge) - see HandState.
     ///
-    /// Ticked explicitly from PlayerLocomotion.Update(), after
+    /// Ticked explicitly from PlayerController.Update(), after
     /// PlayerClimbing.Tick(), rather than running its own Update() - the
     /// same reasoning as PlayerClimbing/PlayerHandInteraction's own class
     /// comments: this needs THIS frame's grab state, so frame ordering has

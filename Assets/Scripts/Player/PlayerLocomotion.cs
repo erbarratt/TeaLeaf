@@ -3,12 +3,17 @@ using UnityEngine;
 
 namespace Player
 {
-    /// Handles player movement and turning.
-    /// This class will eventually be responsible for:
-    /// - Smooth locomotion
-    /// - Snap turning
-    /// - Smooth turning
-    /// - Gravity
+    /// <summary>
+    /// Handles the player's own locomotion: thumbstick movement, gravity,
+    /// snap/smooth turning, crouch height, and keeping the
+    /// CharacterController centred under the headset.
+    ///
+    /// Doesn't run its own Update() and never calls
+    /// characterController.Move() itself. PlayerController calls TickBody(),
+    /// TickMovement() and TickTurning() at fixed points in its frame order,
+    /// and applies the movement TickMovement() returns in its single Move()
+    /// call alongside every other system's contribution.
+    /// </summary>
     public class PlayerLocomotion : MonoBehaviour
     {
 
@@ -30,20 +35,6 @@ namespace Player
         /// All gameplay code should get controller input through this class rather than
         /// reading Input Actions directly.
         [SerializeField] private PlayerInputXR playerInput;
-
-        /// Handles grabbing and climb movement. Ticked explicitly from
-        /// Update() below, rather than running its own Update(), so it's
-        /// clear exactly when climbing runs each frame.
-        [SerializeField] private PlayerClimbing playerClimbing;
-
-        /// Handles hand-ray highlighting of interactable objects. Ticked
-        /// explicitly for the same reason as playerClimbing.
-        [SerializeField] private PlayerHandInteraction playerHandInteraction;
-
-        /// Drives hand finger-curl animation. Ticked explicitly, after
-        /// playerClimbing, so it sees this frame's grab state rather than
-        /// last frame's.
-        [SerializeField] private PlayerHandAnimation playerHandAnimation;
 
         /// The transform whose Y rotation defines the player's movement direction.
         /// We use the rig root rather than the headset so that looking left/right does
@@ -106,9 +97,6 @@ namespace Player
         /// Current vertical movement speed in metres per second.
         private float _verticalVelocity;
 
-        /// Current movement vector accumulated during this frame.
-        private Vector3 _frameMovement;
-
         /// Whether the crouch button has been toggled into the crouched state.
         private bool _isCrouching;
 
@@ -118,7 +106,8 @@ namespace Player
         private float _standingHeight;
 
         /// Whether the player was climbing last frame, so we can detect the
-        /// moment a climb starts and reset vertical velocity - see Update().
+        /// moment a climb starts and reset vertical velocity - see
+        /// TickMovement().
         private bool _wasClimbing;
 
         private void Awake()
@@ -126,79 +115,70 @@ namespace Player
             _standingHeight = characterController.height;
         }
 
-        private void Update()
+        /// <summary>
+        /// Updates the CharacterController's shape for this frame: re-centres
+        /// it under the headset and applies any crouch height transition.
+        /// Called by PlayerController before the hand systems tick, since
+        /// crouching moves the whole tracked hierarchy (hands included).
+        /// </summary>
+        public void TickBody()
         {
-            // Must run first - every other Tick() call below, plus
-            // HandleMovement()/HandleTurning()/HandleCrouch() further down,
-            // read this frame's input through playerInput and need it
-            // guaranteed fresh regardless of Unity's own Update() order
-            // relative to PlayerInputXR's own (self-sufficient) Update().
-            playerInput.Tick();
-
             UpdateCharacterControllerCentre();
             HandleCrouch();
-            playerHandInteraction.Tick();
-            playerClimbing.Tick();
-            playerHandAnimation.Tick();
+        }
 
-            bool isClimbing = playerClimbing.IsClimbing;
-
-            _frameMovement = Vector3.zero;
+        /// <summary>
+        /// Returns this frame's locomotion movement (thumbstick + gravity)
+        /// for PlayerController to add to its frame movement. Returns zero
+        /// while climbing, since the hands move the player then - but still
+        /// needs to be called every frame so it can spot the moment a climb
+        /// starts.
+        /// </summary>
+        public Vector3 TickMovement(bool isClimbing)
+        {
+            bool climbStarted = isClimbing && !_wasClimbing;
+            _wasClimbing = isClimbing;
 
             if (isClimbing) {
 
                 // A climb starting mid-fall shouldn't carry the fall speed
                 // through to whenever the player lets go again - resetting
                 // here means release always resumes falling from rest.
-                if (!_wasClimbing) {
+                if (climbStarted) {
                     _verticalVelocity = 0f;
                 }
 
-                _frameMovement += playerClimbing.FrameMovement;
-
-            } else {
-                HandleMovement();
-                HandleGravity();
+                return Vector3.zero;
             }
 
-            // Turning always works, even mid-climb.
-            HandleTurning();
-
-            _wasClimbing = isClimbing;
-
-            Vector3 positionBeforeMove = playerTransform.position;
-            characterController.Move(_frameMovement);
-
-            // Only while climbing - otherwise this frame's actual movement
-            // came from HandleMovement()/HandleGravity(), not FrameMovement,
-            // and reporting it back would corrupt PlayerClimbing's own
-            // tracking. See PlayerClimbing.ReportAppliedMovement() for why
-            // this matters: characterController.Move() doesn't always apply
-            // the full amount requested, and PlayerClimbing needs to know
-            // exactly how much of it landed to avoid drifting.
-            if (isClimbing) {
-                playerClimbing.ReportAppliedMovement(playerTransform.position - positionBeforeMove);
-            }
-
+            return HandleMovement() + HandleGravity();
         }
 
         /// <summary>
-        /// Reads movement input from the left thumbstick and moves the player using
-        /// the CharacterController. Movement is relative to the PlayerRig's orientation
+        /// Applies snap or smooth turning for this frame. Called by
+        /// PlayerController every frame, including while climbing.
+        /// </summary>
+        public void TickTurning()
+        {
+            HandleTurning();
+        }
+
+        /// <summary>
+        /// Reads movement input from the left thumbstick and returns this frame's
+        /// horizontal movement. Movement is relative to the Player root's orientation
         /// rather than the headset orientation.
         /// </summary>
-        private void HandleMovement()
+        private Vector3 HandleMovement()
         {
             Vector2 moveInput = playerInput.MoveAxis;
 
             // Ignore tiny thumbstick movements and controller noise.
-            if (moveInput.magnitude < moveDeadzone)
-            {
-                return;
+            if (moveInput.magnitude < moveDeadzone) {
+                return Vector3.zero;
             }
 
             // Convert 2D stick input into a world-space movement direction based on
-            // the PlayerRig orientation.
+            // the Player root orientation.
             Vector3 movement =
                 playerTransform.forward * moveInput.y +
                 playerTransform.right * moveInput.x;
@@ -206,8 +186,7 @@ namespace Player
             // Prevent diagonal movement from being faster than straight movement.
             movement = Vector3.ClampMagnitude(movement, 1f);
 
-            _frameMovement += movement * (moveSpeed * Time.deltaTime);
-
+            return movement * (moveSpeed * Time.deltaTime);
         }
 
         /// <summary>
@@ -262,9 +241,10 @@ namespace Player
         }
 
         /// <summary>
-        /// Applies gravity to the player and moves the CharacterController vertically.
+        /// Applies gravity to the vertical velocity and returns this frame's
+        /// vertical movement.
         /// </summary>
-        private void HandleGravity()
+        private Vector3 HandleGravity()
         {
             if (characterController.isGrounded && _verticalVelocity < 0f) {
                 _verticalVelocity = groundedGravity;
@@ -272,8 +252,7 @@ namespace Player
 
             _verticalVelocity += gravity * Time.deltaTime;
 
-            _frameMovement += Vector3.up * (_verticalVelocity * Time.deltaTime);
-
+            return Vector3.up * (_verticalVelocity * Time.deltaTime);
         }
 
         /// <summary>

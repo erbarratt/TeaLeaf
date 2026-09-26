@@ -11,8 +11,9 @@ Written 2026-09-26. Tick items off as [x] and log details in DEVLOG.txt.
 
 Vertical slice feature list (agreed scope)
 ------------------------------------------
-Movement:     walk, smooth/snap turn, gravity, crouch (done), sprint, ledge
-              climbing (done), mantling, ladders, rope climbing.
+Movement:     walk, smooth/snap turn, gravity, crouch (done), sprint, jump,
+              ledge climbing (done), climb push-off momentum, mantling,
+              ladders, rope climbing.
 Visibility:   designer-placed shadow volumes (dark/lit areas), torches
               linked to the volume they light - extinguishing a torch darkens
               its area. Wrist-mounted visibility gem for feedback.
@@ -26,6 +27,10 @@ Tools:        blackjack takedown, hand crossbow (either hand, physically
 Inventory:    wrist radial menu to select tools/bolt types; loot pickup and
               pocketing with a running loot total.
 Bodies:       grab and drag KO'd guards to hide them.
+Hands:        physical hands - the visual hand model collides with the world
+              and stops at walls/props instead of passing through, then
+              catches back up to the real controller position (Half-Life:
+              Alyx / Thief VR style).
 Art:          greybox (ProBuilder/primitives) for environment and props.
               Placeholder humanoid + Mixamo animations for guards. Existing
               real hand models with finger animation/grip poses.
@@ -33,20 +38,22 @@ Art:          greybox (ProBuilder/primitives) for environment and props.
 
 Phase 0 - Finish in-progress work
 ---------------------------------
-[ ] Hand animation: record middle+ring+pinky Open/Closed pose clips per hand.
-[ ] Hand animation: Avatar Masks per finger group per hand (index-only;
-    middle+ring+pinky-only).
-[ ] Hand animation: second masked layer + GripCurl 1D blend tree on each
-    hand's Animator Controller; verify in headset.
-[ ] Decide on a player "tick orchestrator". PlayerLocomotion.Update() already
-    sequences PlayerClimbing, PlayerHandAnimation and PlayerHandInteraction,
-    and will soon also drive sprint, ladders, mantling and tools. Consider
-    moving the frame ordering into a dedicated PlayerController (Player
-    namespace) so PlayerLocomotion goes back to only doing locomotion.
-[ ] Set up physics layers now, before content exists: Player, PlayerHands,
-    Interactable, Climbable, Guard, GuardHead, Projectile, ShadowVolume,
-    NoiseOccluder, Environment. Fill in the layer collision matrix (most
-    pairs off - cheaper physics on Quest).
+[x] Hand animation: Index and Grip (middle+ring+pinky) Open/Closed pose
+    clips, and a Grip layer with a GripCurl blend tree on
+    Left Hand Visual.controller.
+[x] Hand animation: no Avatar Masks needed - each clip only keys its own
+    finger bones, so the layers don't overwrite each other.
+[x] Hand animation: right hand is the same hand.fbx mirrored (scale.x -1),
+    so it shares Left Hand Visual.controller. Both hands verified in Play
+    Mode.
+[x] Player "tick orchestrator": PlayerController now owns the frame order
+    and the single characterController.Move() call; PlayerLocomotion only
+    does locomotion (TickBody/TickMovement/TickTurning).
+[x] Set up physics layers now, before content exists: Environment, Player,
+    PlayerHands, Interactable, Climbable, Guard, GuardHead, Projectile
+    (ShadowVolume/NoiseOccluder dropped - not needed, see DEVLOG). Layer
+    collision matrix trimmed; hand rays masked to Environment/Interactable/
+    Climbable.
 [ ] Quest 3 standalone baseline: make one standalone build of Main.unity now
     and record frame time, so later regressions can be spotted early.
 
@@ -59,8 +66,28 @@ Scripting:
     normal movement. Crouching cancels sprint. Expose IsSprinting and a
     CurrentMoveSpeed/MovementState for the noise and visibility systems.
 [ ] Expose a single PlayerStance/MovementState (Still, Crouched, Walking,
-    Sprinting, Climbing) so AI, noise and the wrist gem read one value
-    instead of each re-deriving it.
+    Sprinting, Climbing, Airborne) so AI, noise and the wrist gem read one
+    value instead of each re-deriving it.
+[ ] Jump: a jump button on PlayerInputXR (e.g. right A / primary button -
+    check it's free of other bindings on both headsets). Only when
+    grounded and not climbing; sets _verticalVelocity from a tunable
+    jumpHeight (v = sqrt(2 * jumpHeight * -gravity), so height is what's
+    tuned, not a raw speed). Needs:
+    [ ] Horizontal air momentum in PlayerLocomotion: the thumbstick
+        movement velocity at takeoff carries through the jump (running
+        jumps travel further), added to _frameMovement while airborne,
+        cleared on landing, cancelled against walls (CollisionFlags.Sides).
+        Shared with climb release momentum below - build it once here.
+    [ ] Decide air control (how much the thumbstick steers mid-air).
+    [ ] Crouch interplay: decide whether jumping from crouch stands up
+        first or is blocked. Check head clearance above before jumping
+        (don't jump into a low ceiling).
+    [ ] Coyote time (a few frames of jump grace after walking off an
+        edge) and a short jump buffer - small, cheap, feels much better.
+    [ ] Grabbing a ClimbableEdge mid-jump works (existing reset of
+        _verticalVelocity on climb start; also clears air momentum).
+    [ ] Landing: expose a Landed event with fall speed, for the landing
+        noise (Phase 2) and a haptic thump.
 [ ] Mantling: when gripping a ClimbableEdge and the hand is pulled down past
     the edge top (or the head rises above it), smoothly move the player up
     and forward onto the surface above. Check clearance with a
@@ -77,13 +104,38 @@ Scripting:
     climb like ladders.
 [ ] Gravity/fall interplay: releasing all grips mid-climb falls normally.
     Decide on fall damage (suggest: none for the slice).
+[ ] Climb release momentum: letting go of the last grip keeps the
+    velocity the climb was moving the player at, so pushing off a ledge
+    launches the player away from it. Currently all momentum is lost on
+    release. Build after Jump - it reuses the same air momentum.
+    Plan:
+    [ ] Track climb velocity as an average over the last few frames
+        (small fixed ring buffer, no allocations) of the movement the
+        CharacterController actually applied (the value passed to
+        PlayerClimbing.ReportAppliedMovement) divided by deltaTime - not a
+        single frame, which is too noisy with hand tracking jitter.
+    [ ] On release (IsClimbing true -> false): vertical part seeds
+        _verticalVelocity, horizontal part seeds the horizontal air
+        momentum velocity built for Jump.
+    [ ] Air momentum decays (light air drag) - decide whether jumps use
+        the same drag.
+    [ ] Clamp launch speed to a tunable maximum (comfort, and stops
+        flinging across the level); tune a multiplier so pushes feel right.
+    [ ] Re-grabbing mid-air keeps working (the existing reset of
+        _verticalVelocity on climb start also clears air momentum).
+    [ ] Reuse for ladders/ropes (push off a ladder), and check it doesn't
+        fire on mantle completion.
+    [ ] Test: push off a wall ledge backwards, a vertical pull-up and
+        release (small hop), a gentle release (just drops), and comfort in
+        headset - a vignette while airborne may be needed (Phase 9).
 Animation:
 [ ] Climbing hand pose (HandState.Climbing) - closed grip clip used while
     PlayerClimbing reports that hand gripping.
 [ ] Ladder/rope grip poses (can reuse climbing pose initially).
 Test scene:
 [ ] Extend the CharacterController test scene: ledge at chest height, ledge
-    above head, mantle onto low-clearance shelf, 4m ladder, rope.
+    above head, mantle onto low-clearance shelf, 4m ladder, rope, a gap to
+    jump across, a jump up onto a low crate, a low ceiling over a jump spot.
 
 
 Phase 2 - Core stealth framework (Core namespace)
@@ -111,7 +163,8 @@ Phase 2 - Core stealth framework (Core namespace)
 [ ] Footsteps: PlayerFootsteps measures horizontal distance travelled,
     emits a step every N metres, raycasts down for SurfaceType, plays the
     surface sound and emits a noise event scaled by surface x stance.
-    No steps while climbing.
+    No steps while climbing or airborne. Landing (from a jump or fall)
+    emits a noise event scaled by fall speed x surface - jumping is loud.
 [ ] Debug (Scripts/Core/Debug): on-screen/world-space readout of current
     visibility, stance and last noise; gizmos drawing shadow volumes and
     noise radii.
@@ -119,6 +172,42 @@ Phase 2 - Core stealth framework (Core namespace)
 
 Phase 3 - Interaction framework (Interaction namespace)
 -------------------------------------------------------
+Physical hands (Player namespace) - build this first, since grabbing,
+tools and climbing all sit on top of where the visual hand ends up.
+Claude to guide this step by step, starting with a comparison of the most
+performant approaches for Quest 3 before any code is written:
+[ ] Separate the visual hand from the tracked controller: the controller
+    transform stays the "target", the visual hand is its own object that
+    tries to follow it every frame.
+[ ] Hand colliders: a small set of cheap primitive colliders per hand
+    (e.g. a palm box/capsule plus a few finger capsules - no mesh
+    colliders) on the PlayerHands layer, colliding only with Environment/
+    Interactable (layer matrix from Phase 0; Climbable is deliberately off -
+    ledges rest on the Environment geometry). Revisit PlayerHands-Guard.
+[ ] Collision response: when the target moves into geometry, the visual
+    hand stops at the surface and slides along it rather than
+    penetrating. Evaluate options together: kinematic sweep/depenetration
+    (CapsuleCast / Physics.ComputePenetration, no Rigidbody - likely the
+    cheapest and most predictable) vs a velocity-driven Rigidbody hand
+    (lets hands push physics props, costs more physics time).
+[ ] "Elastic band" catch-up: once the path is clear the visual hand
+    returns to the controller position quickly but smoothly (no pop).
+    If separation exceeds a max distance (e.g. 0.3-0.5m, tunable) or the
+    hand is stuck, snap straight back to the controller.
+[ ] Rotation follows the same rule (hand rotation blocked by contact,
+    then eases back).
+[ ] Integrate with existing systems: PlayerClimbing already pins hand
+    visuals to the grab point - that must take priority over the physical
+    follow. Decide whether hand rays (PlayerHandInteraction) and climbing
+    grab overlaps use the tracked or the visual hand (probably visual, so
+    you can't grab through a wall). Held items/tools inherit the visual
+    hand's position.
+[ ] Optional feedback: light haptic pulse on first contact; faint "ghost"
+    hand at the real controller position while separated (as Alyx does).
+[ ] Test scene: wall, table edge, pillar corner, a gap narrower than the
+    hand; verify no jitter against surfaces and no tunnelling on fast
+    swings. Profile the cost on Quest.
+Grabbing and props:
 [ ] Decide grab approach: custom grab consistent with PlayerClimbing
     (recommended - one system, one set of hand states) vs XRI interactables.
     Build IGrabbable (or a Grabbable base) alongside the existing
@@ -339,7 +428,7 @@ Phase 9 - Game loop, feedback and slice polish
     complete - loot X / Y" world-space panel -> restart on button.
 [ ] Haptics pass: pulses for grabs, climbing grips, lockpick, crossbow
     cock/fire, blackjack hit, loot pickup (none for footsteps).
-[ ] Comfort pass: vignette while sprinting/falling (optional), snap/smooth
+[ ] Comfort pass: vignette while sprinting/jumping/falling (optional), snap/smooth
     turn works everywhere including while climbing.
 [ ] Playtest checklist (in-headset, PCVR then Quest 3):
     [ ] Every beat 1-9 completable using its intended mechanic.

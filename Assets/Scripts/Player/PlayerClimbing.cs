@@ -7,11 +7,11 @@ namespace Player
     /// Handles grabbing and climb movement. Edge highlighting lives in
     /// PlayerHandInteraction instead - see that class' comment.
     ///
-    /// This class does not run its own Update(). Instead PlayerLocomotion calls
-    /// Tick() explicitly once per frame, at the point where it wants climbing
-    /// to run, the same way it already sequences its own Handle*() methods -
-    /// that keeps frame ordering deterministic instead of depending on Unity's
-    /// undefined order between different components' Update() calls.
+    /// This class does not run its own Update(). Instead PlayerController
+    /// calls Tick() explicitly once per frame, at the point where it wants
+    /// climbing to run - that keeps frame ordering deterministic instead of
+    /// depending on Unity's undefined order between different components'
+    /// Update() calls.
     /// </summary>
     public class PlayerClimbing : MonoBehaviour
     {
@@ -23,12 +23,11 @@ namespace Player
         [SerializeField] private PlayerTracking playerTracking;
 
         // Only touched once, in Awake(), to disable minMoveDistance - see
-        // its comment there. PlayerLocomotion still owns the actual Move()
-        // call.
+        // its comment there. PlayerController owns the actual Move() call.
         [SerializeField] private CharacterController characterController;
 
         // The rig root transform that characterController.Move() displaces -
-        // the same transform PlayerLocomotion calls playerTransform. Hand
+        // the same transform PlayerController calls playerTransform. Hand
         // positions are converted into this transform's local space before
         // computing a movement delta - see UpdateFrameMovement() - since the
         // hand is a descendant of this transform, so its WORLD position
@@ -93,8 +92,8 @@ namespace Player
         /// IsLeftHandGripping.
         public bool IsRightHandGripping => _rightGrabbedEdge is not null;
 
-        /// This frame's climb movement, for PlayerLocomotion to add to its
-        /// own frame movement accumulator.
+        /// This frame's climb movement, for PlayerController to add to its
+        /// frame movement accumulator.
         public Vector3 FrameMovement { get; private set; }
 
         private void Awake()
@@ -295,17 +294,17 @@ namespace Player
 
             // Optimistically assume this will be applied in full - if it
             // isn't, ReportAppliedMovement() folds whatever's left back in
-            // straight after PlayerLocomotion calls characterController.Move().
+            // straight after PlayerController calls characterController.Move().
             _pendingLocalDelta = Vector3.zero;
         }
 
         /// <summary>
-        /// Called by PlayerLocomotion immediately after it calls
+        /// Called by PlayerController immediately after it calls
         /// characterController.Move(), with however much the player's
         /// position actually changed this frame - only while climbing (see
-        /// PlayerLocomotion.Update()), since otherwise this frame's actual
-        /// movement came from HandleMovement()/HandleGravity() instead, not
-        /// FrameMovement.
+        /// PlayerController.Update()), since otherwise this frame's actual
+        /// movement came from PlayerLocomotion's walking/gravity instead,
+        /// not FrameMovement.
         ///
         /// characterController.Move() can apply less than it was asked to -
         /// nearby collision geometry can absorb or redirect part of the

@@ -57,7 +57,7 @@ namespace Player
             public Vector3 RightHandPosition => rightHand.position;
         
         /// <summary>
-        /// Position of the PlayerRig in world space.
+        /// Position of the Player root in world space.
         ///
         /// Useful for:
         /// - AI perception
@@ -81,7 +81,7 @@ namespace Player
             public Quaternion RightHandRotation => rightHand.rotation;
         
         /// <summary>
-        /// Rotation of the PlayerRig in world space.
+        /// Rotation of the Player root in world space.
         /// </summary>
         public Quaternion PlayerRotation => transform.rotation;
         

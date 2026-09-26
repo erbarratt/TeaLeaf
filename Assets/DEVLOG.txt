@@ -7,6 +7,73 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 
 2026-09-26
 ----------
+- Restructured the player in Main.unity: unpacked the XR Origin prefab,
+  renamed PlayerRig to Player, deleted XRI's unused Locomotion object, and
+  moved PlayerHandInteraction/PlayerHandAnimation onto a new Hands object
+  (under Camera Offset) that now parents Left Hand/Right Hand. Body systems
+  stay on the root, hand systems on Hands. Hands must stay under Camera
+  Offset with an identity transform, or tracked hand poses and crouch would
+  be offset. PlayerController verified working after the refactor;
+  PlayerController.Reset() now finds the hand components in children.
+- Added PlayerController (Phase 0 tick orchestrator). PlayerLocomotion.Update()
+  had grown into two jobs - locomotion, and running every other player system
+  in order - and Phase 1 was about to pile sprint, jump, mantling and ladders
+  into it. PlayerController is now the only player script with an Update():
+  it ticks input, body (centre + crouch), hand rays, climbing and hand
+  animation in order, collects movement from PlayerLocomotion.TickMovement()
+  and PlayerClimbing.FrameMovement into _frameMovement, calls Move() once,
+  and reports the applied movement back to climbing. PlayerLocomotion lost
+  its Update() and its references to the other systems; HandleMovement()/
+  HandleGravity() now return their movement instead of writing to a shared
+  field. Frame order and behaviour are unchanged. PlayerController.Reset()
+  auto-fills its references when added to PlayerRig (Reset() is an
+  editor-only callback, free at runtime).
+- Design change: jumping is now in the project (it was previously decided
+  against). Added a Jump item to Phase 1 ahead of climb release momentum,
+  since both need the same horizontal air momentum in PlayerLocomotion -
+  build it once for jump, then reuse it for pushing off ledges. Also added
+  an Airborne movement state, landing noise (Phase 2 footsteps), jump
+  cases in the test scene, and jumping to the comfort pass.
+- Roadmap change: added climb release momentum to Phase 1. Letting go of a
+  ledge currently drops the player with no momentum; the plan is to average
+  the climb's actually-applied velocity over the last few frames and carry
+  it into the fall on release (vertical into _verticalVelocity, horizontal
+  into a new decaying air momentum), so pushing off a ledge launches you.
+- Physics layers set up (Phase 0): Environment, Player, PlayerHands,
+  Interactable, Climbable, Guard, GuardHead, Projectile (user layers 6-13),
+  assigned in Main.unity. Dropped ShadowVolume and NoiseOccluder from the
+  planned list - visibility will use a self-registered point-in-box check
+  like ClimbableEdge (no physics), and walls on Environment can block sound.
+  Collision matrix trimmed to the pairs that actually need contacts (see
+  CLAUDE.md). Hand rays now only hit Environment/Interactable/Climbable, so
+  walls block them and edges can no longer be highlighted through a wall.
+  Learned: the collision matrix only governs contacts, triggers and
+  CharacterController blocking - raycasts/overlaps ignore it and use their
+  own LayerMask.
+- Bug: NullReferenceException in HandRayReticle.Tick() when entering Play
+  Mode before the controllers were tracked. XRI's XR Input Modality Manager
+  on PlayerRig deactivates the Left/Right Controller objects in its
+  OnEnable when no controller is connected yet - and PlayerRig is set up
+  before its children, so the reticles (children of those objects) never
+  got their Awake() and had no MeshRenderer. Not caused by the layer work,
+  just newly noticed. Fixed by skipping Tick() while the reticle isn't
+  active. Anything else living under the controller objects can hit the
+  same thing.
+- Roadmap change: added physical hands to the slice scope (Phase 3, before
+  grabbing). The visual hand model will collide with the world and stop at
+  walls instead of passing through, "elastic banding" back to the real
+  controller position once clear (Half-Life: Alyx / Thief VR style). Needs
+  dedicated primitive hand colliders; the collision approach (kinematic
+  sweeps vs a velocity-driven Rigidbody) will be compared for Quest 3 cost
+  before building it.
+- Hand animation finished: both hands curl the index finger (trigger) and the
+  middle/ring/pinky (grip) correctly in Play Mode. Learned two things:
+  Avatar Masks turned out to be unnecessary, because with a Generic rig a
+  layer only writes the properties its clips actually key, and each clip only
+  keys its own finger bones. And the right hand is the same hand.fbx
+  mirrored with scale.x -1 (its bones are still named J_Left_*), so one
+  Animator Controller serves both hands. Worth remembering for physical
+  hands: the right hand's colliders will sit under a negative scale.
 - Scoped a greybox vertical slice: one docks/warehouse level where the player
   steals an objective item and escapes, with getting caught failing and
   restarting the level. Agreed mechanics: shadow-volume visibility (torches
