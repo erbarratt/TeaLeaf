@@ -1,0 +1,387 @@
+TeaLeaf Development Roadmap - Vertical Slice
+============================================
+
+Goal: a single greybox level (warehouse/docks) that runs in Play Mode and
+showcases every core stealth mechanic end to end - sneak in, steal the
+objective item, escape - with a fail/restart loop when caught. No settings
+menu, main menu, save system or final art required.
+
+Written 2026-09-26. Tick items off as [x] and log details in DEVLOG.txt.
+
+
+Vertical slice feature list (agreed scope)
+------------------------------------------
+Movement:     walk, smooth/snap turn, gravity, crouch (done), sprint, ledge
+              climbing (done), mantling, ladders, rope climbing.
+Visibility:   designer-placed shadow volumes (dark/lit areas), torches
+              linked to the volume they light - extinguishing a torch darkens
+              its area. Wrist-mounted visibility gem for feedback.
+Noise:        footsteps by surface type (scaled by sprint/walk/crouch),
+              thrown/dropped physics objects, doors and other interactions.
+Guard AI:     patrol, suspicion, search, chase, catch (= fail + restart).
+              Knockout state. Guards react to finding KO'd bodies.
+Tools:        blackjack takedown, hand crossbow (either hand, physically
+              cocked) with water / noisemaker / rope bolts, rotate-to-find-
+              sweet-spot lockpicking.
+Inventory:    wrist radial menu to select tools/bolt types; loot pickup and
+              pocketing with a running loot total.
+Bodies:       grab and drag KO'd guards to hide them.
+Art:          greybox (ProBuilder/primitives) for environment and props.
+              Placeholder humanoid + Mixamo animations for guards. Existing
+              real hand models with finger animation/grip poses.
+
+
+Phase 0 - Finish in-progress work
+---------------------------------
+[ ] Hand animation: record middle+ring+pinky Open/Closed pose clips per hand.
+[ ] Hand animation: Avatar Masks per finger group per hand (index-only;
+    middle+ring+pinky-only).
+[ ] Hand animation: second masked layer + GripCurl 1D blend tree on each
+    hand's Animator Controller; verify in headset.
+[ ] Decide on a player "tick orchestrator". PlayerLocomotion.Update() already
+    sequences PlayerClimbing, PlayerHandAnimation and PlayerHandInteraction,
+    and will soon also drive sprint, ladders, mantling and tools. Consider
+    moving the frame ordering into a dedicated PlayerController (Player
+    namespace) so PlayerLocomotion goes back to only doing locomotion.
+[ ] Set up physics layers now, before content exists: Player, PlayerHands,
+    Interactable, Climbable, Guard, GuardHead, Projectile, ShadowVolume,
+    NoiseOccluder, Environment. Fill in the layer collision matrix (most
+    pairs off - cheaper physics on Quest).
+[ ] Quest 3 standalone baseline: make one standalone build of Main.unity now
+    and record frame time, so later regressions can be spotted early.
+
+
+Phase 1 - Locomotion completion (Player)
+----------------------------------------
+Scripting:
+[ ] Sprint: hold-to-sprint input on PlayerInputXR (e.g. left stick click),
+    sprintSpeed field on PlayerLocomotion, adds to _frameMovement like
+    normal movement. Crouching cancels sprint. Expose IsSprinting and a
+    CurrentMoveSpeed/MovementState for the noise and visibility systems.
+[ ] Expose a single PlayerStance/MovementState (Still, Crouched, Walking,
+    Sprinting, Climbing) so AI, noise and the wrist gem read one value
+    instead of each re-deriving it.
+[ ] Mantling: when gripping a ClimbableEdge and the hand is pulled down past
+    the edge top (or the head rises above it), smoothly move the player up
+    and forward onto the surface above. Check clearance with a
+    CapsuleCast at the destination first. Handle stand vs crouch
+    clearance (auto-crouch if only crouch height fits).
+[ ] Ladders: Ladder component (Interaction namespace) with rungs/grip
+    volume, reusing PlayerClimbing's grab-and-pull-delta approach. Decide
+    whether Ladder implements the same interface as ClimbableEdge or
+    ClimbableEdge generalises into a "Climbable" base. Constrain movement
+    to the ladder's vertical axis; mantle off at the top, drop off at the
+    bottom.
+[ ] Rope climbing: ClimbableRope (vertical line segment grab target) - built
+    here so Phase 5's rope bolt only has to spawn one. Constrained vertical
+    climb like ladders.
+[ ] Gravity/fall interplay: releasing all grips mid-climb falls normally.
+    Decide on fall damage (suggest: none for the slice).
+Animation:
+[ ] Climbing hand pose (HandState.Climbing) - closed grip clip used while
+    PlayerClimbing reports that hand gripping.
+[ ] Ladder/rope grip poses (can reuse climbing pose initially).
+Test scene:
+[ ] Extend the CharacterController test scene: ledge at chest height, ledge
+    above head, mantle onto low-clearance shelf, 4m ladder, rope.
+
+
+Phase 2 - Core stealth framework (Core namespace)
+-------------------------------------------------
+[ ] GameState/LevelManager: Playing, Caught, Won. Restart the level on
+    Caught (fade to black, reload scene). Won when the objective item is
+    carried into the exit zone.
+[ ] Screen fade: simple fade-to-black sphere/quad around the head camera
+    (used for caught, restart, level start).
+[ ] Noise event system: NoiseSystem static/singleton with
+    Emit(position, loudness/radius, NoiseType, source). Listeners (guards)
+    register on enable. No per-frame allocation - use a struct payload.
+[ ] Shadow volumes: ShadowVolume component (trigger box) with a darkness
+    value. PlayerVisibility (Player namespace) tracks which volumes the
+    player's body/head is inside and outputs a single Visibility 0-1.
+    Default outside any volume = lit.
+[ ] Light-to-volume linking: LightSource component (torch, lamp) holds
+    references to the shadow volume(s) it "lights". While lit, those
+    volumes count as lit; when extinguished, they revert to dark. Also
+    toggles the light, flame VFX and audio.
+[ ] Stance modifies visibility: crouching lowers it, sprinting raises it.
+    Keep the multipliers as serialized fields for tuning.
+[ ] Surfaces: SurfaceType enum (Carpet, Wood, Stone, Metal, Water, ...),
+    mapped via a small SurfaceTag component or physics material lookup.
+[ ] Footsteps: PlayerFootsteps measures horizontal distance travelled,
+    emits a step every N metres, raycasts down for SurfaceType, plays the
+    surface sound and emits a noise event scaled by surface x stance.
+    No steps while climbing.
+[ ] Debug (Scripts/Core/Debug): on-screen/world-space readout of current
+    visibility, stance and last noise; gizmos drawing shadow volumes and
+    noise radii.
+
+
+Phase 3 - Interaction framework (Interaction namespace)
+-------------------------------------------------------
+[ ] Decide grab approach: custom grab consistent with PlayerClimbing
+    (recommended - one system, one set of hand states) vs XRI interactables.
+    Build IGrabbable (or a Grabbable base) alongside the existing
+    IHighlightable pattern.
+[ ] Grabbable physics props: pick up, hold, release; throw using velocity
+    averaged from the last few frames of PlayerTracking hand positions.
+[ ] Impact noise: ImpactNoise component emits a noise event on collision
+    above a speed threshold, loudness scaled by impact speed + surface.
+[ ] Doors: hinged door, grabbed by handle and swung by the hand (or push to
+    open), with Locked state, creak noise event while moving, and NavMesh
+    obstacle/link updates so guards can path through.
+[ ] Grab hand poses: hold-object pose per hand; HandState grows a Holding
+    state.
+[ ] Highlighting: grabbables/doors/locks implement IHighlightable so the
+    existing hand ray + reticle system works for them unchanged.
+
+
+Phase 4 - Inventory and wrist radial menu (Inventory + UI namespaces)
+---------------------------------------------------------------------
+[ ] Inventory data: owned tools (blackjack, crossbow, lockpick), bolt
+    counts per type, loot total, objective item held flag.
+[ ] Wrist radial menu: hold a menu button on one hand; a world-space radial
+    appears on that wrist; select with the other hand's ray or the
+    thumbstick; release to equip into the OTHER hand (so either hand can
+    hold any tool).
+[ ] Equip/unequip: spawn or enable the tool model in the chosen hand,
+    switch that hand's HandState to the tool's pose, unequip back to
+    empty hand from the menu.
+[ ] Bolt type selection: a submenu (or a second ring) on the radial for
+    water / noisemaker / rope, greyed out at zero count.
+[ ] Wrist display: visibility gem + loot total + bolt counts on the
+    non-menu wrist (or the same wrist, when not in menu mode).
+[ ] Loot: Loot component (value, highlightable, grabbable). Grab it and
+    release it inside a hip "pocket" trigger zone to collect it: plays a
+    sound, adds to the total, and destroys/pools the object. Objective item
+    uses the same flow with an extra flag.
+[ ] Performance: world-space canvases only enabled while visible; no
+    layout rebuilds per frame; update text only when values change.
+
+
+Phase 5 - Tools (Player / Interaction namespaces)
+--------------------------------------------------
+Blackjack:
+[ ] Greybox blackjack model and hold pose.
+[ ] Swing detection: blackjack tip velocity above a threshold on contact
+    with a guard's GuardHead collider.
+[ ] Takedown rules: works only if the guard isn't in Chase/Alert and the hit
+    comes from behind (dot product of the guard's forward vs the hit
+    direction). Otherwise it makes a noise and the guard becomes alerted.
+[ ] Haptic pulse on hit; thud noise event.
+Hand crossbow:
+[ ] Greybox crossbow with separate moving parts (string/lever, bolt slot)
+    usable in either hand; mirrored hold pose per hand.
+[ ] Physical cocking: the other hand grabs the lever/string and pulls it
+    back past a threshold, then the crossbow is cocked. Auto-loads the bolt
+    type currently selected in the radial menu if that type has any left.
+[ ] Fire with the holding hand's trigger: spawn a pooled bolt, simple
+    ballistic flight (manual integration or Rigidbody), fire sound,
+    haptics. Decide on a small aiming aid (e.g. a faint sight pin on the
+    crossbow).
+[ ] Bolt base class + subclasses:
+    [ ] Water bolt: hit a LightSource's flame collider to extinguish it
+        (linked shadow volume goes dark). Small splash noise.
+    [ ] Noisemaker bolt: sticks where it lands and emits repeated loud
+        noise events for N seconds - guards investigate.
+    [ ] Rope bolt: only sticks into surfaces tagged RopeTarget (wood); spawns
+        a ClimbableRope hanging down to the ground/max length. Bounces
+        off anything else.
+[ ] Bolt pickups in the level (placed ammo) that add to inventory counts.
+Lockpicking:
+[ ] Lock component on doors/chests: pin count (2-3), randomised sweet-spot
+    angle per pin, tolerance.
+[ ] Insert: equip the lockpick and bring its tip into the keyhole trigger.
+    The pick snaps to the keyhole visually, like climbing snaps hands.
+[ ] Rotate the wrist (roll angle relative to the insertion angle) to search.
+    Haptic intensity rises as you near the sweet spot; hold still in it
+    for ~0.5s to set that pin (click sound + strong pulse). Pulling out
+    resets the current pin (or all pins - tune).
+[ ] Quiet picking noise events while working the lock.
+[ ] Unlock: door becomes openable / chest lid opens.
+[ ] Debug (Scripts/Interaction/Debug): show the current pin, the current
+    angle vs the sweet spot.
+
+
+Phase 6 - Guard AI (AI namespace)
+---------------------------------
+Setup:
+[ ] Install/confirm the AI Navigation package; NavMeshSurface on the level.
+[ ] Guard prefab: placeholder humanoid, NavMeshAgent, Animator, head
+    collider (GuardHead layer), eye transform, capsule body collider.
+Perception:
+[ ] Vision: cone angle + range, checked on a staggered timer (e.g. 5-10Hz,
+    offset per guard), LOS raycasts to 2-3 points on the player (head,
+    chest, feet). Detection rate scales with player Visibility (from shadow
+    volumes), distance, stance and movement. In full shadow the player is
+    only seen at very close range.
+[ ] Detection meter per guard (0-1) that rises/decays; thresholds drive
+    state transitions.
+[ ] Hearing: register with NoiseSystem; ignore noises outside range
+    (optionally attenuate through a NoiseOccluder layer); louder noise =
+    more suspicion.
+[ ] Body discovery: seeing a KO'd guard in a lit area jumps to Search at the
+    body and raises the whole level's alert level (for the slice: those
+    guards search longer).
+Behaviour (explicit state machine - keep it readable and debuggable):
+[ ] Patrol: waypoint routes (PatrolRoute component with ordered points +
+    optional wait/look-around time at each).
+[ ] Suspicious: stop, turn towards the stimulus, "huh?" bark; escalate or
+    return to patrol.
+[ ] Search/Investigate: walk to the last known position, then pick a few
+    nearby NavMesh points to check, with a timeout before giving up.
+[ ] Chase: run to the player's live position while seen, last known when
+    lost; drop back to Search when lost for N seconds.
+[ ] Catch: within catch range while chasing, trigger GameState Caught.
+[ ] Knocked out: disable perception/agent; the body becomes draggable.
+    KO'd guards stay down for the whole slice.
+[ ] Return to patrol after search, resuming the nearest waypoint.
+Body dragging:
+[ ] KO'd guard has a grab handle (collar/shoulder). The player grabs it and
+    the body follows the hand along the ground (kinematic follow with
+    ground snapping, or ragdoll with a joint to the hand - start with
+    kinematic, it's cheaper and more predictable on Quest). Dragging
+    slows the player and makes some noise on loud surfaces.
+Audio feedback:
+[ ] Placeholder barks per state transition (suspicious, searching, gave up,
+    spotted, found body) - these are how the player reads AI state.
+Debug (Scripts/AI/Debug):
+[ ] Gizmos: vision cones, hearing radius, patrol routes, last-known
+    position, current state label and detection meter above each guard.
+Performance:
+[ ] Budget: ~4-6 guards in the slice. Stagger perception, avoid
+    allocations in state updates, and animator culling mode = cull
+    completely when offscreen.
+
+
+Phase 7 - Animation
+-------------------
+Guard (Mixamo):
+[ ] Pick one placeholder rigged humanoid (e.g. Mixamo Y-Bot); import as
+    Humanoid.
+[ ] Clips: idle, walk, run, look-around (search), turn-in-place (optional),
+    alert/spot reaction, knocked-out fall, knocked-out lying loop,
+    dragged pose (can reuse the lying loop).
+[ ] Animator Controller: locomotion blend tree driven by NavMeshAgent
+    speed; trigger/bool states for search, alert, KO. Root motion OFF
+    (NavMeshAgent drives position).
+[ ] Head look-at towards stimulus while suspicious (Animator IK or simple
+    head bone rotation in LateUpdate).
+Player hands:
+[ ] Pose clips: climbing grip, object hold, blackjack hold, crossbow hold,
+    crossbow cocking-hand grip, lockpick hold, radial-menu point.
+[ ] Extend HandState + PlayerHandAnimation to switch between these poses
+    per hand, with a short blend on transitions.
+[ ] Thumb curl (deferred earlier) - add if hold poses look wrong without it.
+Tools:
+[ ] Crossbow cock/fire motion via simple transform animation (the lever
+    follows the pulling hand, the string snaps forward on fire).
+[ ] Torch flame: simple emissive/particle, off state when extinguished.
+
+
+Phase 8 - Level: the docks warehouse
+------------------------------------
+Design (on paper first):
+[ ] Layout sketch with a critical path and at least one alternate route per
+    area. Each beat below should teach or test one mechanic, roughly in
+    this order:
+    1. Start: dockside at night, dark. Crouch and move quietly (wood dock
+       vs metal ramp teaches surface noise).
+    2. Yard: one patrolling guard, crates, shadow volumes between lamps.
+       Teaches reading light/dark and patrol timing.
+    3. Torch-lit gate: extinguish a torch with a water bolt to cross.
+    4. Climb: ledge climb + mantle onto crates, a ladder up to a
+       catwalk/roof.
+    5. Rope bolt: a wooden beam high on the warehouse wall gives an
+       alternate rooftop route.
+    6. Warehouse interior: two guards on crossing patrols, catwalks
+       overhead, loud metal floor below. Noisemaker bolt / thrown bottle to
+       pull a guard off a doorway.
+    7. Takedown: a lone guard facing away in a dead end - blackjack, then
+       drag the body into shadow (body-discovery teaches the hiding
+       reason).
+    8. Office: locked door (lockpick) and a locked chest/safe with the
+       objective item. Loot scattered around (coins, goblets) for a
+       loot total.
+    9. Escape: back out to a boat/exit zone, a guard now searching near
+       the route in.
+[ ] Loot target and bolt counts: enough bolts to solve each beat with a
+    small spare; tune after playtesting.
+Greybox build:
+[ ] Block out in ProBuilder at true VR scale (door heights 2.1m, ceilings,
+    catwalk rail heights, ledge heights tested at 1.2-2m).
+[ ] Tag surfaces (SurfaceType), RopeTarget beams, ClimbableEdges, ladders.
+[ ] Place ShadowVolumes, LightSources and their links.
+[ ] Bake the NavMesh; add NavMesh links/obstacles for doors; verify guards
+    can't path onto player-only routes (catwalks/roofs).
+[ ] Place guards + PatrolRoutes, loot, bolt pickups, objective, exit zone,
+    player start.
+Lighting (Quest-conscious):
+[ ] Baked lighting with light probes for the static environment; torches
+    as a small number of realtime/mixed lights (baked lights can't be
+    turned off by a water bolt). Keep realtime lights per view low and
+    ranges short.
+[ ] Make sure visible light roughly matches the shadow volumes - the player
+    must be able to trust what they see.
+[ ] Occlusion culling bake; split the level into chunks that cull cleanly.
+Audio (placeholder):
+[ ] Ambient bed (water lapping, distant bells, warehouse hum), footsteps per
+    surface, door creaks, impacts, crossbow cock/fire, bolt effects,
+    lockpick clicks, loot pickup, guard barks, alert/chase stinger.
+
+
+Phase 9 - Game loop, feedback and slice polish
+----------------------------------------------
+[ ] Level start: fade in at the dock, brief objective on the wrist ("Steal
+    the ledger from the warehouse office. Escape by boat.").
+[ ] Caught: guard catch -> stinger -> fade -> reload at start.
+[ ] Win: objective item in the exit zone -> fade -> simple "Mission
+    complete - loot X / Y" world-space panel -> restart on button.
+[ ] Haptics pass: pulses for grabs, climbing grips, lockpick, crossbow
+    cock/fire, blackjack hit, loot pickup (none for footsteps).
+[ ] Comfort pass: vignette while sprinting/falling (optional), snap/smooth
+    turn works everywhere including while climbing.
+[ ] Playtest checklist (in-headset, PCVR then Quest 3):
+    [ ] Every beat 1-9 completable using its intended mechanic.
+    [ ] Every beat completable via at least one alternate approach.
+    [ ] Guards never get stuck; they always return to patrol.
+    [ ] Caught -> restart and win -> restart both work repeatedly.
+    [ ] Both hands can equip and use every tool.
+
+
+Phase 10 - Quest 3 performance pass
+-----------------------------------
+[ ] Standalone build; profile with the Unity Profiler + OVR Metrics Tool.
+    Target a stable 72Hz minimum (90Hz stretch).
+[ ] Rendering: draw call/batch count, SRP Batcher compatibility, MSAA vs
+    cost, shadows (likely off for realtime lights), foveation, render
+    scale.
+[ ] CPU: zero per-frame GC allocations in gameplay code, perception
+    staggering verified, Animator culling, physics layer matrix trimmed,
+    fixed timestep appropriate.
+[ ] Object pooling for bolts, impact/noise VFX and audio sources.
+[ ] Record final numbers in DEVLOG.txt as the post-slice baseline.
+
+
+Milestones
+----------
+M1  Movement complete        Phases 0-1  (all traversal in the test scene)
+M2  Stealth core             Phase 2     (visibility, noise, fail/win state)
+M3  Hands on everything      Phases 3-5  (grab, inventory, all tools)
+M4  Guards alive             Phases 6-7  (full AI loop with animation)
+M5  Playable slice           Phases 8-9  (the level, start to finish)
+M6  Quest-ready slice        Phase 10    (standalone at target frame rate)
+
+Recommended: build a small dedicated test scene per milestone (like the
+existing CharacterController test scene) so each system is proven in
+isolation before it goes into the level.
+
+
+Explicitly out of scope for the slice
+-------------------------------------
+- Settings/options menu (locomotion values stay as serialized fields).
+- Main menu, save/load, mission briefing screens.
+- Final art, texturing, character modelling, custom animation.
+- Combat (guards catch, they don't fight), health, fall damage.
+- Broadhead/other bolt types, additional tools.
+- Teleport locomotion or XRI locomotion/climb providers (never).

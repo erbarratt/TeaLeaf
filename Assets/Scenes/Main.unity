@@ -234,6 +234,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Player.PlayerHandInteraction
   playerTracking: {fileID: 37101388}
   rayLength: 0.5
+  interactableLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
   leftHandRayAngleOffset: {x: 12, y: 70, z: 0}
   rightHandRayAngleOffset: {x: 12, y: -70, z: 0}
   leftReticle: {fileID: 88500003}
@@ -313,7 +316,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 37101380}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 916e6c5e95f75f5448889d0552cf2560, type: 3}
   m_Name: 

@@ -5,6 +5,40 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 (Unity, OpenXR + XR Interaction Toolkit). Newest updates are at the top.
 
 
+2026-09-26
+----------
+- Scoped a greybox vertical slice: one docks/warehouse level where the player
+  steals an objective item and escapes, with getting caught failing and
+  restarting the level. Agreed mechanics: shadow-volume visibility (torches
+  linked to the volumes they light, so water bolts darken areas), footstep/
+  impact/door noise, patrol-suspicion-search-chase-catch guard AI (no
+  combat), blackjack takedowns, an either-hand crossbow with water/
+  noisemaker/rope bolts that's physically cocked, rotate-to-find-the-sweet-
+  spot lockpicking, a wrist radial menu for tools, loot pocketing, sprint,
+  mantling, ladders, rope climbing, and dragging KO'd bodies. Guards use a
+  placeholder humanoid with Mixamo animations.
+- Created DEVROADMAP.txt (next to this file) with the phased plan (Phase 0
+  finish hand animation -> Phase 10 Quest 3 performance pass) and milestones
+  M1-M6. It replaces the old "Next up" list below: sprint and ladders are now
+  Phase 1, and the settings framework is out of scope for the slice.
+- Brought CLAUDE.md up to date with the code as it actually is (crouch,
+  PlayerClimbing, PlayerHandInteraction, HandRayReticle, PlayerHandAnimation,
+  the Interaction namespace, the explicit Tick() frame order) plus the slice
+  design, and added a rule to keep CLAUDE.md, DEVLOG.txt and DEVROADMAP.txt
+  updated alongside every change.
+- Fixed version control. The repo had no .gitignore and only tracked 43
+  files: no ProjectSettings/, no Packages/, almost no .meta files (so a
+  fresh clone would lose every script reference in Main.unity), and no
+  art/XR assets. Added a Unity .gitignore (Library/Temp/Logs/obj/
+  UserSettings, generated .csproj/.sln, .idea/) and committed the whole
+  project properly. Also had to mark the Dropbox folder as a git
+  safe.directory, since it's owned by Administrators.
+- Left the Blender source files (Blends/hand.blend and its .blend1 backup,
+  167 MB each) out of git. They're over GitHub's 100 MB file limit, and
+  they're still backed up in Dropbox. *.blend is ignored until Git LFS is
+  set up for them.
+
+
 2026-09-13
 ----------
 - Replaced the placeholder hand controller models with the real hand models,
