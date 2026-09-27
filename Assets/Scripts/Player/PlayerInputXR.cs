@@ -17,9 +17,14 @@ namespace Player
         // Reference to the movement thumbstick action.
         [SerializeField] private InputActionReference moveAction;
 
-        // Reference to the turning thumbstick action.
-        // Using Snap Turn rather than Turn because the HP Reverb G2 with Oasis
-        // drivers does not currently populate the Turn action correctly.
+        // Reference to the turning thumbstick action - the project-wide
+        // InputSystem_Actions Player/Turn (right stick, no interactions).
+        // Not XRI's Turn or Snap Turn: their bindings carry Sector
+        // interactions that only report a value when the stick is pushed
+        // straight from centre into the left/right sector, and read (0, 0)
+        // otherwise - so pushing forward first and then sweeping round to
+        // the side never turned, and the stick's Y (used to trigger a
+        // mantle) never came through at all.
         [SerializeField] private InputActionReference turnAction;
 
         [Header("Stance")]
