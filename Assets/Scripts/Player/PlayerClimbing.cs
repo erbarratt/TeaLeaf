@@ -86,6 +86,13 @@ namespace Player
         /// IsLeftHandGripping.
         public bool IsRightHandGripping => _rightGrabbedEdge is not null;
 
+        /// The edge the left hand is gripping, or null - e.g. so
+        /// PlayerMantling can check whether it's mantleable.
+        public ClimbableEdge LeftGrabbedEdge => _leftGrabbedEdge;
+
+        /// The edge the right hand is gripping, or null.
+        public ClimbableEdge RightGrabbedEdge => _rightGrabbedEdge;
+
         /// This frame's climb movement, for PlayerController to add to its
         /// frame movement accumulator.
         public Vector3 FrameMovement { get; private set; }

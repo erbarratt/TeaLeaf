@@ -27,6 +27,7 @@ namespace Player
         [SerializeField] private PlayerLocomotion playerLocomotion;
         [SerializeField] private PlayerHandInteraction playerHandInteraction;
         [SerializeField] private PlayerClimbing playerClimbing;
+        [SerializeField] private PlayerMantling playerMantling;
         [SerializeField] private PlayerHandAnimation playerHandAnimation;
         [SerializeField] private CharacterController characterController;
 
@@ -53,6 +54,7 @@ namespace Player
             playerInput = GetComponent<PlayerInputXR>();
             playerLocomotion = GetComponent<PlayerLocomotion>();
             playerClimbing = GetComponent<PlayerClimbing>();
+            playerMantling = GetComponent<PlayerMantling>();
             characterController = GetComponent<CharacterController>();
             playerTransform = transform;
 
@@ -76,6 +78,10 @@ namespace Player
 
             // 4. Grab/release and this frame's climb movement.
             playerClimbing.Tick();
+
+            // 4b. Is a mantle possible? After climbing, so it sees this
+            // frame's grips. (Detection + arrow only, for now.)
+            playerMantling.Tick();
 
             // 5. Gather this frame's movement. Climbing and ground movement
             // are exclusive: while climbing, the hands move the player and

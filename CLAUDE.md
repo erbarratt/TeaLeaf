@@ -99,7 +99,9 @@ behaviour. The current order is:
 2. `playerLocomotion.TickBody()` — re-centre the capsule under the headset and apply crouch
    height (before the hand systems, since crouch moves the tracked hierarchy).
 3. `playerHandInteraction.Tick()` — hand rays + highlighting.
-4. `playerClimbing.Tick()` — grab/release, climb movement.
+4. `playerClimbing.Tick()` — grab/release, climb movement; then `playerMantling.Tick()` —
+   whether a mantle is possible this frame (arrow on/off), after climbing so it sees this
+   frame's grips. (Mantle movement not built yet.)
 5. `_frameMovement` = `playerLocomotion.TickMovement(isClimbing)` (thumbstick + gravity;
    zero while climbing) + `playerClimbing.FrameMovement` while climbing; then
    `playerLocomotion.TickTurning()`.
@@ -123,9 +125,10 @@ hand components via `GetComponentInChildren`).
 ```
 Player                 [Player layer] XROrigin, InputActionManager, XRInputModalityManager,
                        XRGazeAssistance, CharacterController, PlayerTracking, PlayerInputXR,
-                       PlayerLocomotion, PlayerClimbing, PlayerController
+                       PlayerLocomotion, PlayerClimbing, PlayerMantling, PlayerController
   Camera Offset        (crouch shifts this; Camera Y Offset 1.6m)
     Main Camera
+      Mantle Indicator (MantleIndicator - head-locked, placed a little below centre ~0.5m ahead)
     Hands              PlayerHandInteraction, PlayerHandAnimation (identity transform)
       Left Hand        [PlayerHands] tracked controller
         Left Hand Visual   (hand.fbx instance, Animator)
@@ -188,6 +191,15 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
   `HandVisualSnap` (exposed as `LeftVisualSnap`/`RightVisualSnap`). Sets
   `characterController.minMoveDistance = 0` so slow hand movement isn't swallowed. Exposes
   `IsClimbing`, `IsLeftHandGripping`/`IsRightHandGripping`, `FrameMovement`.
+- **`PlayerMantling`** — decides when a mantle is possible (`CanMantle`, `MantleEdge`) and shows
+  the `MantleIndicator` to match: a hand grips a mantleable edge and the head is at least
+  `ledge top - headBelowTopAllowance`. No physics queries - where the mantle lands and whether
+  it ends crouched are per-edge designer data on `ClimbableEdge`. The trigger and mantle
+  movement are the next step (see the roadmap).
+- **`MantleIndicator`** — runtime-built white arrow on a child of Main Camera (so head-locked
+  with no code). Uses `UI/Default` with `unity_GUIZTestMode` = Always so it draws through walls
+  (the face is against the wall while climbing) while staying single-pass-stereo safe.
+  `SetVisible()` only touches the renderer on change.
 - **`HandVisualSnap`** — plain C# class (one per hand, owned by `PlayerClimbing` for now;
   should move to a hand-level owner when grabbing/tools need it). Blends a hand *visual*
   (never the tracked controller) between its rest local pose and a world-space `HandSnapPose`
@@ -231,7 +243,14 @@ part of the runtime gameplay path.
   highlight visual (opacity fade via `MaterialPropertyBlock`). Registers with
   `HighlightableRegistry`; `PlayerClimbing` identifies it from a hand's ray target with a type
   check. Implements `IHandSnapTarget`: the snap point is the ray hit moved onto the box's
-  top-front line (clamped to its length), facing into the wall. **Orientation convention:**
+  top-front line (clamped to its length), facing into the wall - via `ClosestLipPoint()`, which
+  mantling also uses for the ledge-top height. Mantling data (Mantling header): `isMantleable`
+  (tick only on level edges), `mantleEndsCrouched`, and `mantlePoint` - where the feet always
+  land, relative to the edge's origin in real metres along its axes (`MantlePointWorld` =
+  position + rotation × point, **not** `TransformPoint()`, since ledges are stretched cubes).
+  Defaulted from the box (top face, 0.4m in from the lip) by `Reset()` / the "Reset Mantle
+  Point" context menu; a gizmo shows it while the edge is selected.
+  **Orientation convention:**
   local X runs along the edge, +Y is up, +Z points out from the wall towards the player.
 - **Hand snap poses** — the general "hand snaps onto a grab target" mechanism, reused by
   ledges now and ladders, ropes, handles, tools and props later. `HandPose` (enum of finger
@@ -319,8 +338,8 @@ colliders and anything handedness-dependent.
   near the top (and the destination capsule check passes), a small white head-locked arrow
   appears; pushing up on either thumbstick then starts the mantle. It overrides all other
   locomotion (movement, turning, gravity, jump, crouch, climbing) and can't be cancelled, and
-  always ends a fixed horizontal offset inward from the lip, auto-crouching if only crouch
-  height fits. Full plan in `DEVROADMAP.txt` Phase 1.
+  always lands the feet at the edge's designer-set mantle point (the same spot wherever the
+  mantle started), crouched if the edge says so. Full plan in `DEVROADMAP.txt` Phase 1.
 - **Climbing is custom** — no XRI climb provider. Ladders and ropes should reuse the
   grab-and-pull-delta approach from `PlayerClimbing`.
 - **Ray-targeted grabs + hand snap poses** (Phase 1, in progress) — climbing starts when grip

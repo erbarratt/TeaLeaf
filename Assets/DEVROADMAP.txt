@@ -164,31 +164,35 @@ Scripting:
         Landed, raised when grounded after Airborne.)
 [ ] Mantling (design agreed 2026-09-27): a quick, committed, stick-
     triggered move from gripping a ledge to standing on top of it.
-    [ ] Mantleable ledges: a per-edge flag on ClimbableEdge (e.g.
+    [x] Mantleable ledges: a per-edge flag on ClimbableEdge (e.g.
         isMantleable). Mantleable ledges are always horizontal (edge X
         axis and top face level), so the mantle only has to handle that
-        case.
-    [ ] "In a position to mantle": at least one hand gripping a
+        case. (Verified in headset. ClimbableEdge.isMantleable.)
+    [x] "In a position to mantle": at least one hand gripping a
         mantleable edge AND the head pulled up to within a tunable
         distance below the ledge top (e.g. head >= top - ~0.3m) - you
-        pull yourself up first; no mantling from a full arm-hang. Plus the
-        destination clearance check passes (below).
-    [ ] Destination: the player's capsule position projected onto the
-        ledge's top-front line (clamped to the edge's length), then moved a
-        defined horizontal offset inward from the lip (along the edge's -Z,
-        onto the top surface), feet on the top face. One global tunable
-        offset (PlayerMantling); a per-edge override only if a level needs
-        it. Always the same offset, so where you end up is predictable.
-    [ ] Clearance: CheckCapsule at the destination for standing height;
-        if only crouch height fits, the mantle ends crouched (auto-crouch);
-        if neither fits, no mantle (no arrow). Checked only while gripping
-        a mantleable edge, so it's not a per-frame cost the rest of the
-        time.
-    [ ] Mantle indicator: a small white arrow locked to the headset
+        pull yourself up first; no mantling from a full arm-hang. (Verified:
+        headBelowTopAllowance 0.3m.)
+    [ ] Destination (simplified 2026-09-27): each mantleable edge has a
+        designer-set mantle point - where the player's feet always land,
+        wherever along the ledge the mantle started. A Vector3 relative to
+        the edge's origin, in real metres along its own axes (position and
+        rotation apply, scale doesn't, since ledges are stretched cubes).
+        Prefilled on the top face, 0.4m in from the lip, centred along
+        the edge (Reset() / "Reset Mantle Point" context menu); a gizmo
+        shows it while the edge is selected. (Built - landing is tested
+        with the mantle movement.)
+    [ ] End stance (simplified 2026-09-27): a per-edge "mantle ends
+        crouched" switch, set by the designer for low shelves - no
+        runtime clearance checks. (Built - tested with the movement.)
+    [x] Mantle indicator: a small white arrow locked to the headset
         (position + rotation, e.g. a little below the centre of view,
         ~0.5m ahead), shown only while a mantle is possible. Must render
         over geometry, since the player's face is usually right against
         the wall while climbing. Shown/hidden only on state change.
+        (Verified in headset. MantleIndicator, runtime mesh, UI/Default
+        shader with unity_GUIZTestMode = Always - stereo-safe and draws
+        through walls.)
     [ ] Trigger: pushing up on EITHER thumbstick (y above a threshold)
         while the arrow is showing starts the mantle. Make sure the push
         doesn't also fire a snap turn or leave a sprint/jump queued.

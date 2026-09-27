@@ -180,6 +180,42 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
   offset inward from the lip. Decided: arrow needs gripping + pulled up
   (not just gripping, and not standing at the ledge); only-crouch-height
   space auto-crouches, no space = no arrow.
+- Mantling step 1 of 2 - detection + arrow (built, awaiting headset test).
+  ClimbableEdge gets isMantleable, InwardDirection, and ClosestLipPoint()
+  (the lip-projection maths pulled out of GetSnapPose so snapping and
+  mantling share it). PlayerClimbing exposes Left/RightGrabbedEdge;
+  PlayerLocomotion exposes StandingHeight/CrouchHeight. New PlayerMantling
+  (Player root, ticked after climbing) checks, cheapest first: gripping a
+  mantleable edge -> head >= ledge top - 0.3m -> floor found by a short
+  downward ray 0.4m in from the lip -> CheckCapsule for standing, else
+  crouch height. The landing height comes from that ray rather than the
+  edge box's top face, since the box only marks the lip and may sit a
+  little above/below the real surface (which would make the capsule check
+  overlap the floor and never allow a mantle). New MantleIndicator (child
+  of Main Camera, so head-locked for free): runtime-built arrow mesh on
+  UI/Default with unity_GUIZTestMode = Always - draws through walls, and
+  UI/Default already handles single-pass stereo, which a quick custom
+  shader might not (one-eye rendering). A scene gizmo shows the landing
+  capsule green/yellow/red.
+- Design change (before testing): mantling simplified. Each mantleable
+  ClimbableEdge now carries its own designer-set data instead of
+  PlayerMantling working it out: a mantleEndsCrouched switch, and a
+  mantlePoint Vector3 - where the feet always land, wherever along the
+  ledge the mantle started. The point is relative to the edge's origin in
+  real metres along its axes: MantlePointWorld = position + rotation *
+  point, deliberately not TransformPoint(), because ledges are stretched
+  cubes (e.g. 3.8 x 0.2 x 0.37) and scale would distort the offset. Its
+  default is computed from the box (top face, 0.4m in from the lip,
+  centred along the edge) in Reset() and a "Reset Mantle Point" context
+  menu (with Undo.RecordObject so the edit is saved); a selected-edge
+  gizmo shows it. Removed from step 1: the floor ray, both CheckCapsule
+  clearance checks, landingLayers, landingOffset, InwardDirection, the
+  landing gizmo, and PlayerLocomotion's Standing/CrouchHeight getters.
+  PlayerMantling now only checks "gripping a mantleable edge + head pulled
+  up", with no physics queries, and exposes MantleEdge.
+- Mantling step 1 verified in headset: the arrow shows once pulled up on a
+  mantleable edge, hides on release, and never shows on non-mantleable
+  edges.
 
 
 2026-09-26

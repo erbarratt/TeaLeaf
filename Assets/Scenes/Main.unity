@@ -119,6 +119,119 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &26756715
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 26756719}
+  - component: {fileID: 26756718}
+  - component: {fileID: 26756717}
+  - component: {fileID: 26756716}
+  m_Layer: 6
+  m_Name: Floor (4)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!64 &26756716
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 26756715}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!23 &26756717
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 26756715}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!33 &26756718
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 26756715}
+  m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &26756719
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 26756715}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0.00000002323129, y: -1, z: -0.00000001948616, w: 0.00000016391276}
+  m_LocalPosition: {x: -4.309, y: 2.957, z: -3.23}
+  m_LocalScale: {x: 0.25, y: 1, z: 0.57}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -180, z: 0}
 --- !u!114 &37101388
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -228,6 +341,7 @@ MonoBehaviour:
   playerLocomotion: {fileID: 37101390}
   playerHandInteraction: {fileID: 403779174}
   playerClimbing: {fileID: 37101395}
+  playerMantling: {fileID: 6520291404544364422}
   playerHandAnimation: {fileID: 403779173}
   characterController: {fileID: 6232745471023633040}
   playerTransform: {fileID: 1717954562106626084}
@@ -662,6 +776,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Interaction.ClimbableEdge
   targetRenderer: {fileID: 400730645}
   snapProfile: {fileID: 11400000, guid: ddf39a4096efe364b846c7c7d22b8e50, type: 2}
+  isMantleable: 1
+  mantleEndsCrouched: 0
+  mantlePoint: {x: 0, y: 0.1, z: -0.36}
   baseOpacity: 0
   highlightedOpacity: 0.2
 --- !u!65 &400730644
@@ -1231,6 +1348,52 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1031625111
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1031625112}
+  - component: {fileID: 1031625113}
+  m_Layer: 0
+  m_Name: Mantle Indicator
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1031625112
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1031625111}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: -0.12, z: 0.5}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1912392056}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1031625113
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1031625111}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 02514f2eb3385194ca7acf625d117912, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Player.MantleIndicator
+  size: 0.04
+  color: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1 &1430026195
 GameObject:
   m_ObjectHideFlags: 0
@@ -1557,7 +1720,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1031625112}
   m_Father: {fileID: 2088998233}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1912392059
@@ -1673,6 +1837,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Interaction.ClimbableEdge
   targetRenderer: {fileID: 1925982082}
   snapProfile: {fileID: 11400000, guid: ddf39a4096efe364b846c7c7d22b8e50, type: 2}
+  isMantleable: 0
+  mantleEndsCrouched: 0
+  mantlePoint: {x: 0, y: 0.1, z: -0.2}
   baseOpacity: 0
   highlightedOpacity: 0.2
 --- !u!65 &1925982081
@@ -1915,6 +2082,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Interaction.ClimbableEdge
   targetRenderer: {fileID: 2036215776}
   snapProfile: {fileID: 11400000, guid: ddf39a4096efe364b846c7c7d22b8e50, type: 2}
+  isMantleable: 0
+  mantleEndsCrouched: 0
+  mantlePoint: {x: 0, y: 0.1, z: -0.2}
   baseOpacity: 0
   highlightedOpacity: 0.2
 --- !u!65 &2036215775
@@ -2519,6 +2689,7 @@ GameObject:
   - component: {fileID: 37101411}
   - component: {fileID: 37101390}
   - component: {fileID: 37101395}
+  - component: {fileID: 6520291404544364422}
   m_Layer: 7
   m_Name: Player
   m_TagString: Untagged
@@ -3703,6 +3874,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_ActionAssets:
   - {fileID: -944628639613478452, guid: c348712bda248c246b8c49b3db54643f, type: 3}
+--- !u!114 &6520291404544364422
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1717954562106626087}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8da43a0dcfbecb4bafc082bfa6066be, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Player.PlayerMantling
+  playerClimbing: {fileID: 37101395}
+  playerTracking: {fileID: 37101388}
+  mantleIndicator: {fileID: 1031625113}
+  headBelowTopAllowance: 0.3
 --- !u!114 &6693052528164711809
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4203,6 +4390,7 @@ SceneRoots:
   - {fileID: 811885350}
   - {fileID: 159738397}
   - {fileID: 539759888}
+  - {fileID: 26756719}
   - {fileID: 1670580367}
   - {fileID: 1717954562106626084}
   - {fileID: 1715319990}
