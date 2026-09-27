@@ -216,6 +216,61 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 - Mantling step 1 verified in headset: the arrow shows once pulled up on a
   mantleable edge, hides on release, and never shows on non-mantleable
   edges.
+- Mantling step 2 of 2 - the mantle itself (built, awaiting headset
+  test). Pushing either stick up (0.7) while the arrow shows starts it.
+  Decided to move the rig directly with the CharacterController disabled
+  rather than through Move(): the landing point is designer-placed and
+  always valid, and collision on the way (lip, wall) could only block or
+  deflect it off that point. So it's the one exception to "one Move() per
+  frame": PlayerController now skips climbing, locomotion, turning and
+  Move() while PlayerMantling.IsMantling, and only ticks movement state,
+  hand visuals and hand animation. Rig target = start + (mantle point +
+  2cm - current capsule bottom), since the capsule sits off the rig
+  origin under the headset. Path: rise eases out by 60% of 0.4s, forward
+  eases in-out from 30%, overlapping into one arc. New
+  PlayerClimbing.ReleaseAll() plus a needs-regrip rule (a force-released
+  hand can't grab until its grip is let go, or "held" grabbing would
+  instantly re-grab the ledge at your feet). PlayerLocomotion gets
+  BeginMantle(endsCrouched) / EndMantle(): clear velocity, sprint and
+  jump buffer, set crouch from the ledge (crouch button ignored
+  mid-mantle), count as grounded on landing (no false Airborne/Landed)
+  and re-arm snap turn so a diagonal right stick doesn't turn on landing.
+  New MovementState.Mantling.
+- Mantling step 2 verified in headset (works great) - left stick trigger.
+- Bug: snap turn didn't fire if the right stick was pushed forward/back
+  first and then swept round to the side at full deflection - only a push
+  straight left/right from centre turned. Not our code: PlayerInputXR read
+  XRI's sample "XRI Right Locomotion/Snap Turn", whose binding carries
+  "Sector(directions=12,sweepBehavior=1),Sector(directions=2,...)"
+  interactions - only Left/Right sectors, and only when entered from
+  centre; otherwise the action reads (0, 0), so HandleTurning() never saw
+  the stick move. It also meant the right-stick Y never came through, so
+  pushing the right stick up could never have triggered a mantle. XRI's
+  "Turn" binding has the same interactions, which is very likely the real
+  cause of the old "Turn doesn't produce values on the G2" note. Fix: new
+  project-wide Player/Turn action (Vector2, <XRController>{RightHand}/
+  {Primary2DAxis}, no interactions) in InputSystem_Actions - not an edit
+  to the XRI sample asset, which a package update could overwrite.
+  HandleTurning()'s existing threshold + re-centre logic already handles
+  a sweep correctly once it gets raw values. Lesson: check XRI sample
+  bindings for interactions before reusing them.
+- Input: InputSystem_Actions' Player map now has an XR action for every
+  Quest controller input, so gameplay no longer reads XRI's sample asset
+  at all. Decided: named by function where gameplay uses the input
+  (new LeftGrip, RightGrip, LeftTrigger, RightTrigger - same {Grip}/
+  {Trigger} usages XRI binds, so values are identical), button-named
+  placeholders for the unused ones (ButtonX, ButtonY, Menu,
+  RightStickClick) to be renamed when they get a job. Also fixed the
+  existing Move XR binding, which was a bare <XRController>/{Primary2DAxis}
+  (either stick) - now {LeftHand}. PlayerInputXR's grip/trigger/move
+  references are to be pointed at the new actions (Inspector); its
+  comments now say all input comes from the project asset. Left alone:
+  Unity's unused template actions (Look, Attack, Interact, Previous,
+  Next) - Attack has a bare either-trigger binding but nothing reads it.
+- Verified in headset after reassigning PlayerInputXR to the project
+  actions: movement, sprint, snap turn (including sweeping round from
+  forward/back), grip/trigger finger curl, grabbing/climbing, crouch,
+  jump, and mantling from both sticks all work. Mantling is done.
 
 
 2026-09-26

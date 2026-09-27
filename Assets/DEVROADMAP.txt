@@ -162,7 +162,7 @@ Scripting:
     [x] Landing: expose a Landed event with fall speed, for the landing
         noise (Phase 2) and a haptic thump. (Built: event Action<float>
         Landed, raised when grounded after Airborne.)
-[ ] Mantling (design agreed 2026-09-27): a quick, committed, stick-
+[x] Mantling (design agreed 2026-09-27): a quick, committed, stick-
     triggered move from gripping a ledge to standing on top of it.
     [x] Mantleable ledges: a per-edge flag on ClimbableEdge (e.g.
         isMantleable). Mantleable ledges are always horizontal (edge X
@@ -173,18 +173,18 @@ Scripting:
         distance below the ledge top (e.g. head >= top - ~0.3m) - you
         pull yourself up first; no mantling from a full arm-hang. (Verified:
         headBelowTopAllowance 0.3m.)
-    [ ] Destination (simplified 2026-09-27): each mantleable edge has a
+    [x] Destination (simplified 2026-09-27): each mantleable edge has a
         designer-set mantle point - where the player's feet always land,
         wherever along the ledge the mantle started. A Vector3 relative to
         the edge's origin, in real metres along its own axes (position and
         rotation apply, scale doesn't, since ledges are stretched cubes).
         Prefilled on the top face, 0.4m in from the lip, centred along
         the edge (Reset() / "Reset Mantle Point" context menu); a gizmo
-        shows it while the edge is selected. (Built - landing is tested
-        with the mantle movement.)
-    [ ] End stance (simplified 2026-09-27): a per-edge "mantle ends
+        shows it while the edge is selected. (Verified in headset - landing
+        is on the point.)
+    [x] End stance (simplified 2026-09-27): a per-edge "mantle ends
         crouched" switch, set by the designer for low shelves - no
-        runtime clearance checks. (Built - tested with the movement.)
+        runtime clearance checks. (Verified in headset.)
     [x] Mantle indicator: a small white arrow locked to the headset
         (position + rotation, e.g. a little below the centre of view,
         ~0.5m ahead), shown only while a mantle is possible. Must render
@@ -193,28 +193,46 @@ Scripting:
         (Verified in headset. MantleIndicator, runtime mesh, UI/Default
         shader with unity_GUIZTestMode = Always - stereo-safe and draws
         through walls.)
-    [ ] Trigger: pushing up on EITHER thumbstick (y above a threshold)
+    [x] Trigger: pushing up on EITHER thumbstick (y above a threshold)
         while the arrow is showing starts the mantle. Make sure the push
         doesn't also fire a snap turn or leave a sprint/jump queued.
-    [ ] Mantle movement: quick (~0.3-0.5s, tunable), up then over the lip
+        (Built: stickUpThreshold 0.7. Turning is skipped during the mantle
+        and snap turn is re-armed at the end; sprint and jump buffer are
+        cleared at the start. Verified on both sticks - the right stick
+        only works since the Player/Turn fix (XRI Sector
+        interactions zeroed its Y).)
+    [x] Mantle movement: quick (~0.3-0.5s, tunable), up then over the lip
         (e.g. rise until the feet clear the top, then forward) with easing
         - a straight diagonal would drag the capsule through the lip. It
         completely overrides all other locomotion: no stick movement,
         turning, gravity, jump, crouch toggle or climbing while it runs,
         and it can't be cancelled (letting go of grip does nothing).
-        PlayerController gives the mantle exclusive control of the frame's
-        movement, keeping the single Move() rule (or moves the rig
-        directly with collisions off, since the destination is already
-        verified clear - decide when building).
-    [ ] Hands: grips release and hand visuals blend back to the
-        controllers at the start of the mantle.
-    [ ] End: player stands (or crouches) at the destination at rest - no
+        (Verified in headset. Decided: the rig is moved directly with the
+        CharacterController disabled, not through Move() - the landing is
+        designer-placed, so collision could only stop it landing there.
+        PlayerController skips climbing, locomotion, turning and Move()
+        while IsMantling. Path: rise eases out by 60%, forward eases
+        in-out from 30%, overlapping into one arc; duration 0.4s; feet
+        land 2cm above the mantle point so the re-enabled controller never
+        starts inside the floor.)
+    [x] Hands: grips release and hand visuals blend back to the
+        controllers at the start of the mantle. (Verified:
+        PlayerClimbing.ReleaseAll(). A force-released hand can't grab
+        again until its grip is let go - otherwise a still-held grip
+        would re-grab the ledge at your feet the moment the mantle ends.)
+    [x] End: player stands (or crouches) at the destination at rest - no
         leftover velocity, gravity resumes, MovementState leaves Climbing.
         Consider a Mantling MovementState (or Climbing) for noise/AI.
-    [ ] Test: chest-high ledge, ledge above head (pull up first), low
-        shelf (auto-crouch), no-room shelf (no arrow), ledge ends (lateral
-        clamp), both hands / either hand, stick up on left and on right,
-        comfort in headset.
+        (Verified: new MovementState.Mantling. PlayerLocomotion.BeginMantle()
+        clears velocity/sprint/jump and sets the crouch from the ledge -
+        the height transition plays out during the mantle; EndMantle()
+        counts as grounded, so no false Airborne/Landed on the first
+        frame back.)
+    [x] Test: chest-high ledge, ledge above head (pull up first), low
+        shelf (mantle ends crouched), ledge ends (lands on the same point
+        wherever you started along it), either hand, stick up on left and
+        on right, crouch/jump/turn ignored mid-mantle, no re-grab while
+        grip is still held after landing, comfort in headset.
 [ ] Ladders: Ladder component (Interaction namespace) with rungs/grip
     volume, reusing PlayerClimbing's grab-and-pull-delta approach. Decide
     whether Ladder implements the same interface as ClimbableEdge or

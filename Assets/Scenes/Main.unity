@@ -263,8 +263,8 @@ MonoBehaviour:
   leftTrigger: {fileID: -4289430672226363583, guid: c348712bda248c246b8c49b3db54643f, type: 3}
   rightGrip: {fileID: -1758520528963094988, guid: c348712bda248c246b8c49b3db54643f, type: 3}
   rightTrigger: {fileID: 7904272356298805229, guid: c348712bda248c246b8c49b3db54643f, type: 3}
-  moveAction: {fileID: 6972639530819350904, guid: c348712bda248c246b8c49b3db54643f, type: 3}
-  turnAction: {fileID: -8525429354371678379, guid: c348712bda248c246b8c49b3db54643f, type: 3}
+  moveAction: {fileID: -1680190386980627800, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  turnAction: {fileID: 3398789533272882296, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   crouchAction: {fileID: 7040659881675835329, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   sprintAction: {fileID: -7471211009204490832, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   jumpAction: {fileID: -2099379676528639254, guid: 052faaac586de48259a63d0c4782560b, type: 3}
@@ -3886,10 +3886,19 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e8da43a0dcfbecb4bafc082bfa6066be, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player.PlayerMantling
+  playerInput: {fileID: 37101389}
   playerClimbing: {fileID: 37101395}
+  playerLocomotion: {fileID: 37101390}
   playerTracking: {fileID: 37101388}
+  characterController: {fileID: 6232745471023633040}
+  playerTransform: {fileID: 1717954562106626084}
   mantleIndicator: {fileID: 1031625113}
   headBelowTopAllowance: 0.3
+  stickUpThreshold: 0.7
+  duration: 0.4
+  riseEndsAt: 0.6
+  forwardStartsAt: 0.3
+  landingLift: 0.02
 --- !u!114 &6693052528164711809
 MonoBehaviour:
   m_ObjectHideFlags: 0

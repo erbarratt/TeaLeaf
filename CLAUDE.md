@@ -18,9 +18,11 @@ debugging, consistent behavior across headsets, and a better understanding of ho
 works. **Do not suggest re-enabling or using XRI's built-in locomotion, teleportation, or climb
 providers.** Teleport locomotion will never be used.
 
-Known headset quirk: on the HP Reverb G2 + Oasis, `XRI Right Locomotion/Turn` doesn't produce
-values — `XRI Right Locomotion/Snap Turn` must be used instead. Quest 3 input and tracking have
-been verified working.
+XRI's sample `Turn` and `Snap Turn` actions have Sector interactions on their bindings, so they
+read (0, 0) unless the stick is pushed straight from centre into the left/right sector (this
+was probably also the old "Turn doesn't produce values on the HP Reverb G2" quirk). Turning
+therefore reads the project's own interaction-free `Player/Turn` action instead. Quest 3 input
+and tracking have been verified working.
 
 ## Project docs — keep these up to date
 
@@ -99,9 +101,12 @@ behaviour. The current order is:
 2. `playerLocomotion.TickBody()` — re-centre the capsule under the headset and apply crouch
    height (before the hand systems, since crouch moves the tracked hierarchy).
 3. `playerHandInteraction.Tick()` — hand rays + highlighting.
-4. `playerClimbing.Tick()` — grab/release, climb movement; then `playerMantling.Tick()` —
-   whether a mantle is possible this frame (arrow on/off), after climbing so it sees this
-   frame's grips. (Mantle movement not built yet.)
+4. `playerClimbing.Tick()` — grab/release, climb movement (skipped while mantling); then
+   `playerMantling.Tick()` — detects a possible mantle (arrow), starts one on a stick push, or
+   advances the one in progress. **While `IsMantling`, the frame stops here**: the mantle has
+   already positioned the rig directly (CharacterController disabled), so only
+   `TickState()`, `TickHandVisuals()` and `playerHandAnimation.Tick()` run - no locomotion,
+   turning or `Move()`.
 5. `_frameMovement` = `playerLocomotion.TickMovement(isClimbing)` (thumbstick + gravity;
    zero while climbing) + `playerClimbing.FrameMovement` while climbing; then
    `playerLocomotion.TickTurning()`.
@@ -145,20 +150,38 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
 - **`PlayerInputXR`** — the single source of truth for controller input. Wraps Input System
   `InputActionReference`s (grip/trigger per hand, move/turn thumbsticks, crouch, sprint) and
   caches them once per frame in `Tick()` as typed properties (`MoveAxis`, `TurnAxis`, `LeftGrip`,
-  `IsLeftGrabbing`, `CrouchPressed`, `SprintPressed`, `JumpPressed`, etc.). Enables every action it reads in
-  `OnEnable()`, since they come from two assets (see below). Also calls `Tick()` from its own
-  `Update()` as a fallback so Debug scripts work without a full rig. Gameplay code should always
-  read input through this class rather than referencing Input Actions directly.
+  `IsLeftGrabbing`, `CrouchPressed`, `SprintPressed`, `JumpPressed`, etc.). Enables every action it
+  reads in `OnEnable()` rather than relying on the asset being enabled. Also calls `Tick()` from
+  its own `Update()` as a fallback so Debug scripts work without a full rig. Gameplay code should
+  always read input through this class rather than referencing Input Actions directly.
 
-  **Input assets:** grip/trigger/move/turn still reference XRI's sample
-  `XRI Default Input Actions` (enabled by the Input Action Manager on Player). New gameplay
-  actions go in the project-owned, project-wide `Assets/InputSystem_Actions.inputactions`
-  (`Player` map, auto-enabled by Unity) with an `XR`-group binding, not in the XRI sample asset,
-  which a package update could overwrite. Current XR bindings there: `Crouch` = right A
-  (`{RightHand}/{PrimaryButton}`), `Sprint` = left stick click
-  (`{LeftHand}/{Primary2DAxisClick}`), `Jump` = right B (`{RightHand}/{SecondaryButton}`).
-  Bind XR actions to a specific hand (`{LeftHand}`/`{RightHand}`) - a bare `<XRController>`
-  binding fires from either controller.
+  **Input assets:** all gameplay input reads the project-owned, project-wide
+  `Assets/InputSystem_Actions.inputactions` (`Player` map, auto-enabled by Unity), never XRI's
+  sample `XRI Default Input Actions`, which a package update could overwrite and whose bindings
+  carry XRI interactions. (The XRI asset is still enabled by the Input Action Manager on Player
+  for XRI's own use.) The `Player` map has an `XR`-group action for every Quest controller input,
+  named by function where gameplay uses it and by button as a placeholder where it doesn't yet:
+
+  | Action | XR binding | Used by |
+  |---|---|---|
+  | `Move` | `{LeftHand}/{Primary2DAxis}` | movement |
+  | `Turn` | `{RightHand}/{Primary2DAxis}` | turning, mantle (stick up) |
+  | `LeftGrip` / `RightGrip` | `{LeftHand}`/`{RightHand}/{Grip}` | grabbing, finger curl |
+  | `LeftTrigger` / `RightTrigger` | `{LeftHand}`/`{RightHand}/{Trigger}` | index curl |
+  | `Sprint` | `{LeftHand}/{Primary2DAxisClick}` | sprint toggle |
+  | `Crouch` | `{RightHand}/{PrimaryButton}` (A) | crouch toggle |
+  | `Jump` | `{RightHand}/{SecondaryButton}` (B) | jump |
+  | `ButtonX` | `{LeftHand}/{PrimaryButton}` | unassigned placeholder |
+  | `ButtonY` | `{LeftHand}/{SecondaryButton}` | unassigned placeholder |
+  | `Menu` | `{LeftHand}/{MenuButton}` | unassigned placeholder |
+  | `RightStickClick` | `{RightHand}/{Primary2DAxisClick}` | unassigned placeholder |
+
+  Rename a placeholder to its function when it gets a job (e.g. the wrist radial menu), and
+  add it to `PlayerInputXR` then - not before. Bind XR actions to a specific hand
+  (`{LeftHand}`/`{RightHand}`) - a bare `<XRController>` binding fires from either controller -
+  and never add interactions unless they're wanted. Unity's template actions (`Look`,
+  `Attack`, `Interact`, `Previous`, `Next`) are still in the map but unused; `Attack` has a bare
+  either-trigger XR binding.
 - **`PlayerTracking`** — the single source of truth for tracked XR transforms (head, left
   hand, right hand), exposing position/rotation accessors. Other systems should query this
   class instead of walking the XR Rig hierarchy.
@@ -175,7 +198,7 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
   (`HandleJump()`, before gravity) has coyote time, a jump buffer and a `_hasJumped` guard.
   Exposes `IsSprinting`, `IsCrouching`, `MovementState`, and a `Landed` event (fall speed).
 - **`MovementState`** (enum) — `Still`, `Walking`, `Sprinting`, `CrouchStill`, `CrouchWalking`,
-  `Climbing`, `Airborne`: the single value noise, visibility, AI and the wrist gem should read,
+  `Climbing`, `Airborne`, `Mantling` (set whenever a mantle is running): the single value noise, visibility, AI and the wrist gem should read,
   rather than combining flags themselves. It is set by `PlayerLocomotion.TickState()` in priority
   order (Climbing > Airborne > crouch > still > sprint/walk). "Moving" means the real horizontal
   applied movement exceeds `movingSpeedThreshold`, so pushing into a wall counts as still.
@@ -188,14 +211,23 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
   `playerTransform` local space to avoid a feedback loop, and any movement the
   CharacterController didn't apply is retried via `ReportAppliedMovement()` so the grab point
   never drifts. On grab it asks the edge for a `HandSnapPose` and hands it to that hand's
-  `HandVisualSnap` (exposed as `LeftVisualSnap`/`RightVisualSnap`). Sets
+  `HandVisualSnap` (exposed as `LeftVisualSnap`/`RightVisualSnap`). `ReleaseAll()` force-releases
+  both hands (used by mantling); a force-released hand can't grab again until its grip is let
+  go, since "held" grabbing would otherwise instantly re-grab. Sets
   `characterController.minMoveDistance = 0` so slow hand movement isn't swallowed. Exposes
   `IsClimbing`, `IsLeftHandGripping`/`IsRightHandGripping`, `FrameMovement`.
 - **`PlayerMantling`** — decides when a mantle is possible (`CanMantle`, `MantleEdge`) and shows
   the `MantleIndicator` to match: a hand grips a mantleable edge and the head is at least
   `ledge top - headBelowTopAllowance`. No physics queries - where the mantle lands and whether
-  it ends crouched are per-edge designer data on `ClimbableEdge`. The trigger and mantle
-  movement are the next step (see the roadmap).
+  it ends crouched are per-edge designer data on `ClimbableEdge`. Either stick pushed up
+  (`stickUpThreshold`) starts the mantle: `PlayerClimbing.ReleaseAll()`,
+  `PlayerLocomotion.BeginMantle(endsCrouched)`, CharacterController disabled, then the rig is
+  positioned directly along an eased up-and-over arc (`duration`, `riseEndsAt`,
+  `forwardStartsAt`) so the capsule bottom lands on the mantle point (+`landingLift`).
+  Uncancellable; `IsMantling` makes `PlayerController` skip everything else. At the end the
+  controller is re-enabled and `EndMantle()` hands back control. **The one exception to the
+  single-`Move()` rule** - chosen because the landing is designer-placed and collision could
+  only stop it landing there.
 - **`MantleIndicator`** — runtime-built white arrow on a child of Main Camera (so head-locked
   with no code). Uses `UI/Default` with `unity_GUIZTestMode` = Always so it draws through walls
   (the face is against the wall while climbing) while staying single-pass-stereo safe.
@@ -333,7 +365,7 @@ colliders and anything handedness-dependent.
   `characterController.Move()` directly.
 - **`Update()`, not `FixedUpdate()`** — CharacterController-based movement plus VR tracking
   both want per-frame (not physics-step) updates, for lower latency.
-- **Mantling (planned, design agreed)** — a quick, committed move onto a *mantleable*
+- **Mantling** — a quick, committed move onto a *mantleable*
   (always horizontal) `ClimbableEdge`. When a hand grips one and the head has been pulled up
   near the top (and the destination capsule check passes), a small white head-locked arrow
   appears; pushing up on either thumbstick then starts the mantle. It overrides all other

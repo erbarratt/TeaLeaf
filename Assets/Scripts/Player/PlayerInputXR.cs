@@ -3,18 +3,32 @@ using UnityEngine.InputSystem;
 
 namespace Player
 {
+    /// <summary>
+    /// The single source of truth for controller input. Every reference
+    /// below points at an action in the project-owned, project-wide
+    /// InputSystem_Actions asset (Player map) - never at XRI's sample
+    /// "XRI Default Input Actions", which a package update could overwrite
+    /// and whose bindings carry XRI-specific interactions (see turnAction).
+    /// The Player map holds an action for every Quest controller input:
+    /// function-named ones for inputs gameplay reads, and button-named
+    /// placeholders (ButtonX, ButtonY, Menu, RightStickClick) for unused
+    /// buttons, to be renamed when they get a job.
+    /// </summary>
     public class PlayerInputXR : MonoBehaviour
     {
         [Header("Left Hand")]
+        // Player/LeftGrip and Player/LeftTrigger - analogue 0-1.
         [SerializeField] private InputActionReference leftGrip;
         [SerializeField] private InputActionReference leftTrigger;
 
         [Header("Right Hand")]
+        // Player/RightGrip and Player/RightTrigger - analogue 0-1.
         [SerializeField] private InputActionReference rightGrip;
         [SerializeField] private InputActionReference rightTrigger;
 
         [Header("Locomotion")]
-        // Reference to the movement thumbstick action.
+        // Reference to the movement thumbstick action - Player/Move (left
+        // stick).
         [SerializeField] private InputActionReference moveAction;
 
         // Reference to the turning thumbstick action - the project-wide
@@ -80,12 +94,11 @@ namespace Player
         public bool JumpPressed { get; private set; }
 
         /// <summary>
-        /// Makes sure every action this class reads is enabled. The actions
-        /// come from two different assets - XRI's Default Input Actions
-        /// (enabled by the Input Action Manager on Player) and the
-        /// project-wide InputSystem_Actions (enabled by Unity at startup) -
-        /// so rather than relying on either of those, this class enables what
-        /// it needs itself. Enabling an already-enabled action does nothing.
+        /// Makes sure every action this class reads is enabled. Unity enables
+        /// the project-wide InputSystem_Actions at startup, but this class
+        /// enables what it needs itself rather than relying on that (or on
+        /// which asset a reference happens to point at). Enabling an
+        /// already-enabled action does nothing.
         /// </summary>
         private void OnEnable()
         {
