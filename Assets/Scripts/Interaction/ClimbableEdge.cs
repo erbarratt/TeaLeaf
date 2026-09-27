@@ -1,22 +1,30 @@
-using System.Collections.Generic;
 using UnityEngine;
 
 namespace Interaction
 {
     /// <summary>
     /// Marks a designer-placed cube as a climbable edge. The same BoxCollider
-    /// serves as both the visual highlight bounds and the volume used to check
-    /// whether a hand is inside it when grabbing - there is no separate
-    /// trigger/visual pair.
+    /// serves as both the visual highlight bounds and the target hand rays
+    /// hit - there is no separate trigger/visual pair. A hand grabs the edge
+    /// by holding grip while its ray is on it.
     ///
-    /// This class only knows about itself: its own bounds and its own
-    /// highlighted/not-highlighted appearance. Deciding which edge should be
-    /// highlighted, and handling grabbing, is PlayerClimbing's job.
+    /// This class only knows about itself: its own collider, its own
+    /// highlighted/not-highlighted appearance, and where a hand snaps onto
+    /// it. Deciding which edge should be highlighted is
+    /// PlayerHandInteraction's job, and grabbing is PlayerClimbing's.
+    ///
+    /// Orientation convention - place every edge so that its local X runs
+    /// along the edge, +Y is up, and +Z points out from the wall towards the
+    /// player. The lip a hand curls over is therefore the box's top-front
+    /// line (top face, +Z face).
     /// </summary>
     [RequireComponent(typeof(BoxCollider))]
-    public class ClimbableEdge : MonoBehaviour, IHighlightable
+    public class ClimbableEdge : MonoBehaviour, IHighlightable, IHandSnapTarget
     {
         [SerializeField] private Renderer targetRenderer;
+
+        // Shared hand offsets/pose for all ledges - see HandSnapProfile.
+        [SerializeField] private HandSnapProfile snapProfile;
 
         // Opacity while not highlighted - 0 makes the box invisible until a
         // hand ray points at it.
@@ -44,12 +52,6 @@ namespace Interaction
         // toggling highlighting doesn't allocate.
         private MaterialPropertyBlock _propertyBlock;
 
-        // Every enabled ClimbableEdge registers itself here, so PlayerClimbing
-        // can check all of them each frame for grabbing without an expensive
-        // scene search.
-        private static readonly List<ClimbableEdge> _active = new();
-        public static IReadOnlyList<ClimbableEdge> Active => _active;
-
         private void Awake()
         {
             _boxCollider = GetComponent<BoxCollider>();
@@ -65,43 +67,51 @@ namespace Interaction
 
         private void OnEnable()
         {
-            _active.Add(this);
             HighlightableRegistry.Register(_boxCollider, this);
         }
 
         private void OnDisable()
         {
-            _active.Remove(this);
             HighlightableRegistry.Unregister(_boxCollider);
         }
 
         /// <summary>
-        /// Closest point on the BoxCollider's surface to the given world point,
-        /// used to snap a grabbing hand's visual model to the edge.
+        /// Snaps a grabbing hand onto this edge's lip: the point on the
+        /// top-front line nearest to where the ray hit, facing into the wall
+        /// with the grip frame's up matching the edge's up. The profile then
+        /// offsets that into the hand visual's actual root pose.
         /// </summary>
-        public Vector3 ClosestPoint(Vector3 point)
+        public HandSnapPose GetSnapPose(bool isLeftHand, Vector3 grabPoint)
         {
-            return _boxCollider.ClosestPoint(point);
-        }
+            // Work in the box's local space, where the lip is a simple
+            // axis-aligned line. BoxCollider.center/size are local values,
+            // so this is correct however the cube is scaled or rotated.
+            Vector3 local = transform.InverseTransformPoint(grabPoint);
+            Vector3 centre = _boxCollider.center;
+            Vector3 halfSize = _boxCollider.size * 0.5f;
 
-        /// World-space axis-aligned bounds of this edge's BoxCollider -
-        /// exposed so PlayerClimbing can cheaply reject far-away edges
-        /// before calling the more expensive Overlaps() below.
-        public Bounds Bounds => _boxCollider.bounds;
+            // Slide along the edge to wherever the ray hit, but never past
+            // either end; then pin to the top face and the front face.
+            local.x = Mathf.Clamp(local.x, centre.x - halfSize.x, centre.x + halfSize.x);
+            local.y = centre.y + halfSize.y;
+            local.z = centre.z + halfSize.z;
 
-        /// <summary>
-        /// Whether a sphere of the given radius centred on point overlaps
-        /// this edge's box, respecting the box's rotation (unlike an
-        /// axis-aligned Bounds check). Collider.ClosestPoint returns the
-        /// input point unchanged when it's already inside a solid collider,
-        /// so a hand whose centre is inside the box always overlaps
-        /// regardless of radius; otherwise it overlaps only if the box's
-        /// nearest surface point is within the sphere.
-        /// </summary>
-        public bool Overlaps(Vector3 point, float radius)
-        {
-            Vector3 closest = ClosestPoint(point);
-            return (closest - point).sqrMagnitude <= radius * radius;
+            Vector3 gripPosition = transform.TransformPoint(local);
+
+            // Grip frame: forward points into the wall (-Z), up is the edge's
+            // up - the direction the back of a palm-down hand faces.
+            Quaternion gripRotation = Quaternion.LookRotation(-transform.forward, transform.up);
+
+            // Without a profile, still snap to the bare grip frame so a
+            // missing reference is obvious (hand badly offset), not a crash.
+            // == null rather than "is null": in the editor Unity can store an
+            // unassigned serialized reference as a "fake null" object that
+            // only its overloaded == operator treats as null.
+            if (snapProfile == null) {
+                return new HandSnapPose(gripPosition, gripRotation, HandPose.LedgeGrip);
+            }
+
+            return snapProfile.Apply(isLeftHand, gripPosition, gripRotation);
         }
 
         /// <summary>

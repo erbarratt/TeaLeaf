@@ -5,8 +5,84 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 (Unity, OpenXR + XR Interaction Toolkit). Newest updates are at the top.
 
 
+2026-09-27
+----------
+- MovementState (from 2026-09-26) verified in headset - all states read
+  correctly via MovementStateDebug.
+- Ray-targeted climb grab, step 1 of 3 (Phase 1). A hand now grabs the
+  ClimbableEdge its hand ray/reticle is on while grip is held, instead of
+  whatever its SphereCollider overlapped - what's highlighted is exactly
+  what gets grabbed. Chose "held" over "press only" to keep the old
+  hold-grip-and-reach-in feel. PlayerHandInteraction now exposes
+  LeftTargetPoint/RightTargetPoint (the ray hit point) alongside
+  LeftTarget/RightTarget; PlayerClimbing takes a PlayerHandInteraction
+  reference and checks "rayTarget is ClimbableEdge" (a cheap type check,
+  no GetComponent). Removed the sphere fields, FindEdgeOverlapping(), and
+  ClimbableEdge's Active list, Bounds, Overlaps() and ClosestPoint(), which
+  only existed for the overlap check. The visual hand is pinned at the ray
+  hit point for now; step 2 replaces that with a general hand snap pose.
+  Grab reach: no separate distance - the 0.5m hand ray already is arm's
+  reach. Removed the climb SphereColliders from Left/Right Hand and wired
+  PlayerClimbing's new reference. Verified working in headset.
+- Hand snap poses, step 2 of 3 (Phase 1). A general way for any grab
+  target to say where a hand visual goes and how it's posed:
+  HandPose (enum of finger poses), HandSnapPose (readonly struct: world
+  position, rotation, pose) and IHandSnapTarget (GetSnapPose(isLeftHand,
+  grabPoint)), all in Interaction. The target works out a model-agnostic
+  "grip frame"; a shared HandSnapProfile ScriptableObject then applies
+  per-hand position/rotation offsets (per hand because the right visual is
+  mirrored). Chose a shared asset over per-edge fields so the offsets are
+  tuned once for every ledge. ClimbableEdge implements it: the ray hit is
+  moved to the box's top-front line in local space (clamped to the edge's
+  length), facing into the wall. New convention: edge local X along the
+  edge, +Y up, +Z out from the wall.
+  HandVisualSnap (plain C# class, one per hand, owned by PlayerClimbing for
+  now) blends the visual to the snap pose over 0.08s with SmoothStep and
+  back on release, and skips touching the transform entirely at rest.
+  Found while doing this: the old pinning ran inside PlayerClimbing.Tick(),
+  before turning and Move() - since the visuals are children of the rig,
+  every pinned hand was dragged off by that frame's movement until the next
+  frame. Visuals are now placed in PlayerClimbing.TickHandVisuals(), a new
+  last step (9) in PlayerController.Update(). Finger pose is carried in the
+  snap pose but not played yet (step 3).
+- Bug: snapping worked in headset, but a snapped hand still moved slightly
+  with controller rotation/movement. Cause: the hands' Tracked Pose Drivers
+  use "Update And Before Render" (m_UpdateType 0), so just before rendering
+  - after all our Update() code - they move the controller again with
+  fresher tracking data, dragging any child visual with it. Setting the
+  pose later can't beat that reliably (before-render callback order isn't
+  guaranteed). Fix: HandVisualSnap detaches the visual (SetParent(null,
+  true)) on snap and re-attaches it to the controller when the release
+  blend ends. Parented to the scene root rather than the ledge, because the
+  ledges are non-uniformly scaled cubes and a rotated child under one would
+  shear. Lesson: anything that must stay world-fixed can't be a child of a
+  tracked transform. Verified in headset - snapped hands now stay dead
+  still on the ledge. Step 2 done.
+
+
 2026-09-26
 ----------
+- Roadmap change: added a Phase 1 item (before Jump) for ray-targeted climb
+  grabs. A hand will start climbing when grip is pressed while its hand
+  ray/reticle is on a ClimbableEdge, instead of when its SphereCollider
+  overlaps one - the climb spheres get removed. On grab the visual hand
+  snaps to the edge with a defined position, rotation and a "fingers over
+  the lip" pose. This snap is designed as a general concept (a hand snap
+  pose that any grab target supplies, per hand) so ladders, ropes, doors,
+  tools and props reuse it rather than each special-casing the hand.
+  Updated the ladder/rope, hand pose, physical hands and grab pose items to
+  match, and added an open decision on max grab reach (the ray is longer
+  than an arm).
+- MovementState (Phase 1): a single enum - Still, Walking, Sprinting,
+  CrouchStill, CrouchWalking, Climbing, Airborne - on PlayerLocomotion, for
+  noise/visibility/AI to read. Crouch is folded into the enum rather than
+  kept as a separate flag, since crouched-still and crouched-moving need
+  different noise/visibility anyway. Computed in a new TickState(), called
+  by PlayerController right after Move(), because it needs the real applied
+  movement (so sprinting into a wall reads as Still) and the fresh
+  isGrounded. Airborne waits for a 0.15s grace period because isGrounded
+  flickers on steps and slopes. Added MovementStateDebug (logs transitions)
+  to verify it.
 - Sprint (Phase 1). Click-to-toggle on the left stick click rather than
   hold-to-sprint, since holding a stick click while pushing that stick is
   tiring. sprintSpeed (4.5 m/s vs 3 walk) replaces moveSpeed while sprinting;

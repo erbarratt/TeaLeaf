@@ -117,6 +117,11 @@ namespace Player
             // 8. Movement state - last, since it needs this frame's real
             // movement and the isGrounded that Move() just updated.
             playerLocomotion.TickState(isClimbing, appliedMovement);
+
+            // 9. Hand visuals - after Move() and turning, since the visuals
+            // are children of the rig: a snap pose placed any earlier would
+            // be dragged along by this frame's movement until next frame.
+            playerClimbing.TickHandVisuals();
         }
     }
 }

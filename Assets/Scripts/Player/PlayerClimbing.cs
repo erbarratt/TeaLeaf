@@ -43,18 +43,21 @@ namespace Player
         [SerializeField] private Transform leftHandVisual;
         [SerializeField] private Transform rightHandVisual;
 
-        [Header("Hand Grab Volume")]
+        // Seconds for a hand visual to blend onto its snap pose when grabbing
+        // (and back to the controller on release) - short enough to feel
+        // instant, long enough not to pop.
+        [SerializeField] private float snapBlendDuration = 0.08f;
 
-        // Real SphereCollider components on each hand, so a grab succeeds
-        // if any part of the hand's sphere overlaps a ClimbableEdge, not
-        // only its exact tracked origin point - see FindEdgeOverlapping().
-        // Only ever read here for their radius; they're not used as
-        // physics colliders (no rigidbody, no collision response), just a
-        // designer-tunable, inspector-visible shape. Assumes the hand
-        // transforms aren't non-uniformly scaled, since SphereCollider.radius
-        // doesn't itself account for scale.
-        [SerializeField] private SphereCollider leftHandSphere;
-        [SerializeField] private SphereCollider rightHandSphere;
+        [Header("Grab Targeting")]
+
+        // Grabs are ray-targeted: a hand grabs whatever ClimbableEdge its
+        // hand ray (and reticle) is on while grip is held, rather than
+        // whatever its old SphereCollider happened to overlap. Reusing
+        // PlayerHandInteraction's ray means what's highlighted is exactly
+        // what gets grabbed, and its rayLength doubles as grab reach.
+        // PlayerController ticks it before this class, so its targets are
+        // always this frame's.
+        [SerializeField] private PlayerHandInteraction playerHandInteraction;
 
         private ClimbableEdge _leftGrabbedEdge;
         private ClimbableEdge _rightGrabbedEdge;
@@ -69,15 +72,6 @@ namespace Player
         // to the CharacterController - see UpdateFrameMovement() and
         // ReportAppliedMovement().
         private Vector3 _pendingLocalDelta;
-
-        // Fixed world-space points the hand visuals are pinned to while
-        // gripping, computed once at grab time.
-        private Vector3 _leftSnapPosition;
-        private Vector3 _rightSnapPosition;
-
-        // The hand visuals' original local positions, restored on release.
-        private Vector3 _leftVisualOriginalLocalPosition;
-        private Vector3 _rightVisualOriginalLocalPosition;
 
         /// True while a hand is gripping an edge and driving climb movement.
         public bool IsClimbing { get; private set; }
@@ -96,10 +90,20 @@ namespace Player
         /// frame movement accumulator.
         public Vector3 FrameMovement { get; private set; }
 
+        /// Blends the left hand visual onto a grabbed edge's snap pose and
+        /// back. Exposed e.g. for PlayerHandAnimation to read which finger
+        /// pose the grabbed target wants.
+        public HandVisualSnap LeftVisualSnap { get; private set; }
+
+        /// The right hand's snap state - mirrors LeftVisualSnap.
+        public HandVisualSnap RightVisualSnap { get; private set; }
+
         private void Awake()
         {
-            _leftVisualOriginalLocalPosition = leftHandVisual.localPosition;
-            _rightVisualOriginalLocalPosition = rightHandVisual.localPosition;
+            // Created once here (capturing each visual's rest pose), never
+            // per grab, so snapping doesn't allocate.
+            LeftVisualSnap = new HandVisualSnap(leftHandVisual, snapBlendDuration);
+            RightVisualSnap = new HandVisualSnap(rightHandVisual, snapBlendDuration);
 
             // CharacterController.Move() silently does nothing for a single
             // call shorter than minMoveDistance (0.001 by default on this
@@ -114,10 +118,9 @@ namespace Player
         }
 
         /// <summary>
-        /// Runs one frame of climbing logic: grab/release for both hands,
-        /// climb movement, and pinning the hand visuals. Edge highlighting
-        /// now lives in PlayerHandInteraction, since it's no longer specific
-        /// to climbing.
+        /// Runs one frame of climbing logic: grab/release for both hands and
+        /// climb movement. Edge highlighting lives in PlayerHandInteraction,
+        /// and placing the hand visuals happens later in TickHandVisuals().
         /// </summary>
         public void Tick()
         {
@@ -125,52 +128,38 @@ namespace Player
                 Hand.Left, Hand.Right,
                 playerInput.IsLeftGrabbing, playerInput.IsRightGrabbing,
                 playerTracking.LeftHandPosition, playerTracking.RightHandPosition,
-                leftHandSphere, leftHandVisual, _leftVisualOriginalLocalPosition,
-                ref _leftGrabbedEdge, ref _leftSnapPosition,
+                playerHandInteraction.LeftTarget, playerHandInteraction.LeftTargetPoint,
+                LeftVisualSnap,
+                ref _leftGrabbedEdge,
                 _rightGrabbedEdge);
 
             UpdateHandGrab(
                 Hand.Right, Hand.Left,
                 playerInput.IsRightGrabbing, playerInput.IsLeftGrabbing,
                 playerTracking.RightHandPosition, playerTracking.LeftHandPosition,
-                rightHandSphere, rightHandVisual, _rightVisualOriginalLocalPosition,
-                ref _rightGrabbedEdge, ref _rightSnapPosition,
+                playerHandInteraction.RightTarget, playerHandInteraction.RightTargetPoint,
+                RightVisualSnap,
+                ref _rightGrabbedEdge,
                 _leftGrabbedEdge);
 
             UpdateFrameMovement();
         }
 
         /// <summary>
-        /// Finds any climbable edge whose box overlaps a sphere of the given
-        /// radius centred on point, regardless of whether it's currently
-        /// highlighted - a hand can grab any edge any part of it touches,
-        /// not just the one the player is looking at.
+        /// Places both hand visuals (snapped, blending, or following the
+        /// controller). Called by PlayerController at the very end of the
+        /// frame, after Move() and turning - the visuals are children of the
+        /// rig, so placing them any earlier would let this frame's movement
+        /// drag a world-space snap pose off the ledge until next frame.
         /// </summary>
-        private static ClimbableEdge FindEdgeOverlapping(Vector3 point, float radius)
+        public void TickHandVisuals()
         {
-            foreach (ClimbableEdge edge in ClimbableEdge.Active) {
-
-                // Cheap AABB reject before the oriented ClosestPoint check
-                // inside Overlaps() - ClosestPoint is a real physics query,
-                // so with many ledges in a level this skips most of them
-                // without ever touching a collider.
-                Bounds bounds = edge.Bounds;
-                bounds.Expand(radius * 2f);
-
-                if (!bounds.Contains(point)) {
-                    continue;
-                }
-
-                if (edge.Overlaps(point, radius)) {
-                    return edge;
-                }
-            }
-
-            return null;
+            LeftVisualSnap.Tick(Time.deltaTime);
+            RightVisualSnap.Tick(Time.deltaTime);
         }
 
         /// <summary>
-        /// Handles one hand grabbing whatever climbable edge it's inside, or
+        /// Handles one hand grabbing the climbable edge its ray is on, or
         /// releasing whatever it's currently gripping. UpdateLeftHand()/
         /// UpdateRightHand() used to be separate, hand-mirrored copies of
         /// this method - unified here so a future change can't be applied
@@ -191,11 +180,10 @@ namespace Player
             bool otherIsGrabbing,
             Vector3 handPosition,
             Vector3 otherHandPosition,
-            SphereCollider handSphere,
-            Transform handVisual,
-            Vector3 visualOriginalLocalPosition,
+            IHighlightable rayTarget,
+            Vector3 rayTargetPoint,
+            HandVisualSnap visualSnap,
             ref ClimbableEdge grabbedEdge,
-            ref Vector3 snapPosition,
             ClimbableEdge otherGrabbedEdge)
         {
             if (grabbedEdge is null) {
@@ -204,14 +192,21 @@ namespace Player
                     return;
                 }
 
-                ClimbableEdge edge = FindEdgeOverlapping(handPosition, handSphere.radius);
-
-                if (edge is null) {
+                // The ray target is only an IHighlightable - anything a hand
+                // can point at. A type pattern checks whether it's actually a
+                // ClimbableEdge: a single cheap type check, not a component
+                // lookup, so it's fine to do every frame grip is held.
+                if (rayTarget is not ClimbableEdge edge) {
                     return;
                 }
 
                 grabbedEdge = edge;
-                snapPosition = grabbedEdge.ClosestPoint(handPosition);
+
+                // The edge decides where this hand goes and how it's posed -
+                // this class never needs to know what a ledge grip looks like.
+                // Computed once at grab time: the pose is fixed in world space
+                // for as long as the hand holds on.
+                visualSnap.Snap(edge.GetSnapPose(hand == Hand.Left, rayTargetPoint));
 
                 // Every new grab takes over movement, even if the other hand
                 // is already gripping something - the most recently grabbed
@@ -223,15 +218,14 @@ namespace Player
             }
 
             if (isGrabbing) {
-                // Still gripping - keep the visual pinned to the fixed grab
-                // point, regardless of where tracking moved the real hand.
-                handVisual.position = snapPosition;
+                // Still gripping - visualSnap keeps the visual pinned to the
+                // snap pose in TickHandVisuals().
                 return;
             }
 
             // Released.
             grabbedEdge = null;
-            handVisual.localPosition = visualOriginalLocalPosition;
+            visualSnap.Release();
 
             if (_primaryHand != hand) {
                 return;

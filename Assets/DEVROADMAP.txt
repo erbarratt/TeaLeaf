@@ -69,9 +69,61 @@ Scripting:
     Ends when the stick returns to centre, on a second click, on crouch or
     on climb; can't start while crouched. Exposes IsSprinting. Verified
     in headset.
-[ ] Expose a single PlayerStance/MovementState (Still, Crouched, Walking,
-    Sprinting, Climbing, Airborne) so AI, noise and the wrist gem read one
-    value instead of each re-deriving it.
+[x] Single MovementState (Still, Walking, Sprinting, CrouchStill,
+    CrouchWalking, Climbing, Airborne) on PlayerLocomotion, so AI, noise and
+    the wrist gem read one value instead of each re-deriving it. Moving is
+    measured from real applied movement; Airborne after a short grace
+    period. Verified in headset. Physical roomscale walking
+    doesn't count as moving yet - revisit when guards perceive the player.
+[ ] Ray-targeted climb grab + general hand snap poses. Climbing currently
+    starts when a hand's SphereCollider overlaps a ClimbableEdge; change it
+    so a hand grabs whatever its hand ray/reticle is on, and generalise
+    the "hand snaps to a target" idea so ladders, ropes, doors, tools and
+    props can all reuse it.
+    [x] Grab trigger: holding grip while that hand's ray target
+        (PlayerHandInteraction.LeftTarget/RightTarget) is a climbable
+        starts the climb on that hand - held rather than press-only, to
+        keep the old "hold grip and reach into a ledge" feel. The overlap
+        check, ClimbableEdge.Active/Bounds/Overlaps/ClosestPoint and the
+        climb SphereColliders are removed. Verified in headset.
+    [x] Grab reach: decided - no separate grab distance. The hand ray is
+        only 0.5m (rayLength), about arm's reach, so the ray is the reach
+        limit. Revisit if it feels too far in headset.
+    [x] General hand snap pose (Player namespace, used by any grab target):
+        a small data type - e.g. a HandSnapPose struct with local position,
+        local rotation and a hand animation pose/state - plus an interface
+        (e.g. IHandSnapTarget) that a grab target implements to answer "given
+        this hand (left/right) and this ray hit, where does the visual hand
+        go, how is it rotated, and which pose does it play?". Handedness
+        is part of the query, since the right hand is the mirrored left.
+        Snapping is data on the target, not special cases in the hand code.
+        (Verified in headset. HandPose enum, HandSnapPose readonly struct,
+        IHandSnapTarget, all in Interaction. Hand offsets live in a shared
+        HandSnapProfile ScriptableObject, per hand, so they're tuned once
+        for every ledge.)
+    [x] ClimbableEdge implements it: snap point = ray hit projected onto
+        the edge's top-front line (clamped to the edge's length), rotation
+        derived from the edge's orientation (palm down on top, fingers
+        curling over the lip), pose = a "ledge grip" clip with the fingers
+        bent over the edge. Tunable offsets per edge (or per edge type) so it
+        can be lined up visually in the editor. (Position/rotation verified
+        in headset; the finger pose is the PlayerHandAnimation item below.
+        Convention: edge local X along the edge, +Y up, +Z out from the
+        wall.)
+    [x] Hand visual snap: on grab, the visual hand moves/rotates to the snap
+        pose (short blend rather than a pop) and stays pinned there while
+        gripping, replacing the current "pin visual at grab point" code in
+        PlayerClimbing. Climb movement still uses the tracked controller's
+        delta. On release, the visual returns to the controller. (Verified
+        in headset: HandVisualSnap, placed last in the frame via
+        PlayerClimbing.TickHandVisuals(); the visual is detached from the
+        controller while snapped so it can't wobble.)
+    [ ] PlayerHandAnimation: a hand that is snapped plays the snap target's
+        pose instead of input-driven curl (this is the HandState.Climbing
+        pose item below, now driven by the target's snap pose data).
+    [ ] Test: grab edges at chest and above head, at edge ends, and from
+        steep angles; both hands on one edge; hand-off between hands; both
+        mirrored hands look correct.
 [ ] Jump: a jump button on PlayerInputXR (right A is crouch, so e.g. right
     B / secondary button, via the project-wide Player/Jump action - check
     it's free of other bindings on both headsets). Only when
@@ -103,10 +155,13 @@ Scripting:
     whether Ladder implements the same interface as ClimbableEdge or
     ClimbableEdge generalises into a "Climbable" base. Constrain movement
     to the ladder's vertical axis; mantle off at the top, drop off at the
-    bottom.
+    bottom. Grabbed via the hand ray like ledges, and implements the
+    general hand snap pose: snaps the hand to the nearest rung with a
+    ladder-specific position/rotation and a rung-grip pose.
 [ ] Rope climbing: ClimbableRope (vertical line segment grab target) - built
     here so Phase 5's rope bolt only has to spawn one. Constrained vertical
-    climb like ladders.
+    climb like ladders. Also uses the hand snap pose (hand wrapped around
+    the rope at the grabbed height).
 [ ] Gravity/fall interplay: releasing all grips mid-climb falls normally.
     Decide on fall damage (suggest: none for the slice).
 [ ] Climb release momentum: letting go of the last grip keeps the
@@ -134,9 +189,11 @@ Scripting:
         release (small hop), a gentle release (just drops), and comfort in
         headset - a vignette while airborne may be needed (Phase 9).
 Animation:
-[ ] Climbing hand pose (HandState.Climbing) - closed grip clip used while
-    PlayerClimbing reports that hand gripping.
-[ ] Ladder/rope grip poses (can reuse climbing pose initially).
+[ ] Ledge grip pose (HandState.Climbing) - fingers bent over the top of the
+    ledge, supplied by ClimbableEdge's hand snap pose and played while that
+    hand is snapped (see the ray-targeted climb grab item above).
+[ ] Ladder rung and rope grip poses (can reuse the ledge pose initially),
+    supplied by Ladder/ClimbableRope snap poses.
 Test scene:
 [ ] Extend the CharacterController test scene: ledge at chest height, ledge
     above head, mantle onto low-clearance shelf, 4m ladder, rope, a gap to
@@ -201,12 +258,12 @@ performant approaches for Quest 3 before any code is written:
     hand is stuck, snap straight back to the controller.
 [ ] Rotation follows the same rule (hand rotation blocked by contact,
     then eases back).
-[ ] Integrate with existing systems: PlayerClimbing already pins hand
-    visuals to the grab point - that must take priority over the physical
-    follow. Decide whether hand rays (PlayerHandInteraction) and climbing
-    grab overlaps use the tracked or the visual hand (probably visual, so
-    you can't grab through a wall). Held items/tools inherit the visual
-    hand's position.
+[ ] Integrate with existing systems: a hand snapped to a grab target (hand
+    snap pose, Phase 1) must take priority over the physical follow.
+    Decide whether hand rays (PlayerHandInteraction) - which now also
+    drive climb grabs - use the tracked or the visual hand (probably
+    visual, so you can't grab through a wall). Held items/tools inherit
+    the visual hand's position.
 [ ] Optional feedback: light haptic pulse on first contact; faint "ghost"
     hand at the real controller position while separated (as Alyx does).
 [ ] Test scene: wall, table edge, pillar corner, a gap narrower than the
@@ -225,7 +282,8 @@ Grabbing and props:
     open), with Locked state, creak noise event while moving, and NavMesh
     obstacle/link updates so guards can path through.
 [ ] Grab hand poses: hold-object pose per hand; HandState grows a Holding
-    state.
+    state. Grabbables, door handles and tools supply their hold position/
+    rotation/pose through the same hand snap pose interface as climbables.
 [ ] Highlighting: grabbables/doors/locks implement IHighlightable so the
     existing hand ray + reticle system works for them unchanged.
 

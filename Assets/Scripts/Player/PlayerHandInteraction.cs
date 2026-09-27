@@ -63,6 +63,15 @@ namespace Player
         /// Whatever the right hand's ray is currently pointing at, or null.
         public IHighlightable RightTarget => _rightHighlighted;
 
+        /// World-space point where the left hand's ray hit LeftTarget this
+        /// frame - e.g. where PlayerClimbing grabs a ledge. Only meaningful
+        /// while LeftTarget isn't null.
+        public Vector3 LeftTargetPoint { get; private set; }
+
+        /// World-space point where the right hand's ray hit RightTarget this
+        /// frame. Only meaningful while RightTarget isn't null.
+        public Vector3 RightTargetPoint { get; private set; }
+
         /// World-space origin of the left hand's ray this frame - exposed
         /// for HandRayDebug (Scripts/Player/Debug) to visualize while
         /// tuning leftHandRayAngleOffset.
@@ -116,6 +125,9 @@ namespace Player
             // UpdateHighlighted's comment for why that ordering matters.
             UpdateHighlighted(ref _leftHighlighted, leftHit, rightHit, _rightHighlighted);
             UpdateHighlighted(ref _rightHighlighted, rightHit, leftHit, _leftHighlighted);
+
+            LeftTargetPoint = leftPoint;
+            RightTargetPoint = rightPoint;
 
             leftReticle.Tick(leftHit is not null, leftPoint, playerTracking.HeadPosition);
             rightReticle.Tick(rightHit is not null, rightPoint, playerTracking.HeadPosition);

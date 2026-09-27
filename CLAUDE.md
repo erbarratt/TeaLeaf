@@ -106,6 +106,10 @@ behaviour. The current order is:
    `playerLocomotion.TickTurning()`.
 7. One `characterController.Move(_frameMovement)`, then
    `playerClimbing.ReportAppliedMovement()` while climbing.
+8. `playerLocomotion.TickState(isClimbing, appliedMovement)` — after `Move()`, because it needs
+   the real applied movement and the `isGrounded` that `Move()` just updated.
+9. `playerClimbing.TickHandVisuals()` — last: hand visuals are children of the rig, so a
+   world-space snap pose placed before turning/`Move()` would be dragged off by them.
 
 New per-frame player systems get a `Tick()` (or a `Tick…()` that returns a movement
 contribution) and a slot in `PlayerController.Update()`. `PlayerController.Reset()`
@@ -121,7 +125,7 @@ Player                 [Player layer] XROrigin, InputActionManager, XRInputModal
   Camera Offset        (crouch shifts this; Camera Y Offset 1.6m)
     Main Camera
     Hands              PlayerHandInteraction, PlayerHandAnimation (identity transform)
-      Left Hand        [PlayerHands] tracked controller, climb SphereCollider
+      Left Hand        [PlayerHands] tracked controller
         Left Hand Visual   (hand.fbx instance, Animator)
         Left Hand Reticle
       Right Hand       [PlayerHands] same, visual mirrored (scale.x -1)
@@ -158,18 +162,38 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
   It returns its movement rather than calling `Move()` itself. Movement is relative to the rig root
   (`playerTransform`), not the headset. Supports snap turn and smooth turn (`useSmoothTurn`);
   turning works while climbing. The controller's horizontal center is re-centered under the
-  headset every frame.
-- **`PlayerClimbing`** — grab-and-pull ledge climbing. Each hand grabs any `ClimbableEdge` its
-  `SphereCollider` overlaps; the most recent grab becomes the primary hand, which drives
+  headset every frame. Exposes `IsSprinting`, `IsCrouching`, and `MovementState`.
+- **`MovementState`** (enum) — `Still`, `Walking`, `Sprinting`, `CrouchStill`, `CrouchWalking`,
+  `Climbing`, `Airborne`: the single value noise, visibility, AI and the wrist gem should read,
+  rather than combining flags themselves. It is set by `PlayerLocomotion.TickState()` in priority
+  order (Climbing > Airborne > crouch > still > sprint/walk). "Moving" means the real horizontal
+  applied movement exceeds `movingSpeedThreshold`, so pushing into a wall counts as still.
+  `Airborne` only kicks in after `airborneGraceTime` off the ground, since `isGrounded`
+  flickers on steps and slopes. Physical roomscale walking doesn't count as moving yet.
+- **`PlayerClimbing`** — grab-and-pull ledge climbing. A hand grabs the `ClimbableEdge` its
+  hand ray is on (`PlayerHandInteraction.LeftTarget`/`RightTarget`) while grip is held, so
+  what's highlighted is what gets grabbed and the ray length is the grab reach; the most recent grab becomes the primary hand, which drives
   movement (hand-off to the other hand on release). Hand deltas are measured in
   `playerTransform` local space to avoid a feedback loop, and any movement the
   CharacterController didn't apply is retried via `ReportAppliedMovement()` so the grab point
-  never drifts. Hand visuals (not tracked transforms) are pinned to the grab point. Sets
+  never drifts. On grab it asks the edge for a `HandSnapPose` and hands it to that hand's
+  `HandVisualSnap` (exposed as `LeftVisualSnap`/`RightVisualSnap`). Sets
   `characterController.minMoveDistance = 0` so slow hand movement isn't swallowed. Exposes
   `IsClimbing`, `IsLeftHandGripping`/`IsRightHandGripping`, `FrameMovement`.
+- **`HandVisualSnap`** — plain C# class (one per hand, owned by `PlayerClimbing` for now;
+  should move to a hand-level owner when grabbing/tools need it). Blends a hand *visual*
+  (never the tracked controller) between its rest local pose and a world-space `HandSnapPose`
+  over `snapBlendDuration` (SmoothStep), both ways, and doesn't touch the transform at rest.
+  While snapped the visual is **detached to the scene root** and re-attached when the release
+  blend ends: the hands' Tracked Pose Drivers use "Update And Before Render", so they move the
+  controller again after all `Update()` code, and a child visual would wobble. Anything that
+  must stay world-fixed can't be a child of a tracked transform. (Not parented to the ledge -
+  ledges are non-uniformly scaled, which would shear a rotated child.)
 - **`PlayerHandInteraction`** — casts one ray per hand (configurable length, layer mask, and
   per-hand angle offset) and highlights whatever `IHighlightable` it hits, handling both hands
-  targeting the same object. Exposes `LeftTarget`/`RightTarget` for future interact actions.
+  targeting the same object. Exposes `LeftTarget`/`RightTarget` and the hit points
+  `LeftTargetPoint`/`RightTargetPoint`; `PlayerClimbing` grabs from these. Ticked before
+  climbing, so they're always this frame's.
 - **`HandRayReticle`** — runtime-built billboard disc shown where a hand ray hits a
   highlightable; ticked by `PlayerHandInteraction`.
 - **`PlayerHandAnimation`** — per-hand Animator finger curl. A private `HandState` enum
@@ -179,7 +203,7 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
 
 `Assets/Scripts/Player/Debug/` holds standalone debug/diagnostic MonoBehaviours (e.g.
 `VRDebugInput`, `InputTest`, `TrackingTest`, `TurnInputTest`, `TurnActionTest`,
-`LocomotionInputTest`, `HandRayDebug`) used for manually verifying systems in Play Mode — not
+`LocomotionInputTest`, `HandRayDebug`, `MovementStateDebug`) used for manually verifying systems in Play Mode — not
 part of the runtime gameplay path.
 
 ### Interaction systems (`Assets/Scripts/Interaction/`, namespace `Interaction`)
@@ -188,15 +212,25 @@ part of the runtime gameplay path.
 - **`HighlightableRegistry`** — static `Collider → IHighlightable` dictionary. Highlightables
   register in `OnEnable`/unregister in `OnDisable`, so hand raycasts do a dictionary lookup
   instead of an interface `GetComponent`.
-- **`ClimbableEdge`** — designer-placed `BoxCollider` that is both the grab volume and the
-  highlight visual (opacity fade via `MaterialPropertyBlock`). Self-registers in a static
-  `Active` list that `PlayerClimbing` iterates (AABB reject, then oriented overlap check).
+- **`ClimbableEdge`** — designer-placed `BoxCollider` that is both the hand-ray target and the
+  highlight visual (opacity fade via `MaterialPropertyBlock`). Registers with
+  `HighlightableRegistry`; `PlayerClimbing` identifies it from a hand's ray target with a type
+  check. Implements `IHandSnapTarget`: the snap point is the ray hit moved onto the box's
+  top-front line (clamped to its length), facing into the wall. **Orientation convention:**
+  local X runs along the edge, +Y is up, +Z points out from the wall towards the player.
+- **Hand snap poses** — the general "hand snaps onto a grab target" mechanism, reused by
+  ledges now and ladders, ropes, handles, tools and props later. `HandPose` (enum of finger
+  poses; `PlayerHandAnimation` owns how each maps to the Animator), `HandSnapPose` (readonly
+  struct: world position, rotation, pose), `IHandSnapTarget.GetSnapPose(isLeftHand, grabPoint)`.
+  The target computes a model-agnostic grip frame; a shared `HandSnapProfile` ScriptableObject
+  (Create > TeaLeaf > Hand Snap Profile) applies per-hand position/rotation offsets in that
+  frame, so all targets of one kind are tuned in one asset.
 
 ### Physics layers
 
 User layers 6-13: `Environment` (static world geometry), `Player` (the CharacterController
-object, the Player root), `PlayerHands` (Left/Right Hand objects - climb spheres now, physical
-hand colliders later), `Interactable` (grabbables, doors, loot, locks), `Climbable`
+object, the Player root), `PlayerHands` (Left/Right Hand objects - physical hand colliders
+later), `Interactable` (grabbables, doors, loot, locks), `Climbable`
 (`ClimbableEdge`s, later ladders/ropes), `Guard` (body capsule), `GuardHead` (blackjack target),
 `Projectile` (bolts). Unassigned objects stay on `Default`, which still collides with
 everything. Collision matrix pairs that are ON among these: Environment with Environment/Player/
@@ -256,6 +290,13 @@ handedness-dependent.
   both want per-frame (not physics-step) updates, for lower latency.
 - **Climbing is custom** — no XRI climb provider. Ladders and ropes should reuse the
   grab-and-pull-delta approach from `PlayerClimbing`.
+- **Ray-targeted grabs + hand snap poses** (Phase 1, in progress) — climbing starts when grip
+  is held while the hand ray/reticle is on a climbable (built; replaced the old SphereCollider
+  overlap). On grab the visual hand snaps (with a short blend)
+  to a target-defined position and rotation (built); the target's finger pose (e.g. fingers
+  curled over a ledge) is carried but not played yet. This is a general mechanism: any grab
+  target (ledge, ladder rung, rope, door handle, tool, prop) supplies its own per-hand snap
+  pose, rather than hand code special-casing each one.
 - **Settings will eventually move out of serialized fields** — Smooth Turn/Snap Turn, turn
   speed, snap angle, and movement speed are expected to become user-configurable options
   (out of scope for the vertical slice).
