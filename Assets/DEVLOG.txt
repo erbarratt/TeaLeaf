@@ -332,6 +332,10 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
   edge at the top added to Main.unity. Verified in headset: grabbing
   rungs, climbing hand over hand, mantling off the top, dropping off the
   bottom, and ledges/reticles still working without highlighting.
+- Ray-targeted climb grab test verified in headset: edges at chest height
+  and above head, at edge ends and from steep angles, both hands on one
+  edge, hand-off between hands, and both mirrored hands looking right.
+  The ray-targeted grab + hand snap poses item is complete.
 
 
 2026-09-26

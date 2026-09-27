@@ -75,7 +75,7 @@ Scripting:
     measured from real applied movement; Airborne after a short grace
     period. Verified in headset. Physical roomscale walking
     doesn't count as moving yet - revisit when guards perceive the player.
-[ ] Ray-targeted climb grab + general hand snap poses. Climbing currently
+[x] Ray-targeted climb grab + general hand snap poses. Climbing currently
     starts when a hand's SphereCollider overlaps a ClimbableEdge; change it
     so a hand grabs whatever its hand ray/reticle is on, and generalise
     the "hand snaps to a target" idea so ladders, ropes, doors, tools and
@@ -122,7 +122,7 @@ Scripting:
         pose instead of input-driven curl. (A "Snap Pose" override layer
         whose weight follows HandVisualSnap.Weight, states named after
         HandPose values; HandState enum removed. Verified in headset.)
-    [ ] Test: grab edges at chest and above head, at edge ends, and from
+    [x] Test: grab edges at chest and above head, at edge ends, and from
         steep angles; both hands on one edge; hand-off between hands; both
         mirrored hands look correct.
 [x] Jump: a jump button on PlayerInputXR (right A is crouch, so e.g. right
