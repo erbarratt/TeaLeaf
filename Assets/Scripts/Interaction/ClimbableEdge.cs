@@ -19,7 +19,7 @@ namespace Interaction
     /// line (top face, +Z face).
     /// </summary>
     [RequireComponent(typeof(BoxCollider))]
-    public class ClimbableEdge : MonoBehaviour, IHighlightable, IHandSnapTarget
+    public class ClimbableEdge : MonoBehaviour, IHighlightable, IClimbable
     {
         [SerializeField] private Renderer targetRenderer;
 

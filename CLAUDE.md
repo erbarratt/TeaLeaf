@@ -204,8 +204,9 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
   applied movement exceeds `movingSpeedThreshold`, so pushing into a wall counts as still.
   `Airborne` only kicks in after `airborneGraceTime` off the ground, since `isGrounded`
   flickers on steps and slopes - except after a jump, which is `Airborne` immediately. Physical roomscale walking doesn't count as moving yet.
-- **`PlayerClimbing`** — grab-and-pull ledge climbing. A hand grabs the `ClimbableEdge` its
-  hand ray is on (`PlayerHandInteraction.LeftTarget`/`RightTarget`) while grip is held, so
+- **`PlayerClimbing`** — grab-and-pull climbing. A hand grabs the `IClimbable` (ledge, and
+  soon ladder) its hand ray is on (`PlayerHandInteraction.LeftTarget`/`RightTarget`) while
+  grip is held, so
   what's highlighted is what gets grabbed and the ray length is the grab reach; the most recent grab becomes the primary hand, which drives
   movement (hand-off to the other hand on release). Hand deltas are measured in
   `playerTransform` local space to avoid a feedback loop, and any movement the
@@ -215,7 +216,9 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
   both hands (used by mantling); a force-released hand can't grab again until its grip is let
   go, since "held" grabbing would otherwise instantly re-grab. Sets
   `characterController.minMoveDistance = 0` so slow hand movement isn't swallowed. Exposes
-  `IsClimbing`, `IsLeftHandGripping`/`IsRightHandGripping`, `FrameMovement`.
+  `IsClimbing`, `IsLeftHandGripping`/`IsRightHandGripping`, `FrameMovement`, and
+  `LeftGrabbedEdge`/`RightGrabbedEdge` (the held `ClimbableEdge`, or null while holding
+  nothing or a non-ledge - used by mantling).
 - **`PlayerMantling`** — decides when a mantle is possible (`CanMantle`, `MantleEdge`) and shows
   the `MantleIndicator` to match: a hand grips a mantleable edge and the head is at least
   `ledge top - headBelowTopAllowance`. No physics queries - where the mantle lands and whether
@@ -271,10 +274,13 @@ part of the runtime gameplay path.
 - **`HighlightableRegistry`** — static `Collider → IHighlightable` dictionary. Highlightables
   register in `OnEnable`/unregister in `OnDisable`, so hand raycasts do a dictionary lookup
   instead of an interface `GetComponent`.
+- **`IClimbable`** — extends `IHandSnapTarget`; marks a grab target as climbable (grabbing it
+  starts a climb, unlike future handles/tools/props). Adds no members yet: every climbable
+  moves the player the same way. `PlayerClimbing` finds it on a hand's ray target with a type
+  check. Implemented by `ClimbableEdge`; `Ladder` next, ropes later.
 - **`ClimbableEdge`** — designer-placed `BoxCollider` that is both the hand-ray target and the
   highlight visual (opacity fade via `MaterialPropertyBlock`). Registers with
-  `HighlightableRegistry`; `PlayerClimbing` identifies it from a hand's ray target with a type
-  check. Implements `IHandSnapTarget`: the snap point is the ray hit moved onto the box's
+  `HighlightableRegistry`. Implements `IClimbable` (so `IHandSnapTarget`): the snap point is the ray hit moved onto the box's
   top-front line (clamped to its length), facing into the wall - via `ClosestLipPoint()`, which
   mantling also uses for the ledge-top height. Mantling data (Mantling header): `isMantleable`
   (tick only on level edges), `mantleEndsCrouched`, and `mantlePoint` - where the feet always
@@ -371,8 +377,11 @@ colliders and anything handedness-dependent.
   locomotion (movement, turning, gravity, jump, crouch, climbing) and can't be cancelled, and
   always lands the feet at the edge's designer-set mantle point (the same spot wherever the
   mantle started), crouched if the edge says so. Full plan in `DEVROADMAP.txt` Phase 1.
-- **Climbing is custom** — no XRI climb provider. Ladders and ropes should reuse the
-  grab-and-pull-delta approach from `PlayerClimbing`.
+- **Climbing is custom** — no XRI climb provider. Ladders and ropes reuse the
+  grab-and-pull-delta approach from `PlayerClimbing` by implementing `IClimbable` (an
+  interface, not a shared base class). Ladder movement is unconstrained like ledges; a
+  ladder's top exit is a mantleable `ClimbableEdge` placed on the lip (no ladder-specific
+  mantle), and its bottom exit is letting go.
 - **Ray-targeted grabs + hand snap poses** — climbing starts when grip is held while the hand
   ray/reticle is on a climbable (replaced the old SphereCollider overlap). On grab the visual hand snaps (with a short blend)
   to a target-defined position and rotation, and plays the target's finger pose (e.g. fingers

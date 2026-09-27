@@ -13,9 +13,8 @@ namespace Interaction
     /// to walk every component on the hit GameObject checking each one's
     /// type. Doing that up to twice a frame adds up, so instead every
     /// IHighlightable registers itself here once (in OnEnable) and PlayerHandInteraction
-    /// does a plain dictionary lookup instead - the same self-registration
-    /// pattern ClimbableEdge already uses for its own Active list, just
-    /// generalised to any IHighlightable rather than one specific type.
+    /// does a plain dictionary lookup instead (a self-registering registry,
+    /// per the project's performance habits).
     /// </summary>
     public static class HighlightableRegistry
     {

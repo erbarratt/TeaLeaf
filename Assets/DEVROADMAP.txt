@@ -233,14 +233,30 @@ Scripting:
         wherever you started along it), either hand, stick up on left and
         on right, crouch/jump/turn ignored mid-mantle, no re-grab while
         grip is still held after landing, comfort in headset.
-[ ] Ladders: Ladder component (Interaction namespace) with rungs/grip
-    volume, reusing PlayerClimbing's grab-and-pull-delta approach. Decide
-    whether Ladder implements the same interface as ClimbableEdge or
-    ClimbableEdge generalises into a "Climbable" base. Constrain movement
-    to the ladder's vertical axis; mantle off at the top, drop off at the
-    bottom. Grabbed via the hand ray like ledges, and implements the
-    general hand snap pose: snaps the hand to the nearest rung with a
-    ladder-specific position/rotation and a rung-grip pose.
+[ ] Ladders: Ladder component (Interaction namespace), reusing
+    PlayerClimbing's grab-and-pull-delta approach. Grabbed via the hand ray
+    like ledges, and implements the general hand snap pose: snaps the hand
+    to the nearest rung with a ladder-specific position/rotation and a
+    rung-grip pose. Decisions (2026-09-27):
+    - Shared code: an IClimbable interface (extends IHandSnapTarget), not a
+      "Climbable" base class - PlayerClimbing grabs any IClimbable.
+    - Movement: unconstrained, exactly like ledges (not locked to the
+      ladder's vertical axis). IClimbable is the place to add a movement
+      hook later if a climbable ever needs one.
+    - Top: the designer places a mantleable ClimbableEdge on the lip at the
+      top, and the existing mantle handles it - no ladder-specific mantle.
+      Bottom: let go and drop.
+    [x] IClimbable interface; ClimbableEdge implements it; PlayerClimbing
+        holds IClimbable per hand instead of ClimbableEdge
+        (LeftGrabbedEdge/RightGrabbedEdge stay, for mantling, and are null
+        while that hand holds a non-ledge).
+    [ ] Ladder component: one BoxCollider covering the whole ladder (no
+        per-rung colliders); rungs defined by designer data (first rung
+        height, spacing); snap point = nearest rung to the ray hit.
+        Highlightable like ClimbableEdge. Own HandSnapProfile asset.
+    [ ] Greybox ladder in the test area with a mantleable edge at the top.
+    [ ] Test in headset: grab rungs at different heights, hand-over-hand
+        up and down, mantle off the top, drop off the bottom.
 [ ] Rope climbing: ClimbableRope (vertical line segment grab target) - built
     here so Phase 5's rope bolt only has to spawn one. Constrained vertical
     climb like ladders. Also uses the hand snap pose (hand wrapped around

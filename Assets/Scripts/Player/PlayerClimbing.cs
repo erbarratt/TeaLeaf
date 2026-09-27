@@ -50,7 +50,7 @@ namespace Player
 
         [Header("Grab Targeting")]
 
-        // Grabs are ray-targeted: a hand grabs whatever ClimbableEdge its
+        // Grabs are ray-targeted: a hand grabs whatever IClimbable its
         // hand ray (and reticle) is on while grip is held, rather than
         // whatever its old SphereCollider happened to overlap. Reusing
         // PlayerHandInteraction's ray means what's highlighted is exactly
@@ -59,8 +59,10 @@ namespace Player
         // always this frame's.
         [SerializeField] private PlayerHandInteraction playerHandInteraction;
 
-        private ClimbableEdge _leftGrabbedEdge;
-        private ClimbableEdge _rightGrabbedEdge;
+        // Whatever each hand is holding - a ledge, a ladder, ... Typed as the
+        // interface so this class never needs to know which.
+        private IClimbable _leftGrabbed;
+        private IClimbable _rightGrabbed;
 
         private Hand _primaryHand = Hand.None;
 
@@ -80,25 +82,28 @@ namespace Player
         // ReportAppliedMovement().
         private Vector3 _pendingLocalDelta;
 
-        /// True while a hand is gripping an edge and driving climb movement.
+        /// True while a hand is gripping a climbable and driving climb movement.
         public bool IsClimbing { get; private set; }
 
-        /// True while the left hand is gripping a climbable edge, regardless
-        /// of whether it's the primary hand currently driving movement -
-        /// e.g. hand animation needs to know per-hand grip state, not just
-        /// which hand (if any) is steering.
-        public bool IsLeftHandGripping => _leftGrabbedEdge is not null;
+        /// True while the left hand is gripping a climbable, regardless of
+        /// whether it's the primary hand currently driving movement - e.g.
+        /// hand animation needs to know per-hand grip state, not just which
+        /// hand (if any) is steering.
+        public bool IsLeftHandGripping => _leftGrabbed is not null;
 
-        /// True while the right hand is gripping a climbable edge - mirrors
+        /// True while the right hand is gripping a climbable - mirrors
         /// IsLeftHandGripping.
-        public bool IsRightHandGripping => _rightGrabbedEdge is not null;
+        public bool IsRightHandGripping => _rightGrabbed is not null;
 
-        /// The edge the left hand is gripping, or null - e.g. so
-        /// PlayerMantling can check whether it's mantleable.
-        public ClimbableEdge LeftGrabbedEdge => _leftGrabbedEdge;
+        /// The ledge the left hand is gripping, or null if it's gripping
+        /// nothing or something that isn't a ledge (e.g. a ladder) - so
+        /// PlayerMantling can check whether it's mantleable. "as" is a cheap
+        /// type check, fine every frame.
+        public ClimbableEdge LeftGrabbedEdge => _leftGrabbed as ClimbableEdge;
 
-        /// The edge the right hand is gripping, or null.
-        public ClimbableEdge RightGrabbedEdge => _rightGrabbedEdge;
+        /// The ledge the right hand is gripping, or null - mirrors
+        /// LeftGrabbedEdge.
+        public ClimbableEdge RightGrabbedEdge => _rightGrabbed as ClimbableEdge;
 
         /// This frame's climb movement, for PlayerController to add to its
         /// frame movement accumulator.
@@ -144,9 +149,9 @@ namespace Player
                 playerTracking.LeftHandPosition, playerTracking.RightHandPosition,
                 playerHandInteraction.LeftTarget, playerHandInteraction.LeftTargetPoint,
                 LeftVisualSnap,
-                ref _leftGrabbedEdge,
+                ref _leftGrabbed,
                 ref _leftNeedsRegrip,
-                _rightGrabbedEdge);
+                _rightGrabbed);
 
             UpdateHandGrab(
                 Hand.Right, Hand.Left,
@@ -154,9 +159,9 @@ namespace Player
                 playerTracking.RightHandPosition, playerTracking.LeftHandPosition,
                 playerHandInteraction.RightTarget, playerHandInteraction.RightTargetPoint,
                 RightVisualSnap,
-                ref _rightGrabbedEdge,
+                ref _rightGrabbed,
                 ref _rightNeedsRegrip,
-                _leftGrabbedEdge);
+                _leftGrabbed);
 
             UpdateFrameMovement();
         }
@@ -169,13 +174,13 @@ namespace Player
         /// </summary>
         public void ReleaseAll()
         {
-            if (_leftGrabbedEdge is not null) {
-                _leftGrabbedEdge = null;
+            if (_leftGrabbed is not null) {
+                _leftGrabbed = null;
                 LeftVisualSnap.Release();
             }
 
-            if (_rightGrabbedEdge is not null) {
-                _rightGrabbedEdge = null;
+            if (_rightGrabbed is not null) {
+                _rightGrabbed = null;
                 RightVisualSnap.Release();
             }
 
@@ -204,7 +209,7 @@ namespace Player
         }
 
         /// <summary>
-        /// Handles one hand grabbing the climbable edge its ray is on, or
+        /// Handles one hand grabbing the climbable its ray is on, or
         /// releasing whatever it's currently gripping. UpdateLeftHand()/
         /// UpdateRightHand() used to be separate, hand-mirrored copies of
         /// this method - unified here so a future change can't be applied
@@ -212,7 +217,7 @@ namespace Player
         ///
         /// hand/otherHand identify which hand this call is for, so a single
         /// _primaryHand field (shared between both hands) can still be set
-        /// correctly. otherGrabbedEdge/otherIsGrabbing/otherHandPosition
+        /// correctly. otherGrabbed/otherIsGrabbing/otherHandPosition
         /// describe the OTHER hand's current state, needed for the
         /// hand-off check at the bottom - see its comment for why passing
         /// these in (rather than reading the other hand's fields directly)
@@ -228,11 +233,11 @@ namespace Player
             IHighlightable rayTarget,
             Vector3 rayTargetPoint,
             HandVisualSnap visualSnap,
-            ref ClimbableEdge grabbedEdge,
+            ref IClimbable grabbed,
             ref bool needsRegrip,
-            ClimbableEdge otherGrabbedEdge)
+            IClimbable otherGrabbed)
         {
-            if (grabbedEdge is null) {
+            if (grabbed is null) {
 
                 if (!isGrabbing) {
                     // Grip let go - this hand may grab again after a
@@ -246,20 +251,21 @@ namespace Player
                 }
 
                 // The ray target is only an IHighlightable - anything a hand
-                // can point at. A type pattern checks whether it's actually a
-                // ClimbableEdge: a single cheap type check, not a component
-                // lookup, so it's fine to do every frame grip is held.
-                if (rayTarget is not ClimbableEdge edge) {
+                // can point at. A type pattern checks whether it's also
+                // climbable (a ledge, a ladder, ...): a single cheap type
+                // check, not a component lookup, so it's fine to do every
+                // frame grip is held.
+                if (rayTarget is not IClimbable climbable) {
                     return;
                 }
 
-                grabbedEdge = edge;
+                grabbed = climbable;
 
-                // The edge decides where this hand goes and how it's posed -
-                // this class never needs to know what a ledge grip looks like.
-                // Computed once at grab time: the pose is fixed in world space
-                // for as long as the hand holds on.
-                visualSnap.Snap(edge.GetSnapPose(hand == Hand.Left, rayTargetPoint));
+                // The climbable decides where this hand goes and how it's
+                // posed - this class never needs to know what a ledge or rung
+                // grip looks like. Computed once at grab time: the pose is
+                // fixed in world space for as long as the hand holds on.
+                visualSnap.Snap(climbable.GetSnapPose(hand == Hand.Left, rayTargetPoint));
 
                 // Every new grab takes over movement, even if the other hand
                 // is already gripping something - the most recently grabbed
@@ -277,7 +283,7 @@ namespace Player
             }
 
             // Released.
-            grabbedEdge = null;
+            grabbed = null;
             visualSnap.Release();
 
             if (_primaryHand != hand) {
@@ -288,7 +294,7 @@ namespace Player
             // its actual current state rather than assuming - this must not
             // depend on which hand's UpdateHandGrab() call runs first this
             // frame.
-            if (otherGrabbedEdge is not null && otherIsGrabbing) {
+            if (otherGrabbed is not null && otherIsGrabbing) {
                 _primaryHand = otherHand;
                 _primaryHandLastLocalPosition = playerTransform.InverseTransformPoint(otherHandPosition);
             } else {

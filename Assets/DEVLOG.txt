@@ -271,6 +271,27 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
   actions: movement, sprint, snap turn (including sweeping round from
   forward/back), grip/trigger finger curl, grabbing/climbing, crouch,
   jump, and mantling from both sticks all work. Mantling is done.
+- Ladders - design agreed (Phase 1). Shared code via a new IClimbable
+  interface rather than a "Climbable" base class: no inheritance chain
+  between MonoBehaviours, and it matches IHighlightable/IHandSnapTarget.
+  Ladder movement stays unconstrained, exactly like ledges (considered
+  locking it to the ladder's vertical axis, decided against). The top of
+  a ladder is just a mantleable ClimbableEdge placed on the lip, so the
+  existing mantle handles it with no new code; the bottom is let go and
+  drop. A Ladder will be one BoxCollider over the whole ladder with rungs
+  from designer data (first rung height + spacing), snapping to the
+  nearest rung - no per-rung colliders.
+- Ladders step 1 of 2: IClimbable (Interaction) extends IHandSnapTarget
+  and adds nothing yet - it only means "grabbing this starts a climb",
+  which still matters because door handles/tools/props will be snap
+  targets too and mustn't start a climb. ClimbableEdge implements it.
+  PlayerClimbing now holds an IClimbable per hand (_leftGrabbed/
+  _rightGrabbed) and grabs any "rayTarget is IClimbable";
+  LeftGrabbedEdge/RightGrabbedEdge remain for PlayerMantling as
+  "as ClimbableEdge" casts, so mantling is untouched and a hand on a
+  ladder simply never offers a mantle. Also fixed a stale
+  HighlightableRegistry comment about ClimbableEdge's old Active list.
+  Verified in headset: ledge climbing and mantling unchanged.
 
 
 2026-09-26
