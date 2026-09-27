@@ -402,6 +402,22 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
   PlayerController calls playerHandVisuals.Tick() where it used to call
   playerClimbing.TickHandVisuals() (step 8 and the mantling branch).
   Pure move - no behaviour change intended.
+- Reticles now hide while their hand is holding something (verified in
+  headset). The signal is that hand's HandVisualSnap.IsSnapped
+  rather than "is climbing", so it covers every grab - ledges, ladders
+  and ropes now, props and tools later - with no per-system checks.
+  Reticle placement moved out of PlayerHandInteraction.Tick() (step 3,
+  before climbing handles grabs, so it would have read last frame's grab
+  state and shown the reticle for one frame after each grab) into a new
+  TickReticles(), which PlayerController calls as step 8b, after the hand
+  visuals (and in the mantling branch). PlayerHandInteraction gains a
+  PlayerHandVisuals reference. The reticle returns as soon as the hand
+  lets go (IsSnapped clears on Release(), before the blend back).
+- Main.unity: gave the ledge edges Cube (3), (4) and (5) a Mesh Filter
+  (built-in Cube) and Mesh Renderer (URP Lit, as the other greybox cubes)
+  again, so they're visible - the per-item exception to the no-mesh rule.
+  Their BoxColliders are default (centre 0, size 1) with the size on the
+  transform scale, so the unit cube mesh matches each collider exactly.
 
 
 2026-09-26

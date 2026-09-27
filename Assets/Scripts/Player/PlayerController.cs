@@ -78,7 +78,7 @@ namespace Player
             // moves the whole tracked hierarchy (hands included) down.
             playerLocomotion.TickBody();
 
-            // 3. Hand rays, targets and reticles.
+            // 3. Hand rays and targets (reticles are placed later, at 8b).
             playerHandInteraction.Tick();
 
             // 4. Grab/release and this frame's climb movement - skipped while
@@ -101,6 +101,7 @@ namespace Player
             if (playerMantling.IsMantling) {
                 playerLocomotion.TickState(false, Vector3.zero, CollisionFlags.None);
                 playerHandVisuals.Tick();
+                playerHandInteraction.TickReticles();
                 playerHandAnimation.Tick();
                 return;
             }
@@ -150,6 +151,10 @@ namespace Player
             // are children of the rig: a snap pose placed any earlier would
             // be dragged along by this frame's movement until next frame.
             playerHandVisuals.Tick();
+
+            // 8b. Reticles - after grabs (step 4) and hand visuals, so a hand
+            // that grabbed something this frame already hides its reticle.
+            playerHandInteraction.TickReticles();
 
             // 9. Hand animation - last, so the finger snap pose reads this
             // frame's snap weight from step 8. Animators evaluate after all

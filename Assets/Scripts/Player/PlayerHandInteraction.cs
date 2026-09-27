@@ -12,8 +12,8 @@ namespace Player
     /// player what they can interact with.
     ///
     /// This class does not run its own Update(). Instead PlayerController
-    /// calls Tick() explicitly once per frame - see PlayerController's class
-    /// comment for why.
+    /// calls Tick() (rays) and later TickReticles() explicitly once per
+    /// frame - see PlayerController's class comment for why.
     /// </summary>
     public class PlayerHandInteraction : MonoBehaviour
     {
@@ -49,6 +49,10 @@ namespace Player
         // hits an IHandTarget - see HandRayReticle.
         [SerializeField] private HandRayReticle leftReticle;
         [SerializeField] private HandRayReticle rightReticle;
+
+        // Read to hide a hand's reticle while that hand is holding something
+        // - see TickReticles().
+        [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         /// Whatever the left hand's ray is currently pointing at, or null.
         /// Exposed so other systems (e.g. PlayerClimbing, a future generic
@@ -88,9 +92,8 @@ namespace Player
         public float RayLength => rayLength;
 
         /// <summary>
-        /// Casts both hand rays, records whatever they hit, and moves each
-        /// hand's reticle to wherever its ray currently lands (hiding it if
-        /// the ray isn't hitting an IHandTarget).
+        /// Casts both hand rays and records whatever they hit. The reticles
+        /// are placed later, in TickReticles().
         /// </summary>
         public void Tick()
         {
@@ -109,9 +112,27 @@ namespace Player
 
             LeftTargetPoint = leftPoint;
             RightTargetPoint = rightPoint;
+        }
 
-            leftReticle.Tick(LeftTarget is not null, leftPoint, playerTracking.HeadPosition);
-            rightReticle.Tick(RightTarget is not null, rightPoint, playerTracking.HeadPosition);
+        /// <summary>
+        /// Shows each hand's reticle where its ray hit a target this frame,
+        /// or hides it if the ray missed - or if that hand is holding
+        /// something (its visual is snapped onto a ledge, rung, rope, ...):
+        /// the hand is already on it, so a marker saying "you can grab this"
+        /// is just noise.
+        ///
+        /// Separate from Tick() so PlayerController can run it after grabs
+        /// have been handled and the hand visuals placed - run inside Tick()
+        /// (before climbing), it would read last frame's grab state and show
+        /// the reticle for one frame after every grab.
+        /// </summary>
+        public void TickReticles()
+        {
+            bool leftHolding = playerHandVisuals.LeftVisualSnap.IsSnapped;
+            bool rightHolding = playerHandVisuals.RightVisualSnap.IsSnapped;
+
+            leftReticle.Tick(LeftTarget is not null && !leftHolding, LeftTargetPoint, playerTracking.HeadPosition);
+            rightReticle.Tick(RightTarget is not null && !rightHolding, RightTargetPoint, playerTracking.HeadPosition);
         }
 
         /// <summary>

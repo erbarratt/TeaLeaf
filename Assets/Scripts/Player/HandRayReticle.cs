@@ -41,7 +41,7 @@ namespace Player
         /// <summary>
         /// Shows the reticle at worldPoint facing towards viewerPosition (the
         /// player's head) if active, otherwise hides it. Called once per
-        /// frame from PlayerHandInteraction.Tick(), for both hands.
+        /// frame from PlayerHandInteraction.TickReticles(), for both hands.
         /// </summary>
         public void Tick(bool active, Vector3 worldPoint, Vector3 viewerPosition)
         {

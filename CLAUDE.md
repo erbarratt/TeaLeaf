@@ -100,12 +100,12 @@ behaviour. The current order is:
 1. `playerInput.Tick()` — cache this frame's input (must be first).
 2. `playerLocomotion.TickBody()` — re-centre the capsule under the headset and apply crouch
    height (before the hand systems, since crouch moves the tracked hierarchy).
-3. `playerHandInteraction.Tick()` — hand rays, targets + reticles.
+3. `playerHandInteraction.Tick()` — hand rays + targets (reticles are placed at 8b).
 4. `playerClimbing.Tick()` — grab/release, climb movement (skipped while mantling); then
    `playerMantling.Tick()` — detects a possible mantle (arrow), starts one on a stick push, or
    advances the one in progress. **While `IsMantling`, the frame stops here**: the mantle has
    already positioned the rig directly (CharacterController disabled), so only
-   `TickState()`, `playerHandVisuals.Tick()` and `playerHandAnimation.Tick()` run - no locomotion,
+   `TickState()`, `playerHandVisuals.Tick()`, `TickReticles()` and `playerHandAnimation.Tick()` run - no locomotion,
    turning or `Move()`.
 5. `_frameMovement` = `playerLocomotion.TickMovement(isClimbing)` (thumbstick + gravity;
    zero while climbing) + `playerClimbing.FrameMovement` while climbing; then
@@ -117,6 +117,8 @@ behaviour. The current order is:
    momentum pushing into walls/ceilings), and the `isGrounded` that `Move()` just updated.
 8. `playerHandVisuals.Tick()` — after turning/`Move()`: hand visuals are children of
    the rig, so a world-space snap pose placed earlier would be dragged off by them.
+   8b. `playerHandInteraction.TickReticles()` — after grabs and hand visuals, so a hand that
+   grabbed this frame already hides its reticle.
 9. `playerHandAnimation.Tick()` — last, so it reads this frame's snap weight from step 8
    (Animators evaluate after all `Update()` calls anyway).
 
@@ -258,7 +260,8 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
   `LeftTargetPoint`/`RightTargetPoint`; `PlayerClimbing` grabs from these. Ticked before
   climbing, so they're always this frame's.
 - **`HandRayReticle`** — runtime-built billboard disc shown where a hand ray hits a
-  hand target; ticked by `PlayerHandInteraction`.
+  hand target, hidden while that hand is holding something (its visual is snapped); ticked
+  by `PlayerHandInteraction.TickReticles()`.
 - **`PlayerHandAnimation`** — per-hand Animator. The base layers always follow input
   (`TriggerCurl` index, `GripCurl` middle/ring/pinky). The `Snap Pose` override layer plays the
   snap target's `HandPose` with its weight set from that hand's `HandVisualSnap.Weight`, so
