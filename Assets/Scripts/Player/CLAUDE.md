@@ -126,7 +126,7 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   snap first; only if it isn't using the visual (not snapped and fully blended back) does the
   physical follow run - snapping always wins. Physical Hands settings: `collisionLayers` (must
   be Environment + Interactable; never Player/Climbable; empty = collision off), `handRadius`
-  (0.035m), `skinWidth` (0.005m), and the wrist/fingertip bones per hand. `Reset()` / the "Find
+  (0.035m), `skinWidth` (0.005m), `catchUpDuration` (0.1s), `maxSeparation` (0.4m), and the wrist/fingertip bones per hand. `Reset()` / the "Find
   Hand Bones" context menu find the visuals and bones by name (`J_Left_Hand`,
   `J_Left_HandMiddle4` - the mirrored right hand shares the Left names). Exposes
   `IsLeftHandInContact`/`IsRightHandInContact`. Gizmos (selected): in Play Mode the target
@@ -149,14 +149,24 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   `PlayerHands` layer, parked at y -1000 at the scene root, never moved, height = wrist to
   fingertip, radius synced from `handRadius` on change, destroyed from
   `PlayerHandVisuals.OnDestroy()`). Blocked →
-  visual detached and placed by code; clear → re-attached to the controller at its rest pose
-  (no smooth catch-up yet). Attached state is read from the actual parent, since
+  visual detached and placed by code. Attached state is read from the actual parent, since
   `HandVisualSnap` detaches the same transform. Rotation follows the controller while free and
   is held at the controller's rotation from the first blocked frame while in contact; contact
-  only ends once the hand is back at the controller's position *and* a `CheckCapsule` at the
-  controller's own rotation is clear (otherwise it would re-attach with its fingers in the wall
-  and flicker). Controllers are assumed unscaled (verified: Player → controllers all scale 1).
-  `Suspend()` while snapped/untracked.
+  only ends once the path to the controller's position is clear *and* a `CheckCapsule` at the
+  controller's own rotation is clear (otherwise it would ease back with its fingers in the wall
+  and flicker). **Elastic band:** when contact ends the hand doesn't jump back - its offset from
+  the controller (position and rotation, stored in the controller's space so the hand keeps
+  following the real hand's motion) eases to zero over `catchUpDuration` (0.1s, SmoothStep,
+  on `PlayerHandVisuals`), still swept each frame, so it can land back in contact; re-attached
+  when fully back. Rejected: an exponential chase of the controller (lags further the faster the
+  hand moves, may never settle). Tracked by `_handRotation` (last frame's rotation, as a
+  controller rotation). **Snap-back:** in contact, if the visual is more than `maxSeparation`
+  (0.4m, 0 = never) from the controller, it jumps straight back onto it and enters
+  "passing through" - attached, collision off - until a `CheckCapsule` at the controller is
+  clear (one query per frame, only in that state). Without that, the next push-out would move
+  the hand to the nearest face of whatever the controller is inside; the near face would be too
+  far again and it would snap back every frame. Controllers are assumed unscaled (verified: Player → controllers all
+  scale 1). `Suspend()` while snapped/untracked.
 - **`HandVisualSnap`** — plain C# class (one per hand, owned and ticked by `PlayerHandVisuals`;
   other systems only call `Snap()`/`Release()`). Blends a hand *visual* (never the tracked
   controller) between its rest local pose and a world-space `HandSnapPose` over

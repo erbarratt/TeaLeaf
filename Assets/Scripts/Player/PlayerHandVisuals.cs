@@ -49,6 +49,16 @@ namespace Player
         // frame's sweep doesn't start already touching it.
         [SerializeField] private float skinWidth = 0.005f;
 
+        // Seconds for a hand visual to ease back onto its controller once a
+        // surface stops holding it (the "elastic band"). Short enough to feel
+        // attached, long enough that the return doesn't pop. 0 = instant.
+        [SerializeField] private float catchUpDuration = 0.1f;
+
+        // How far, in metres, a surface may hold a hand visual away from its
+        // controller before it gives up and snaps straight back - reaching
+        // well into or through something. 0 = never snap back.
+        [SerializeField] private float maxSeparation = 0.4f;
+
         // The bones the hand capsule is measured between (wrist to the tip of
         // the middle finger) - once, at Awake, at the bind pose. Filled in by
         // Reset() or the "Find Hand Bones" context menu.
@@ -185,7 +195,7 @@ namespace Player
                 return;
             }
 
-            follow.Tick(collisionLayers, handRadius, skinWidth);
+            follow.Tick(collisionLayers, handRadius, skinWidth, catchUpDuration, maxSeparation, Time.deltaTime);
         }
 
         /// <summary>

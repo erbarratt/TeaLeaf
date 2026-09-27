@@ -98,9 +98,27 @@ namespace Player
         private Vector3 _lastPosition;
         private bool _hasLastPosition;
 
-        // The controller's rotation when the hand first touched a surface. The
-        // hand keeps it for as long as it stays in contact - see Tick().
-        private Quaternion _heldRotation;
+        // The rotation the hand was given last frame, as a controller
+        // rotation (the visual's own is this times _restLocalRotation). While
+        // in contact it's held here, unchanged, from the first blocked frame -
+        // see Tick().
+        private Quaternion _handRotation;
+
+        // The "elastic band": after contact ends the hand eases back to the
+        // controller over catchUpDuration instead of jumping there. Its offset
+        // from the controller at that moment is kept in the controller's own
+        // space and shrunk to nothing, so the hand keeps following the real
+        // hand's movement while it eases back rather than trailing behind it.
+        private bool _isReturning;
+        private float _returnTime;
+        private Vector3 _returnOffset;
+        private Quaternion _returnRotationOffset;
+
+        // Set when the hand snaps back because the controller got too far
+        // from it (see Tick()): until the controller is clear of geometry the
+        // hand simply stays on it with collision off, rather than being pushed
+        // out and snapping back again every frame.
+        private bool _isPassingThrough;
 
         /// True while a surface is holding the hand back from its controller.
         public bool IsInContact { get; private set; }
@@ -128,11 +146,20 @@ namespace Player
 
         /// <summary>
         /// Moves the visual towards the controller, stopping and sliding at
-        /// anything on collisionLayers. radius is the hand capsule's radius
-        /// and skinWidth the gap kept from surfaces, both in metres - passed
-        /// in every frame so Inspector changes apply live.
+        /// anything on collisionLayers, and easing back over catchUpDuration
+        /// seconds once free - or snapping straight back if a surface holds it
+        /// more than maxSeparation from the controller. radius is the hand
+        /// capsule's radius, skinWidth the gap kept from surfaces and
+        /// maxSeparation the snap-back distance, all in metres - all passed in
+        /// every frame so Inspector changes apply live.
         /// </summary>
-        public void Tick(LayerMask collisionLayers, float radius, float skinWidth)
+        public void Tick(
+            LayerMask collisionLayers,
+            float radius,
+            float skinWidth,
+            float catchUpDuration,
+            float maxSeparation,
+            float deltaTime)
         {
             // An untracked controller (e.g. the controller is off) has
             // nothing to follow - forget the last position so the hand
@@ -156,13 +183,56 @@ namespace Player
             _restParent.GetPositionAndRotation(out Vector3 controllerPosition, out Quaternion controllerRotation);
             Vector3 targetPosition = controllerPosition + controllerRotation * _restLocalPosition;
 
-            // While in contact, the hand keeps the rotation it touched with
-            // instead of following the controller. Pushing into a wall usually
-            // tilts the wrist (the arm pivots at the shoulder), and a tilted
-            // hand swings its fingers into the wall - the push-out would then
-            // back the whole hand away from it. Holding the rotation keeps the
-            // hand still against the surface; it still slides along it.
-            Quaternion handRotation = IsInContact ? _heldRotation : controllerRotation;
+            // After a snap-back: stay on the controller, collision off, while
+            // it's still inside something. The visual is attached, so there's
+            // nothing to do but wait. Once it's clear, carry on as normal from
+            // exactly where the controller is.
+            if (_isPassingThrough) {
+                if (OverlapsAt(targetPosition, controllerRotation, collisionLayers, radius)) {
+                    return;
+                }
+
+                _isPassingThrough = false;
+                _lastPosition = targetPosition;
+                _hasLastPosition = true;
+            }
+
+            // Snap-back: a surface is holding the hand further from the
+            // controller than maxSeparation - the player has reached well into
+            // or through something. A hand left stuck that far from the real
+            // one feels broken, so it jumps straight back to the controller.
+            // Only checked in contact: while easing back, the offset only
+            // shrinks. 0 = never snap back.
+            if (IsInContact && maxSeparation > 0f
+                && (_lastPosition - targetPosition).sqrMagnitude > maxSeparation * maxSeparation) {
+                SnapBack();
+                return;
+            }
+
+            // This frame's goal and rotation depend on the hand's state:
+            // - In contact: keeps the rotation it touched with instead of
+            //   following the controller. Pushing into a wall usually tilts
+            //   the wrist (the arm pivots at the shoulder), and a tilted hand
+            //   swings its fingers into the wall - the push-out would then back
+            //   the whole hand away from it. Holding the rotation keeps the
+            //   hand still against the surface; it still slides along it.
+            // - Returning: part of the way from where it was released to the
+            //   controller. SmoothStep eases in and out, like HandVisualSnap,
+            //   and clamps, so the weight stops at 1 (fully back).
+            // - Otherwise: simply the controller.
+            Vector3 goalPosition = targetPosition;
+            Quaternion handRotation = controllerRotation;
+
+            if (IsInContact) {
+                handRotation = _handRotation;
+            } else if (_isReturning) {
+                _returnTime += deltaTime;
+                float weight = catchUpDuration > 0f ? Mathf.SmoothStep(0f, 1f, _returnTime / catchUpDuration) : 1f;
+
+                goalPosition = targetPosition + controllerRotation * (_returnOffset * (1f - weight));
+                handRotation = controllerRotation * Quaternion.Slerp(_returnRotationOffset, Quaternion.identity, weight);
+            }
+
             GetCapsuleOffsets(handRotation, radius, out Vector3 wristOffset, out Vector3 fingertipOffset);
 
             if (!_hasLastPosition) {
@@ -183,54 +253,64 @@ namespace Player
                 collisionLayers, radius, skinWidth);
 
             Vector3 position = SweepAndSlide(
-                start, targetPosition,
+                start, goalPosition,
                 wristOffset, fingertipOffset,
                 collisionLayers, radius, skinWidth);
 
-            bool isBlocked = (position - targetPosition).sqrMagnitude > ContactThreshold * ContactThreshold;
+            bool isBlocked = (position - goalPosition).sqrMagnitude > ContactThreshold * ContactThreshold;
 
             // Reached the controller's position while still holding an old
             // rotation: only let go if the hand also fits at the controller's
-            // own rotation. Otherwise it would re-attach with its fingers in
-            // the wall, be pushed out next frame, and flicker between the two.
+            // own rotation. Otherwise it would ease back with its fingers
+            // going into the wall, be pushed out, and flicker between the two.
             // Costs one extra query, and only while in contact.
             if (!isBlocked && IsInContact) {
-                GetCapsuleOffsets(controllerRotation, radius, out Vector3 controllerWrist, out Vector3 controllerFingertip);
-                isBlocked = Physics.CheckCapsule(
-                    targetPosition + controllerWrist,
-                    targetPosition + controllerFingertip,
-                    radius,
-                    collisionLayers,
-                    QueryTriggerInteraction.Ignore);
+                isBlocked = OverlapsAt(targetPosition, controllerRotation, collisionLayers, radius);
             }
 
-            // On the first blocked frame handRotation is the controller's, so
-            // that's the rotation captured; after that it's already the held
-            // one, so this changes nothing.
             if (isBlocked) {
-                _heldRotation = handRotation;
+                // Blocked (again) - a hand that was easing back is in contact
+                // once more, and holds the rotation it has now.
+                _isReturning = false;
+            } else if (IsInContact) {
+                // Just came free. Rather than jumping to the controller, start
+                // easing back from where the hand is now: it stays put this
+                // frame, and its offset from the controller - position and
+                // rotation, in the controller's space - shrinks to nothing
+                // over the next catchUpDuration seconds.
+                Quaternion worldToController = Quaternion.Inverse(controllerRotation);
+                _returnOffset = worldToController * (start - targetPosition);
+                _returnRotationOffset = worldToController * _handRotation;
+                _returnTime = 0f;
+                _isReturning = true;
+                position = start;
+            } else if (_isReturning && _returnTime >= catchUpDuration) {
+                // Eased all the way back - the hand is exactly on the
+                // controller, so it can be re-attached below.
+                _isReturning = false;
             }
 
             IsInContact = isBlocked;
             bool isAttached = _visual.parent == _restParent;
 
-            if (IsInContact) {
-                // Held back by a surface - detach (only on the first blocked
-                // frame, so the hierarchy change isn't a per-frame cost) and
-                // place the visual ourselves.
+            if (IsInContact || _isReturning) {
+                // Held back by a surface, or easing back - detach (only on the
+                // first such frame, so the hierarchy change isn't a per-frame
+                // cost) and place the visual ourselves.
                 if (isAttached) {
                     _visual.SetParent(null, true);
                 }
 
-                _visual.SetPositionAndRotation(position, _heldRotation * _restLocalRotation);
+                _visual.SetPositionAndRotation(position, handRotation * _restLocalRotation);
             } else if (!isAttached) {
-                // Path clear again - back under the controller, at exactly
-                // its rest pose, so it gets the before-render update again.
+                // Back on the controller - under it again, at exactly its rest
+                // pose, so it gets the before-render update again.
                 _visual.SetParent(_restParent, false);
                 _visual.SetLocalPositionAndRotation(_restLocalPosition, _restLocalRotation);
             }
 
             _lastPosition = position;
+            _handRotation = handRotation;
         }
 
         /// <summary>
@@ -242,6 +322,42 @@ namespace Player
         {
             _hasLastPosition = false;
             IsInContact = false;
+            _isReturning = false;
+            _isPassingThrough = false;
+        }
+
+        /// <summary>
+        /// Puts the visual straight back on its controller at its rest pose and
+        /// switches collision off until the controller is clear of geometry -
+        /// see Tick(). Without that, the next frame would push the hand out to
+        /// the nearest face of whatever the controller is inside; if that's the
+        /// near side, it would be too far away again, snap back again, and
+        /// flicker every frame.
+        /// </summary>
+        private void SnapBack()
+        {
+            IsInContact = false;
+            _isReturning = false;
+            _isPassingThrough = true;
+
+            _visual.SetParent(_restParent, false);
+            _visual.SetLocalPositionAndRotation(_restLocalPosition, _restLocalRotation);
+        }
+
+        /// <summary>
+        /// True if the hand capsule, with its root at position and turned to a
+        /// controller rotation, is inside anything on collisionLayers.
+        /// </summary>
+        private bool OverlapsAt(Vector3 position, Quaternion rotation, LayerMask collisionLayers, float radius)
+        {
+            GetCapsuleOffsets(rotation, radius, out Vector3 wristOffset, out Vector3 fingertipOffset);
+
+            return Physics.CheckCapsule(
+                position + wristOffset,
+                position + fingertipOffset,
+                radius,
+                collisionLayers,
+                QueryTriggerInteraction.Ignore);
         }
 
         /// <summary>
@@ -300,8 +416,8 @@ namespace Player
         /// Gets the world-space ends of the hand capsule twice - where the
         /// controller wants it (target) and where the visual actually is - for
         /// debug gizmos. Uses the same inset as the sweep, so it's exactly the
-        /// shape being swept; the visual's uses the held rotation while in
-        /// contact, as the sweep does.
+        /// shape being swept; the visual's uses the rotation it was given
+        /// (held or easing back) while it's detached, as the sweep does.
         /// </summary>
         public void GetDebugCapsules(
             float radius,
@@ -317,7 +433,7 @@ namespace Player
             targetWrist = targetPosition + wristOffset;
             targetFingertip = targetPosition + fingertipOffset;
 
-            Quaternion handRotation = IsInContact ? _heldRotation : controllerRotation;
+            Quaternion handRotation = IsInContact || _isReturning ? _handRotation : controllerRotation;
             GetCapsuleOffsets(handRotation, radius, out wristOffset, out fingertipOffset);
             visualWrist = _visual.position + wristOffset;
             visualFingertip = _visual.position + fingertipOffset;
