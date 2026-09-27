@@ -98,6 +98,24 @@ namespace Player
         public bool IsRightHandInContact => _rightFollow.IsInContact;
 
         /// <summary>
+        /// The left controller's pose, shifted to where its hand visual
+        /// actually is while a surface holds it back - what the left hand ray
+        /// is cast from. See HandPhysicalFollow.GetHandPose().
+        /// </summary>
+        public void GetLeftHandPose(out Vector3 position, out Quaternion rotation)
+        {
+            _leftFollow.GetHandPose(out position, out rotation);
+        }
+
+        /// <summary>
+        /// The right hand's version of GetLeftHandPose().
+        /// </summary>
+        public void GetRightHandPose(out Vector3 position, out Quaternion rotation)
+        {
+            _rightFollow.GetHandPose(out position, out rotation);
+        }
+
+        /// <summary>
         /// Editor-only: runs when the component is first added. Finds the two
         /// hand visuals and their bones under this object by name, so they
         /// don't need dragging in by hand.

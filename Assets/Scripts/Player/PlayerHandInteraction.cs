@@ -50,8 +50,9 @@ namespace Player
         [SerializeField] private HandRayReticle leftReticle;
         [SerializeField] private HandRayReticle rightReticle;
 
-        // Read to hide a hand's reticle while that hand is holding something
-        // - see TickReticles().
+        // Where each hand ray is cast from (the hand visual, not the
+        // controller - see Tick()), and read to hide a hand's reticle while
+        // that hand is holding something - see TickReticles().
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         // Each hand's ray direction in its own local space - the angle
@@ -131,16 +132,20 @@ namespace Player
         /// </summary>
         public void Tick()
         {
+            // Cast from the hand the player sees, not the tracked controller:
+            // when a surface holds the hand visual back, the ray starts from
+            // there, so a controller pushed through a wall can't target (and
+            // grab) whatever is behind it. Normally the two are the same.
+            //
             // Cached on the public Left/RightRay* properties below as well
             // as passed straight into the raycasts, so HandRayDebug can
             // visualize exactly the ray actually being cast, not a
-            // recomputed approximation of it. GetPositionAndRotation()
-            // fetches both in one call into the engine instead of two.
-            playerTracking.LeftHand.GetPositionAndRotation(out Vector3 leftPosition, out Quaternion leftRotation);
+            // recomputed approximation of it.
+            playerHandVisuals.GetLeftHandPose(out Vector3 leftPosition, out Quaternion leftRotation);
             LeftRayOrigin = leftPosition;
             LeftRayDirection = leftRotation * _leftLocalRayDirection;
 
-            playerTracking.RightHand.GetPositionAndRotation(out Vector3 rightPosition, out Quaternion rightRotation);
+            playerHandVisuals.GetRightHandPose(out Vector3 rightPosition, out Quaternion rightRotation);
             RightRayOrigin = rightPosition;
             RightRayDirection = rightRotation * _rightLocalRayDirection;
 

@@ -187,7 +187,12 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   controller again after all `Update()` code, and a child visual would wobble. Anything that
   must stay world-fixed can't be a child of a tracked transform. (Not parented to the ledge -
   ledges are non-uniformly scaled, which would shear a rotated child.)
-- **`PlayerHandInteraction`** — casts one ray per hand (configurable length, layer mask, and
+- **`PlayerHandInteraction`** — casts one ray per hand **from the hand visual, not the
+  controller** (`PlayerHandVisuals.GetLeft/RightHandPose()` → `HandPhysicalFollow.GetHandPose()`:
+  the controller pose shifted to where a surface holds the visual, so a controller pushed
+  through a wall can't target/grab behind it and the angle offsets stay valid; just the
+  controller while the visual is on it; last frame's placement, since rays run before the
+  visuals tick) (configurable length, layer mask, and
   per-hand angle offset, pre-rotated into a cached local ray direction in `Awake()`/
   `OnValidate()`) and records whatever `IHandTarget` it hits (nothing is highlighted -
   the reticle alone shows what can be interacted with). Exposes `LeftTarget`/`RightTarget` and

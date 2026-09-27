@@ -314,6 +314,30 @@ namespace Player
         }
 
         /// <summary>
+        /// The pose the controller would need for the visual to sit where it
+        /// is now - the controller, shifted to wherever a surface is holding
+        /// the hand. Hand rays are cast from this, so they start from the hand
+        /// the player sees (and can't reach through a wall the controller has
+        /// gone into), while the ray angle offsets tuned against the
+        /// controller still apply unchanged. While the visual is on its
+        /// controller (free, snapped, passing through) it's just the
+        /// controller. Reflects last frame's placement - this is read before
+        /// the hand visuals are ticked.
+        /// </summary>
+        public void GetHandPose(out Vector3 position, out Quaternion rotation)
+        {
+            if (!IsInContact && !_isReturning) {
+                _restParent.GetPositionAndRotation(out position, out rotation);
+                return;
+            }
+
+            // _lastPosition is where the visual's root was placed, and it sits
+            // at _restLocalPosition from the controller - so step back by that.
+            rotation = _handRotation;
+            position = _lastPosition - _handRotation * _restLocalPosition;
+        }
+
+        /// <summary>
         /// Stops following for now - called while something else owns the
         /// visual (e.g. it's snapped to a ledge) or it isn't tracked. The next
         /// Tick() starts fresh from wherever the visual is then.
