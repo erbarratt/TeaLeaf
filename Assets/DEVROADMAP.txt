@@ -268,10 +268,27 @@ Scripting:
     [x] Greybox ladder in the test area with a mantleable edge at the top.
     [x] Test in headset: grab rungs at different heights, hand-over-hand
         up and down, mantle off the top, drop off the bottom.
-[ ] Rope climbing: ClimbableRope (vertical line segment grab target) - built
-    here so Phase 5's rope bolt only has to spawn one. Constrained vertical
-    climb like ladders. Also uses the hand snap pose (hand wrapped around
-    the rope at the grabbed height).
+[x] Rope climbing: ClimbableRope (vertical line segment grab target) - built
+    here so Phase 5's rope bolt only has to spawn one. Also uses the hand
+    snap pose (hand wrapped around the rope at the grabbed height).
+    Decisions (2026-09-27):
+    - Movement: unconstrained, like ledges and ladders (the original
+      "constrained vertical" plan was dropped) - no PlayerClimbing change.
+    - Static straight line, no swinging.
+    - Hangs from its transform's position down its -Y for `length` metres.
+      Requires a CapsuleCollider it sizes itself (grabRadius ~0.08m, far
+      thicker than a real rope so the hand ray can hit it); a public
+      SetLength() for the rope bolt to call at runtime.
+    - Snap: nearest point on the rope's axis to the ray hit (clamped to its
+      ends), facing the rope from the side the hand is on. Own RopeGrip
+      HandSnapProfile.
+    - No mesh (gizmos only), per the no-mesh rule; the Phase 5 rope-bolt
+      prefab brings its own visual. Exits as ladders: mantleable edge at
+      the top, let go at the bottom.
+    [x] ClimbableRope component + gizmos + RopeGrip profile asset.
+    [x] Greybox rope in the test area (with a mantleable edge at the top).
+    [x] Test in headset: grab at different heights and from different
+        sides, hand over hand up and down, mantle off the top, drop off.
 [x] Gravity/fall interplay: releasing all grips mid-climb falls normally
     (verified in headset 2026-09-27). Fall damage: none for the slice -
     it comes later, in a dedicated damage phase after the slice.

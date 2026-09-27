@@ -204,8 +204,8 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
   applied movement exceeds `movingSpeedThreshold`, so pushing into a wall counts as still.
   `Airborne` only kicks in after `airborneGraceTime` off the ground, since `isGrounded`
   flickers on steps and slopes - except after a jump, which is `Airborne` immediately. Physical roomscale walking doesn't count as moving yet.
-- **`PlayerClimbing`** — grab-and-pull climbing. A hand grabs the `IClimbable` (ledge or
-  ladder) its hand ray is on (`PlayerHandInteraction.LeftTarget`/`RightTarget`) while
+- **`PlayerClimbing`** — grab-and-pull climbing. A hand grabs the `IClimbable` (ledge, ladder
+  or rope) its hand ray is on (`PlayerHandInteraction.LeftTarget`/`RightTarget`) while
   grip is held, so
   what the reticle is on is what gets grabbed and the ray length is the grab reach; the most recent grab becomes the primary hand, which drives
   movement (hand-off to the other hand on release). Hand deltas are measured in
@@ -276,13 +276,22 @@ part of the runtime gameplay path.
 - **`HandTargetRegistry`** — static `Collider → IHandTarget` dictionary. Targets register in
   `OnEnable`/unregister in `OnDisable`, so hand raycasts do a dictionary lookup instead of an
   interface `GetComponent`.
-- **Climbables have no mesh** — `ClimbableEdge`/`Ladder` are just a `BoxCollider` (invisible in
-  game) shown in the Scene view by always-on gizmos. A renderer is only added to an individual
+- **Climbables have no mesh** — `ClimbableEdge`/`Ladder` are just a `BoxCollider` and
+  `ClimbableRope` a `CapsuleCollider` (invisible in game), shown in the Scene view by always-on gizmos. A renderer is only added to an individual
   item that should be visible, as a separate component the scripts don't touch.
 - **`IClimbable`** — extends `IHandSnapTarget`; marks a grab target as climbable (grabbing it
   starts a climb, unlike future handles/tools/props). Adds no members yet: every climbable
   moves the player the same way. `PlayerClimbing` finds it on a hand's ray target with a type
-  check. Implemented by `ClimbableEdge` and `Ladder`; ropes later.
+  check. Implemented by `ClimbableEdge`, `Ladder` and `ClimbableRope`.
+- **`ClimbableRope`** — `IHandTarget` + `IClimbable`. A static straight line (no swinging)
+  hanging from its transform's position down local -Y for `length` metres. Sizes its own
+  `CapsuleCollider` (Awake, OnValidate, `SetLength()`), dividing real metres by scale, and
+  locks it (`HideFlags.NotEditable`) - `length`/`grabRadius` on the rope are the only size
+  controls, and the top (the object's position) stays put when `length` changes. `grabRadius` (0.08m) is far thicker than a rope so rays can hit
+  it. `SetLength()` is for Phase 5's rope bolt. `GetSnapPose()`: nearest point on the axis
+  (clamped to the ends), grip frame facing into the rope from the side the ray hit (a rope has
+  no front), `RopeGrip` `HandSnapProfile`. Gizmos: the line always, faint; when selected, bright
+  with end rings and the capsule's sides. Exits as ladders.
 - **`Ladder`** — `IHandTarget` + `IClimbable`. One `BoxCollider` over the whole ladder is
   the ray target; no per-rung colliders. Rungs are designer data (`firstRungHeight`, `rungSpacing`, real metres in the
   unscaled local frame - position + rotation, box size × `lossyScale`), and the rung count is
@@ -392,9 +401,9 @@ colliders and anything handedness-dependent.
   mantle started), crouched if the edge says so. Full plan in `DEVROADMAP.txt` Phase 1.
 - **Climbing is custom** — no XRI climb provider. Ladders and ropes reuse the
   grab-and-pull-delta approach from `PlayerClimbing` by implementing `IClimbable` (an
-  interface, not a shared base class). Ladder movement is unconstrained like ledges; a
-  ladder's top exit is a mantleable `ClimbableEdge` placed on the lip (no ladder-specific
-  mantle), and its bottom exit is letting go.
+  interface, not a shared base class). Ladder and rope movement is unconstrained like ledges
+  (ropes are static - no swinging); their top exit is a mantleable `ClimbableEdge` placed on
+  the lip (no ladder/rope-specific mantle), and their bottom exit is letting go.
 - **Ray-targeted grabs + hand snap poses** — climbing starts when grip is held while the hand
   ray/reticle is on a climbable (replaced the old SphereCollider overlap). On grab the visual hand snaps (with a short blend)
   to a target-defined position and rotation, and plays the target's finger pose (e.g. fingers

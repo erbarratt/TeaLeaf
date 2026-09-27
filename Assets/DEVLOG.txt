@@ -339,6 +339,37 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 - Verified in headset: releasing every grip mid-climb falls normally.
   Decided: no fall damage in the slice - it (and health) will come in a
   dedicated damage phase later, after the slice.
+- Rope climbing - design agreed (Phase 1): unconstrained movement like
+  ledges and ladders (the roadmap's original "constrained vertical" was
+  dropped, so PlayerClimbing needs no change), and a static straight line
+  rather than a swinging rope (cheap, predictable, no comfort risk).
+- ClimbableRope (built, awaiting greybox + headset test): IHandTarget +
+  IClimbable. Hangs from its transform's position down local -Y for
+  `length` metres. It sizes its own CapsuleCollider (in Awake, OnValidate
+  and SetLength()), dividing the real-metre length/grabRadius by the
+  scale so it stays right even on a scaled object - so a rope never needs
+  its collider edited by hand, and Phase 5's rope bolt can spawn one and
+  call SetLength(). grabRadius defaults to 0.08m, far thicker than a real
+  rope, so a hand ray can actually hit it. GetSnapPose(): nearest point on
+  the axis (clamped to the ends); the grip frame faces into the rope from
+  the side the ray hit (the horizontal direction from the axis out to the
+  hit point), since a rope has no front. Gizmos: the line always, faint;
+  when selected, bright with end rings and the capsule's sides. New
+  Assets/Data/RopeGrip.asset profile, a copy of LadderRung to start from -
+  a vertical rope wants a different hand rotation, so it needs tuning in
+  Play Mode.
+- Rope: editing the CapsuleCollider's Height directly didn't update the
+  gizmo and grew the capsule around its centre instead of down from the
+  top. Cause: the rope's `length` field is the source of truth (gizmo and
+  snapping read it, and FitCollider() hangs the capsule down from the top),
+  so a direct collider edit bypassed it and was overwritten on the next
+  re-fit. Fix: OnValidate() now locks the collider with
+  HideFlags.NotEditable, leaving `length`/`grabRadius` on the rope as the
+  only size controls.
+- Rope climbing done. Greybox rope (3.04m, RopeGrip profile) added to
+  Main.unity. Verified in headset. RopeGrip's offsets are still the
+  LadderRung copy - a proper rope hand rotation/pose is part of the
+  "ladder rung and rope grip poses" item.
 
 
 2026-09-26
