@@ -418,6 +418,31 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
   again, so they're visible - the per-item exception to the no-mesh rule.
   Their BoxColliders are default (centre 0, size 1) with the size on the
   transform scale, so the unit cube mesh matches each collider exactly.
+- Physical hands step 2 of 6 - sweep + slide (built, awaiting headset
+  test). New HandPhysicalFollow (plain C#, one per hand, owned by
+  PlayerHandVisuals). The hand capsule is measured from the model's own
+  bones - wrist (J_Left_Hand) to middle fingertip (J_Left_HandMiddle4) -
+  once at Awake, stored in the controller's local space so the mirrored
+  right hand (scale.x -1, same bone names) needs no special case; its
+  ends are pulled in by the radius so it stops at the fingertips, not a
+  radius beyond them. Each frame it's CapsuleCast from last frame's
+  visual position to the controller's: a hit stops it skinWidth short,
+  the leftover movement is projected onto the surface and swept again
+  (collide-and-slide, up to 3 sweeps). CapsuleCast's single-hit form
+  doesn't allocate. Triggers are ignored (ledges/ladders/ropes are
+  trigger grab volumes). A hit at distance 0 means the capsule started
+  inside something - treated as clear for now, since blocking would pin
+  the hand inside; step 3 will push it out. While blocked the visual is
+  detached and placed by code; once clear it re-attaches to the
+  controller at its rest pose (instant for now - step 4 adds the smooth
+  catch-up). Attached state is read from the visual's actual parent
+  rather than a flag, because HandVisualSnap detaches/re-attaches the
+  same transform. PlayerHandVisuals ticks the snap first and only runs
+  the physical follow when the snap isn't using the visual. New settings:
+  collisionLayers (empty by default = off; set Environment +
+  Interactable), handRadius 0.035, skinWidth 0.005, and the four bone
+  references ("Find Hand Bones" context menu). Selected-object gizmos show
+  the target and actual capsules.
 
 
 2026-09-26

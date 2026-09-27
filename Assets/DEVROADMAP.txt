@@ -342,6 +342,15 @@ performant approaches for Quest 3 before any code is written:
     owns and ticks both HandVisualSnaps (moved out of PlayerClimbing, which
     now only snaps/releases); PlayerHandAnimation reads it; PlayerController
     ticks it at step 8 (and in the mantling branch). No behaviour change.
+[ ] Step 2 - sweep + slide (built, awaiting headset test): HandPhysicalFollow
+    per hand, capsule measured from the wrist and middle fingertip bones,
+    CapsuleCast collide-and-slide (3 sweeps, skin width), detach while
+    blocked / re-attach when clear, suspended while snapped. Gizmos on
+    PlayerHandVisuals. Known until later steps: no push-out if the hand
+    starts inside something (step 3), instant return when clear and no
+    max-distance snap-back (step 4), a small pop if grabbing while the hand
+    is held off a surface (integration), rays still from the controller
+    (step 5).
 [ ] Separate the visual hand from the tracked controller: the controller
     transform stays the "target", the visual hand is its own object that
     tries to follow it every frame.
