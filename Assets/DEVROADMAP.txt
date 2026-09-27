@@ -13,7 +13,7 @@ Written 2026-09-26. Tick items off as [x] and log details in DEVLOG.txt.
 Vertical slice feature list (agreed scope)
 ------------------------------------------
 Movement:     walk, smooth/snap turn, gravity, crouch (done), sprint, jump,
-              ledge climbing (done), climb push-off momentum, mantling,
+              ledge climbing (done), mantling,
               ladders, rope climbing.
 Visibility:   designer-placed shadow volumes (dark/lit areas), torches
               linked to the volume they light - extinguishing a torch darkens
@@ -138,7 +138,7 @@ Scripting:
         movement velocity at takeoff carries through the jump (running
         jumps travel further), added to _frameMovement while airborne,
         cleared on landing, cancelled against walls (CollisionFlags.Sides).
-        Shared with climb release momentum below - build it once here.
+        (Climb release momentum was going to share this - removed.)
         (Built: one _horizontalVelocity, set from the stick while
         grounded and kept while airborne - walking off edges keeps speed
         too. After Move(), CollisionFlags.Sides replaces it with the
@@ -181,30 +181,14 @@ Scripting:
     the rope at the grabbed height).
 [ ] Gravity/fall interplay: releasing all grips mid-climb falls normally.
     Decide on fall damage (suggest: none for the slice).
-[ ] Climb release momentum: letting go of the last grip keeps the
-    velocity the climb was moving the player at, so pushing off a ledge
-    launches the player away from it. Currently all momentum is lost on
-    release. Build after Jump - it reuses the same air momentum.
-    Plan:
-    [ ] Track climb velocity as an average over the last few frames
-        (small fixed ring buffer, no allocations) of the movement the
-        CharacterController actually applied (the value passed to
-        PlayerClimbing.ReportAppliedMovement) divided by deltaTime - not a
-        single frame, which is too noisy with hand tracking jitter.
-    [ ] On release (IsClimbing true -> false): vertical part seeds
-        _verticalVelocity, horizontal part seeds the horizontal air
-        momentum velocity built for Jump.
-    [ ] Air momentum decays (light air drag) - decide whether jumps use
-        the same drag.
-    [ ] Clamp launch speed to a tunable maximum (comfort, and stops
-        flinging across the level); tune a multiplier so pushes feel right.
-    [ ] Re-grabbing mid-air keeps working (the existing reset of
-        _verticalVelocity on climb start also clears air momentum).
-    [ ] Reuse for ladders/ropes (push off a ladder), and check it doesn't
-        fire on mantle completion.
-    [ ] Test: push off a wall ledge backwards, a vertical pull-up and
-        release (small hop), a gentle release (just drops), and comfort in
-        headset - a vignette while airborne may be needed (Phase 9).
+[-] Climb release momentum: removed (2026-09-27). Built and tested -
+    letting go kept the climb's velocity so pushing off a ledge launched
+    the player - but it felt bad in headset and was taken out entirely;
+    letting go drops from rest, as before. Measured with a debug logger:
+    the body is locked 1:1 to the hand while gripping and players stop
+    their arm before letting go, so a multi-frame average launch is a
+    brake-then-kick stutter, and a seamless last-frame launch barely
+    launches at all. See DEVLOG. Don't re-add without a new idea for that.
 Animation:
 [x] Ledge grip pose (HandPose.LedgeGrip) - fingers bent over the top of the
     ledge, supplied by ClimbableEdge's hand snap pose and played while that

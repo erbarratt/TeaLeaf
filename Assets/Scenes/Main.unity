@@ -750,13 +750,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 400730642}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: 0.707107, z: -0, w: 0.7071066}
   m_LocalPosition: {x: -3.24, y: 2.877, z: -3.97}
-  m_LocalScale: {x: 0.2, y: 0.2, z: 3}
+  m_LocalScale: {x: 3.8349998, y: 0.2, z: 0.3741}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!1 &403779171
 GameObject:
   m_ObjectHideFlags: 0
@@ -821,7 +821,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player.PlayerHandInteraction
   playerTracking: {fileID: 37101388}
-  rayLength: 0.5
+  rayLength: 0.3
   interactableLayers:
     serializedVersion: 2
     m_Bits: 1600
@@ -1761,13 +1761,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1925982079}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: 0.70710677, z: -0, w: 0.7071068}
   m_LocalPosition: {x: -3.24, y: 2.119, z: -5.951}
-  m_LocalScale: {x: 0.2, y: 0.2, z: 3}
+  m_LocalScale: {x: 2.0289633, y: 0.2, z: 0.36138}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 90, z: 0}
 --- !u!1 &1996241623
 GameObject:
   m_ObjectHideFlags: 0

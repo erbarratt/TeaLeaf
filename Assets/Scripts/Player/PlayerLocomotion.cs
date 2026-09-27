@@ -149,7 +149,6 @@ namespace Player
         // always 0). Set straight from the thumbstick while grounded; kept
         // while airborne, so running jumps and walking off edges carry their
         // speed. Only steered or dragged in the air - see HandleMovement().
-        // Climb release momentum will seed this too.
         private Vector3 _horizontalVelocity;
 
         // Counts down from jumpBufferTime after a jump press; a jump fires

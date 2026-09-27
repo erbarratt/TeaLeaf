@@ -286,10 +286,14 @@ colliders and anything handedness-dependent.
   (`sqrt(2h·-g)`). Horizontal momentum (`_horizontalVelocity`) carries the takeoff velocity
   through the jump with **light air control**; walls redirect it and ceilings stop the rise
   (via `Move()`'s `CollisionFlags`, instead of a pre-jump clearance check). **Jump while
-  crouched only stands up** (stealth-safe); a jump waits for full standing height. The same
-  momentum is planned for climb release: letting go of a climb keeps its momentum (a
-  few-frame average of the applied climb velocity), so pushing off a ledge launches the
-  player. `Landed` (fall speed) will drive the landing noise event.
+  crouched only stands up** (stealth-safe); a jump waits for full standing height. `Landed`
+  (fall speed) will drive the landing noise event.
+- **No climb release momentum** (tried and removed, 2026-09-27) — letting go of a climb drops
+  the player from rest. Pushing off a ledge to launch felt bad in headset either way it was
+  tuned: the body is locked 1:1 to the hand while gripping and players stop their arm before
+  letting go, so an averaged launch is a brake-then-kick stutter, and launching at the last
+  frame's velocity (seamless) barely launches at all. Don't re-add it without a new idea for
+  that problem.
 - **Sprint is click-to-toggle** (left stick click) rather than hold, because holding a stick
   click while pushing the stick is tiring in VR. `sprintSpeed` replaces `moveSpeed`. The sprint
   ends when the stick returns to centre, on a second click, on crouch or on climb, and can't
@@ -339,7 +343,7 @@ fails and restarts. Agreed mechanics:
   lockpicking with haptics.
 - **Inventory:** wrist radial menu to pick tools/bolt types (equip into the other hand); loot
   pocketed at the hip for a running total.
-- **Traversal:** sprint, jump, climb push-off momentum, mantling, ladders, rope climbing,
+- **Traversal:** sprint, jump, mantling, ladders, rope climbing,
   drag/hide KO'd bodies.
 - **Physical hands:** the visual hand is separate from the tracked controller, collides with
   the world via dedicated primitive colliders, stops at surfaces, and elastic-bands back to

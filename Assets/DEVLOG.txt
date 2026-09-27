@@ -114,6 +114,63 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
   also puts PlayerLocomotion's previously unused "using System;" to use.
   MovementStateDebug now also logs Landed with its fall speed. Verified
   in headset - jump done.
+- Climb release momentum (Phase 1), built - awaiting headset test.
+  PlayerClimbing records the movement the CharacterController actually
+  applied each climbing frame (in ReportAppliedMovement - real movement,
+  so a climb pushing into a wall doesn't launch you into it) into a fixed
+  ring buffer of the last 5 frames, allocated once in Awake. Averaged as
+  total distance / total time rather than averaging per-frame velocities,
+  so uneven frame times are weighted correctly. On the frame the climb
+  ends it becomes ReleaseVelocity: x launchMultiplier (1), clamped to
+  maxLaunchSpeed (5 m/s), zeroed below minLaunchSpeed (0.3 m/s) so hand
+  jitter on a gentle let-go is a clean drop. Samples reset on climb start
+  but not on a hand-off (one continuous climb). PlayerLocomotion.
+  TickMovement() now takes the release velocity and, on the climb-end
+  frame, seeds _verticalVelocity and _horizontalVelocity with it - the
+  same values a jump sets, so air control, drag, gravity and the
+  wall/ceiling collision response all apply with no extra code. Decided:
+  jumps and releases share the same air drag. MovementStateDebug logs the
+  release velocity when a climb ends (optional PlayerClimbing reference).
+- Climb release: momentum works in headset, but there's a brief stutter
+  at the moment of release before the momentum kicks in. Traced the code:
+  no frame has zero movement (climb movement stops and momentum starts in
+  the same frame), so it's a speed discontinuity, not a gap. Two
+  candidates: (1) the hand slows while the fingers open - the climb only
+  ends at grip < 0.5, so the body follows a braking hand, then the 5-frame
+  average kicks it forward again; (2) the average lags a still-
+  accelerating push, so speed drops at release. They need different fixes
+  (a release hysteresis threshold vs a better at-release velocity
+  estimate), so added ClimbReleaseDebug (Player/Debug) to log real player
+  velocity and both grips for the frames around each release before
+  choosing.
+- ClimbReleaseDebug results (4 push-offs): speed peaks at 5-7 m/s, then
+  drops over 2 frames to ~1.2-3 m/s while grip is still held (often 1.00),
+  then jumps back to 3-4.7 m/s on release - brake-then-kick. So it's
+  cause (1), but from the arm stopping at full extension before letting
+  go, not from the grip opening slowly (the grip often goes 1.00 -> 0 in
+  one frame). Lesson: while gripping, the body is locked 1:1 to the hand,
+  so that braking has already been shown; any launch faster than the last
+  climbing frame's velocity has to be a kick, whatever the estimator.
+  Decided: seamless - velocitySampleFrames = 1, so the launch continues
+  at exactly the last frame's velocity. Big launches now need letting go
+  mid-push, like real life. Rejected: keeping the averaged launch and
+  easing into it over ~0.1s (removes the jerk but keeps the
+  brake-then-surge). launchMultiplier must stay 1 and releases above
+  maxLaunchSpeed (5) still slow down suddenly - both noted on the fields.
+- Climb release momentum REMOVED. The seamless version didn't feel good
+  in headset either, so the whole mechanism came out and letting go of a
+  climb drops from rest again, as before. Reverted PlayerClimbing,
+  PlayerLocomotion, PlayerController and MovementStateDebug to the last
+  commit (none of it had been committed), deleted ClimbReleaseDebug, and
+  hand-removed its component and the four release fields from Main.unity -
+  not a whole-file revert, because the scene also held two ledges
+  re-oriented to the ClimbableEdge convention that needed keeping.
+  Roadmap item marked [-] removed, CLAUDE.md records it as a design
+  decision so it isn't re-suggested. Lesson: with the body locked 1:1 to a
+  gripping hand, "launch on release" has no good version - averaged
+  launches stutter, seamless ones barely launch. A future push-off would
+  need a different model (e.g. launching while still gripping), not a
+  better velocity estimate.
 
 
 2026-09-26
