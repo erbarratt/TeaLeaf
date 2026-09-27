@@ -148,6 +148,14 @@ namespace Player
             _rightFollow = new HandPhysicalFollow(rightHandVisual, rightWristBone, rightFingertipBone);
         }
 
+        private void OnDestroy()
+        {
+            // Each follow's penetration collider lives at the scene root, so it
+            // isn't destroyed along with this object. Null if Awake() never ran.
+            _leftFollow?.Destroy();
+            _rightFollow?.Destroy();
+        }
+
         /// <summary>
         /// Places both hand visuals for this frame (snapped, blending, or
         /// following the controller). Called by PlayerController after Move()

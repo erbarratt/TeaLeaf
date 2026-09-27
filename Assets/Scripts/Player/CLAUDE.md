@@ -137,11 +137,25 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   the bones at Awake, in controller space so the mirrored hand needs nothing special; ends inset
   by the radius) is `CapsuleCast` from last frame's visual position towards the controller's;
   hits stop it `skinWidth` short and the rest of the move is projected onto the surface and
-  re-swept (collide-and-slide, max 3 sweeps, no allocations). Triggers are ignored. A sweep that
-  starts inside geometry (distance 0) doesn't block - depenetration is a later step. Blocked →
+  re-swept (collide-and-slide, max 3 sweeps, no allocations). Triggers are ignored. **Before**
+  the sweep, `Depenetrate()` pushes the capsule - at last frame's position, with this frame's
+  rotation - out of anything it overlaps (`OverlapCapsuleNonAlloc` into a shared static buffer,
+  then `ComputePenetration` per overlap, moved by distance + `skinWidth`, max 3 passes). It runs
+  before rather than after, because a rotation-induced overlap is shallow at the start, while
+  after a sweep the hand could be past the middle of a thin wall and get pushed out of the far
+  side. A sweep that still starts inside (distance 0, e.g. a gap narrower than the hand)
+  doesn't block. `ComputePenetration` needs an enabled collider for the hand but takes the pose
+  as arguments, so each hand builds a `Penetration Collider` (trigger `CapsuleCollider` on Z,
+  `PlayerHands` layer, parked at y -1000 at the scene root, never moved, height = wrist to
+  fingertip, radius synced from `handRadius` on change, destroyed from
+  `PlayerHandVisuals.OnDestroy()`). Blocked →
   visual detached and placed by code; clear → re-attached to the controller at its rest pose
   (no smooth catch-up yet). Attached state is read from the actual parent, since
-  `HandVisualSnap` detaches the same transform. Rotation always follows the controller.
+  `HandVisualSnap` detaches the same transform. Rotation follows the controller while free and
+  is held at the controller's rotation from the first blocked frame while in contact; contact
+  only ends once the hand is back at the controller's position *and* a `CheckCapsule` at the
+  controller's own rotation is clear (otherwise it would re-attach with its fingers in the wall
+  and flicker). Controllers are assumed unscaled (verified: Player → controllers all scale 1).
   `Suspend()` while snapped/untracked.
 - **`HandVisualSnap`** — plain C# class (one per hand, owned and ticked by `PlayerHandVisuals`;
   other systems only call `Snap()`/`Release()`). Blends a hand *visual* (never the tracked
@@ -247,11 +261,18 @@ systems in Play Mode — not part of the runtime gameplay path.
   tool, prop) supplies its own per-hand snap pose, rather than hand code special-casing each
   one.
 - **Physical hands: kinematic sweep, no Rigidbody** (decided 2026-09-27) — in `Update()`/the
-  tick order, a hand capsule sweeps from the visual's last pose towards the controller,
-  collide-and-slides, then (later step) depenetrates with `ComputePenetration`; rotation always
-  follows the controller and is resolved by the push-out. The visual stays a child of the
-  controller while free and is detached while in contact (Tracked Pose Driver before-render
-  constraint). Rejected: a velocity-driven Rigidbody hand (physics-rate, costlier on Quest,
+  tick order, a hand capsule takes its rotation at the visual's last position, is depenetrated
+  there with `ComputePenetration`, then sweeps towards the controller and collide-and-slides.
+  Push-out before the sweep, not after - found in headset testing 2026-09-27: a twisting wrist
+  overlapped the wall at the sweep's start, so the sweep saw nothing and the hand passed
+  through. Rotation follows the controller while free but is **held at the contact rotation
+  while in contact** (2026-09-27, replacing "always follows the controller"): with rotation
+  always following, pushing deeper tilted the wrist, the fingers swung into the wall and the
+  push-out backed the whole hand away from it. Rejected: freezing the hand via the snap system
+  (no sliding or collision while snapped, switches the finger pose, needs a `HandSnapPose`), and
+  pivoting the rotation about the contact point (complex, awkward with several contacts). The
+  visual stays a child of the controller while free and is detached while in contact (Tracked
+  Pose Driver before-render constraint). Rejected: a velocity-driven Rigidbody hand (physics-rate, costlier on Quest,
   jitter-prone, needs teleports for snap turn/mantle). Being built step by step (steps in
   `DEVROADMAP.txt` Phase 1).
 - **Settings will eventually move out of serialized fields** — Smooth Turn/Snap Turn, turn

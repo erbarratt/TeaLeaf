@@ -379,6 +379,16 @@ performant approaches for Quest 3 before any code is written:
     the visual hand's position.
 [ ] Optional feedback: light haptic pulse on first contact; faint "ghost"
     hand at the real controller position while separated (as Alyx does).
+[ ] Debug (Scripts/Player/Debug): in-headset hand capsule visualiser.
+    Gizmos drawn in the Game view only show in one eye, offset and
+    distorted, in VR (a Unity limitation - they're drawn for one flat
+    camera, not per eye), so draw each hand's capsule with real geometry
+    instead: two spheres + a cylinder, see-through unlit material, colour
+    via MaterialPropertyBlock and only changed when contact flips. Same as
+    the PlayerHandVisuals gizmos: faint target capsule at the controller,
+    visual capsule green (free) / red (in contact). Toggled by enabling the
+    component; costs nothing while off. Until then, watch the gizmos in a
+    Scene view on the monitor while playing in the headset.
 [ ] Test scene: wall, table edge, pillar corner, a gap narrower than the
     hand; verify no jitter against surfaces and no tunnelling on fast
     swings. Profile the cost on Quest.
