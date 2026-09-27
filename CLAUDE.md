@@ -434,8 +434,9 @@ fails and restarts. Agreed mechanics:
   drag/hide KO'd bodies.
 - **Physical hands:** the visual hand is separate from the tracked controller, collides with
   the world via dedicated primitive colliders, stops at surfaces, and elastic-bands back to
-  the controller once clear (Alyx / Thief VR style). Planned for Phase 3, before grabbing; the
-  maintainer wants to be guided through choosing the most performant approach when it's built.
+  the controller once clear (Alyx / Thief VR style). A core concept: part of Phase 1 (moved
+  from Phase 3 on 2026-09-27), before grabbing; the maintainer wants to be guided through
+  choosing the most performant approach when it's built.
 - **Art:** greybox only (ProBuilder/primitives); out of scope: settings/main menu, save/load,
   final art, combat, fall damage (fall damage/health come in a later damage phase, after the
   slice; falling itself already works - letting go of every grip mid-climb falls normally).

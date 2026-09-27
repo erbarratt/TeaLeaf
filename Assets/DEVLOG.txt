@@ -370,6 +370,12 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
   Main.unity. Verified in headset. RopeGrip's offsets are still the
   LadderRung copy - a proper rope hand rotation/pose is part of the
   "ladder rung and rope grip poses" item.
+- Roadmap change: physical hands (visual hand collides with surfaces,
+  stops and slides, elastic-bands back to the controller) moved from the
+  start of Phase 3 into Phase 1 as a core concept. Phase 1 is renamed
+  "Locomotion and physical hands"; Phase 3 keeps a pointer. The block
+  itself is unchanged - still to start with a comparison of the most
+  performant approaches for Quest 3 before any code.
 
 
 2026-09-26

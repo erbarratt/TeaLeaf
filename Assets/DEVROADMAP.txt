@@ -61,8 +61,8 @@ Phase 0 - Finish in-progress work
     the performance habits in CLAUDE.md still apply to all new code.
 
 
-Phase 1 - Locomotion completion (Player)
-----------------------------------------
+Phase 1 - Locomotion and physical hands (Player)
+-----------------------------------------------
 Scripting:
 [x] Sprint: click-to-toggle on the left stick click (project-wide
     InputSystem_Actions Player/Sprint), sprintSpeed replaces moveSpeed.
@@ -308,6 +308,42 @@ Animation:
     headset.
 [ ] Ladder rung and rope grip poses (can reuse the ledge pose initially),
     supplied by Ladder/ClimbableRope snap poses.
+Physical hands (Player namespace) - a core concept, moved here from
+Phase 3 (2026-09-27). Built as part of Phase 1, since grabbing, tools
+and climbing all sit on top of where the visual hand ends up.
+Claude to guide this step by step, starting with a comparison of the most
+performant approaches for Quest 3 before any code is written:
+[ ] Separate the visual hand from the tracked controller: the controller
+    transform stays the "target", the visual hand is its own object that
+    tries to follow it every frame.
+[ ] Hand colliders: a small set of cheap primitive colliders per hand
+    (e.g. a palm box/capsule plus a few finger capsules - no mesh
+    colliders) on the PlayerHands layer, colliding only with Environment/
+    Interactable (layer matrix from Phase 0; Climbable is deliberately off -
+    ledges rest on the Environment geometry). Revisit PlayerHands-Guard.
+[ ] Collision response: when the target moves into geometry, the visual
+    hand stops at the surface and slides along it rather than
+    penetrating. Evaluate options together: kinematic sweep/depenetration
+    (CapsuleCast / Physics.ComputePenetration, no Rigidbody - likely the
+    cheapest and most predictable) vs a velocity-driven Rigidbody hand
+    (lets hands push physics props, costs more physics time).
+[ ] "Elastic band" catch-up: once the path is clear the visual hand
+    returns to the controller position quickly but smoothly (no pop).
+    If separation exceeds a max distance (e.g. 0.3-0.5m, tunable) or the
+    hand is stuck, snap straight back to the controller.
+[ ] Rotation follows the same rule (hand rotation blocked by contact,
+    then eases back).
+[ ] Integrate with existing systems: a hand snapped to a grab target (hand
+    snap pose, Phase 1) must take priority over the physical follow.
+    Decide whether hand rays (PlayerHandInteraction) - which now also
+    drive climb grabs - use the tracked or the visual hand (probably
+    visual, so you can't grab through a wall). Held items/tools inherit
+    the visual hand's position.
+[ ] Optional feedback: light haptic pulse on first contact; faint "ghost"
+    hand at the real controller position while separated (as Alyx does).
+[ ] Test scene: wall, table edge, pillar corner, a gap narrower than the
+    hand; verify no jitter against surfaces and no tunnelling on fast
+    swings. Profile the cost on Quest.
 Test scene:
 [ ] Extend the CharacterController test scene: ledge at chest height, ledge
     above head, mantle onto low-clearance shelf, 4m ladder, rope, a gap to
@@ -348,41 +384,7 @@ Phase 2 - Core stealth framework (Core namespace)
 
 Phase 3 - Interaction framework (Interaction namespace)
 -------------------------------------------------------
-Physical hands (Player namespace) - build this first, since grabbing,
-tools and climbing all sit on top of where the visual hand ends up.
-Claude to guide this step by step, starting with a comparison of the most
-performant approaches for Quest 3 before any code is written:
-[ ] Separate the visual hand from the tracked controller: the controller
-    transform stays the "target", the visual hand is its own object that
-    tries to follow it every frame.
-[ ] Hand colliders: a small set of cheap primitive colliders per hand
-    (e.g. a palm box/capsule plus a few finger capsules - no mesh
-    colliders) on the PlayerHands layer, colliding only with Environment/
-    Interactable (layer matrix from Phase 0; Climbable is deliberately off -
-    ledges rest on the Environment geometry). Revisit PlayerHands-Guard.
-[ ] Collision response: when the target moves into geometry, the visual
-    hand stops at the surface and slides along it rather than
-    penetrating. Evaluate options together: kinematic sweep/depenetration
-    (CapsuleCast / Physics.ComputePenetration, no Rigidbody - likely the
-    cheapest and most predictable) vs a velocity-driven Rigidbody hand
-    (lets hands push physics props, costs more physics time).
-[ ] "Elastic band" catch-up: once the path is clear the visual hand
-    returns to the controller position quickly but smoothly (no pop).
-    If separation exceeds a max distance (e.g. 0.3-0.5m, tunable) or the
-    hand is stuck, snap straight back to the controller.
-[ ] Rotation follows the same rule (hand rotation blocked by contact,
-    then eases back).
-[ ] Integrate with existing systems: a hand snapped to a grab target (hand
-    snap pose, Phase 1) must take priority over the physical follow.
-    Decide whether hand rays (PlayerHandInteraction) - which now also
-    drive climb grabs - use the tracked or the visual hand (probably
-    visual, so you can't grab through a wall). Held items/tools inherit
-    the visual hand's position.
-[ ] Optional feedback: light haptic pulse on first contact; faint "ghost"
-    hand at the real controller position while separated (as Alyx does).
-[ ] Test scene: wall, table edge, pillar corner, a gap narrower than the
-    hand; verify no jitter against surfaces and no tunnelling on fast
-    swings. Profile the cost on Quest.
+Physical hands: moved to Phase 1 (2026-09-27) - done before this phase.
 Grabbing and props:
 [ ] Decide grab approach: custom grab consistent with PlayerClimbing
     (recommended - one system, one set of hand states) vs XRI interactables.
