@@ -154,6 +154,7 @@ MonoBehaviour:
   turnAction: {fileID: -8525429354371678379, guid: c348712bda248c246b8c49b3db54643f, type: 3}
   crouchAction: {fileID: 7040659881675835329, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   sprintAction: {fileID: -7471211009204490832, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  jumpAction: {fileID: -2099379676528639254, guid: 052faaac586de48259a63d0c4782560b, type: 3}
 --- !u!114 &37101390
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -179,6 +180,11 @@ MonoBehaviour:
   moveSpeed: 3
   moveDeadzone: 0.2
   sprintSpeed: 4.5
+  jumpHeight: 0.5
+  coyoteTime: 0.1
+  jumpBufferTime: 0.15
+  airControlAcceleration: 3
+  airDrag: 0.5
   gravity: -9.81
   groundedGravity: -2
   minimumHeight: 0.8
@@ -2020,7 +2026,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &2066213371
 Transform:
   m_ObjectHideFlags: 0
