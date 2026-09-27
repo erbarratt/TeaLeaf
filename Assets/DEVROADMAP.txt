@@ -342,7 +342,7 @@ performant approaches for Quest 3 before any code is written:
     owns and ticks both HandVisualSnaps (moved out of PlayerClimbing, which
     now only snaps/releases); PlayerHandAnimation reads it; PlayerController
     ticks it at step 8 (and in the mantling branch). No behaviour change.
-[ ] Step 2 - sweep + slide (built, awaiting headset test): HandPhysicalFollow
+[x] Step 2 - sweep + slide (verified in headset 2026-09-27): HandPhysicalFollow
     per hand, capsule measured from the wrist and middle fingertip bones,
     CapsuleCast collide-and-slide (3 sweeps, skin width), detach while
     blocked / re-attach when clear, suspended while snapped. Gizmos on

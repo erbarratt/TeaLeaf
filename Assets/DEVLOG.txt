@@ -418,8 +418,8 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
   again, so they're visible - the per-item exception to the no-mesh rule.
   Their BoxColliders are default (centre 0, size 1) with the size on the
   transform scale, so the unit cube mesh matches each collider exactly.
-- Physical hands step 2 of 6 - sweep + slide (built, awaiting headset
-  test). New HandPhysicalFollow (plain C#, one per hand, owned by
+- Physical hands step 2 of 6 - sweep + slide (verified in headset).
+  New HandPhysicalFollow (plain C#, one per hand, owned by
   PlayerHandVisuals). The hand capsule is measured from the model's own
   bones - wrist (J_Left_Hand) to middle fingertip (J_Left_HandMiddle4) -
   once at Awake, stored in the controller's local space so the mirrored
@@ -443,6 +443,29 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
   Interactable), handRadius 0.035, skinWidth 0.005, and the four bone
   references ("Find Hand Bones" context menu). Selected-object gizmos show
   the target and actual capsules.
+- Working practice change: the devlog and roadmap are now written once, at
+  the end of a session, when the maintainer says so - not after every
+  change. CLAUDE.md files are still updated with each change. If a
+  session ends without a write-up, Claude reminds the maintainer at the
+  start of the next one (tracked in Claude's memory).
+- Split CLAUDE.md to cut how much context loads every session. Claude
+  Code has no "pre-vectoring"/embeddings: the root CLAUDE.md is loaded as
+  plain text into every session (prompt caching makes it cheap but it
+  still fills the context), while a CLAUDE.md inside a subfolder is only
+  loaded when working with files there. So the root (36.5KB -> 15KB) now
+  keeps the rules and cross-cutting architecture - overview, doc rules,
+  coding standards, tick order, one-Move() rule, hierarchy, the
+  before-render tracking constraint, physics layers, slice design - and
+  the per-system detail moved, unchanged, to new
+  Assets/Scripts/Player/CLAUDE.md (player systems, input table, hand art/
+  animation, Debug scripts, locomotion and hands decisions) and
+  Assets/Scripts/Interaction/CLAUDE.md (hand targets, climbables, snap
+  poses). New system folders get their own CLAUDE.md when their first
+  system lands. Unity gives them .meta files (they're under Assets), which
+  are committed with them.
+- Physical hands step 2 verified in headset; committed with the
+  CLAUDE.md split. Next session: step 3 - depenetration + rotation push-
+  out (OverlapCapsuleNonAlloc + Physics.ComputePenetration).
 
 
 2026-09-26
