@@ -376,6 +376,32 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
   "Locomotion and physical hands"; Phase 3 keeps a pointer. The block
   itself is unchanged - still to start with a comparison of the most
   performant approaches for Quest 3 before any code.
+- Physical hands - approach comparison done, decided: a kinematic sweep
+  (our own capsule collide-and-slide + ComputePenetration depenetration in
+  Update, no Rigidbody) over a velocity-driven Rigidbody "physics hand".
+  Why: cheapest on Quest (a few queries per hand per frame), runs at
+  display rate in PlayerController's tick order instead of the physics
+  step (no raising the fixed timestep for all physics, no interpolation
+  lag), less jitter-prone, and snap turn/mantle/crouch/climbing need no
+  teleport special cases because we control the order. The Rigidbody
+  hand's one real win, pushing props for free, can be approximated later.
+  Rotation: the hand always takes the controller's rotation and is pushed
+  out if that puts it inside geometry (instead of blocking rotation on
+  contact, as the roadmap first said). Key constraint carried over from
+  the snap-pose work: the Tracked Pose Drivers move the controller again
+  before rendering, so a hand in contact must be detached from the
+  controller (and stays a child while free, for zero added latency).
+- Physical hands step 1 of 6 (verified in headset): one owner per hand
+  visual. Snapping lived inside PlayerClimbing, and physical hands would
+  be a second system moving the same transform, so both now belong to a
+  new PlayerHandVisuals component on Hands. It holds the visual
+  references and snapBlendDuration (moved from PlayerClimbing), creates
+  and ticks the two HandVisualSnaps, and exposes them as LeftVisualSnap/
+  RightVisualSnap. PlayerClimbing only calls Snap()/Release() through it;
+  PlayerHandAnimation reads it instead of PlayerClimbing;
+  PlayerController calls playerHandVisuals.Tick() where it used to call
+  playerClimbing.TickHandVisuals() (step 8 and the mantling branch).
+  Pure move - no behaviour change intended.
 
 
 2026-09-26

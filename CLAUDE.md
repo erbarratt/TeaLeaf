@@ -105,7 +105,7 @@ behaviour. The current order is:
    `playerMantling.Tick()` — detects a possible mantle (arrow), starts one on a stick push, or
    advances the one in progress. **While `IsMantling`, the frame stops here**: the mantle has
    already positioned the rig directly (CharacterController disabled), so only
-   `TickState()`, `TickHandVisuals()` and `playerHandAnimation.Tick()` run - no locomotion,
+   `TickState()`, `playerHandVisuals.Tick()` and `playerHandAnimation.Tick()` run - no locomotion,
    turning or `Move()`.
 5. `_frameMovement` = `playerLocomotion.TickMovement(isClimbing)` (thumbstick + gravity;
    zero while climbing) + `playerClimbing.FrameMovement` while climbing; then
@@ -115,7 +115,7 @@ behaviour. The current order is:
 7. `playerLocomotion.TickState(isClimbing, appliedMovement, collisionFlags)` — after `Move()`,
    because it needs the real applied movement, the `CollisionFlags` `Move()` returned (to stop
    momentum pushing into walls/ceilings), and the `isGrounded` that `Move()` just updated.
-8. `playerClimbing.TickHandVisuals()` — after turning/`Move()`: hand visuals are children of
+8. `playerHandVisuals.Tick()` — after turning/`Move()`: hand visuals are children of
    the rig, so a world-space snap pose placed earlier would be dragged off by them.
 9. `playerHandAnimation.Tick()` — last, so it reads this frame's snap weight from step 8
    (Animators evaluate after all `Update()` calls anyway).
@@ -134,7 +134,7 @@ Player                 [Player layer] XROrigin, InputActionManager, XRInputModal
   Camera Offset        (crouch shifts this; Camera Y Offset 1.6m)
     Main Camera
       Mantle Indicator (MantleIndicator - head-locked, placed a little below centre ~0.5m ahead)
-    Hands              PlayerHandInteraction, PlayerHandAnimation (identity transform)
+    Hands              PlayerHandInteraction, PlayerHandVisuals, PlayerHandAnimation (identity transform)
       Left Hand        [PlayerHands] tracked controller
         Left Hand Visual   (hand.fbx instance, Animator)
         Left Hand Reticle
@@ -212,7 +212,7 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
   `playerTransform` local space to avoid a feedback loop, and any movement the
   CharacterController didn't apply is retried via `ReportAppliedMovement()` so the grab point
   never drifts. On grab it asks the edge for a `HandSnapPose` and hands it to that hand's
-  `HandVisualSnap` (exposed as `LeftVisualSnap`/`RightVisualSnap`). `ReleaseAll()` force-releases
+  `HandVisualSnap` (`PlayerHandVisuals.LeftVisualSnap`/`RightVisualSnap`). `ReleaseAll()` force-releases
   both hands (used by mantling); a force-released hand can't grab again until its grip is let
   go, since "held" grabbing would otherwise instantly re-grab. Sets
   `characterController.minMoveDistance = 0` so slow hand movement isn't swallowed. Exposes
@@ -235,8 +235,14 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
   with no code). Uses `UI/Default` with `unity_GUIZTestMode` = Always so it draws through walls
   (the face is against the wall while climbing) while staying single-pass-stereo safe.
   `SetVisible()` only touches the renderer on change.
-- **`HandVisualSnap`** — plain C# class (one per hand, owned by `PlayerClimbing` for now;
-  should move to a hand-level owner when grabbing/tools need it). Blends a hand *visual*
+- **`PlayerHandVisuals`** (on `Hands`) — the single owner of where each hand *visual* is
+  placed, so no two systems fight over a visual transform. Holds the `leftHandVisual`/
+  `rightHandVisual` references and `snapBlendDuration`, creates and ticks both
+  `HandVisualSnap`s (`LeftVisualSnap`/`RightVisualSnap`), which `PlayerClimbing` snaps/releases
+  and `PlayerHandAnimation` reads. Physical hands (step 2 on) are being added here, with
+  snapping taking priority. `Reset()` finds the visuals by name.
+- **`HandVisualSnap`** — plain C# class (one per hand, owned and ticked by `PlayerHandVisuals`;
+  other systems only call `Snap()`/`Release()`). Blends a hand *visual*
   (never the tracked controller) between its rest local pose and a world-space `HandSnapPose`
   over `snapBlendDuration` (SmoothStep), both ways, and doesn't touch the transform at rest.
   Exposes the eased blend as `Weight` (0 = following the controller, 1 = snapped), which
@@ -435,8 +441,13 @@ fails and restarts. Agreed mechanics:
 - **Physical hands:** the visual hand is separate from the tracked controller, collides with
   the world via dedicated primitive colliders, stops at surfaces, and elastic-bands back to
   the controller once clear (Alyx / Thief VR style). A core concept: part of Phase 1 (moved
-  from Phase 3 on 2026-09-27), before grabbing; the maintainer wants to be guided through
-  choosing the most performant approach when it's built.
+  from Phase 3 on 2026-09-27), before grabbing. **Approach decided: kinematic sweep, no
+  Rigidbody** - in `Update()`/the tick order, a hand capsule sweeps from the visual's last pose
+  towards the controller, collide-and-slides, then depenetrates (`ComputePenetration`);
+  rotation always follows the controller and is resolved by the push-out. The visual stays a
+  child of the controller while free and is detached while in contact (Tracked Pose Driver
+  before-render constraint). Rejected: a velocity-driven Rigidbody hand (physics-rate, costlier
+  on Quest, jitter-prone, needs teleports for snap turn/mantle). Being built step by step.
 - **Art:** greybox only (ProBuilder/primitives); out of scope: settings/main menu, save/load,
   final art, combat, fall damage (fall damage/health come in a later damage phase, after the
   slice; falling itself already works - letting go of every grip mid-climb falls normally).

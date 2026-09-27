@@ -31,6 +31,7 @@ namespace Player
         [SerializeField] private PlayerHandInteraction playerHandInteraction;
         [SerializeField] private PlayerClimbing playerClimbing;
         [SerializeField] private PlayerMantling playerMantling;
+        [SerializeField] private PlayerHandVisuals playerHandVisuals;
         [SerializeField] private PlayerHandAnimation playerHandAnimation;
         [SerializeField] private CharacterController characterController;
 
@@ -62,6 +63,7 @@ namespace Player
             playerTransform = transform;
 
             playerHandInteraction = GetComponentInChildren<PlayerHandInteraction>();
+            playerHandVisuals = GetComponentInChildren<PlayerHandVisuals>();
             playerHandAnimation = GetComponentInChildren<PlayerHandAnimation>();
         }
 
@@ -98,7 +100,7 @@ namespace Player
             // only what's still needed: movement state and the hands.
             if (playerMantling.IsMantling) {
                 playerLocomotion.TickState(false, Vector3.zero, CollisionFlags.None);
-                playerClimbing.TickHandVisuals();
+                playerHandVisuals.Tick();
                 playerHandAnimation.Tick();
                 return;
             }
@@ -147,7 +149,7 @@ namespace Player
             // 8. Hand visuals - after Move() and turning, since the visuals
             // are children of the rig: a snap pose placed any earlier would
             // be dragged along by this frame's movement until next frame.
-            playerClimbing.TickHandVisuals();
+            playerHandVisuals.Tick();
 
             // 9. Hand animation - last, so the finger snap pose reads this
             // frame's snap weight from step 8. Animators evaluate after all

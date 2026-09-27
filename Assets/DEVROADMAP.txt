@@ -313,6 +313,35 @@ Phase 3 (2026-09-27). Built as part of Phase 1, since grabbing, tools
 and climbing all sit on top of where the visual hand ends up.
 Claude to guide this step by step, starting with a comparison of the most
 performant approaches for Quest 3 before any code is written:
+[x] Approach comparison (2026-09-27). Chose a KINEMATIC SWEEP - no
+    Rigidbody: each frame, in PlayerController's tick order (Update, at
+    display rate), sweep a hand capsule from the visual hand's last pose
+    towards the controller, stop at hits and slide along them
+    (collide-and-slide, a few iterations, skin width), then depenetrate
+    with an overlap + Physics.ComputePenetration (non-alloc). Rejected a
+    velocity-driven Rigidbody hand: runs at the physics rate (needs a
+    raised fixed timestep for all physics or interpolation lag), costs
+    more on Quest, jitter-prone, and needs teleport special cases for snap
+    turn/mantle/crouch since the rig moves in Update. Its one real win -
+    pushing props for free - can be approximated later (small impulse on
+    contact) and grabbing is custom anyway. Rejected a joint-driven body
+    (same trade-offs, more tuning); a kinematic MovePosition body can't be
+    stopped by static geometry at all.
+    Design notes: one palm-to-fingertips capsule per hand to start (finger
+    capsules only if needed - each shape is another sweep). While the path
+    is clear the visual stays a child of the controller (keeps the
+    Tracked Pose Driver's before-render update, zero added latency); while
+    in contact it's detached and placed by code, like HandVisualSnap.
+    Snap poses take priority; this becomes one hand-visual owner per hand.
+    Hand rays from the visual hand. Ticks after Move()/turning, in
+    PlayerHandVisuals.Tick() (step 1).
+    Build steps: 1. one hand-visual owner, 2. sweep + slide, 3. depenetration
+    + rotation, 4. elastic band, 5. hand rays from the visual, 6. test area
+    + profiling.
+[x] Step 1 - one owner per hand visual: new PlayerHandVisuals (on Hands)
+    owns and ticks both HandVisualSnaps (moved out of PlayerClimbing, which
+    now only snaps/releases); PlayerHandAnimation reads it; PlayerController
+    ticks it at step 8 (and in the mantling branch). No behaviour change.
 [ ] Separate the visual hand from the tracked controller: the controller
     transform stays the "target", the visual hand is its own object that
     tries to follow it every frame.
@@ -323,16 +352,16 @@ performant approaches for Quest 3 before any code is written:
     ledges rest on the Environment geometry). Revisit PlayerHands-Guard.
 [ ] Collision response: when the target moves into geometry, the visual
     hand stops at the surface and slides along it rather than
-    penetrating. Evaluate options together: kinematic sweep/depenetration
-    (CapsuleCast / Physics.ComputePenetration, no Rigidbody - likely the
-    cheapest and most predictable) vs a velocity-driven Rigidbody hand
-    (lets hands push physics props, costs more physics time).
+    penetrating - the kinematic sweep above (CapsuleCast collide-and-
+    slide + Physics.ComputePenetration depenetration, no Rigidbody).
 [ ] "Elastic band" catch-up: once the path is clear the visual hand
     returns to the controller position quickly but smoothly (no pop).
     If separation exceeds a max distance (e.g. 0.3-0.5m, tunable) or the
     hand is stuck, snap straight back to the controller.
-[ ] Rotation follows the same rule (hand rotation blocked by contact,
-    then eases back).
+[ ] Rotation (decided 2026-09-27): the visual always takes the
+    controller's rotation; if that rotates it into geometry it's pushed
+    out by the depenetration step. Replaces "rotation blocked by contact,
+    then eases back" - simpler, and rarely noticeable in VR.
 [ ] Integrate with existing systems: a hand snapped to a grab target (hand
     snap pose, Phase 1) must take priority over the physical follow.
     Decide whether hand rays (PlayerHandInteraction) - which now also

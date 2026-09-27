@@ -35,18 +35,9 @@ namespace Player
         // straight back into next frame's delta and jitter the player.
         [SerializeField] private Transform playerTransform;
 
-        [Header("Hand Visuals")]
-
-        // The cosmetic controller model transforms, NOT the tracked pose
-        // transforms on PlayerTracking - snapping these to a grabbed edge
-        // never touches real input tracking.
-        [SerializeField] private Transform leftHandVisual;
-        [SerializeField] private Transform rightHandVisual;
-
-        // Seconds for a hand visual to blend onto its snap pose when grabbing
-        // (and back to the controller on release) - short enough to feel
-        // instant, long enough not to pop.
-        [SerializeField] private float snapBlendDuration = 0.08f;
+        // Owns the hand visuals - this class asks it to snap a hand onto
+        // what it grabbed (and release it), but never moves a visual itself.
+        [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         [Header("Grab Targeting")]
 
@@ -109,21 +100,8 @@ namespace Player
         /// frame movement accumulator.
         public Vector3 FrameMovement { get; private set; }
 
-        /// Blends the left hand visual onto a grabbed edge's snap pose and
-        /// back. Exposed e.g. for PlayerHandAnimation to read which finger
-        /// pose the grabbed target wants.
-        public HandVisualSnap LeftVisualSnap { get; private set; }
-
-        /// The right hand's snap state - mirrors LeftVisualSnap.
-        public HandVisualSnap RightVisualSnap { get; private set; }
-
         private void Awake()
         {
-            // Created once here (capturing each visual's rest pose), never
-            // per grab, so snapping doesn't allocate.
-            LeftVisualSnap = new HandVisualSnap(leftHandVisual, snapBlendDuration);
-            RightVisualSnap = new HandVisualSnap(rightHandVisual, snapBlendDuration);
-
             // CharacterController.Move() silently does nothing for a single
             // call shorter than minMoveDistance (0.001 by default on this
             // rig), to suppress jitter from numerical noise. That's fine for
@@ -139,7 +117,7 @@ namespace Player
         /// <summary>
         /// Runs one frame of climbing logic: grab/release for both hands and
         /// climb movement. Hand ray targeting lives in PlayerHandInteraction,
-        /// and placing the hand visuals happens later in TickHandVisuals().
+        /// and placing the hand visuals in PlayerHandVisuals.
         /// </summary>
         public void Tick()
         {
@@ -148,7 +126,7 @@ namespace Player
                 playerInput.IsLeftGrabbing, playerInput.IsRightGrabbing,
                 playerTracking.LeftHandPosition, playerTracking.RightHandPosition,
                 playerHandInteraction.LeftTarget, playerHandInteraction.LeftTargetPoint,
-                LeftVisualSnap,
+                playerHandVisuals.LeftVisualSnap,
                 ref _leftGrabbed,
                 ref _leftNeedsRegrip,
                 _rightGrabbed);
@@ -158,7 +136,7 @@ namespace Player
                 playerInput.IsRightGrabbing, playerInput.IsLeftGrabbing,
                 playerTracking.RightHandPosition, playerTracking.LeftHandPosition,
                 playerHandInteraction.RightTarget, playerHandInteraction.RightTargetPoint,
-                RightVisualSnap,
+                playerHandVisuals.RightVisualSnap,
                 ref _rightGrabbed,
                 ref _rightNeedsRegrip,
                 _leftGrabbed);
@@ -176,12 +154,12 @@ namespace Player
         {
             if (_leftGrabbed is not null) {
                 _leftGrabbed = null;
-                LeftVisualSnap.Release();
+                playerHandVisuals.LeftVisualSnap.Release();
             }
 
             if (_rightGrabbed is not null) {
                 _rightGrabbed = null;
-                RightVisualSnap.Release();
+                playerHandVisuals.RightVisualSnap.Release();
             }
 
             // Set even for a hand that wasn't gripping - its grip may still be
@@ -193,19 +171,6 @@ namespace Player
             IsClimbing = false;
             FrameMovement = Vector3.zero;
             _pendingLocalDelta = Vector3.zero;
-        }
-
-        /// <summary>
-        /// Places both hand visuals (snapped, blending, or following the
-        /// controller). Called by PlayerController at the very end of the
-        /// frame, after Move() and turning - the visuals are children of the
-        /// rig, so placing them any earlier would let this frame's movement
-        /// drag a world-space snap pose off the ledge until next frame.
-        /// </summary>
-        public void TickHandVisuals()
-        {
-            LeftVisualSnap.Tick(Time.deltaTime);
-            RightVisualSnap.Tick(Time.deltaTime);
         }
 
         /// <summary>
@@ -277,8 +242,8 @@ namespace Player
             }
 
             if (isGrabbing) {
-                // Still gripping - visualSnap keeps the visual pinned to the
-                // snap pose in TickHandVisuals().
+                // Still gripping - PlayerHandVisuals keeps the visual pinned
+                // to the snap pose.
                 return;
             }
 

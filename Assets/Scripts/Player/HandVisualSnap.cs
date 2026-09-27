@@ -9,10 +9,10 @@ namespace Player
     /// blending over a short time either way so the hand never pops.
     ///
     /// A plain C# class rather than a MonoBehaviour: it has no Update() of
-    /// its own and is ticked explicitly by whichever system owns the snap
-    /// (PlayerClimbing for now; grabbing and tools will need it too, at which
-    /// point ownership should move to one hand-level system). Only ever
-    /// touches the cosmetic visual transform, never the tracked controller.
+    /// its own. PlayerHandVisuals owns one per hand and ticks it; other
+    /// systems (PlayerClimbing now, grabbing and tools later) only call
+    /// Snap()/Release(). Only ever touches the cosmetic visual transform,
+    /// never the tracked controller.
     ///
     /// While snapped, the visual is detached from the controller entirely
     /// (parented to the scene root). The hands' Tracked Pose Drivers update

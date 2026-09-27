@@ -321,9 +321,7 @@ MonoBehaviour:
   playerTracking: {fileID: 37101388}
   characterController: {fileID: 6232745471023633040}
   playerTransform: {fileID: 1717954562106626084}
-  leftHandVisual: {fileID: 543450652894216691}
-  rightHandVisual: {fileID: 543450651859031287}
-  snapBlendDuration: 0.08
+  playerHandVisuals: {fileID: 403779175}
   playerHandInteraction: {fileID: 403779174}
 --- !u!114 &37101411
 MonoBehaviour:
@@ -342,6 +340,7 @@ MonoBehaviour:
   playerHandInteraction: {fileID: 403779174}
   playerClimbing: {fileID: 37101395}
   playerMantling: {fileID: 6520291404544364422}
+  playerHandVisuals: {fileID: 403779175}
   playerHandAnimation: {fileID: 403779173}
   characterController: {fileID: 6232745471023633040}
   playerTransform: {fileID: 1717954562106626084}
@@ -823,6 +822,7 @@ GameObject:
   - component: {fileID: 403779172}
   - component: {fileID: 403779174}
   - component: {fileID: 403779173}
+  - component: {fileID: 403779175}
   m_Layer: 0
   m_Name: Hands
   m_TagString: Untagged
@@ -860,7 +860,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player.PlayerHandAnimation
   playerInput: {fileID: 37101389}
-  playerClimbing: {fileID: 37101395}
+  playerHandVisuals: {fileID: 403779175}
   leftHandAnimator: {fileID: 1697044510}
   rightHandAnimator: {fileID: 1874752287}
 --- !u!114 &403779174
@@ -884,6 +884,21 @@ MonoBehaviour:
   rightHandRayAngleOffset: {x: 12, y: -70, z: 0}
   leftReticle: {fileID: 88500003}
   rightReticle: {fileID: 88500006}
+--- !u!114 &403779175
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 403779171}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f2295d1fda7dc4d4287df3b32db41b7e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Player.PlayerHandVisuals
+  leftHandVisual: {fileID: 543450652894216691}
+  rightHandVisual: {fileID: 543450651859031287}
+  snapBlendDuration: 0.08
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -2153,7 +2168,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Interaction.ClimbableRope
   snapProfile: {fileID: 11400000, guid: 3b9c4b14e24c4c83aac6acf3855b9fe7, type: 2}
   length: 3.04
-  grabRadius: 0.08
+  grabRadius: 0.04
 --- !u!136 &1521633018
 CapsuleCollider:
   m_ObjectHideFlags: 8
@@ -2173,7 +2188,7 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.08
+  m_Radius: 0.04
   m_Height: 3.04
   m_Direction: 1
   m_Center: {x: 0, y: -1.52, z: 0}

@@ -21,7 +21,7 @@ namespace Player
     /// who owns the fingers.
     ///
     /// Ticked explicitly from PlayerController.Update(), after
-    /// PlayerClimbing.TickHandVisuals(), so it reads this frame's snap weight
+    /// PlayerHandVisuals.Tick(), so it reads this frame's snap weight
     /// rather than last frame's. Animators evaluate after every Update() has
     /// run, so ticking this last costs nothing.
     /// </summary>
@@ -33,7 +33,7 @@ namespace Player
         private const string SnapPoseLayerName = "Snap Pose";
 
         [SerializeField] private PlayerInputXR playerInput;
-        [SerializeField] private PlayerClimbing playerClimbing;
+        [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         [Header("Left Hand")]
         [SerializeField] private Animator leftHandAnimator;
@@ -81,7 +81,7 @@ namespace Player
         {
             UpdateHand(
                 leftHandAnimator,
-                playerClimbing.LeftVisualSnap,
+                playerHandVisuals.LeftVisualSnap,
                 playerInput.LeftGrip,
                 playerInput.LeftTrigger,
                 ref _leftAppliedWeight,
@@ -89,7 +89,7 @@ namespace Player
 
             UpdateHand(
                 rightHandAnimator,
-                playerClimbing.RightVisualSnap,
+                playerHandVisuals.RightVisualSnap,
                 playerInput.RightGrip,
                 playerInput.RightTrigger,
                 ref _rightAppliedWeight,
