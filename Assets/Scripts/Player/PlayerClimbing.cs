@@ -64,6 +64,13 @@ namespace Player
 
         private Hand _primaryHand = Hand.None;
 
+        // Set for both hands by ReleaseAll(): that hand can't grab anything
+        // until its grip has been let go once. Grip is still held when a
+        // system forces a release (e.g. a mantle), and "held" grabbing would
+        // otherwise re-grab whatever the ray is on straight away.
+        private bool _leftNeedsRegrip;
+        private bool _rightNeedsRegrip;
+
         // The primary hand's position last frame, in playerTransform's local
         // space rather than world space - see the playerTransform field comment.
         private Vector3 _primaryHandLastLocalPosition;
@@ -138,6 +145,7 @@ namespace Player
                 playerHandInteraction.LeftTarget, playerHandInteraction.LeftTargetPoint,
                 LeftVisualSnap,
                 ref _leftGrabbedEdge,
+                ref _leftNeedsRegrip,
                 _rightGrabbedEdge);
 
             UpdateHandGrab(
@@ -147,9 +155,39 @@ namespace Player
                 playerHandInteraction.RightTarget, playerHandInteraction.RightTargetPoint,
                 RightVisualSnap,
                 ref _rightGrabbedEdge,
+                ref _rightNeedsRegrip,
                 _leftGrabbedEdge);
 
             UpdateFrameMovement();
+        }
+
+        /// <summary>
+        /// Lets go of everything immediately, whatever the grips are doing -
+        /// e.g. when a mantle takes over. Hand visuals start blending back to
+        /// the controllers, climbing stops this frame, and each hand must let
+        /// go of grip before it can grab again (see _leftNeedsRegrip).
+        /// </summary>
+        public void ReleaseAll()
+        {
+            if (_leftGrabbedEdge is not null) {
+                _leftGrabbedEdge = null;
+                LeftVisualSnap.Release();
+            }
+
+            if (_rightGrabbedEdge is not null) {
+                _rightGrabbedEdge = null;
+                RightVisualSnap.Release();
+            }
+
+            // Set even for a hand that wasn't gripping - its grip may still be
+            // held, pointing at the ledge.
+            _leftNeedsRegrip = true;
+            _rightNeedsRegrip = true;
+
+            _primaryHand = Hand.None;
+            IsClimbing = false;
+            FrameMovement = Vector3.zero;
+            _pendingLocalDelta = Vector3.zero;
         }
 
         /// <summary>
@@ -191,11 +229,19 @@ namespace Player
             Vector3 rayTargetPoint,
             HandVisualSnap visualSnap,
             ref ClimbableEdge grabbedEdge,
+            ref bool needsRegrip,
             ClimbableEdge otherGrabbedEdge)
         {
             if (grabbedEdge is null) {
 
                 if (!isGrabbing) {
+                    // Grip let go - this hand may grab again after a
+                    // ReleaseAll().
+                    needsRegrip = false;
+                    return;
+                }
+
+                if (needsRegrip) {
                     return;
                 }
 

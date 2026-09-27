@@ -22,6 +22,7 @@ namespace Player
         CrouchStill,
         CrouchWalking,
         Climbing,
-        Airborne
+        Airborne,
+        Mantling
     }
 }

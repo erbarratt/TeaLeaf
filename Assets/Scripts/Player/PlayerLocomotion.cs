@@ -160,6 +160,12 @@ namespace Player
         // Airborne immediately instead of after airborneGraceTime.
         private bool _hasJumped;
 
+        // True between BeginMantle() and EndMantle(). PlayerController
+        // doesn't tick movement or turning at all during a mantle; this flag
+        // covers what still runs - the crouch button is ignored, and
+        // MovementState reports Mantling.
+        private bool _isMantling;
+
         /// Whether the crouch button has been toggled into the crouched state.
         private bool _isCrouching;
 
@@ -280,6 +286,13 @@ namespace Player
         /// </summary>
         public void TickState(bool isClimbing, Vector3 appliedMovement, CollisionFlags collisionFlags)
         {
+            // The CharacterController is disabled during a mantle, so none of
+            // its grounded/collision information below means anything.
+            if (_isMantling) {
+                MovementState = MovementState.Mantling;
+                return;
+            }
+
             bool isGrounded = characterController.isGrounded;
 
             if (isGrounded) {
@@ -331,6 +344,50 @@ namespace Player
             if (wasAirborne && isGrounded) {
                 Landed?.Invoke(Mathf.Max(0f, -_verticalVelocity));
             }
+        }
+
+        /// <summary>
+        /// Called by PlayerMantling as a mantle starts. Drops everything this
+        /// class was carrying - velocity, momentum, sprint, any buffered jump -
+        /// so nothing leaks out after the mantle, and sets the crouch to
+        /// whatever the ledge says the mantle ends in. The crouch height
+        /// transition then plays out during the mantle itself (TickBody()
+        /// keeps running), so the player arrives already at the right height.
+        /// </summary>
+        public void BeginMantle(bool endsCrouched)
+        {
+            _isMantling = true;
+            _isCrouching = endsCrouched;
+            IsSprinting = false;
+            _verticalVelocity = 0f;
+            _horizontalVelocity = Vector3.zero;
+            _jumpBufferTimer = 0f;
+            _hasJumped = false;
+        }
+
+        /// <summary>
+        /// Called by PlayerMantling once the player is at the mantle point.
+        /// Hands control back as if standing still on the ground.
+        /// </summary>
+        public void EndMantle()
+        {
+            _isMantling = false;
+            _verticalVelocity = 0f;
+
+            // Counts as grounded: the mantle placed the feet on the surface,
+            // but isGrounded won't be true until the next Move(). Without
+            // this, a long climb's worth of "time since grounded" would read
+            // as Airborne (and fire Landed) on the first frame back.
+            _timeSinceGrounded = 0f;
+
+            // The mantle replaced climbing - don't let TickMovement() treat
+            // the next frame as "a climb just ended".
+            _wasClimbing = false;
+
+            // The mantle was triggered by pushing a stick up. If the right
+            // stick is still held at a diagonal, that must not fire a snap
+            // turn the moment control returns - wait for it to re-centre.
+            _snapTurnQueued = true;
         }
 
         /// <summary>
@@ -554,7 +611,9 @@ namespace Player
         /// </summary>
         private void HandleCrouch()
         {
-            if (playerInput.CrouchPressed) {
+            // A mantle's crouch is set by the ledge (BeginMantle()) and can't
+            // be changed mid-mantle.
+            if (playerInput.CrouchPressed && !_isMantling) {
                 _isCrouching = !_isCrouching;
 
                 // Crouching cancels a sprint. (Standing back up doesn't

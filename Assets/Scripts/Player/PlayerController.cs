@@ -14,7 +14,10 @@ namespace Player
     /// Also owns the single characterController.Move() call per frame:
     /// every movement-contributing system adds to _frameMovement, then it's
     /// applied once at the end. Two Move() calls in one frame would each do
-    /// their own collision pass and could disagree with each other.
+    /// their own collision pass and could disagree with each other. The one
+    /// exception is a mantle: PlayerMantling positions the rig directly
+    /// (CharacterController disabled) and this class skips Move() entirely
+    /// until it finishes.
     ///
     /// Deliberately contains no gameplay logic of its own - only sequencing
     /// and wiring between systems. If a decision needs making (should the
@@ -76,12 +79,29 @@ namespace Player
             // 3. Hand rays and highlighting.
             playerHandInteraction.Tick();
 
-            // 4. Grab/release and this frame's climb movement.
-            playerClimbing.Tick();
+            // 4. Grab/release and this frame's climb movement - skipped while
+            // mantling, since the mantle has already let go of the ledge and
+            // nothing may grab or climb until it finishes.
+            if (!playerMantling.IsMantling) {
+                playerClimbing.Tick();
+            }
 
-            // 4b. Is a mantle possible? After climbing, so it sees this
-            // frame's grips. (Detection + arrow only, for now.)
+            // 4b. Mantling - after climbing, so it sees this frame's grips.
+            // Detects whether a mantle is possible (arrow), starts one on a
+            // stick push, or advances the one in progress.
             playerMantling.Tick();
+
+            // While a mantle is running it owns the whole body: it has
+            // already placed the rig itself this frame (with the
+            // CharacterController disabled), so skip everything that would
+            // move or turn the player - locomotion, turning, Move() - and run
+            // only what's still needed: movement state and the hands.
+            if (playerMantling.IsMantling) {
+                playerLocomotion.TickState(false, Vector3.zero, CollisionFlags.None);
+                playerClimbing.TickHandVisuals();
+                playerHandAnimation.Tick();
+                return;
+            }
 
             // 5. Gather this frame's movement. Climbing and ground movement
             // are exclusive: while climbing, the hands move the player and
