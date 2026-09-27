@@ -77,7 +77,7 @@ namespace Player
         // Peak height of a jump in metres. Tuned as a height rather than a
         // launch speed because height is what matters for level design (can
         // the player reach that crate?) - the launch speed is derived from
-        // it and gravity in TryJump().
+        // it and gravity in CacheJumpLaunchSpeed().
         [SerializeField] private float jumpHeight = 0.5f;
 
         // Seconds after walking off an edge during which a jump still works
@@ -118,6 +118,14 @@ namespace Player
 
         /// Additional skin width applied to prevent the capsule clipping into the floor.
         [SerializeField] private float heightPadding = 0.1f;
+
+        /// How far, in metres, the headset must drift horizontally from the
+        /// capsule's centre before the capsule is re-centred under it.
+        /// Writing CharacterController.center updates its physics shape, and
+        /// the tracked head is never perfectly still, so without this it's
+        /// rewritten every frame for sub-millimetre jitter. Small enough that
+        /// the capsule is never visibly off-centre.
+        [SerializeField] private float recentreThreshold = 0.002f;
 
         [Header("Crouch")]
 
@@ -210,9 +218,35 @@ namespace Player
         /// airborneGraceTime.
         private float _timeSinceGrounded;
 
+        /// Upward speed a jump launches at, in metres per second - derived
+        /// from jumpHeight and gravity, so it's worked out whenever either
+        /// changes (Awake(), and OnValidate() for Inspector edits) rather
+        /// than on every jump. See CacheJumpLaunchSpeed().
+        private float _jumpLaunchSpeed;
+
         private void Awake()
         {
             _standingHeight = characterController.height;
+            CacheJumpLaunchSpeed();
+        }
+
+        /// <summary>
+        /// Editor-only: runs whenever a value is changed in the Inspector, so
+        /// tuning jumpHeight or gravity in Play Mode still applies at once.
+        /// </summary>
+        private void OnValidate()
+        {
+            CacheJumpLaunchSpeed();
+        }
+
+        /// <summary>
+        /// Launch speed for a given peak height, from v² = u² + 2as with
+        /// v = 0 at the top: u = sqrt(2 * height * -gravity). gravity is
+        /// negative, hence the minus.
+        /// </summary>
+        private void CacheJumpLaunchSpeed()
+        {
+            _jumpLaunchSpeed = Mathf.Sqrt(2f * jumpHeight * -gravity);
         }
 
         /// <summary>
@@ -259,12 +293,17 @@ namespace Player
                 return Vector3.zero;
             }
 
+            // Read once and shared: isGrounded is a call into the engine, and
+            // it can't change until PlayerController's Move() anyway. It's
+            // last frame's Move() result - the latest available here.
+            bool isGrounded = characterController.isGrounded;
+
             // Jump before gravity: HandleGravity() only snaps vertical
             // velocity to groundedGravity while it's negative, so a fresh
             // upward launch speed set here survives it.
             HandleJump();
 
-            return HandleMovement() + HandleGravity();
+            return HandleMovement(isGrounded) + HandleGravity(isGrounded);
         }
 
         /// <summary>
@@ -457,10 +496,7 @@ namespace Player
                 return;
             }
 
-            // Launch speed for a given peak height, from v² = u² + 2as with
-            // v = 0 at the top: u = sqrt(2 * height * -gravity). gravity is
-            // negative, hence the minus.
-            _verticalVelocity = Mathf.Sqrt(2f * jumpHeight * -gravity);
+            _verticalVelocity = _jumpLaunchSpeed;
             _hasJumped = true;
             _jumpBufferTimer = 0f;
         }
@@ -477,12 +513,15 @@ namespace Player
         /// bleeds away at airDrag. isGrounded flickering for a frame on a
         /// step just holds the current velocity, so it's invisible.
         /// </summary>
-        private Vector3 HandleMovement()
+        private Vector3 HandleMovement(bool isGrounded)
         {
             Vector2 moveInput = playerInput.MoveAxis;
 
-            // Ignore tiny thumbstick movements and controller noise.
-            bool isMoving = moveInput.magnitude >= moveDeadzone;
+            // Ignore tiny thumbstick movements and controller noise. Compared
+            // as squared lengths, which skips the square root magnitude
+            // needs: both sides are positive, so a >= b exactly when
+            // a² >= b².
+            bool isMoving = moveInput.sqrMagnitude >= moveDeadzone * moveDeadzone;
 
             UpdateSprint(isMoving);
 
@@ -491,10 +530,11 @@ namespace Player
 
             if (isMoving) {
                 // Convert 2D stick input into a world-space movement direction based on
-                // the Player root orientation.
-                Vector3 direction =
-                    playerTransform.forward * moveInput.y +
-                    playerTransform.right * moveInput.x;
+                // the Player root orientation. Rotating the stick vector (x
+                // right, y forward) by the root's rotation is the same as
+                // forward * y + right * x, but reads the rotation once
+                // instead of fetching forward and right separately.
+                Vector3 direction = playerTransform.rotation * new Vector3(moveInput.x, 0f, moveInput.y);
 
                 // Prevent diagonal movement from being faster than straight movement.
                 direction = Vector3.ClampMagnitude(direction, 1f);
@@ -502,7 +542,7 @@ namespace Player
                 targetVelocity = direction * (IsSprinting ? sprintSpeed : moveSpeed);
             }
 
-            if (characterController.isGrounded) {
+            if (isGrounded) {
                 _horizontalVelocity = targetVelocity;
             } else {
                 float acceleration = isMoving ? airControlAcceleration : airDrag;
@@ -591,9 +631,9 @@ namespace Player
         /// Applies gravity to the vertical velocity and returns this frame's
         /// vertical movement.
         /// </summary>
-        private Vector3 HandleGravity()
+        private Vector3 HandleGravity(bool isGrounded)
         {
-            if (characterController.isGrounded && _verticalVelocity < 0f) {
+            if (isGrounded && _verticalVelocity < 0f) {
                 _verticalVelocity = groundedGravity;
             }
 
@@ -655,17 +695,30 @@ namespace Player
         /// Keeps the CharacterController centred underneath the player's headset
         /// in the X/Z plane. The controller height is fixed and controlled by
         /// gameplay systems such as crouching.
+        ///
+        /// Skipped while the headset is within recentreThreshold of the
+        /// current centre, so the physics shape isn't rewritten every frame
+        /// for tracking jitter. Measured against the capsule's actual centre
+        /// (not last frame's head position), so slow drift still adds up and
+        /// triggers a re-centre - the capsule is never more than the
+        /// threshold away from the head.
         /// </summary>
         private void UpdateCharacterControllerCentre()
         {
-
             Vector3 centre = characterController.center;
+            Vector3 headLocal = cameraTransform.localPosition;
 
-            centre.x = cameraTransform.localPosition.x;
-            centre.z = cameraTransform.localPosition.z;
+            float dx = headLocal.x - centre.x;
+            float dz = headLocal.z - centre.z;
+
+            if (dx * dx + dz * dz < recentreThreshold * recentreThreshold) {
+                return;
+            }
+
+            centre.x = headLocal.x;
+            centre.z = headLocal.z;
 
             characterController.center = centre;
-
         }
 
     }

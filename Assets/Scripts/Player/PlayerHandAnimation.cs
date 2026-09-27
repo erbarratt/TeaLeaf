@@ -65,9 +65,30 @@ namespace Player
         private int _leftPlayedPose = -1;
         private int _rightPlayedPose = -1;
 
+        // The grip/trigger curl each hand's Animator was last given, so
+        // SetFloat() only runs when the input actually moved - a resting
+        // finger reads exactly 0 (and a fully pulled one exactly 1) frame
+        // after frame. Start as NaN, which never equals anything (not even
+        // itself), so the very first frame always sets them.
+        private float _leftAppliedGrip = float.NaN;
+        private float _leftAppliedTrigger = float.NaN;
+        private float _rightAppliedGrip = float.NaN;
+        private float _rightAppliedTrigger = float.NaN;
+
         private void Awake()
         {
             _snapPoseLayer = leftHandAnimator.GetLayerIndex(SnapPoseLayerName);
+
+            // XRI's Input Modality Manager deactivates a controller object
+            // (hand visual and Animator included) whenever it loses tracking.
+            // By default a disabled Animator resets its parameters, layer
+            // weights and states - which would leave the "last applied"
+            // caches below describing values the Animator no longer has, so
+            // e.g. a curled finger would stay open after tracking returns
+            // until the input next changed. Keeping the state on disable
+            // means the caches always match the Animator.
+            leftHandAnimator.keepAnimatorStateOnDisable = true;
+            rightHandAnimator.keepAnimatorStateOnDisable = true;
 
             if (_snapPoseLayer < 0) {
                 Debug.LogWarning($"PlayerHandAnimation: no \"{SnapPoseLayerName}\" layer on the hand Animator Controller - snapped hands will keep their input pose.", this);
@@ -84,6 +105,8 @@ namespace Player
                 playerHandVisuals.LeftVisualSnap,
                 playerInput.LeftGrip,
                 playerInput.LeftTrigger,
+                ref _leftAppliedGrip,
+                ref _leftAppliedTrigger,
                 ref _leftAppliedWeight,
                 ref _leftPlayedPose);
 
@@ -92,6 +115,8 @@ namespace Player
                 playerHandVisuals.RightVisualSnap,
                 playerInput.RightGrip,
                 playerInput.RightTrigger,
+                ref _rightAppliedGrip,
+                ref _rightAppliedTrigger,
                 ref _rightAppliedWeight,
                 ref _rightPlayedPose);
         }
@@ -107,11 +132,23 @@ namespace Player
             HandVisualSnap visualSnap,
             float gripValue,
             float triggerValue,
+            ref float appliedGrip,
+            ref float appliedTrigger,
             ref float appliedWeight,
             ref int playedPose)
         {
-            handAnimator.SetFloat(_gripCurlParam, gripValue);
-            handAnimator.SetFloat(_triggerCurlParam, triggerValue);
+            // Exact comparison, like the layer weight below: an unchanged
+            // input is bit-for-bit the same float, and any real movement
+            // (however small) still gets through.
+            if (gripValue != appliedGrip) {
+                handAnimator.SetFloat(_gripCurlParam, gripValue);
+                appliedGrip = gripValue;
+            }
+
+            if (triggerValue != appliedTrigger) {
+                handAnimator.SetFloat(_triggerCurlParam, triggerValue);
+                appliedTrigger = triggerValue;
+            }
 
             if (_snapPoseLayer < 0) {
                 return;

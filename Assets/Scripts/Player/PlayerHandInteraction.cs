@@ -54,6 +54,15 @@ namespace Player
         // - see TickReticles().
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
+        // Each hand's ray direction in its own local space - the angle
+        // offset already applied to Vector3.forward. The offsets never
+        // change during play, so the Quaternion.Euler() (six sin/cos calls)
+        // behind this is done once in Awake() rather than every frame for
+        // both hands; OnValidate() redoes it when an offset is edited in the
+        // Inspector, so tuning still updates live.
+        private Vector3 _leftLocalRayDirection;
+        private Vector3 _rightLocalRayDirection;
+
         /// Whatever the left hand's ray is currently pointing at, or null.
         /// Exposed so other systems (e.g. PlayerClimbing, a future generic
         /// "interact" button) can act on whatever the hand is aimed at.
@@ -91,6 +100,31 @@ namespace Player
         /// HandRayDebug can draw the ray at its true length.
         public float RayLength => rayLength;
 
+        private void Awake()
+        {
+            CacheLocalRayDirections();
+        }
+
+        /// <summary>
+        /// Editor-only: runs whenever a value is changed in the Inspector.
+        /// Re-caches the local ray directions so angle offset tuning in Play
+        /// Mode still takes effect immediately.
+        /// </summary>
+        private void OnValidate()
+        {
+            CacheLocalRayDirections();
+        }
+
+        /// <summary>
+        /// Rotates Vector3.forward by each hand's angle offset, giving the
+        /// direction its ray points in, relative to the hand.
+        /// </summary>
+        private void CacheLocalRayDirections()
+        {
+            _leftLocalRayDirection = Quaternion.Euler(leftHandRayAngleOffset) * Vector3.forward;
+            _rightLocalRayDirection = Quaternion.Euler(rightHandRayAngleOffset) * Vector3.forward;
+        }
+
         /// <summary>
         /// Casts both hand rays and records whatever they hit. The reticles
         /// are placed later, in TickReticles().
@@ -100,12 +134,15 @@ namespace Player
             // Cached on the public Left/RightRay* properties below as well
             // as passed straight into the raycasts, so HandRayDebug can
             // visualize exactly the ray actually being cast, not a
-            // recomputed approximation of it.
-            LeftRayOrigin = playerTracking.LeftHandPosition;
-            LeftRayDirection = RayDirection(playerTracking.LeftHand, leftHandRayAngleOffset);
+            // recomputed approximation of it. GetPositionAndRotation()
+            // fetches both in one call into the engine instead of two.
+            playerTracking.LeftHand.GetPositionAndRotation(out Vector3 leftPosition, out Quaternion leftRotation);
+            LeftRayOrigin = leftPosition;
+            LeftRayDirection = leftRotation * _leftLocalRayDirection;
 
-            RightRayOrigin = playerTracking.RightHandPosition;
-            RightRayDirection = RayDirection(playerTracking.RightHand, rightHandRayAngleOffset);
+            playerTracking.RightHand.GetPositionAndRotation(out Vector3 rightPosition, out Quaternion rightRotation);
+            RightRayOrigin = rightPosition;
+            RightRayDirection = rightRotation * _rightLocalRayDirection;
 
             LeftTarget = RaycastForTarget(LeftRayOrigin, LeftRayDirection, out Vector3 leftPoint);
             RightTarget = RaycastForTarget(RightRayOrigin, RightRayDirection, out Vector3 rightPoint);
@@ -131,17 +168,12 @@ namespace Player
             bool leftHolding = playerHandVisuals.LeftVisualSnap.IsSnapped;
             bool rightHolding = playerHandVisuals.RightVisualSnap.IsSnapped;
 
-            leftReticle.Tick(LeftTarget is not null && !leftHolding, LeftTargetPoint, playerTracking.HeadPosition);
-            rightReticle.Tick(RightTarget is not null && !rightHolding, RightTargetPoint, playerTracking.HeadPosition);
-        }
+            // Read once for both reticles - HeadPosition is a call into the
+            // engine each time, and the head doesn't move between the two.
+            Vector3 headPosition = playerTracking.HeadPosition;
 
-        /// <summary>
-        /// Rotates a hand's forward direction by its configured angle
-        /// offset, giving the direction the hand's ray should be cast in.
-        /// </summary>
-        private static Vector3 RayDirection(Transform hand, Vector3 angleOffset)
-        {
-            return hand.rotation * Quaternion.Euler(angleOffset) * Vector3.forward;
+            leftReticle.Tick(LeftTarget is not null && !leftHolding, LeftTargetPoint, headPosition);
+            rightReticle.Tick(RightTarget is not null && !rightHolding, RightTargetPoint, headPosition);
         }
 
         /// <summary>

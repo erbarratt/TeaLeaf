@@ -26,8 +26,19 @@ namespace Player
 
         private MeshRenderer _meshRenderer;
 
+        // Cached rather than read through the transform property each frame -
+        // that's a call into the engine every time, for a value that never
+        // changes.
+        private Transform _transform;
+
+        // Whether the renderer is currently enabled, so Tick() only touches
+        // it when visibility actually changes - see SetVisible().
+        private bool _isVisible;
+
         private void Awake()
         {
+            _transform = transform;
+
             MeshFilter meshFilter = gameObject.AddComponent<MeshFilter>();
             meshFilter.mesh = BuildCircleMesh(radius, segments);
 
@@ -57,18 +68,38 @@ namespace Player
                 return;
             }
 
-            _meshRenderer.enabled = active;
+            SetVisible(active);
 
             if (!active) {
                 return;
             }
 
-            transform.position = worldPoint;
-
             // Face the disc's front (local +Z) towards the viewer, rather
             // than along the ray direction, so it always reads as a flat
             // circle rather than foreshortening as the ray's angle changes.
-            transform.rotation = Quaternion.LookRotation(viewerPosition - worldPoint);
+            // Position and rotation are set together: setting them one at a
+            // time makes Unity update the transform (and notify anything
+            // listening for transform changes, like the renderer's bounds)
+            // twice.
+            _transform.SetPositionAndRotation(
+                worldPoint,
+                Quaternion.LookRotation(viewerPosition - worldPoint));
+        }
+
+        /// <summary>
+        /// Shows or hides the disc. Only touches the renderer when the
+        /// visibility actually changes, like MantleIndicator.SetVisible(),
+        /// since writing renderer state every frame isn't free even when the
+        /// value is the same.
+        /// </summary>
+        private void SetVisible(bool visible)
+        {
+            if (visible == _isVisible) {
+                return;
+            }
+
+            _isVisible = visible;
+            _meshRenderer.enabled = visible;
         }
 
         /// <summary>

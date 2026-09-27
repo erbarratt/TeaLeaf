@@ -14,8 +14,10 @@ field comments use `///` without `<summary>` (newer fields use `//`).
   `InputActionReference`s (grip/trigger per hand, move/turn thumbsticks, crouch, sprint) and
   caches them once per frame in `Tick()` as typed properties (`MoveAxis`, `TurnAxis`,
   `LeftGrip`, `IsLeftGrabbing`, `CrouchPressed`, `SprintPressed`, `JumpPressed`, etc.). Enables
-  every action it reads in `OnEnable()` rather than relying on the asset being enabled. Also
-  calls `Tick()` from its own `Update()` as a fallback so Debug scripts work without a full rig.
+  every action it reads in `OnEnable()` rather than relying on the asset being enabled, and
+  caches the resolved `InputAction`s there (no `.action` lookups per frame). Also calls
+  `Tick()` from its own `Update()` as a fallback so Debug scripts work without a full rig;
+  `Tick()` is guarded by `Time.frameCount`, so only the first call each frame reads input.
   Gameplay code should always read input through this class rather than referencing Input
   Actions directly.
 
@@ -64,7 +66,8 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   returns its movement rather than calling `Move()` itself. Movement is relative to the rig root
   (`playerTransform`), not the headset. Supports snap turn and smooth turn (`useSmoothTurn`);
   turning works while climbing. The controller's horizontal center is re-centered under the
-  headset every frame. Horizontal movement is one persistent `_horizontalVelocity`: set from the
+  headset whenever the head has drifted more than `recentreThreshold` (2mm) from it, so
+  tracking jitter doesn't rewrite the physics shape every frame. Horizontal movement is one persistent `_horizontalVelocity`: set from the
   stick while grounded, kept as momentum while airborne (light air control/drag), and reduced to
   the actually-applied velocity when an airborne `Move()` hits a side. Jump (`HandleJump()`,
   before gravity) has coyote time, a jump buffer and a `_hasJumped` guard. Exposes
@@ -152,20 +155,23 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   must stay world-fixed can't be a child of a tracked transform. (Not parented to the ledge -
   ledges are non-uniformly scaled, which would shear a rotated child.)
 - **`PlayerHandInteraction`** — casts one ray per hand (configurable length, layer mask, and
-  per-hand angle offset) and records whatever `IHandTarget` it hits (nothing is highlighted -
+  per-hand angle offset, pre-rotated into a cached local ray direction in `Awake()`/
+  `OnValidate()`) and records whatever `IHandTarget` it hits (nothing is highlighted -
   the reticle alone shows what can be interacted with). Exposes `LeftTarget`/`RightTarget` and
   the hit points `LeftTargetPoint`/`RightTargetPoint`; `PlayerClimbing` grabs from these.
   Ticked before climbing, so they're always this frame's. `TickReticles()` places the reticles
   later in the frame (step 8b).
 - **`HandRayReticle`** — runtime-built billboard disc shown where a hand ray hits a hand target,
   hidden while that hand is holding something (its visual is snapped); ticked by
-  `PlayerHandInteraction.TickReticles()`.
+  `PlayerHandInteraction.TickReticles()`. Only toggles its renderer when visibility changes
+  (same pattern as `MantleIndicator.SetVisible()`).
 - **`PlayerHandAnimation`** — per-hand Animator. The base layers always follow input
   (`TriggerCurl` index, `GripCurl` middle/ring/pinky). The `Snap Pose` override layer plays the
   snap target's `HandPose` with its weight set from that hand's `HandVisualSnap.Weight`, so any
   snapped hand (ledges, rungs, ropes now; props, tools later) gets its target's finger pose and
-  fades back to input curl on release. `Play()`/`SetLayerWeight()` only run when the pose or
-  weight changes. The layer index is looked up by name; state hashes are built once from
+  fades back to input curl on release. `SetFloat()`/`Play()`/`SetLayerWeight()` only run when
+  the curl, pose or weight changes; both Animators set `keepAnimatorStateOnDisable` in `Awake()`
+  so those caches stay valid when XRI deactivates an untracked controller. The layer index is looked up by name; state hashes are built once from
   `HandPose`'s enum names. (Replaced an earlier `HandState` enum — every non-input pose is a
   snap pose, so the snap weight already says who owns the fingers.) New poses: add a `HandPose`
   value plus a same-named state and clip on the layer, no new code.

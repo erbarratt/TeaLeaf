@@ -56,6 +56,27 @@ namespace Player
         // on landing.
         [SerializeField] private InputActionReference jumpAction;
 
+        // The InputActions behind the references above, resolved once in
+        // OnEnable(). InputActionReference.action is a property that does a
+        // lookup (and a null/validity check) on every access - reading
+        // through it 9 times a frame is wasted work when the action it
+        // points at never changes while playing.
+        private InputAction _leftGrip;
+        private InputAction _leftTrigger;
+        private InputAction _rightGrip;
+        private InputAction _rightTrigger;
+        private InputAction _move;
+        private InputAction _turn;
+        private InputAction _crouch;
+        private InputAction _sprint;
+        private InputAction _jump;
+
+        // Time.frameCount of the last Tick(), so a second call in the same
+        // frame (PlayerController's explicit one plus this class' own
+        // Update() fallback) returns straight away instead of reading
+        // every action again.
+        private int _lastTickFrame = -1;
+
         // All properties below are cached once per frame in Tick() rather
         // than reading the Input System live on every access - several
         // systems (PlayerLocomotion, PlayerClimbing, PlayerHandAnimation)
@@ -102,15 +123,25 @@ namespace Player
         /// </summary>
         private void OnEnable()
         {
-            leftGrip.action.Enable();
-            leftTrigger.action.Enable();
-            rightGrip.action.Enable();
-            rightTrigger.action.Enable();
-            moveAction.action.Enable();
-            turnAction.action.Enable();
-            crouchAction.action.Enable();
-            sprintAction.action.Enable();
-            jumpAction.action.Enable();
+            _leftGrip = leftGrip.action;
+            _leftTrigger = leftTrigger.action;
+            _rightGrip = rightGrip.action;
+            _rightTrigger = rightTrigger.action;
+            _move = moveAction.action;
+            _turn = turnAction.action;
+            _crouch = crouchAction.action;
+            _sprint = sprintAction.action;
+            _jump = jumpAction.action;
+
+            _leftGrip.Enable();
+            _leftTrigger.Enable();
+            _rightGrip.Enable();
+            _rightTrigger.Enable();
+            _move.Enable();
+            _turn.Enable();
+            _crouch.Enable();
+            _sprint.Enable();
+            _jump.Enable();
         }
 
         private void Update()
@@ -118,10 +149,9 @@ namespace Player
             // Self-sufficient fallback for anything that reads this class
             // without explicitly calling Tick() itself - e.g. the
             // standalone Debug/ input test scripts, which are meant to work
-            // without a full PlayerController set up. Redundant with, but
-            // harmless alongside, the explicit call PlayerController makes
-            // below - both just cache the same live Input System state
-            // again in the same frame.
+            // without a full PlayerController set up. With a PlayerController
+            // present, whichever of the two calls runs first this frame does
+            // the reading and the other returns immediately - see Tick().
             Tick();
         }
 
@@ -133,21 +163,33 @@ namespace Player
         /// PlayerHandAnimation) is guaranteed fresh values regardless of
         /// Unity's own (unspecified) Update() order between this component
         /// and PlayerController.
+        ///
+        /// Only reads once per frame: the Input System's values don't change
+        /// between Update() calls within a frame, so a second call would just
+        /// cache identical values again.
         /// </summary>
         public void Tick()
         {
-            LeftGrip = leftGrip.action.ReadValue<float>();
-            LeftTrigger = leftTrigger.action.ReadValue<float>();
+            int frame = Time.frameCount;
 
-            RightGrip = rightGrip.action.ReadValue<float>();
-            RightTrigger = rightTrigger.action.ReadValue<float>();
+            if (frame == _lastTickFrame) {
+                return;
+            }
 
-            MoveAxis = moveAction.action.ReadValue<Vector2>();
-            TurnAxis = turnAction.action.ReadValue<Vector2>();
+            _lastTickFrame = frame;
 
-            CrouchPressed = crouchAction.action.WasPressedThisFrame();
-            SprintPressed = sprintAction.action.WasPressedThisFrame();
-            JumpPressed = jumpAction.action.WasPressedThisFrame();
+            LeftGrip = _leftGrip.ReadValue<float>();
+            LeftTrigger = _leftTrigger.ReadValue<float>();
+
+            RightGrip = _rightGrip.ReadValue<float>();
+            RightTrigger = _rightTrigger.ReadValue<float>();
+
+            MoveAxis = _move.ReadValue<Vector2>();
+            TurnAxis = _turn.ReadValue<Vector2>();
+
+            CrouchPressed = _crouch.WasPressedThisFrame();
+            SprintPressed = _sprint.WasPressedThisFrame();
+            JumpPressed = _jump.WasPressedThisFrame();
         }
     }
 }
