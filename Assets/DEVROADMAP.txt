@@ -162,11 +162,55 @@ Scripting:
     [x] Landing: expose a Landed event with fall speed, for the landing
         noise (Phase 2) and a haptic thump. (Built: event Action<float>
         Landed, raised when grounded after Airborne.)
-[ ] Mantling: when gripping a ClimbableEdge and the hand is pulled down past
-    the edge top (or the head rises above it), smoothly move the player up
-    and forward onto the surface above. Check clearance with a
-    CapsuleCast at the destination first. Handle stand vs crouch
-    clearance (auto-crouch if only crouch height fits).
+[ ] Mantling (design agreed 2026-09-27): a quick, committed, stick-
+    triggered move from gripping a ledge to standing on top of it.
+    [ ] Mantleable ledges: a per-edge flag on ClimbableEdge (e.g.
+        isMantleable). Mantleable ledges are always horizontal (edge X
+        axis and top face level), so the mantle only has to handle that
+        case.
+    [ ] "In a position to mantle": at least one hand gripping a
+        mantleable edge AND the head pulled up to within a tunable
+        distance below the ledge top (e.g. head >= top - ~0.3m) - you
+        pull yourself up first; no mantling from a full arm-hang. Plus the
+        destination clearance check passes (below).
+    [ ] Destination: the player's capsule position projected onto the
+        ledge's top-front line (clamped to the edge's length), then moved a
+        defined horizontal offset inward from the lip (along the edge's -Z,
+        onto the top surface), feet on the top face. One global tunable
+        offset (PlayerMantling); a per-edge override only if a level needs
+        it. Always the same offset, so where you end up is predictable.
+    [ ] Clearance: CheckCapsule at the destination for standing height;
+        if only crouch height fits, the mantle ends crouched (auto-crouch);
+        if neither fits, no mantle (no arrow). Checked only while gripping
+        a mantleable edge, so it's not a per-frame cost the rest of the
+        time.
+    [ ] Mantle indicator: a small white arrow locked to the headset
+        (position + rotation, e.g. a little below the centre of view,
+        ~0.5m ahead), shown only while a mantle is possible. Must render
+        over geometry, since the player's face is usually right against
+        the wall while climbing. Shown/hidden only on state change.
+    [ ] Trigger: pushing up on EITHER thumbstick (y above a threshold)
+        while the arrow is showing starts the mantle. Make sure the push
+        doesn't also fire a snap turn or leave a sprint/jump queued.
+    [ ] Mantle movement: quick (~0.3-0.5s, tunable), up then over the lip
+        (e.g. rise until the feet clear the top, then forward) with easing
+        - a straight diagonal would drag the capsule through the lip. It
+        completely overrides all other locomotion: no stick movement,
+        turning, gravity, jump, crouch toggle or climbing while it runs,
+        and it can't be cancelled (letting go of grip does nothing).
+        PlayerController gives the mantle exclusive control of the frame's
+        movement, keeping the single Move() rule (or moves the rig
+        directly with collisions off, since the destination is already
+        verified clear - decide when building).
+    [ ] Hands: grips release and hand visuals blend back to the
+        controllers at the start of the mantle.
+    [ ] End: player stands (or crouches) at the destination at rest - no
+        leftover velocity, gravity resumes, MovementState leaves Climbing.
+        Consider a Mantling MovementState (or Climbing) for noise/AI.
+    [ ] Test: chest-high ledge, ledge above head (pull up first), low
+        shelf (auto-crouch), no-room shelf (no arrow), ledge ends (lateral
+        clamp), both hands / either hand, stick up on left and on right,
+        comfort in headset.
 [ ] Ladders: Ladder component (Interaction namespace) with rungs/grip
     volume, reusing PlayerClimbing's grab-and-pull-delta approach. Decide
     whether Ladder implements the same interface as ClimbableEdge or

@@ -314,6 +314,13 @@ colliders and anything handedness-dependent.
   `characterController.Move()` directly.
 - **`Update()`, not `FixedUpdate()`** — CharacterController-based movement plus VR tracking
   both want per-frame (not physics-step) updates, for lower latency.
+- **Mantling (planned, design agreed)** — a quick, committed move onto a *mantleable*
+  (always horizontal) `ClimbableEdge`. When a hand grips one and the head has been pulled up
+  near the top (and the destination capsule check passes), a small white head-locked arrow
+  appears; pushing up on either thumbstick then starts the mantle. It overrides all other
+  locomotion (movement, turning, gravity, jump, crouch, climbing) and can't be cancelled, and
+  always ends a fixed horizontal offset inward from the lip, auto-crouching if only crouch
+  height fits. Full plan in `DEVROADMAP.txt` Phase 1.
 - **Climbing is custom** — no XRI climb provider. Ladders and ropes should reuse the
   grab-and-pull-delta approach from `PlayerClimbing`.
 - **Ray-targeted grabs + hand snap poses** (Phase 1, in progress) — climbing starts when grip

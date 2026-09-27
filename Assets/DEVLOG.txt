@@ -171,6 +171,15 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
   launches stutter, seamless ones barely launch. A future push-off would
   need a different model (e.g. launching while still gripping), not a
   better velocity estimate.
+- Roadmap change: rewrote the Mantling item to the agreed design. Mantle
+  is triggered, not automatic: when gripping a mantleable (always
+  horizontal) ClimbableEdge with the head pulled up near its top, and the
+  destination is clear, a small white head-locked arrow appears; pushing
+  up on either thumbstick starts it. It's quick, overrides all other
+  locomotion, can't be cancelled, and always lands a fixed horizontal
+  offset inward from the lip. Decided: arrow needs gripping + pulled up
+  (not just gripping, and not standing at the ledge); only-crouch-height
+  space auto-crouches, no space = no arrow.
 
 
 2026-09-26
