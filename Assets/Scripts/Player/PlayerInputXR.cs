@@ -32,6 +32,11 @@ namespace Player
         // itself - see PlayerLocomotion.UpdateSprint().
         [SerializeField] private InputActionReference sprintAction;
 
+        // Reference to the jump button action (right B). A single press -
+        // PlayerLocomotion buffers it briefly so an early press still jumps
+        // on landing.
+        [SerializeField] private InputActionReference jumpAction;
+
         // All properties below are cached once per frame in Tick() rather
         // than reading the Input System live on every access - several
         // systems (PlayerLocomotion, PlayerClimbing, PlayerHandAnimation)
@@ -66,6 +71,9 @@ namespace Player
         // True for exactly one frame when the sprint button is pressed.
         public bool SprintPressed { get; private set; }
 
+        // True for exactly one frame when the jump button is pressed.
+        public bool JumpPressed { get; private set; }
+
         /// <summary>
         /// Makes sure every action this class reads is enabled. The actions
         /// come from two different assets - XRI's Default Input Actions
@@ -84,6 +92,7 @@ namespace Player
             turnAction.action.Enable();
             crouchAction.action.Enable();
             sprintAction.action.Enable();
+            jumpAction.action.Enable();
         }
 
         private void Update()
@@ -120,6 +129,7 @@ namespace Player
 
             CrouchPressed = crouchAction.action.WasPressedThisFrame();
             SprintPressed = sprintAction.action.WasPressedThisFrame();
+            JumpPressed = jumpAction.action.WasPressedThisFrame();
         }
     }
 }

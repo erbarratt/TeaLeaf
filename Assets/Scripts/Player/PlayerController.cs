@@ -94,7 +94,10 @@ namespace Player
 
             // 6. Apply everything in one Move() call.
             Vector3 positionBeforeMove = playerTransform.position;
-            characterController.Move(_frameMovement);
+            // Move() reports which sides of the capsule hit something -
+            // PlayerLocomotion uses it to stop momentum pushing into walls
+            // and ceilings.
+            CollisionFlags collisionFlags = characterController.Move(_frameMovement);
 
             // How far the player really moved - Move() doesn't always apply
             // the full amount requested, since collisions can absorb or
@@ -110,9 +113,10 @@ namespace Player
                 playerClimbing.ReportAppliedMovement(appliedMovement);
             }
 
-            // 7. Movement state - after Move(), since it needs this frame's
-            // real movement and the isGrounded that Move() just updated.
-            playerLocomotion.TickState(isClimbing, appliedMovement);
+            // 7. Collision response + movement state - after Move(), since
+            // it needs this frame's real movement, collision flags, and the
+            // isGrounded that Move() just updated.
+            playerLocomotion.TickState(isClimbing, appliedMovement, collisionFlags);
 
             // 8. Hand visuals - after Move() and turning, since the visuals
             // are children of the rig: a snap pose placed any earlier would

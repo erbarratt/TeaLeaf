@@ -72,6 +72,34 @@ namespace Player
         /// independently.
         [SerializeField] private float sprintSpeed = 4.5f;
 
+        [Header("Jump")]
+
+        // Peak height of a jump in metres. Tuned as a height rather than a
+        // launch speed because height is what matters for level design (can
+        // the player reach that crate?) - the launch speed is derived from
+        // it and gravity in TryJump().
+        [SerializeField] private float jumpHeight = 0.5f;
+
+        // Seconds after walking off an edge during which a jump still works
+        // ("coyote time") - it feels unfair when a press a hair too late
+        // does nothing.
+        [SerializeField] private float coyoteTime = 0.1f;
+
+        // Seconds a jump press is remembered while it can't jump yet (e.g.
+        // pressed just before landing), so it fires the moment it can.
+        [SerializeField] private float jumpBufferTime = 0.15f;
+
+        [Header("Air Movement")]
+
+        // How quickly, in metres per second squared, the thumbstick can
+        // steer horizontal velocity while airborne. Low, so momentum
+        // dominates: a jump can be corrected, not reversed.
+        [SerializeField] private float airControlAcceleration = 3f;
+
+        // How quickly, in metres per second squared, airborne horizontal
+        // velocity bleeds away while the stick is centred.
+        [SerializeField] private float airDrag = 0.5f;
+
         [Header("Gravity")]
 
         /// Downward acceleration in metres per second squared.
@@ -117,6 +145,22 @@ namespace Player
         /// Current vertical movement speed in metres per second.
         private float _verticalVelocity;
 
+        // Current horizontal velocity in metres per second (world space, y
+        // always 0). Set straight from the thumbstick while grounded; kept
+        // while airborne, so running jumps and walking off edges carry their
+        // speed. Only steered or dragged in the air - see HandleMovement().
+        // Climb release momentum will seed this too.
+        private Vector3 _horizontalVelocity;
+
+        // Counts down from jumpBufferTime after a jump press; a jump fires
+        // while it's above zero and jumping is allowed.
+        private float _jumpBufferTimer;
+
+        // True from takeoff until landing, so coyote time can't allow a
+        // second jump while still rising, and MovementState can report
+        // Airborne immediately instead of after airborneGraceTime.
+        private bool _hasJumped;
+
         /// Whether the crouch button has been toggled into the crouched state.
         private bool _isCrouching;
 
@@ -148,6 +192,14 @@ namespace Player
         /// Updated by TickState() after the CharacterController has moved.
         /// </summary>
         public MovementState MovementState { get; private set; }
+
+        /// <summary>
+        /// Raised on the frame the player lands after being Airborne, with the
+        /// downward speed in metres per second at impact - for the landing
+        /// noise event (Phase 2) and a haptic thump. A plain C# event invoked
+        /// with a float, so raising it doesn't allocate.
+        /// </summary>
+        public event Action<float> Landed;
 
         /// Seconds since the CharacterController was last grounded - see
         /// airborneGraceTime.
@@ -184,11 +236,15 @@ namespace Player
 
             if (isClimbing) {
 
-                // A climb starting mid-fall shouldn't carry the fall speed
-                // through to whenever the player lets go again - resetting
-                // here means release always resumes falling from rest.
+                // A climb starting mid-fall (or mid-jump) shouldn't carry
+                // that speed through to whenever the player lets go again -
+                // resetting here means release always resumes falling from
+                // rest. Any buffered jump press is dropped too, so letting
+                // go doesn't fire a stale jump.
                 if (climbStarted) {
                     _verticalVelocity = 0f;
+                    _horizontalVelocity = Vector3.zero;
+                    _jumpBufferTimer = 0f;
                 }
 
                 // Grabbing a ledge ends a sprint - letting go again shouldn't
@@ -197,6 +253,11 @@ namespace Player
 
                 return Vector3.zero;
             }
+
+            // Jump before gravity: HandleGravity() only snaps vertical
+            // velocity to groundedGravity while it's negative, so a fresh
+            // upward launch speed set here survives it.
+            HandleJump();
 
             return HandleMovement() + HandleGravity();
         }
@@ -211,19 +272,34 @@ namespace Player
         }
 
         /// <summary>
-        /// Works out this frame's MovementState. Called by PlayerController
-        /// straight after characterController.Move(), because it needs two
-        /// things only known then: the up-to-date isGrounded (Move() is what
-        /// updates it), and appliedMovement - how far the player actually
-        /// moved, rather than how far they asked to.
+        /// Reacts to what this frame's Move() actually did, then works out
+        /// this frame's MovementState. Called by PlayerController straight
+        /// after characterController.Move(), because it needs things only
+        /// known then: the up-to-date isGrounded (Move() is what updates it),
+        /// appliedMovement - how far the player actually moved, rather than
+        /// how far they asked to - and the collisionFlags Move() returned.
         /// </summary>
-        public void TickState(bool isClimbing, Vector3 appliedMovement)
+        public void TickState(bool isClimbing, Vector3 appliedMovement, CollisionFlags collisionFlags)
         {
-            if (characterController.isGrounded) {
+            bool isGrounded = characterController.isGrounded;
+
+            if (isGrounded) {
                 _timeSinceGrounded = 0f;
+
+                // Only once actually falling or resting - on the takeoff
+                // frame itself the controller can still report grounded.
+                if (_verticalVelocity <= 0f) {
+                    _hasJumped = false;
+                }
             } else {
                 _timeSinceGrounded += Time.deltaTime;
             }
+
+            if (!isClimbing) {
+                ApplyCollisionResponse(appliedMovement, collisionFlags, isGrounded);
+            }
+
+            bool wasAirborne = MovementState == MovementState.Airborne;
 
             // Horizontal only - gravity's small constant downward push while
             // grounded shouldn't count as moving. Compared as squared
@@ -234,10 +310,13 @@ namespace Player
             bool isMoving = appliedMovement.sqrMagnitude > minimumDistance * minimumDistance;
 
             // Checked in priority order - e.g. crouching while falling is
-            // still Airborne, and sprinting into a wall is still Still.
+            // still Airborne, and sprinting into a wall is still Still. A
+            // jump counts as Airborne straight away; the grace period is only
+            // for isGrounded flickering on steps and slopes, which a
+            // deliberate jump isn't.
             if (isClimbing) {
                 MovementState = MovementState.Climbing;
-            } else if (_timeSinceGrounded > airborneGraceTime) {
+            } else if (_timeSinceGrounded > airborneGraceTime || (_hasJumped && !isGrounded)) {
                 MovementState = MovementState.Airborne;
             } else if (_isCrouching) {
                 MovementState = isMoving ? MovementState.CrouchWalking : MovementState.CrouchStill;
@@ -246,12 +325,101 @@ namespace Player
             } else {
                 MovementState = IsSprinting ? MovementState.Sprinting : MovementState.Walking;
             }
+
+            // Landing: was Airborne, now touching the ground. _verticalVelocity
+            // still holds the speed this frame's Move() fell at - it's only
+            // reset to groundedGravity in next frame's HandleGravity().
+            if (wasAirborne && isGrounded) {
+                Landed?.Invoke(Mathf.Max(0f, -_verticalVelocity));
+            }
+        }
+
+        /// <summary>
+        /// Stops momentum pushing into whatever Move() just hit. Without this,
+        /// a jump into a low ceiling would stay pressed against it until
+        /// gravity eventually turned the velocity around, and airborne
+        /// momentum into a wall would keep "pushing" into it for the whole
+        /// fall - and slide the player along it at full speed once clear.
+        /// </summary>
+        private void ApplyCollisionResponse(Vector3 appliedMovement, CollisionFlags collisionFlags, bool isGrounded)
+        {
+            if ((collisionFlags & CollisionFlags.Above) != 0 && _verticalVelocity > 0f) {
+                _verticalVelocity = 0f;
+            }
+
+            // Grounded horizontal velocity is re-set from the stick every
+            // frame anyway, so this only matters in the air.
+            if (isGrounded || (collisionFlags & CollisionFlags.Sides) == 0 || Time.deltaTime <= 0f) {
+                return;
+            }
+
+            // Replace momentum with what the controller actually managed.
+            // Hitting a wall head-on leaves ~zero; hitting it at an angle
+            // leaves the part that slid along it - so momentum is redirected
+            // along the wall rather than just killed. Only ever reduces it.
+            Vector3 appliedVelocity = appliedMovement / Time.deltaTime;
+            appliedVelocity.y = 0f;
+
+            if (appliedVelocity.sqrMagnitude < _horizontalVelocity.sqrMagnitude) {
+                _horizontalVelocity = appliedVelocity;
+            }
+        }
+
+        /// <summary>
+        /// Handles the jump button: stands up if crouched (no jump, so a
+        /// sneak is never broken by accident), otherwise buffers the press
+        /// and jumps as soon as it's allowed - grounded or within coyote
+        /// time, not already mid-jump, and fully standing.
+        /// </summary>
+        private void HandleJump()
+        {
+            if (playerInput.JumpPressed) {
+                if (_isCrouching) {
+                    // HandleCrouch() raises the capsule smoothly from next
+                    // frame; a second press jumps once fully standing.
+                    _isCrouching = false;
+                } else {
+                    _jumpBufferTimer = jumpBufferTime;
+                }
+            }
+
+            if (_jumpBufferTimer <= 0f) {
+                return;
+            }
+
+            _jumpBufferTimer -= Time.deltaTime;
+
+            // _timeSinceGrounded is from last frame's Move() - the latest
+            // grounded information available before this frame's Move().
+            bool withinCoyoteTime = _timeSinceGrounded <= coyoteTime;
+
+            // Still rising out of a crouch - wait, so the capsule isn't
+            // growing into a ceiling during takeoff.
+            bool isFullyStanding = Mathf.Approximately(characterController.height, _standingHeight);
+
+            if (_hasJumped || !withinCoyoteTime || !isFullyStanding) {
+                return;
+            }
+
+            // Launch speed for a given peak height, from v² = u² + 2as with
+            // v = 0 at the top: u = sqrt(2 * height * -gravity). gravity is
+            // negative, hence the minus.
+            _verticalVelocity = Mathf.Sqrt(2f * jumpHeight * -gravity);
+            _hasJumped = true;
+            _jumpBufferTimer = 0f;
         }
 
         /// <summary>
         /// Reads movement input from the left thumbstick and returns this frame's
         /// horizontal movement. Movement is relative to the Player root's orientation
         /// rather than the headset orientation.
+        ///
+        /// On the ground the stick sets _horizontalVelocity directly, exactly
+        /// as before. In the air that velocity is kept (momentum), and the
+        /// stick can only nudge it towards where it points at
+        /// airControlAcceleration - or, with the stick centred, it slowly
+        /// bleeds away at airDrag. isGrounded flickering for a frame on a
+        /// step just holds the current velocity, so it's invisible.
         /// </summary>
         private Vector3 HandleMovement()
         {
@@ -262,22 +430,34 @@ namespace Player
 
             UpdateSprint(isMoving);
 
-            if (!isMoving) {
-                return Vector3.zero;
+            // The velocity the stick is asking for this frame.
+            Vector3 targetVelocity = Vector3.zero;
+
+            if (isMoving) {
+                // Convert 2D stick input into a world-space movement direction based on
+                // the Player root orientation.
+                Vector3 direction =
+                    playerTransform.forward * moveInput.y +
+                    playerTransform.right * moveInput.x;
+
+                // Prevent diagonal movement from being faster than straight movement.
+                direction = Vector3.ClampMagnitude(direction, 1f);
+
+                targetVelocity = direction * (IsSprinting ? sprintSpeed : moveSpeed);
             }
 
-            // Convert 2D stick input into a world-space movement direction based on
-            // the Player root orientation.
-            Vector3 movement =
-                playerTransform.forward * moveInput.y +
-                playerTransform.right * moveInput.x;
+            if (characterController.isGrounded) {
+                _horizontalVelocity = targetVelocity;
+            } else {
+                float acceleration = isMoving ? airControlAcceleration : airDrag;
 
-            // Prevent diagonal movement from being faster than straight movement.
-            movement = Vector3.ClampMagnitude(movement, 1f);
+                _horizontalVelocity = Vector3.MoveTowards(
+                    _horizontalVelocity,
+                    targetVelocity,
+                    acceleration * Time.deltaTime);
+            }
 
-            float speed = IsSprinting ? sprintSpeed : moveSpeed;
-
-            return movement * (speed * Time.deltaTime);
+            return _horizontalVelocity * Time.deltaTime;
         }
 
         /// <summary>

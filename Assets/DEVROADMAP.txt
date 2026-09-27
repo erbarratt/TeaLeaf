@@ -125,27 +125,43 @@ Scripting:
     [ ] Test: grab edges at chest and above head, at edge ends, and from
         steep angles; both hands on one edge; hand-off between hands; both
         mirrored hands look correct.
-[ ] Jump: a jump button on PlayerInputXR (right A is crouch, so e.g. right
+[x] Jump: a jump button on PlayerInputXR (right A is crouch, so e.g. right
     B / secondary button, via the project-wide Player/Jump action - check
     it's free of other bindings on both headsets). Only when
     grounded and not climbing; sets _verticalVelocity from a tunable
     jumpHeight (v = sqrt(2 * jumpHeight * -gravity), so height is what's
-    tuned, not a raw speed). Needs:
-    [ ] Horizontal air momentum in PlayerLocomotion: the thumbstick
+    tuned, not a raw speed). (Verified in headset. Bound to
+    right B: the Player/Jump XR binding was <XRController>/secondaryButton,
+    i.e. B or Y on either hand - narrowed to {RightHand}/{SecondaryButton}.
+    Nothing in the XRI asset uses the secondary buttons.) Needs:
+    [x] Horizontal air momentum in PlayerLocomotion: the thumbstick
         movement velocity at takeoff carries through the jump (running
         jumps travel further), added to _frameMovement while airborne,
         cleared on landing, cancelled against walls (CollisionFlags.Sides).
         Shared with climb release momentum below - build it once here.
-    [ ] Decide air control (how much the thumbstick steers mid-air).
-    [ ] Crouch interplay: decide whether jumping from crouch stands up
-        first or is blocked. Check head clearance above before jumping
-        (don't jump into a low ceiling).
-    [ ] Coyote time (a few frames of jump grace after walking off an
+        (Built: one _horizontalVelocity, set from the stick while
+        grounded and kept while airborne - walking off edges keeps speed
+        too. After Move(), CollisionFlags.Sides replaces it with the
+        velocity actually applied, so walls redirect it rather than kill
+        it outright.)
+    [x] Decide air control: light steering - the stick nudges airborne
+        velocity at airControlAcceleration (3 m/s^2); centred stick bleeds
+        it at airDrag (0.5 m/s^2).
+    [x] Crouch interplay: decided - jump while crouched stands up without
+        jumping (stealth-safe); a jump waits until the capsule is back to
+        full standing height. Head clearance: instead of a pre-check,
+        CollisionFlags.Above zeroes upward velocity, so a jump into a low
+        ceiling bonks and falls rather than sticking to it. (Verified.)
+    [x] Coyote time (a few frames of jump grace after walking off an
         edge) and a short jump buffer - small, cheap, feels much better.
-    [ ] Grabbing a ClimbableEdge mid-jump works (existing reset of
+        (Built: coyoteTime 0.1s, jumpBufferTime 0.15s.)
+    [x] Grabbing a ClimbableEdge mid-jump works (existing reset of
         _verticalVelocity on climb start; also clears air momentum).
-    [ ] Landing: expose a Landed event with fall speed, for the landing
-        noise (Phase 2) and a haptic thump.
+        (Built: climb start also clears horizontal velocity and any
+        buffered jump.)
+    [x] Landing: expose a Landed event with fall speed, for the landing
+        noise (Phase 2) and a haptic thump. (Built: event Action<float>
+        Landed, raised when grounded after Airborne.)
 [ ] Mantling: when gripping a ClimbableEdge and the hand is pulled down past
     the edge top (or the head rises above it), smoothly move the player up
     and forward onto the surface above. Check clearance with a

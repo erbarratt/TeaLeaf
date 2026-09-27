@@ -65,8 +65,8 @@ silently reformat) existing code that doesn't yet match:
   static lists/registries over scene searches or interface `GetComponent` calls.
 
 Note: `PlayerLocomotion.cs` predates the standards and doesn't fully match yet — several
-`if (...){` lines in `HandleTurning()` are missing the space before `{`, many field comments
-use `///` without `<summary>`, and it has an unused `using System;`.
+`if (...){` lines in `HandleTurning()` are missing the space before `{`, and many older field
+comments use `///` without `<summary>` (newer fields use `//`).
 
 ## Working with this codebase
 
@@ -105,8 +105,9 @@ behaviour. The current order is:
    `playerLocomotion.TickTurning()`.
 6. One `characterController.Move(_frameMovement)`, then
    `playerClimbing.ReportAppliedMovement()` while climbing.
-7. `playerLocomotion.TickState(isClimbing, appliedMovement)` — after `Move()`, because it needs
-   the real applied movement and the `isGrounded` that `Move()` just updated.
+7. `playerLocomotion.TickState(isClimbing, appliedMovement, collisionFlags)` — after `Move()`,
+   because it needs the real applied movement, the `CollisionFlags` `Move()` returned (to stop
+   momentum pushing into walls/ceilings), and the `isGrounded` that `Move()` just updated.
 8. `playerClimbing.TickHandVisuals()` — after turning/`Move()`: hand visuals are children of
    the rig, so a world-space snap pose placed earlier would be dragged off by them.
 9. `playerHandAnimation.Tick()` — last, so it reads this frame's snap weight from step 8
@@ -141,7 +142,7 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
 - **`PlayerInputXR`** — the single source of truth for controller input. Wraps Input System
   `InputActionReference`s (grip/trigger per hand, move/turn thumbsticks, crouch, sprint) and
   caches them once per frame in `Tick()` as typed properties (`MoveAxis`, `TurnAxis`, `LeftGrip`,
-  `IsLeftGrabbing`, `CrouchPressed`, `SprintPressed`, etc.). Enables every action it reads in
+  `IsLeftGrabbing`, `CrouchPressed`, `SprintPressed`, `JumpPressed`, etc.). Enables every action it reads in
   `OnEnable()`, since they come from two assets (see below). Also calls `Tick()` from its own
   `Update()` as a fallback so Debug scripts work without a full rig. Gameplay code should always
   read input through this class rather than referencing Input Actions directly.
@@ -152,7 +153,9 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
   (`Player` map, auto-enabled by Unity) with an `XR`-group binding, not in the XRI sample asset,
   which a package update could overwrite. Current XR bindings there: `Crouch` = right A
   (`{RightHand}/{PrimaryButton}`), `Sprint` = left stick click
-  (`{LeftHand}/{Primary2DAxisClick}`). Its `Jump` action is free for the planned jump.
+  (`{LeftHand}/{Primary2DAxisClick}`), `Jump` = right B (`{RightHand}/{SecondaryButton}`).
+  Bind XR actions to a specific hand (`{LeftHand}`/`{RightHand}`) - a bare `<XRController>`
+  binding fires from either controller.
 - **`PlayerTracking`** — the single source of truth for tracked XR transforms (head, left
   hand, right hand), exposing position/rotation accessors. Other systems should query this
   class instead of walking the XR Rig hierarchy.
@@ -163,14 +166,18 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
   It returns its movement rather than calling `Move()` itself. Movement is relative to the rig root
   (`playerTransform`), not the headset. Supports snap turn and smooth turn (`useSmoothTurn`);
   turning works while climbing. The controller's horizontal center is re-centered under the
-  headset every frame. Exposes `IsSprinting`, `IsCrouching`, and `MovementState`.
+  headset every frame. Horizontal movement is one persistent `_horizontalVelocity`: set from
+  the stick while grounded, kept as momentum while airborne (light air control/drag), and
+  reduced to the actually-applied velocity when an airborne `Move()` hits a side. Jump
+  (`HandleJump()`, before gravity) has coyote time, a jump buffer and a `_hasJumped` guard.
+  Exposes `IsSprinting`, `IsCrouching`, `MovementState`, and a `Landed` event (fall speed).
 - **`MovementState`** (enum) — `Still`, `Walking`, `Sprinting`, `CrouchStill`, `CrouchWalking`,
   `Climbing`, `Airborne`: the single value noise, visibility, AI and the wrist gem should read,
   rather than combining flags themselves. It is set by `PlayerLocomotion.TickState()` in priority
   order (Climbing > Airborne > crouch > still > sprint/walk). "Moving" means the real horizontal
   applied movement exceeds `movingSpeedThreshold`, so pushing into a wall counts as still.
   `Airborne` only kicks in after `airborneGraceTime` off the ground, since `isGrounded`
-  flickers on steps and slopes. Physical roomscale walking doesn't count as moving yet.
+  flickers on steps and slopes - except after a jump, which is `Airborne` immediately. Physical roomscale walking doesn't count as moving yet.
 - **`PlayerClimbing`** — grab-and-pull ledge climbing. A hand grabs the `ClimbableEdge` its
   hand ray is on (`PlayerHandInteraction.LeftTarget`/`RightTarget`) while grip is held, so
   what's highlighted is what gets grabbed and the ray length is the grab reach; the most recent grab becomes the primary hand, which drives
@@ -274,13 +281,15 @@ colliders and anything handedness-dependent.
 
 ### Locomotion design decisions
 
-- **Jumping is in** (reversed from an earlier "no jumping" decision) — a custom jump button
-  in Phase 1, not XRI's jump provider. `_verticalVelocity` is set from a tunable jump *height*.
-  A horizontal air momentum carries the takeoff movement velocity through the jump; it
-  clears on landing and cancels against walls. The same air momentum is reused for climb
-  release: letting go of a climb keeps its momentum (a few-frame average of the applied climb
-  velocity), so pushing off a ledge launches the player. Landing will emit a noise event scaled
-  by fall speed.
+- **Jumping is in** (reversed from an earlier "no jumping" decision) — a custom jump on right
+  B, not XRI's jump provider. `_verticalVelocity` is set from a tunable jump *height*
+  (`sqrt(2h·-g)`). Horizontal momentum (`_horizontalVelocity`) carries the takeoff velocity
+  through the jump with **light air control**; walls redirect it and ceilings stop the rise
+  (via `Move()`'s `CollisionFlags`, instead of a pre-jump clearance check). **Jump while
+  crouched only stands up** (stealth-safe); a jump waits for full standing height. The same
+  momentum is planned for climb release: letting go of a climb keeps its momentum (a
+  few-frame average of the applied climb velocity), so pushing off a ledge launches the
+  player. `Landed` (fall speed) will drive the landing noise event.
 - **Sprint is click-to-toggle** (left stick click) rather than hold, because holding a stick
   click while pushing the stick is tiring in VR. `sprintSpeed` replaces `moveSpeed`. The sprint
   ends when the stick returns to centre, on a second click, on crouch or on climb, and can't

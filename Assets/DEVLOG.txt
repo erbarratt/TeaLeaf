@@ -87,6 +87,33 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
   the same behaviour that lets Base and Grip share the hand without masks.
   Verified in headset after keying joints 1-3: all four fingers hook over
   the lip and ignore grip/trigger while snapped. Step 3 done.
+- Jump (Phase 1). Right B via the
+  project-wide Player/Jump action; its XR binding was
+  <XRController>/secondaryButton (B or Y on either hand), narrowed to
+  {RightHand}/{SecondaryButton}. PlayerInputXR.JumpPressed. Launch speed
+  derived from a tunable jumpHeight (0.5m): u = sqrt(2 * h * -g).
+  Momentum: HandleMovement() now keeps one _horizontalVelocity - set from
+  the stick while grounded (same as before), kept while airborne, so
+  running jumps go further and walking off an edge keeps speed. Air
+  control (decided: light) nudges it at 3 m/s^2 towards the stick; a
+  centred stick drags it at 0.5 m/s^2. Climb release momentum will seed
+  the same value later.
+  Collision response: PlayerController now passes Move()'s CollisionFlags
+  to TickState(). Above zeroes upward velocity (a jump into a low ceiling
+  bonks instead of sticking) - chosen over a pre-jump clearance check;
+  Sides while airborne replaces momentum with the velocity actually
+  applied, so walls redirect it along themselves rather than letting it
+  keep pushing in.
+  Crouch (decided): jump while crouched just stands up, and a jump waits
+  until the capsule is fully standing. Coyote time 0.1s, jump buffer
+  0.15s, a _hasJumped flag stops coyote time allowing a second jump while
+  rising, and MovementState goes Airborne immediately on a jump rather
+  than after the grace period. Climb start clears horizontal velocity and
+  any buffered jump. New Landed event (Action<float>, fall speed) raised
+  on grounding after Airborne, for landing noise and haptics later. This
+  also puts PlayerLocomotion's previously unused "using System;" to use.
+  MovementStateDebug now also logs Landed with its fall speed. Verified
+  in headset - jump done.
 
 
 2026-09-26
