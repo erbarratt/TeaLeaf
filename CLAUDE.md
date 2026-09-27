@@ -367,16 +367,14 @@ colliders and anything handedness-dependent.
   both want per-frame (not physics-step) updates, for lower latency.
 - **Mantling** — a quick, committed move onto a *mantleable*
   (always horizontal) `ClimbableEdge`. When a hand grips one and the head has been pulled up
-  near the top (and the destination capsule check passes), a small white head-locked arrow
-  appears; pushing up on either thumbstick then starts the mantle. It overrides all other
+  near the top, a small white head-locked arrow appears; pushing up on either thumbstick then starts the mantle. It overrides all other
   locomotion (movement, turning, gravity, jump, crouch, climbing) and can't be cancelled, and
   always lands the feet at the edge's designer-set mantle point (the same spot wherever the
   mantle started), crouched if the edge says so. Full plan in `DEVROADMAP.txt` Phase 1.
 - **Climbing is custom** — no XRI climb provider. Ladders and ropes should reuse the
   grab-and-pull-delta approach from `PlayerClimbing`.
-- **Ray-targeted grabs + hand snap poses** (Phase 1, in progress) — climbing starts when grip
-  is held while the hand ray/reticle is on a climbable (built; replaced the old SphereCollider
-  overlap). On grab the visual hand snaps (with a short blend)
+- **Ray-targeted grabs + hand snap poses** — climbing starts when grip is held while the hand
+  ray/reticle is on a climbable (replaced the old SphereCollider overlap). On grab the visual hand snaps (with a short blend)
   to a target-defined position and rotation, and plays the target's finger pose (e.g. fingers
   curled over a ledge) on the hand Animator's `Snap Pose` layer. This is a general mechanism: any grab
   target (ledge, ladder rung, rope, door handle, tool, prop) supplies its own per-hand snap
