@@ -428,7 +428,8 @@ fails and restarts. Agreed mechanics:
   the controller once clear (Alyx / Thief VR style). Planned for Phase 3, before grabbing; the
   maintainer wants to be guided through choosing the most performant approach when it's built.
 - **Art:** greybox only (ProBuilder/primitives); out of scope: settings/main menu, save/load,
-  final art, combat, fall damage.
+  final art, combat, fall damage (fall damage/health come in a later damage phase, after the
+  slice; falling itself already works - letting go of every grip mid-climb falls normally).
 
 ### Planned systems
 

@@ -272,8 +272,9 @@ Scripting:
     here so Phase 5's rope bolt only has to spawn one. Constrained vertical
     climb like ladders. Also uses the hand snap pose (hand wrapped around
     the rope at the grabbed height).
-[ ] Gravity/fall interplay: releasing all grips mid-climb falls normally.
-    Decide on fall damage (suggest: none for the slice).
+[x] Gravity/fall interplay: releasing all grips mid-climb falls normally
+    (verified in headset 2026-09-27). Fall damage: none for the slice -
+    it comes later, in a dedicated damage phase after the slice.
 [-] Climb release momentum: removed (2026-09-27). Built and tested -
     letting go kept the climb's velocity so pushing off a ledge launched
     the player - but it felt bad in headset and was taken out entirely;
@@ -632,6 +633,7 @@ Explicitly out of scope for the slice
 - Settings/options menu (locomotion values stay as serialized fields).
 - Main menu, save/load, mission briefing screens.
 - Final art, texturing, character modelling, custom animation.
-- Combat (guards catch, they don't fight), health, fall damage.
+- Combat (guards catch, they don't fight), health, fall damage (fall
+  damage and health belong to a later damage phase, after the slice).
 - Broadhead/other bolt types, additional tools.
 - Teleport locomotion or XRI locomotion/climb providers (never).

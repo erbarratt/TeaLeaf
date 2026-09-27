@@ -336,6 +336,9 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
   and above head, at edge ends and from steep angles, both hands on one
   edge, hand-off between hands, and both mirrored hands looking right.
   The ray-targeted grab + hand snap poses item is complete.
+- Verified in headset: releasing every grip mid-climb falls normally.
+  Decided: no fall damage in the slice - it (and health) will come in a
+  dedicated damage phase later, after the slice.
 
 
 2026-09-26
