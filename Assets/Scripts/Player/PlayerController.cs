@@ -76,7 +76,7 @@ namespace Player
             // moves the whole tracked hierarchy (hands included) down.
             playerLocomotion.TickBody();
 
-            // 3. Hand rays and highlighting.
+            // 3. Hand rays, targets and reticles.
             playerHandInteraction.Tick();
 
             // 4. Grab/release and this frame's climb movement - skipped while

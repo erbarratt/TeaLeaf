@@ -3,15 +3,15 @@ using UnityEngine;
 namespace Interaction
 {
     /// <summary>
-    /// Marks a designer-placed cube as a climbable edge. The same BoxCollider
-    /// serves as both the visual highlight bounds and the target hand rays
-    /// hit - there is no separate trigger/visual pair. A hand grabs the edge
-    /// by holding grip while its ray is on it.
+    /// Marks a designer-placed BoxCollider as a climbable edge - the target
+    /// hand rays hit. A hand grabs the edge by holding grip while its ray
+    /// (and reticle) is on it. It needs no mesh: the collider is invisible in
+    /// game and shown in the Scene view by gizmos. Add a renderer per edge
+    /// only if that edge should be visible.
     ///
-    /// This class only knows about itself: its own collider, its own
-    /// highlighted/not-highlighted appearance, and where a hand snaps onto
-    /// it. Deciding which edge should be highlighted is
-    /// PlayerHandInteraction's job, and grabbing is PlayerClimbing's.
+    /// This class only knows about itself: its own collider and where a hand
+    /// snaps onto it. Ray targeting is PlayerHandInteraction's job, and
+    /// grabbing is PlayerClimbing's.
     ///
     /// Orientation convention - place every edge so that its local X runs
     /// along the edge, +Y is up, and +Z points out from the wall towards the
@@ -19,10 +19,8 @@ namespace Interaction
     /// line (top face, +Z face).
     /// </summary>
     [RequireComponent(typeof(BoxCollider))]
-    public class ClimbableEdge : MonoBehaviour, IHighlightable, IClimbable
+    public class ClimbableEdge : MonoBehaviour, IHandTarget, IClimbable
     {
-        [SerializeField] private Renderer targetRenderer;
-
         // Shared hand offsets/pose for all ledges - see HandSnapProfile.
         [SerializeField] private HandSnapProfile snapProfile;
 
@@ -49,53 +47,26 @@ namespace Interaction
         // How far in from the lip the default mantle point is, in metres.
         private const float DefaultMantleInset = 0.4f;
 
-        // Opacity while not highlighted - 0 makes the box invisible until a
-        // hand ray points at it.
-        [SerializeField] private float baseOpacity;
-
-        // Opacity while highlighted.
-        [SerializeField] private float highlightedOpacity = 0.2f;
-
-        // Shader property ID for URP Lit/Unlit's base colour - cached once
-        // since Shader.PropertyToID() hashes a string every call. If the
-        // ledge material's shader ever changes to one that reads colour from
-        // "_Color" instead (e.g. Built-in Standard), this needs updating too.
-        private static readonly int _baseColorId = Shader.PropertyToID("_BaseColor");
+        // Gizmo colours: the box faint, its lip (the top-front line a hand
+        // curls over) bright, so which way round the edge faces is obvious.
+        private static readonly Color _gizmoBoxColor = new(1f, 0.6f, 0.1f, 0.35f);
+        private static readonly Color _gizmoLipColor = new(1f, 0.6f, 0.1f, 1f);
 
         private BoxCollider _boxCollider;
-
-        // The material's own colour, cached once - only its RGB is used;
-        // alpha is always overridden by baseOpacity/highlightedOpacity in
-        // SetHighlighted() below. Read from sharedMaterial rather than
-        // .material - see SetHighlighted() for why we never instance a
-        // per-renderer material copy at all.
-        private Color _baseColor;
-
-        // Reused every SetHighlighted() call rather than allocated fresh, so
-        // toggling highlighting doesn't allocate.
-        private MaterialPropertyBlock _propertyBlock;
 
         private void Awake()
         {
             _boxCollider = GetComponent<BoxCollider>();
-            _baseColor = targetRenderer.sharedMaterial.color;
-            _propertyBlock = new MaterialPropertyBlock();
-
-            // Force the not-highlighted opacity immediately, rather than
-            // waiting for the first highlight transition - otherwise the box
-            // would render at whatever alpha happens to be baked into the
-            // material asset until a hand ray first points at it.
-            SetHighlighted(false);
         }
 
         private void OnEnable()
         {
-            HighlightableRegistry.Register(_boxCollider, this);
+            HandTargetRegistry.Register(_boxCollider, this);
         }
 
         private void OnDisable()
         {
-            HighlightableRegistry.Unregister(_boxCollider);
+            HandTargetRegistry.Unregister(_boxCollider);
         }
 
         /// Whether the player can mantle onto this edge - see isMantleable.
@@ -110,12 +81,11 @@ namespace Interaction
         public Vector3 MantlePointWorld => transform.position + transform.rotation * mantlePoint;
 
         /// <summary>
-        /// Editor-only: runs when the component is first added. Fills in the
-        /// renderer and a sensible default mantle point for this box.
+        /// Editor-only: runs when the component is first added. Fills in a
+        /// sensible default mantle point for this box.
         /// </summary>
         private void Reset()
         {
-            targetRenderer = GetComponent<Renderer>();
             ResetMantlePoint();
         }
 
@@ -144,6 +114,37 @@ namespace Interaction
 #endif
 
             mantlePoint = new Vector3(along, top, lip - DefaultMantleInset);
+        }
+
+        /// <summary>
+        /// Always draws the edge's box in the Scene view, so edges are
+        /// visible while laying out a level even though they have no mesh:
+        /// the box's outline faintly and its lip brightly. Drawn in the box's
+        /// own (scaled) local space, so it matches the collider exactly.
+        /// Editor-only.
+        /// </summary>
+        private void OnDrawGizmos()
+        {
+            BoxCollider box = GetComponent<BoxCollider>();
+
+            if (box == null) {
+                return;
+            }
+
+            Vector3 centre = box.center;
+            Vector3 halfSize = box.size * 0.5f;
+
+            Gizmos.matrix = transform.localToWorldMatrix;
+
+            Gizmos.color = _gizmoBoxColor;
+            Gizmos.DrawWireCube(centre, box.size);
+
+            Gizmos.color = _gizmoLipColor;
+            Vector3 lipCentre = new(centre.x, centre.y + halfSize.y, centre.z + halfSize.z);
+            Vector3 alongLip = new(halfSize.x, 0f, 0f);
+            Gizmos.DrawLine(lipCentre - alongLip, lipCentre + alongLip);
+
+            Gizmos.matrix = Matrix4x4.identity;
         }
 
         /// <summary>
@@ -212,31 +213,6 @@ namespace Interaction
             }
 
             return snapProfile.Apply(isLeftHand, gripPosition, gripRotation);
-        }
-
-        /// <summary>
-        /// Fades this edge's rendered opacity between baseOpacity and
-        /// highlightedOpacity - the colour itself never changes. Implements
-        /// IHighlightable so PlayerHandInteraction can highlight this edge
-        /// without knowing it's specifically a ClimbableEdge.
-        ///
-        /// Uses a MaterialPropertyBlock rather than writing to
-        /// targetRenderer.material.color. That property getter instances a
-        /// per-renderer copy of the material asset the first time it's
-        /// touched, and every colour write after that still marks the
-        /// Material dirty - on this project's URP setup that forces the GPU
-        /// Resident Drawer to re-upload this renderer's GPU-resident data,
-        /// which is exactly the per-toggle cost that was showing up as a
-        /// stutter. A MaterialPropertyBlock is a per-renderer override that
-        /// sits outside the shared Material entirely, so toggling it doesn't
-        /// touch the asset or trigger that re-upload.
-        /// </summary>
-        public void SetHighlighted(bool highlighted)
-        {
-            Color color = _baseColor;
-            color.a = highlighted ? highlightedOpacity : baseOpacity;
-            _propertyBlock.SetColor(_baseColorId, color);
-            targetRenderer.SetPropertyBlock(_propertyBlock);
         }
     }
 }

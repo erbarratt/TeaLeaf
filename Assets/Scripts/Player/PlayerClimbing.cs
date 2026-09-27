@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Player
 {
     /// <summary>
-    /// Handles grabbing and climb movement. Edge highlighting lives in
+    /// Handles grabbing and climb movement. Hand ray targeting lives in
     /// PlayerHandInteraction instead - see that class' comment.
     ///
     /// This class does not run its own Update(). Instead PlayerController
@@ -53,7 +53,7 @@ namespace Player
         // Grabs are ray-targeted: a hand grabs whatever IClimbable its
         // hand ray (and reticle) is on while grip is held, rather than
         // whatever its old SphereCollider happened to overlap. Reusing
-        // PlayerHandInteraction's ray means what's highlighted is exactly
+        // PlayerHandInteraction's ray means what the reticle is on is exactly
         // what gets grabbed, and its rayLength doubles as grab reach.
         // PlayerController ticks it before this class, so its targets are
         // always this frame's.
@@ -138,7 +138,7 @@ namespace Player
 
         /// <summary>
         /// Runs one frame of climbing logic: grab/release for both hands and
-        /// climb movement. Edge highlighting lives in PlayerHandInteraction,
+        /// climb movement. Hand ray targeting lives in PlayerHandInteraction,
         /// and placing the hand visuals happens later in TickHandVisuals().
         /// </summary>
         public void Tick()
@@ -230,7 +230,7 @@ namespace Player
             bool otherIsGrabbing,
             Vector3 handPosition,
             Vector3 otherHandPosition,
-            IHighlightable rayTarget,
+            IHandTarget rayTarget,
             Vector3 rayTargetPoint,
             HandVisualSnap visualSnap,
             ref IClimbable grabbed,
@@ -250,7 +250,7 @@ namespace Player
                     return;
                 }
 
-                // The ray target is only an IHighlightable - anything a hand
+                // The ray target is only an IHandTarget - anything a hand
                 // can point at. A type pattern checks whether it's also
                 // climbable (a ledge, a ladder, ...): a single cheap type
                 // check, not a component lookup, so it's fine to do every

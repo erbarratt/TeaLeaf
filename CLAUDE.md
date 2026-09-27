@@ -100,7 +100,7 @@ behaviour. The current order is:
 1. `playerInput.Tick()` — cache this frame's input (must be first).
 2. `playerLocomotion.TickBody()` — re-centre the capsule under the headset and apply crouch
    height (before the hand systems, since crouch moves the tracked hierarchy).
-3. `playerHandInteraction.Tick()` — hand rays + highlighting.
+3. `playerHandInteraction.Tick()` — hand rays, targets + reticles.
 4. `playerClimbing.Tick()` — grab/release, climb movement (skipped while mantling); then
    `playerMantling.Tick()` — detects a possible mantle (arrow), starts one on a stick push, or
    advances the one in progress. **While `IsMantling`, the frame stops here**: the mantle has
@@ -204,10 +204,10 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
   applied movement exceeds `movingSpeedThreshold`, so pushing into a wall counts as still.
   `Airborne` only kicks in after `airborneGraceTime` off the ground, since `isGrounded`
   flickers on steps and slopes - except after a jump, which is `Airborne` immediately. Physical roomscale walking doesn't count as moving yet.
-- **`PlayerClimbing`** — grab-and-pull climbing. A hand grabs the `IClimbable` (ledge, and
-  soon ladder) its hand ray is on (`PlayerHandInteraction.LeftTarget`/`RightTarget`) while
+- **`PlayerClimbing`** — grab-and-pull climbing. A hand grabs the `IClimbable` (ledge or
+  ladder) its hand ray is on (`PlayerHandInteraction.LeftTarget`/`RightTarget`) while
   grip is held, so
-  what's highlighted is what gets grabbed and the ray length is the grab reach; the most recent grab becomes the primary hand, which drives
+  what the reticle is on is what gets grabbed and the ray length is the grab reach; the most recent grab becomes the primary hand, which drives
   movement (hand-off to the other hand on release). Hand deltas are measured in
   `playerTransform` local space to avoid a feedback loop, and any movement the
   CharacterController didn't apply is retried via `ReportAppliedMovement()` so the grab point
@@ -247,12 +247,12 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
   must stay world-fixed can't be a child of a tracked transform. (Not parented to the ledge -
   ledges are non-uniformly scaled, which would shear a rotated child.)
 - **`PlayerHandInteraction`** — casts one ray per hand (configurable length, layer mask, and
-  per-hand angle offset) and highlights whatever `IHighlightable` it hits, handling both hands
-  targeting the same object. Exposes `LeftTarget`/`RightTarget` and the hit points
+  per-hand angle offset) and records whatever `IHandTarget` it hits (nothing is highlighted -
+  the reticle alone shows what can be interacted with). Exposes `LeftTarget`/`RightTarget` and the hit points
   `LeftTargetPoint`/`RightTargetPoint`; `PlayerClimbing` grabs from these. Ticked before
   climbing, so they're always this frame's.
 - **`HandRayReticle`** — runtime-built billboard disc shown where a hand ray hits a
-  highlightable; ticked by `PlayerHandInteraction`.
+  hand target; ticked by `PlayerHandInteraction`.
 - **`PlayerHandAnimation`** — per-hand Animator. The base layers always follow input
   (`TriggerCurl` index, `GripCurl` middle/ring/pinky). The `Snap Pose` override layer plays the
   snap target's `HandPose` with its weight set from that hand's `HandVisualSnap.Weight`, so
@@ -270,17 +270,30 @@ part of the runtime gameplay path.
 
 ### Interaction systems (`Assets/Scripts/Interaction/`, namespace `Interaction`)
 
-- **`IHighlightable`** — interface for anything a hand ray can highlight (`SetHighlighted`).
-- **`HighlightableRegistry`** — static `Collider → IHighlightable` dictionary. Highlightables
-  register in `OnEnable`/unregister in `OnDisable`, so hand raycasts do a dictionary lookup
-  instead of an interface `GetComponent`.
+- **`IHandTarget`** — empty marker interface for anything a hand ray can target (the reticle
+  shows on it; other systems decide what targeting means). **No highlighting** - removed
+  2026-09-27, the reticle is enough feedback. (Was `IHighlightable`.)
+- **`HandTargetRegistry`** — static `Collider → IHandTarget` dictionary. Targets register in
+  `OnEnable`/unregister in `OnDisable`, so hand raycasts do a dictionary lookup instead of an
+  interface `GetComponent`.
+- **Climbables have no mesh** — `ClimbableEdge`/`Ladder` are just a `BoxCollider` (invisible in
+  game) shown in the Scene view by always-on gizmos. A renderer is only added to an individual
+  item that should be visible, as a separate component the scripts don't touch.
 - **`IClimbable`** — extends `IHandSnapTarget`; marks a grab target as climbable (grabbing it
   starts a climb, unlike future handles/tools/props). Adds no members yet: every climbable
   moves the player the same way. `PlayerClimbing` finds it on a hand's ray target with a type
-  check. Implemented by `ClimbableEdge`; `Ladder` next, ropes later.
-- **`ClimbableEdge`** — designer-placed `BoxCollider` that is both the hand-ray target and the
-  highlight visual (opacity fade via `MaterialPropertyBlock`). Registers with
-  `HighlightableRegistry`. Implements `IClimbable` (so `IHandSnapTarget`): the snap point is the ray hit moved onto the box's
+  check. Implemented by `ClimbableEdge` and `Ladder`; ropes later.
+- **`Ladder`** — `IHandTarget` + `IClimbable`. One `BoxCollider` over the whole ladder is
+  the ray target; no per-rung colliders. Rungs are designer data (`firstRungHeight`, `rungSpacing`, real metres in the
+  unscaled local frame - position + rotation, box size × `lossyScale`), and the rung count is
+  however many fit. `GetSnapPose()` snaps to the rung nearest the ray hit, on the box's
+  centre line front to back, using a ledge-style grip frame and the `LadderRung`
+  `HandSnapProfile`. Same orientation convention as `ClimbableEdge`. Gizmos: box outline, rails
+  and rungs always drawn faintly; when selected, bright with a sphere per rung and an arrow out of the
+  climbing side. Top exit = a mantleable `ClimbableEdge` on the lip above.
+- **`ClimbableEdge`** — designer-placed `BoxCollider` that is the hand-ray target
+  (`IHandTarget`, registered with `HandTargetRegistry`). Gizmos always draw its box faintly and
+  its lip (top-front line) brightly. Implements `IClimbable` (so `IHandSnapTarget`): the snap point is the ray hit moved onto the box's
   top-front line (clamped to its length), facing into the wall - via `ClosestLipPoint()`, which
   mantling also uses for the ledge-top height. Mantling data (Mantling header): `isMantleable`
   (tick only on level edges), `mantleEndsCrouched`, and `mantlePoint` - where the feet always

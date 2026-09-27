@@ -112,9 +112,9 @@ namespace Player
             return new Material(Shader.Find("Sprites/Default")) {
                 color = color,
 
-                // Queue 3100 - just after ClimbableLedgeMat's queue of 3000 -
-                // so the reticle reliably draws on top of the highlighted
-                // edge's translucent surface instead of z-fighting with it.
+                // Queue 3100 - just after the default transparent queue of
+                // 3000 - so the reticle draws on top of any translucent
+                // surface it lands on instead of z-fighting with it.
                 renderQueue = 3100
             };
         }

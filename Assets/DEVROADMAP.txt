@@ -233,7 +233,7 @@ Scripting:
         wherever you started along it), either hand, stick up on left and
         on right, crouch/jump/turn ignored mid-mantle, no re-grab while
         grip is still held after landing, comfort in headset.
-[ ] Ladders: Ladder component (Interaction namespace), reusing
+[x] Ladders: Ladder component (Interaction namespace), reusing
     PlayerClimbing's grab-and-pull-delta approach. Grabbed via the hand ray
     like ledges, and implements the general hand snap pose: snaps the hand
     to the nearest rung with a ladder-specific position/rotation and a
@@ -250,12 +250,23 @@ Scripting:
         holds IClimbable per hand instead of ClimbableEdge
         (LeftGrabbedEdge/RightGrabbedEdge stay, for mantling, and are null
         while that hand holds a non-ledge).
-    [ ] Ladder component: one BoxCollider covering the whole ladder (no
+    [x] Ladder component: one BoxCollider covering the whole ladder (no
         per-rung colliders); rungs defined by designer data (first rung
         height, spacing); snap point = nearest rung to the ray hit.
-        Highlightable like ClimbableEdge. Own HandSnapProfile asset.
-    [ ] Greybox ladder in the test area with a mantleable edge at the top.
-    [ ] Test in headset: grab rungs at different heights, hand-over-hand
+        A hand target like ClimbableEdge. Own HandSnapProfile asset.
+    [x] Editor gizmos (requested 2026-09-27): always show the rails and
+        every rung in the Scene view (faint), and brighter when selected,
+        with a marker per rung and an arrow for the side the player
+        climbs from - so rung placement is visible while laying out a
+        ladder, without entering Play Mode.
+    [x] Remove highlighting (decided 2026-09-27): the reticle alone tells
+        the player they can interact. IHighlightable -> IHandTarget (empty
+        marker), HighlightableRegistry -> HandTargetRegistry. Climbables
+        need no mesh - just a BoxCollider, shown in the editor by gizmos
+        (edge box + lip; ladder box + rails + rungs). Renderers are only
+        added per item when one should be visible.
+    [x] Greybox ladder in the test area with a mantleable edge at the top.
+    [x] Test in headset: grab rungs at different heights, hand-over-hand
         up and down, mantle off the top, drop off the bottom.
 [ ] Rope climbing: ClimbableRope (vertical line segment grab target) - built
     here so Phase 5's rope bolt only has to spawn one. Constrained vertical
@@ -358,7 +369,7 @@ Grabbing and props:
 [ ] Decide grab approach: custom grab consistent with PlayerClimbing
     (recommended - one system, one set of hand states) vs XRI interactables.
     Build IGrabbable (or a Grabbable base) alongside the existing
-    IHighlightable pattern.
+    IHandTarget pattern.
 [ ] Grabbable physics props: pick up, hold, release; throw using velocity
     averaged from the last few frames of PlayerTracking hand positions.
 [ ] Impact noise: ImpactNoise component emits a noise event on collision
@@ -370,7 +381,7 @@ Grabbing and props:
     Snap Pose layer state. Grabbables, door handles and tools supply their
     hold position/rotation/pose through the same hand snap pose interface
     as climbables.
-[ ] Highlighting: grabbables/doors/locks implement IHighlightable so the
+[ ] Targeting: grabbables/doors/locks implement IHandTarget so the
     existing hand ray + reticle system works for them unchanged.
 
 
@@ -389,7 +400,7 @@ Phase 4 - Inventory and wrist radial menu (Inventory + UI namespaces)
     water / noisemaker / rope, greyed out at zero count.
 [ ] Wrist display: visibility gem + loot total + bolt counts on the
     non-menu wrist (or the same wrist, when not in menu mode).
-[ ] Loot: Loot component (value, highlightable, grabbable). Grab it and
+[ ] Loot: Loot component (value, hand target, grabbable). Grab it and
     release it inside a hip "pocket" trigger zone to collect it: plays a
     sound, adds to the total, and destroys/pools the object. Objective item
     uses the same flow with an extra flag.

@@ -292,6 +292,46 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
   ladder simply never offers a mantle. Also fixed a stale
   HighlightableRegistry comment about ClimbableEdge's old Active list.
   Verified in headset: ledge climbing and mantling unchanged.
+- Ladders step 2 of 2 - Ladder component (built, awaiting greybox +
+  headset test). Interaction.Ladder: IHighlightable + IClimbable, one
+  BoxCollider over the whole ladder, same orientation convention as
+  ClimbableEdge (X across the rungs, +Y up, +Z out to the player). Rungs
+  are designer data - firstRungHeight and rungSpacing in real metres,
+  measured in the "unscaled local" frame (position + rotation, box size x
+  lossyScale) like mantlePoint, so a stretched cube doesn't stretch the
+  spacing; the rung count is however many fit in the box. GetSnapPose()
+  rounds the ray hit to the nearest rung, keeps its position across the
+  rung (clamped to the width), sits on the box's centre line front to
+  back, and uses the same grip frame as a ledge. OnValidate() keeps the
+  spacing >= 0.05m. The highlight fade is a copy of ClimbableEdge's
+  (small enough not to share yet).
+  Gizmos (requested): rails and every rung always drawn faintly in the
+  Scene view; when selected, bright, with a sphere per rung and an arrow
+  out of the climbing side.
+  New Assets/Data/LadderRung.asset HandSnapProfile, starting as a copy of
+  LedgeGrip's offsets and pose (the roadmap allows reusing the ledge pose
+  for rungs initially) - to be tuned in Play Mode.
+- Removed hand-ray highlighting entirely (decision): the reticle already
+  tells the player they can interact, so the opacity fade was redundant.
+  IHighlightable became IHandTarget - an empty marker interface meaning
+  "a hand ray can target this" - and HighlightableRegistry became
+  HandTargetRegistry (files git-mv'd with their .meta). PlayerHandInteraction
+  lost UpdateHighlighted() and its both-hands-on-one-target bookkeeping;
+  LeftTarget/RightTarget are now plain auto-properties set from each
+  raycast. ClimbableEdge and Ladder lost targetRenderer, the opacities and
+  the MaterialPropertyBlock: climbables are now just a BoxCollider, with
+  no mesh unless one is added per item as a separate component. Editor
+  visibility comes from always-on gizmos instead - ClimbableEdge draws its
+  box faintly and its lip (top-front line) brightly, so which way it faces
+  is obvious; Ladder adds its box outline to the rails/rungs gizmos.
+  (The MaterialPropertyBlock lesson from the highlight stutter still
+  applies to anything else that changes material values at runtime.)
+  Removed the edges' Mesh Renderers/Filters in the scene and deleted the
+  now-unused ClimbableLedgeMat material.
+- Ladders done. Greybox ladder (LadderRung profile) with a mantleable
+  edge at the top added to Main.unity. Verified in headset: grabbing
+  rungs, climbing hand over hand, mantling off the top, dropping off the
+  bottom, and ledges/reticles still working without highlighting.
 
 
 2026-09-26
