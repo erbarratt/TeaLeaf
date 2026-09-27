@@ -43,7 +43,8 @@ namespace Player
             meshFilter.mesh = BuildCircleMesh(radius, segments);
 
             _meshRenderer = gameObject.AddComponent<MeshRenderer>();
-            _meshRenderer.material = BuildMaterial(color);
+            // UI: drawn last and on top of everything, like the mantle arrow.
+            _meshRenderer.material = OverlayMaterial.Create(color);
             _meshRenderer.shadowCastingMode = ShadowCastingMode.Off;
             _meshRenderer.receiveShadows = false;
             _meshRenderer.enabled = false;
@@ -132,22 +133,5 @@ namespace Player
             return mesh;
         }
 
-        /// <summary>
-        /// Builds the reticle's material. Sprites/Default is unlit,
-        /// alpha-blended, and double-sided (Cull Off) by default - exactly
-        /// what a simple billboard marker needs, without having to configure
-        /// URP's Lit/Unlit transparent surface keywords by hand.
-        /// </summary>
-        private static Material BuildMaterial(Color color)
-        {
-            return new Material(Shader.Find("Sprites/Default")) {
-                color = color,
-
-                // Queue 3100 - just after the default transparent queue of
-                // 3000 - so the reticle draws on top of any translucent
-                // surface it lands on instead of z-fighting with it.
-                renderQueue = 3100
-            };
-        }
     }
 }

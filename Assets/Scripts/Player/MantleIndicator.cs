@@ -22,9 +22,6 @@ namespace Player
         [SerializeField] private float size = 0.04f;
         [SerializeField] private Color color = Color.white;
 
-        // UI/Default's depth test reads this property - see BuildMaterial().
-        private static readonly int _zTestModeId = Shader.PropertyToID("unity_GUIZTestMode");
-
         private MeshRenderer _meshRenderer;
         private bool _isVisible;
 
@@ -34,7 +31,7 @@ namespace Player
             meshFilter.mesh = BuildArrowMesh(size);
 
             _meshRenderer = gameObject.AddComponent<MeshRenderer>();
-            _meshRenderer.material = BuildMaterial(color);
+            _meshRenderer.material = OverlayMaterial.Create(color);
             _meshRenderer.shadowCastingMode = ShadowCastingMode.Off;
             _meshRenderer.receiveShadows = false;
             _meshRenderer.enabled = false;
@@ -81,7 +78,8 @@ namespace Player
                 new Vector3(-shaftHalfWidth, bottom, 0f)
             };
 
-            // UI/Default renders both faces, so winding order doesn't matter.
+            // The overlay shader renders both faces, so winding order doesn't
+            // matter.
             var triangles = new[] {
                 0, 1, 2,
                 3, 4, 5,
@@ -95,26 +93,5 @@ namespace Player
             return mesh;
         }
 
-        /// <summary>
-        /// Builds an unlit material that ignores depth, so the arrow always
-        /// draws over walls. Uses Unity's built-in UI/Default shader because
-        /// it's unlit, double-sided, and already supports single-pass stereo
-        /// VR rendering (a hand-written shader without the stereo macros
-        /// would only draw in one eye). Its ZTest comes from the
-        /// unity_GUIZTestMode property, which a material can override -
-        /// setting it to Always disables the depth test for this material.
-        /// </summary>
-        private static Material BuildMaterial(Color color)
-        {
-            var material = new Material(Shader.Find("UI/Default")) {
-                color = color,
-
-                // Overlay queue, so it draws after all world geometry.
-                renderQueue = (int)RenderQueue.Overlay
-            };
-
-            material.SetInt(_zTestModeId, (int)CompareFunction.Always);
-            return material;
-        }
     }
 }

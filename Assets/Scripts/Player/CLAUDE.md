@@ -112,9 +112,18 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   single-`Move()` rule** - chosen because the landing is designer-placed and collision could
   only stop it landing there.
 - **`MantleIndicator`** — runtime-built white arrow on a child of Main Camera (so head-locked
-  with no code). Uses `UI/Default` with `unity_GUIZTestMode` = Always so it draws through walls
-  (the face is against the wall while climbing) while staying single-pass-stereo safe.
-  `SetVisible()` only touches the renderer on change.
+  with no code). Uses an `OverlayMaterial` so it draws through walls (the face is against the
+  wall while climbing). `SetVisible()` only touches the renderer on change.
+- **`OverlayMaterial`** — static factory for in-world UI marker materials (reticles, mantle
+  arrow, later UI) using the project's own `TeaLeaf/Overlay` shader
+  (`Assets/Art/Shaders/Resources/Overlay.shader`: flat `_Color`, `ZTest Always`, `ZWrite Off`,
+  `Cull Off`, alpha blend, Overlay queue 4000, `SRPDefaultUnlit` pass, single-pass-instanced
+  stereo macros; in `Resources` so `Shader.Find()` works in builds). Replaced `UI/Default` +
+  a material override of `unity_GUIZTestMode` (2026-09-27): that property isn't declared in
+  UI/Default's Properties, so the override did nothing and walls and hands still hid both
+  markers; URP's Unlit has no depth-test property at all. **Every UI marker must use it** - the
+  maintainer's rule: UI draws after everything else. Candidate to move to `Scripts/UI` when
+  that folder gets its first system.
 
 ## Hands
 
@@ -188,7 +197,8 @@ therefore reads the project's own interaction-free `Player/Turn` action.
 - **`HandRayReticle`** — runtime-built billboard disc shown where a hand ray hits a hand target,
   hidden while that hand is holding something (its visual is snapped); ticked by
   `PlayerHandInteraction.TickReticles()`. Only toggles its renderer when visibility changes
-  (same pattern as `MantleIndicator.SetVisible()`).
+  (same pattern as `MantleIndicator.SetVisible()`). Uses an `OverlayMaterial` (was
+  `Sprites/Default` at queue 3100, depth-tested, so the hand model or surface could hide it).
 - **`PlayerHandAnimation`** — per-hand Animator. The base layers always follow input
   (`TriggerCurl` index, `GripCurl` middle/ring/pinky). The `Snap Pose` override layer plays the
   snap target's `HandPose` with its weight set from that hand's `HandVisualSnap.Weight`, so any

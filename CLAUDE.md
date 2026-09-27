@@ -76,6 +76,11 @@ silently reformat) existing code that doesn't yet match:
   property declaration braces go on their own line (Allman) instead, e.g. `public class Foo`
   followed by `{` on the next line. Don't unify these to one style - this is the established
   convention, not a deviation from it.
+- **UI draws after everything else:** in-world UI (hand reticles, the mantle arrow, later the
+  wrist menu and any markers) renders last and on top, never hidden by world geometry or the
+  hands. Build its materials with `OverlayMaterial.Create()` (`Scripts/Player`; the project's
+  `TeaLeaf/Overlay` shader - Overlay queue, `ZTest Always`, stereo-safe) rather than a
+  depth-tested shader. Built-in shaders can't do this (see `Scripts/Player/CLAUDE.md`).
 - **Debug scripts:** always in a system-specific `Debug` subfolder (`Scripts/Player/Debug`,
   `Scripts/Inventory/Debug`, `Scripts/AI/Debug`, ...), never alongside runtime gameplay code.
 - **Performance habits (Quest 3):** no per-frame allocations; cache `Animator.StringToHash`/
