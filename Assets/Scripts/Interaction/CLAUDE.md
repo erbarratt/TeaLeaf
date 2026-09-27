@@ -36,6 +36,12 @@ Keep it up to date with every change to these systems, like the root file.
   shows it while the edge is selected.
   **Orientation convention:** local X runs along the edge, +Y is up, +Z points out from the
   wall towards the player.
+  **Setup check:** `OnValidate()` warns (clickable) if the `BoxCollider` isn't a trigger or the
+  object isn't on the Climbable layer. Added 2026-09-27 after three test cubes carried a
+  `ClimbableEdge` on their own solid collider on the Climbable layer, so hands and the player's
+  body passed through them. The right setup: solid ledge geometry on Environment, plus a
+  separate trigger edge volume slightly larger, so hand rays hit it first rather than tying
+  with the solid face.
 - **`Ladder`** — `IHandTarget` + `IClimbable`. One `BoxCollider` over the whole ladder is the
   ray target; no per-rung colliders. Rungs are designer data (`firstRungHeight`,
   `rungSpacing`, real metres in the unscaled local frame - position + rotation, box size ×

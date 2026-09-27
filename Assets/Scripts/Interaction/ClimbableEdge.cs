@@ -47,6 +47,9 @@ namespace Interaction
         // How far in from the lip the default mantle point is, in metres.
         private const float DefaultMantleInset = 0.4f;
 
+        // The layer every edge must be on - see OnValidate().
+        private const string ClimbableLayerName = "Climbable";
+
         // Gizmo colours: the box faint, its lip (the top-front line a hand
         // curls over) bright, so which way round the edge faces is obvious.
         private static readonly Color _gizmoBoxColor = new(1f, 0.6f, 0.1f, 0.35f);
@@ -87,6 +90,36 @@ namespace Interaction
         private void Reset()
         {
             ResetMantlePoint();
+        }
+
+        /// <summary>
+        /// Editor-only: runs when the scene loads and whenever this component
+        /// changes in the Inspector. Warns about an edge set up as solid
+        /// geometry rather than a grab volume - easy to do by adding this
+        /// straight onto a cube, and silent otherwise: the Climbable layer
+        /// collides with nothing, so hands and the player's body pass straight
+        /// through it. Clicking the warning selects the edge.
+        /// </summary>
+        private void OnValidate()
+        {
+            BoxCollider box = GetComponent<BoxCollider>();
+
+            if (box != null && !box.isTrigger) {
+                Debug.LogWarning(
+                    $"ClimbableEdge '{name}': its BoxCollider isn't a trigger. An edge is a grab volume, " +
+                    "not geometry - tick Is Trigger, and make the ledge itself a separate solid object " +
+                    "on the Environment layer, with this box a little larger so hand rays hit it first.",
+                    this);
+            }
+
+            int climbableLayer = LayerMask.NameToLayer(ClimbableLayerName);
+
+            if (climbableLayer >= 0 && gameObject.layer != climbableLayer) {
+                Debug.LogWarning(
+                    $"ClimbableEdge '{name}': not on the {ClimbableLayerName} layer, so hand rays may miss " +
+                    "it or it may collide with things it shouldn't.",
+                    this);
+            }
         }
 
         /// <summary>
