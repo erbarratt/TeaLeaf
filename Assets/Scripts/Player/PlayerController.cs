@@ -100,15 +100,23 @@ namespace Player
             Vector3 positionBeforeMove = playerTransform.position;
             characterController.Move(_frameMovement);
 
+            // How far the player really moved - Move() doesn't always apply
+            // the full amount requested, since collisions can absorb or
+            // redirect part of it.
+            Vector3 appliedMovement = playerTransform.position - positionBeforeMove;
+
             // Only while climbing - otherwise this frame's actual movement
             // came from walking/gravity, not FrameMovement, and reporting it
-            // back would corrupt PlayerClimbing's own tracking. Move()
-            // doesn't always apply the full amount requested, and
-            // PlayerClimbing needs to know exactly how much of it landed to
-            // stop the grab point drifting - see ReportAppliedMovement().
+            // back would corrupt PlayerClimbing's own tracking. PlayerClimbing
+            // needs to know exactly how much of its movement landed to stop
+            // the grab point drifting - see ReportAppliedMovement().
             if (isClimbing) {
-                playerClimbing.ReportAppliedMovement(playerTransform.position - positionBeforeMove);
+                playerClimbing.ReportAppliedMovement(appliedMovement);
             }
+
+            // 8. Movement state - last, since it needs this frame's real
+            // movement and the isGrounded that Move() just updated.
+            playerLocomotion.TickState(isClimbing, appliedMovement);
         }
     }
 }

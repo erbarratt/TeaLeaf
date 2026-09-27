@@ -97,6 +97,20 @@ namespace Player
         /// transitioning between standing and crouching.
         [SerializeField] private float crouchTransitionSpeed = 2f;
 
+        [Header("Movement State")]
+
+        /// Horizontal speed, in metres per second, the player must actually be
+        /// moving at to count as Walking/Sprinting/CrouchWalking rather than
+        /// Still/CrouchStill. Measured from real applied movement, so pushing
+        /// the stick into a wall still counts as still.
+        [SerializeField] private float movingSpeedThreshold = 0.1f;
+
+        /// How long, in seconds, the CharacterController must be off the
+        /// ground before the state becomes Airborne. isGrounded briefly drops
+        /// out when walking down steps and slopes, and without this grace
+        /// period the state would flicker to Airborne mid-walk.
+        [SerializeField] private float airborneGraceTime = 0.15f;
+
         /// Prevents repeated snap turns while the stick remains held.
         private bool _snapTurnQueued;
 
@@ -117,11 +131,27 @@ namespace Player
         private bool _wasClimbing;
 
         /// <summary>
-        /// True while the player is sprinting. Read by future systems (noise,
-        /// visibility, the movement state) rather than each re-deriving it
-        /// from input.
+        /// True while the sprint toggle is on. Most systems should read
+        /// MovementState instead, which is only Sprinting while the player
+        /// is actually moving at sprint speed.
         /// </summary>
         public bool IsSprinting { get; private set; }
+
+        /// <summary>
+        /// True while the crouch toggle is on (including mid-way through the
+        /// height transition).
+        /// </summary>
+        public bool IsCrouching => _isCrouching;
+
+        /// <summary>
+        /// What the player's body is doing this frame - see MovementState.
+        /// Updated by TickState() after the CharacterController has moved.
+        /// </summary>
+        public MovementState MovementState { get; private set; }
+
+        /// Seconds since the CharacterController was last grounded - see
+        /// airborneGraceTime.
+        private float _timeSinceGrounded;
 
         private void Awake()
         {
@@ -178,6 +208,44 @@ namespace Player
         public void TickTurning()
         {
             HandleTurning();
+        }
+
+        /// <summary>
+        /// Works out this frame's MovementState. Called by PlayerController
+        /// straight after characterController.Move(), because it needs two
+        /// things only known then: the up-to-date isGrounded (Move() is what
+        /// updates it), and appliedMovement - how far the player actually
+        /// moved, rather than how far they asked to.
+        /// </summary>
+        public void TickState(bool isClimbing, Vector3 appliedMovement)
+        {
+            if (characterController.isGrounded) {
+                _timeSinceGrounded = 0f;
+            } else {
+                _timeSinceGrounded += Time.deltaTime;
+            }
+
+            // Horizontal only - gravity's small constant downward push while
+            // grounded shouldn't count as moving. Compared as squared
+            // lengths, which avoids a square root: "distance > threshold *
+            // time" rearranged from "speed > threshold".
+            appliedMovement.y = 0f;
+            float minimumDistance = movingSpeedThreshold * Time.deltaTime;
+            bool isMoving = appliedMovement.sqrMagnitude > minimumDistance * minimumDistance;
+
+            // Checked in priority order - e.g. crouching while falling is
+            // still Airborne, and sprinting into a wall is still Still.
+            if (isClimbing) {
+                MovementState = MovementState.Climbing;
+            } else if (_timeSinceGrounded > airborneGraceTime) {
+                MovementState = MovementState.Airborne;
+            } else if (_isCrouching) {
+                MovementState = isMoving ? MovementState.CrouchWalking : MovementState.CrouchStill;
+            } else if (!isMoving) {
+                MovementState = MovementState.Still;
+            } else {
+                MovementState = IsSprinting ? MovementState.Sprinting : MovementState.Walking;
+            }
         }
 
         /// <summary>
