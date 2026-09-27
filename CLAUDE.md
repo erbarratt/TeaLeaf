@@ -100,16 +100,17 @@ behaviour. The current order is:
    height (before the hand systems, since crouch moves the tracked hierarchy).
 3. `playerHandInteraction.Tick()` — hand rays + highlighting.
 4. `playerClimbing.Tick()` — grab/release, climb movement.
-5. `playerHandAnimation.Tick()` — after climbing, so it sees this frame's grab state.
-6. `_frameMovement` = `playerLocomotion.TickMovement(isClimbing)` (thumbstick + gravity;
+5. `_frameMovement` = `playerLocomotion.TickMovement(isClimbing)` (thumbstick + gravity;
    zero while climbing) + `playerClimbing.FrameMovement` while climbing; then
    `playerLocomotion.TickTurning()`.
-7. One `characterController.Move(_frameMovement)`, then
+6. One `characterController.Move(_frameMovement)`, then
    `playerClimbing.ReportAppliedMovement()` while climbing.
-8. `playerLocomotion.TickState(isClimbing, appliedMovement)` — after `Move()`, because it needs
+7. `playerLocomotion.TickState(isClimbing, appliedMovement)` — after `Move()`, because it needs
    the real applied movement and the `isGrounded` that `Move()` just updated.
-9. `playerClimbing.TickHandVisuals()` — last: hand visuals are children of the rig, so a
-   world-space snap pose placed before turning/`Move()` would be dragged off by them.
+8. `playerClimbing.TickHandVisuals()` — after turning/`Move()`: hand visuals are children of
+   the rig, so a world-space snap pose placed earlier would be dragged off by them.
+9. `playerHandAnimation.Tick()` — last, so it reads this frame's snap weight from step 8
+   (Animators evaluate after all `Update()` calls anyway).
 
 New per-frame player systems get a `Tick()` (or a `Tick…()` that returns a movement
 contribution) and a slot in `PlayerController.Update()`. `PlayerController.Reset()`
@@ -184,6 +185,8 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
   should move to a hand-level owner when grabbing/tools need it). Blends a hand *visual*
   (never the tracked controller) between its rest local pose and a world-space `HandSnapPose`
   over `snapBlendDuration` (SmoothStep), both ways, and doesn't touch the transform at rest.
+  Exposes the eased blend as `Weight` (0 = following the controller, 1 = snapped), which
+  `PlayerHandAnimation` uses as the finger pose layer weight so the two stay in step.
   While snapped the visual is **detached to the scene root** and re-attached when the release
   blend ends: the hands' Tracked Pose Drivers use "Update And Before Render", so they move the
   controller again after all `Update()` code, and a child visual would wobble. Anything that
@@ -196,10 +199,15 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
   climbing, so they're always this frame's.
 - **`HandRayReticle`** — runtime-built billboard disc shown where a hand ray hits a
   highlightable; ticked by `PlayerHandInteraction`.
-- **`PlayerHandAnimation`** — per-hand Animator finger curl. A private `HandState` enum
-  (`Idle`, `Climbing`) decides who owns each hand's pose: `Idle` sets `TriggerCurl` (index)
-  and `GripCurl` (middle/ring/pinky) from input; other states leave the pose to their own
-  system. New hand states (holding items, tools) are added to `HandState`/`GetState()`.
+- **`PlayerHandAnimation`** — per-hand Animator. The base layers always follow input
+  (`TriggerCurl` index, `GripCurl` middle/ring/pinky). The `Snap Pose` override layer plays the
+  snap target's `HandPose` with its weight set from that hand's `HandVisualSnap.Weight`, so
+  any snapped hand (ledge now; rungs, ropes, props, tools later) gets its target's finger pose
+  and fades back to input curl on release. `Play()`/`SetLayerWeight()` only run when the pose
+  or weight changes. The layer index is looked up by name; state hashes are built once from
+  `HandPose`'s enum names. (Replaced an earlier `HandState` enum — every non-input pose is a
+  snap pose, so the snap weight already says who owns the fingers.) New poses: add a
+  `HandPose` value plus a same-named state and clip on the layer, no new code.
 
 `Assets/Scripts/Player/Debug/` holds standalone debug/diagnostic MonoBehaviours (e.g.
 `VRDebugInput`, `InputTest`, `TrackingTest`, `TurnInputTest`, `TurnActionTest`,
@@ -255,9 +263,14 @@ Real hand model (`Assets/Art/Models/hand.fbx`, Generic rig, bones like
 group, each a 1D blend tree between single-keyframe Open/Closed pose clips: Base Layer
 (`TriggerCurl`, index) and Grip (`GripCurl`, middle+ring+pinky). No Avatar Masks are used —
 each clip only keys its own finger bones, and a Generic-rig layer only writes the properties
-its clips animate. New pose clips should likewise key only the bones they need. The thumb
-isn't animated yet. Keep the mirrored right hand in mind for colliders and anything
-handedness-dependent.
+its clips animate. New pose clips should likewise key only the bones they need. On top sits
+the `Snap Pose` layer (Override, default weight 0, driven from code): one state per
+`HandPose` value, **named exactly like the enum value** (e.g. `LedgeGrip`), each holding a
+single-keyframe clip. A snap clip must key **every joint (1, 2 and 3) of every finger it
+poses**: like the other layers it only writes the bones it keys (Write Defaults doesn't reset
+unkeyed bones here), so any unkeyed joint keeps the input layers' curl - and grip is held
+while climbing. The thumb isn't animated yet. Keep the mirrored right hand in mind for
+colliders and anything handedness-dependent.
 
 ### Locomotion design decisions
 
@@ -293,8 +306,8 @@ handedness-dependent.
 - **Ray-targeted grabs + hand snap poses** (Phase 1, in progress) — climbing starts when grip
   is held while the hand ray/reticle is on a climbable (built; replaced the old SphereCollider
   overlap). On grab the visual hand snaps (with a short blend)
-  to a target-defined position and rotation (built); the target's finger pose (e.g. fingers
-  curled over a ledge) is carried but not played yet. This is a general mechanism: any grab
+  to a target-defined position and rotation, and plays the target's finger pose (e.g. fingers
+  curled over a ledge) on the hand Animator's `Snap Pose` layer. This is a general mechanism: any grab
   target (ledge, ladder rung, rope, door handle, tool, prop) supplies its own per-hand snap
   pose, rather than hand code special-casing each one.
 - **Settings will eventually move out of serialized fields** — Smooth Turn/Snap Turn, turn

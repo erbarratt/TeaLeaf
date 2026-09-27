@@ -58,6 +58,35 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
   shear. Lesson: anything that must stay world-fixed can't be a child of a
   tracked transform. Verified in headset - snapped hands now stay dead
   still on the ledge. Step 2 done.
+- Committed as two commits: MovementState (code only), then the climb
+  grab + snap poses together with the scene and all doc updates, since
+  those files mixed changes from both.
+- Hand snap finger pose, step 3 of 3 - code side (Phase 1). Chose a new
+  "Snap Pose" override layer on top of the hand controller over forcing
+  TriggerCurl/GripCurl to 1 (that only gives a closed fist, not fingers
+  hooked over a lip, and every future pose would need more parameters).
+  The layer's states are named after HandPose values, hashed once from the
+  enum names, so a new pose is an enum value + state + clip with no new
+  code. Its weight is HandVisualSnap's new Weight (the eased snap blend),
+  so the fingers close exactly as the hand lands and open as it leaves -
+  one source of timing. Removed PlayerHandAnimation's HandState enum:
+  every non-input pose is now a snap pose, so the snap weight already says
+  who owns the fingers; the input layers always run underneath.
+  PlayerHandAnimation.Tick() moved to the end of the frame (after
+  TickHandVisuals) so it reads this frame's weight - free, since Animators
+  evaluate after all Update() calls anyway. Updated roadmap items that
+  mentioned HandState.
+- Bug: with the Snap Pose layer + LedgeGrip clip in place, the index
+  finger hooked correctly but middle/ring/pinky looked like the grip
+  animation. The clip only keyed joint 2 of each finger, and a layer only
+  overrides the bones its clip keys - joints 1 and 3 kept the Grip layer's
+  curl, which is fully closed because grip is held to climb (the index
+  only looked right because the trigger wasn't pulled). Fix: key joints 1,
+  2 and 3 of every finger in the snap clip. Lesson (corrects my earlier
+  note): Write Defaults does not reset unkeyed bones on this rig, which is
+  the same behaviour that lets Base and Grip share the hand without masks.
+  Verified in headset after keying joints 1-3: all four fingers hook over
+  the lip and ignore grip/trigger while snapped. Step 3 done.
 
 
 2026-09-26

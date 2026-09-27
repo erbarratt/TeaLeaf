@@ -46,8 +46,15 @@ namespace Player
         public bool IsSnapped { get; private set; }
 
         /// The pose passed to the last Snap() - e.g. which finger pose to
-        /// play. Only meaningful while IsSnapped.
+        /// play. Only meaningful while Weight is above 0 (it stays valid
+        /// through the release blend, not just while IsSnapped).
         public HandSnapPose SnapPose => _snapPose;
+
+        /// How far into the snap the hand currently is, eased: 0 = following
+        /// the controller, 1 = fully snapped. The same value that places the
+        /// visual, so anything else blending with the snap (e.g. the finger
+        /// pose layer in PlayerHandAnimation) stays exactly in step with it.
+        public float Weight { get; private set; }
 
         public HandVisualSnap(Transform visual, float blendDuration)
         {
@@ -109,6 +116,7 @@ namespace Player
                 // Finished releasing - re-attach to the controller and
                 // restore the exact local pose once, so no floating-point
                 // error from the world-space blend lingers.
+                Weight = 0f;
                 _visual.SetParent(_restParent, false);
                 _visual.SetLocalPositionAndRotation(_restLocalPosition, _restLocalRotation);
                 return;
@@ -123,6 +131,7 @@ namespace Player
             // SmoothStep eases in and out, so the hand doesn't start or stop
             // moving abruptly at either end of the blend.
             float t = Mathf.SmoothStep(0f, 1f, _blend);
+            Weight = t;
 
             _visual.SetPositionAndRotation(
                 Vector3.Lerp(restPosition, _snapPose.Position, t),

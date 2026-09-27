@@ -1,26 +1,36 @@
+using System;
+using Interaction;
 using UnityEngine;
 
 namespace Player
 {
     /// <summary>
-    /// Drives each hand model's finger-curl Animator parameters from
-    /// controller input, except while some other system owns the hand's
-    /// pose (e.g. gripping a climbable edge) - see HandState.
+    /// Drives each hand model's Animator. Two things feed it:
+    ///
+    /// - Input: the Base (index) and Grip (middle/ring/pinky) layers always
+    ///   follow live trigger/grip values.
+    /// - Snapping: the "Snap Pose" layer sits on top as an override. While a
+    ///   hand is snapped to something (a ledge now; rungs, ropes, held props
+    ///   and tools later), that layer plays the snap target's HandPose, and
+    ///   its weight follows the hand's HandVisualSnap.Weight - so the fingers
+    ///   close exactly as the hand lands and open exactly as it leaves. At
+    ///   weight 0 the layer contributes nothing and input curl shows as normal.
+    ///
+    /// This replaced an earlier HandState enum (Idle/Climbing): every
+    /// non-input pose is a snap pose, so the snap layer's weight already says
+    /// who owns the fingers.
     ///
     /// Ticked explicitly from PlayerController.Update(), after
-    /// PlayerClimbing.Tick(), rather than running its own Update() - the
-    /// same reasoning as PlayerClimbing/PlayerHandInteraction's own class
-    /// comments: this needs THIS frame's grab state, so frame ordering has
-    /// to be deterministic rather than left to Unity's Update() order.
+    /// PlayerClimbing.TickHandVisuals(), so it reads this frame's snap weight
+    /// rather than last frame's. Animators evaluate after every Update() has
+    /// run, so ticking this last costs nothing.
     /// </summary>
     public class PlayerHandAnimation : MonoBehaviour
     {
-        /// What's currently driving a hand's finger pose. Idle means finger
-        /// curl follows live grip/trigger input; every other state means
-        /// some other system owns the pose and input is ignored here.
-        /// Checked in priority order in GetState() - add new cases (holding
-        /// an item, pointing, etc.) there as they're needed.
-        private enum HandState { Idle, Climbing }
+        // Name of the override layer in Left Hand Visual.controller. Its
+        // states must be named exactly like the HandPose enum values - see
+        // BuildPoseStateHashes().
+        private const string SnapPoseLayerName = "Snap Pose";
 
         [SerializeField] private PlayerInputXR playerInput;
         [SerializeField] private PlayerClimbing playerClimbing;
@@ -38,53 +48,117 @@ namespace Player
         private static readonly int _gripCurlParam = Animator.StringToHash("GripCurl");
         private static readonly int _triggerCurlParam = Animator.StringToHash("TriggerCurl");
 
+        // Snap Pose layer state hash for each HandPose, indexed by (int)pose.
+        private static readonly int[] _poseStateHashes = BuildPoseStateHashes();
+
+        // Index of the Snap Pose layer, looked up once by name rather than
+        // hard-coded, so reordering layers in the controller can't silently
+        // break it. Both hands share one controller, so one index serves both.
+        // -1 if the layer is missing.
+        private int _snapPoseLayer;
+
+        // The layer weight and pose each hand's Animator was last given, so
+        // SetLayerWeight()/Play() only run when something actually changes -
+        // not every frame a hand sits fully snapped or fully at rest.
+        private float _leftAppliedWeight;
+        private float _rightAppliedWeight;
+        private int _leftPlayedPose = -1;
+        private int _rightPlayedPose = -1;
+
+        private void Awake()
+        {
+            _snapPoseLayer = leftHandAnimator.GetLayerIndex(SnapPoseLayerName);
+
+            if (_snapPoseLayer < 0) {
+                Debug.LogWarning($"PlayerHandAnimation: no \"{SnapPoseLayerName}\" layer on the hand Animator Controller - snapped hands will keep their input pose.", this);
+            }
+        }
+
         /// <summary>
-        /// Updates both hands' finger-curl animation for this frame.
+        /// Updates both hands' animation for this frame.
         /// </summary>
         public void Tick()
         {
             UpdateHand(
                 leftHandAnimator,
-                GetState(playerClimbing.IsLeftHandGripping),
+                playerClimbing.LeftVisualSnap,
                 playerInput.LeftGrip,
-                playerInput.LeftTrigger);
+                playerInput.LeftTrigger,
+                ref _leftAppliedWeight,
+                ref _leftPlayedPose);
 
             UpdateHand(
                 rightHandAnimator,
-                GetState(playerClimbing.IsRightHandGripping),
+                playerClimbing.RightVisualSnap,
                 playerInput.RightGrip,
-                playerInput.RightTrigger);
+                playerInput.RightTrigger,
+                ref _rightAppliedWeight,
+                ref _rightPlayedPose);
         }
 
         /// <summary>
-        /// Decides which HandState a hand is in this frame. Climbing takes
-        /// priority over Idle since a gripped edge should always override
-        /// input-driven finger curl.
+        /// Applies one hand's input curl, then its snap pose and weight on
+        /// top. Input is always applied, even while snapped - it's hidden
+        /// under the override layer then, and already in place the moment
+        /// the layer fades out on release.
         /// </summary>
-        private static HandState GetState(bool isGripping)
+        private void UpdateHand(
+            Animator handAnimator,
+            HandVisualSnap visualSnap,
+            float gripValue,
+            float triggerValue,
+            ref float appliedWeight,
+            ref int playedPose)
         {
-            return isGripping ? HandState.Climbing : HandState.Idle;
-        }
+            handAnimator.SetFloat(_gripCurlParam, gripValue);
+            handAnimator.SetFloat(_triggerCurlParam, triggerValue);
 
-        /// <summary>
-        /// Applies one hand's animation for its current state. Only Idle
-        /// actually touches the Animator - every other state leaves it
-        /// exactly as it was last frame, until a dedicated pose for that
-        /// state is built.
-        /// </summary>
-        private static void UpdateHand(Animator handAnimator, HandState state, float gripValue, float triggerValue)
-        {
-            switch (state) {
-
-                case HandState.Idle:
-                    handAnimator.SetFloat(_gripCurlParam, gripValue);
-                    handAnimator.SetFloat(_triggerCurlParam, triggerValue);
-                    break;
-
-                case HandState.Climbing:
-                    // Intentionally does nothing for now - see class comment.
-                    break;
+            if (_snapPoseLayer < 0) {
+                return;
             }
+
+            float weight = visualSnap.Weight;
+
+            // Switch the layer to the target's pose when it changes - e.g. the
+            // first grab, or later a ledge followed by a ladder rung. Played
+            // instantly rather than cross-faded: the weight itself is the
+            // fade, since it rises from 0 as the hand moves in.
+            if (weight > 0f) {
+                int pose = (int)visualSnap.SnapPose.Pose;
+
+                if (pose != playedPose) {
+                    handAnimator.Play(_poseStateHashes[pose], _snapPoseLayer, 0f);
+                    playedPose = pose;
+                }
+            }
+
+            // Exact comparison on purpose: Weight only changes when
+            // HandVisualSnap changes it, and it lands on exactly 0 and 1 at
+            // the ends of a blend, which an approximate check could skip.
+            if (weight != appliedWeight) {
+                handAnimator.SetLayerWeight(_snapPoseLayer, weight);
+                appliedWeight = weight;
+            }
+        }
+
+        /// <summary>
+        /// Hashes every HandPose name once, at class load, so a pose maps to
+        /// its Snap Pose layer state with an array lookup. This is the
+        /// convention that ties code to the controller: a state named
+        /// "LedgeGrip" plays for HandPose.LedgeGrip, and so on. Relies on
+        /// HandPose values being the default 0, 1, 2, ... (no explicit
+        /// numbers), so each value is also its index here.
+        /// </summary>
+        private static int[] BuildPoseStateHashes()
+        {
+            string[] names = Enum.GetNames(typeof(HandPose));
+            int[] hashes = new int[names.Length];
+
+            for (int i = 0; i < names.Length; i++) {
+                hashes[i] = Animator.StringToHash(names[i]);
+            }
+
+            return hashes;
         }
     }
 }
