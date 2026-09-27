@@ -351,32 +351,41 @@ performant approaches for Quest 3 before any code is written:
     max-distance snap-back (step 4), a small pop if grabbing while the hand
     is held off a surface (integration), rays still from the controller
     (step 5).
-[ ] Separate the visual hand from the tracked controller: the controller
-    transform stays the "target", the visual hand is its own object that
-    tries to follow it every frame.
-[ ] Hand colliders: a small set of cheap primitive colliders per hand
-    (e.g. a palm box/capsule plus a few finger capsules - no mesh
-    colliders) on the PlayerHands layer, colliding only with Environment/
-    Interactable (layer matrix from Phase 0; Climbable is deliberately off -
-    ledges rest on the Environment geometry). Revisit PlayerHands-Guard.
-[ ] Collision response: when the target moves into geometry, the visual
-    hand stops at the surface and slides along it rather than
-    penetrating - the kinematic sweep above (CapsuleCast collide-and-
-    slide + Physics.ComputePenetration depenetration, no Rigidbody).
-[ ] "Elastic band" catch-up: once the path is clear the visual hand
-    returns to the controller position quickly but smoothly (no pop).
-    If separation exceeds a max distance (e.g. 0.3-0.5m, tunable) or the
-    hand is stuck, snap straight back to the controller.
-[ ] Rotation (decided 2026-09-27): the visual always takes the
-    controller's rotation; if that rotates it into geometry it's pushed
-    out by the depenetration step. Replaces "rotation blocked by contact,
-    then eases back" - simpler, and rarely noticeable in VR.
-[ ] Integrate with existing systems: a hand snapped to a grab target (hand
-    snap pose, Phase 1) must take priority over the physical follow.
-    Decide whether hand rays (PlayerHandInteraction) - which now also
-    drive climb grabs - use the tracked or the visual hand (probably
-    visual, so you can't grab through a wall). Held items/tools inherit
-    the visual hand's position.
+[x] Step 3 - depenetration + rotation (verified in headset 2026-09-27):
+    Depenetrate() (OverlapCapsuleNonAlloc + ComputePenetration against a
+    parked, never-moved trigger capsule per hand) runs BEFORE the sweep -
+    a wrist twist overlapped the wall at the sweep's start, which a
+    CapsuleCast can't see, so the hand passed through. While in contact
+    the hand holds the rotation it touched with; contact ends only when
+    the hand also fits at the controller's own rotation.
+[x] Step 4 - elastic band (verified in headset 2026-09-27): on release the
+    hand's offset from the controller (in controller space) eases to zero
+    over catchUpDuration (0.1s); beyond maxSeparation (0.4m) it snaps
+    straight back and passes through (collision off) until the controller
+    is clear.
+[x] Step 5 - hand rays from the visual (verified in headset 2026-09-27):
+    rays start from the controller pose shifted to where a surface holds
+    the visual, so you can't target or grab through a wall.
+[x] Separate the visual hand from the tracked controller: done as the
+    visual staying a child of the controller while free (zero added
+    latency) and detached, placed by code, while held (steps 2-4).
+[x] Hand colliders: decided one wrist-to-fingertip capsule per hand as
+    the query shape (sweep, overlap, CheckCapsule) - no colliders on the
+    hand itself, just the parked penetration capsule. Finger capsules only
+    if play shows they're needed. Revisit PlayerHands-Guard when guards
+    exist.
+[x] Collision response: stop at the surface and slide along it, and push
+    out of anything the hand starts inside (steps 2-3).
+[x] "Elastic band" catch-up and max-distance snap-back (step 4).
+[x] Rotation (revised 2026-09-27): follows the controller while free, HELD
+    at the contact rotation while in contact, eased back on release.
+    "Always follow the controller" (the earlier decision) made the hand
+    back away from the wall as the wrist tilted while pushing deeper.
+[ ] Integrate with existing systems. Done: snapping takes priority over
+    the physical follow (steps 1-2); hand rays use the visual hand (step
+    5). Left: the small pop when grabbing while a surface holds the hand
+    off the controller; held items/tools inherit the visual hand's
+    position (when tools exist).
 [ ] Optional feedback: light haptic pulse on first contact; faint "ghost"
     hand at the real controller position while separated (as Alyx does).
 [ ] Debug (Scripts/Player/Debug): in-headset hand capsule visualiser.
@@ -389,9 +398,9 @@ performant approaches for Quest 3 before any code is written:
     visual capsule green (free) / red (in contact). Toggled by enabling the
     component; costs nothing while off. Until then, watch the gizmos in a
     Scene view on the monitor while playing in the headset.
-[ ] Test scene: wall, table edge, pillar corner, a gap narrower than the
-    hand; verify no jitter against surfaces and no tunnelling on fast
-    swings. Profile the cost on Quest.
+[ ] Step 6 - test area + profiling (next session): wall, table edge,
+    pillar corner, a gap narrower than the hand; verify no jitter against
+    surfaces and no tunnelling on fast swings. Profile the cost on Quest.
 Test scene:
 [ ] Extend the CharacterController test scene: ledge at chest height, ledge
     above head, mantle onto low-clearance shelf, 4m ladder, rope, a gap to

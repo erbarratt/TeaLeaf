@@ -5,6 +5,111 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 (Unity, OpenXR + XR Interaction Toolkit). Newest updates are at the top.
 
 
+2026-09-27 (second session)
+---------------------------
+- First periodic performance review (to be repeated now and then, so
+  per-frame waste doesn't creep in). PlayerInputXR caches its resolved
+  InputActions in OnEnable and guards Tick() with Time.frameCount - it was
+  reading all nine actions twice a frame (its own Update() fallback plus
+  PlayerController). HandRayReticle only toggles its renderer when
+  visibility changes. PlayerHandInteraction pre-rotates the ray angle
+  offsets once in Awake/OnValidate instead of a Quaternion.Euler per hand
+  per frame. PlayerHandAnimation only calls SetFloat when a value changes.
+  PlayerLocomotion: sqrMagnitude deadzone, isGrounded read once, jump
+  launch speed cached, and the capsule re-centre skipped for head drift
+  under 2mm (compared to the actual centre, so small moves still add up).
+  Bug found doing this: XRI deactivating an untracked controller resets
+  its Animator, so any "only set it when it changes" cache went stale
+  after tracking loss (already true for the pose layer weight). Fixed with
+  keepAnimatorStateOnDisable = true on both hand Animators.
+  Learned: lookup tables don't pay for this kind of maths on Quest's ARM
+  CPU (sqrt is one instruction) - hoisting work out of the frame does.
+  Precomputing is worth planning into the AI/noise/visibility phases
+  (cos of half the vision angle + a dot product for vision cones, squared
+  distances, baked falloff curves). Rejected: caching tracked positions
+  once per frame in PlayerTracking - they'd be stale after crouch and
+  Move() mid-frame. Still to check in headset: finger curl after a
+  controller loses tracking and comes back; the capsule following a slow
+  lean smoothly.
+- Physical hands step 3 - depenetration + rotation (Phase 1). Bug found
+  first: a hand pushed into a wall with natural arm motion passed through,
+  though walking into a wall with the arm held out stopped it. Cause: the
+  wrist rotates as the arm moves, swinging the capsule into the wall at
+  the START of the sweep - a CapsuleCast can't see anything it starts
+  inside, so the "started inside, let it through" case fired. Confirmed by
+  pushing in with the wrist locked (held fine).
+  Fix: Depenetrate() runs before the sweep - OverlapCapsuleNonAlloc lists
+  what the hand is inside (shared buffer, no allocation), then
+  Physics.ComputePenetration gives the shortest way out of each, moved by
+  that plus the skin width, up to 3 passes for corners. Before, not after:
+  straight after a twist the overlap is shallow and the nearest way out is
+  the side the hand came from; after a sweep the hand could be past the
+  middle of a thin wall and get pushed out of the far side.
+  ComputePenetration needs a real, ENABLED collider for the hand (Unity 6
+  docs) but takes the pose as arguments, so each hand builds a trigger
+  CapsuleCollider on PlayerHands, parked at y -1000 at the scene root and
+  never moved.
+  Then the hand drifted away from the wall the deeper it went - rotation
+  again (wrist-locked: no drift). The arm pivots at the shoulder, so the
+  wrist tilts as you push deeper, swinging the fingers into the wall, and
+  the push-out backed the whole hand away. Fix: while in contact the hand
+  keeps the rotation it touched with (replacing "always follow the
+  controller"); contact only ends once the hand also fits at the
+  controller's own rotation, otherwise it flickers on and off the wall.
+  Rejected: freezing the hand with the snap system (no sliding, switches
+  the finger pose, needs a snap pose on every surface) and pivoting about
+  the contact point (complex, awkward with several contacts). The capsule
+  maths now use the controller's rotation directly (GetCapsuleOffsets) -
+  fine since everything from Player down to the controllers is scale 1.
+- Physical hands step 4 - elastic band. When contact ends, the hand's
+  offset from the controller - position and rotation, stored in the
+  controller's own space - eases to zero over catchUpDuration (0.1s,
+  SmoothStep), still swept every frame so it can land back in contact.
+  Because the offset is relative to the controller, the hand keeps
+  following the real hand while it eases back. Rejected: an exponential
+  chase of the controller - it lags further the faster you move and might
+  never settle. Snap-back: if a surface holds the hand more than
+  maxSeparation (0.4m) away, it jumps straight to the controller and
+  "passes through" (collision off) until the controller is clear.
+  Without that the push-out moves it to the nearest face of whatever the
+  controller is inside; if that's the near face it's too far away again
+  and snaps back every frame.
+- Physical hands step 5 - hand rays from the visual hand. Rays start from
+  the controller pose shifted to where a surface holds the hand
+  (HandPhysicalFollow.GetHandPose()), so a controller pushed through a
+  wall can't target or grab what's behind it; the tuned ray angle offsets
+  still apply. It's last frame's placement, since rays run before the
+  visuals are ticked.
+- UI draws after everything else (new project rule, in the root
+  CLAUDE.md). The hand reticles and the mantle arrow were being hidden by
+  walls and the hand models. CORRECTION to an earlier entry: the arrow
+  never drew through walls. Its UI/Default material set unity_GUIZTestMode
+  to Always, but that isn't one of the shader's material properties, so
+  the override was silently ignored (the Inspector showed queue 4000, so
+  the queue wasn't the problem). The reticle was depth-tested
+  Sprites/Default. URP's Unlit has no depth-test setting either, so there's
+  now a small shader of our own, TeaLeaf/Overlay
+  (Art/Shaders/Resources): flat colour, ZTest Always, ZWrite Off, Cull
+  Off, Overlay queue, with the single-pass instanced stereo macros so it
+  draws in both eyes. It's in a Resources folder so Shader.Find() works in
+  builds. Both markers build it through OverlayMaterial.Create().
+- Scene setup bug: three test cubes had a ClimbableEdge on their own solid
+  collider, on the Climbable layer - which collides with nothing, so hands
+  and the player's body went straight through them. Split into solid
+  cubes on Environment plus slightly larger trigger edge volumes (larger
+  so the hand ray hits the edge first rather than tying with the solid
+  face). ClimbableEdge.OnValidate() now warns about a non-trigger collider
+  or the wrong layer.
+- Learned: Game view gizmos don't work in VR - they're drawn for one flat
+  camera, so they show in one eye only, offset. Use a Scene view on the
+  monitor while playing, for now.
+- Roadmap: physical hands steps 3-5 ticked, and the older duplicate items
+  in that list resolved against what was built (rotation decision revised
+  to "held while in contact"). Added an in-headset hand capsule debug
+  visualiser (because of the gizmo problem). Step 6 (test area +
+  profiling on Quest) is next session.
+
+
 2026-09-27
 ----------
 - MovementState (from 2026-09-26) verified in headset - all states read
