@@ -5,6 +5,40 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 (Unity, OpenXR + XR Interaction Toolkit). Newest updates are at the top.
 
 
+2026-09-29
+----------
+- Design only, no code: aimed throwing added as a slice mechanic. Instead
+  of physically throwing a held object, grip holds it, holding that hand's
+  trigger shows a trajectory arc, and releasing the trigger plays a short
+  hand visual launch animation and throws the object along the arc.
+  Distance comes from the hand's pitch with a fixed launch speed, like
+  standard VR teleport arcs. The aim is accuracy (noisemakers and
+  distractions need to land where intended) and avoiding how awkward
+  physical throwing feels in VR (no weight, release timing, noisy hand
+  velocity). Releasing grip without aiming just drops the object.
+- How the design got there: the first draft aimed with the right stick
+  pushed forward and threw on a button still to be chosen. That clashed
+  with the right stick's snap turn and mantle (stick up), and left open
+  which hand throws. Moving aim/throw to each hand's own trigger fixed
+  both - either hand throws what it holds, and the sticks aren't involved.
+  The triggers only curled the index finger until now, so they were free.
+- Cancel: aim-at-nothing, as with teleport arcs - a hand pitched too far
+  up or down, or an arc with no valid landing, turns the arc red/faded,
+  and releasing the trigger then cancels. Considered and rejected
+  fast-release-throws / slow-release-cancels: a tense player easing off
+  the trigger would silently lose a throw, there's no feedback before
+  release, and the speed threshold would differ per player. It could come
+  back later as a second cancel if playtests ask. Letting go of grip while
+  aiming (clashes with grip release = drop) and face-button or stick-click
+  cancels (different on each hand) were also rejected.
+- Roadmap: added Throwing to the feature list; in Phase 3 the physical
+  throw (velocity averaged from PlayerTracking hand positions) is replaced
+  by an "Aimed throwing" item, with the input/distance and cancel
+  decisions ticked and the arc and launch animation still to build.
+  CLAUDE.md (root slice mechanics) and Scripts/Player/CLAUDE.md (design
+  decision, trigger row in the input table) updated to match.
+
+
 2026-09-28
 ----------
 - In-headset gizmos (Phase 1 debug item, widened on request from "the

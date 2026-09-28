@@ -225,6 +225,11 @@ fails and restarts. Agreed mechanics:
   lockpicking with haptics.
 - **Inventory:** wrist radial menu to pick tools/bolt types (equip into the other hand); loot
   pocketed at the hip for a running total.
+- **Throwing is aimed, not physical:** grip picks an object up; holding that hand's trigger
+  shows a trajectory arc (distance from hand pitch, teleport-arc style), and releasing the
+  trigger plays a short hand launch animation and throws along the arc; aiming at nothing
+  (arc red/faded) and releasing cancels. It's for accuracy, and
+  to avoid how awkward physical throwing feels in VR. Detail in `Assets/Scripts/Player/CLAUDE.md`.
 - **Traversal:** sprint, jump, mantling, ladders, rope climbing, drag/hide KO'd bodies.
 - **Physical hands:** the visual hand collides with the world, stops at surfaces, and
   elastic-bands back to the controller once clear (Alyx / Thief VR style). A core concept, part

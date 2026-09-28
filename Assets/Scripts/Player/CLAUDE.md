@@ -33,7 +33,7 @@ named by function where gameplay uses it and by button as a placeholder where it
 | `Move` | `{LeftHand}/{Primary2DAxis}` | movement |
 | `Turn` | `{RightHand}/{Primary2DAxis}` | turning, mantle (stick up) |
 | `LeftGrip` / `RightGrip` | `{LeftHand}`/`{RightHand}/{Grip}` | grabbing, finger curl |
-| `LeftTrigger` / `RightTrigger` | `{LeftHand}`/`{RightHand}/{Trigger}` | index curl |
+| `LeftTrigger` / `RightTrigger` | `{LeftHand}`/`{RightHand}/{Trigger}` | index curl (planned: aim/throw a held object) |
 | `Sprint` | `{LeftHand}/{Primary2DAxisClick}` | sprint toggle |
 | `Crouch` | `{RightHand}/{PrimaryButton}` (A) | crouch toggle |
 | `Jump` | `{RightHand}/{SecondaryButton}` (B) | jump |
@@ -311,6 +311,23 @@ profiled under the
   overrides all other locomotion (movement, turning, gravity, jump, crouch, climbing) and can't
   be cancelled, and always lands the feet at the edge's designer-set mantle point (the same
   spot wherever the mantle started), crouched if the edge says so.
+- **Throwing is aimed, not physical** (decided 2026-09-29, not built yet - Phase 3) — the
+  player doesn't release a held object with a throwing motion. Grip picks an object up; while
+  holding it, that hand's trigger held shows a trajectory arc, and releasing the trigger plays
+  a short hand visual launch animation and throws the object along the arc. Each hand throws
+  what it holds with its own trigger, so either hand works and there's no clash with the
+  sticks. Throw distance comes from the hand's pitch, like standard VR teleport arcs: a fixed
+  launch speed, with the angle taken from where the hand points (range peaks around 45°).
+  This is for accuracy (thrown noisemakers/distractions need to land where intended) and to
+  avoid how awkward physical throwing feels in VR (no weight, release timing, hand-velocity
+  noise). Releasing grip without aiming just drops the object. **Cancel is aim-at-nothing**,
+  as with teleport arcs: pointing the hand steeply up or down, or anywhere the arc has no
+  valid landing, turns the arc red/faded, and releasing the trigger then cancels instead of
+  throwing. Chosen over a fast-release-throws / slow-release-cancels rule, which silently
+  drops throws when a tense player eases off the trigger, gives no feedback before release, and
+  needs a per-player speed threshold (could be a later secondary cancel if playtests ask).
+  Letting go of grip while aiming, and face-button or stick-click cancels, were also rejected:
+  they clash with grip-release-drops, or differ between hands.
 - **Climbing is custom** — no XRI climb provider. Ladders and ropes reuse the
   grab-and-pull-delta approach from `PlayerClimbing` by implementing `IClimbable` (an
   interface, not a shared base class). Ladder and rope movement is unconstrained like ledges

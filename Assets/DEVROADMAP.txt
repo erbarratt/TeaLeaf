@@ -28,6 +28,9 @@ Tools:        blackjack takedown, hand crossbow (either hand, physically
 Inventory:    wrist radial menu to select tools/bolt types; loot pickup and
               pocketing with a running loot total.
 Bodies:       grab and drag KO'd guards to hide them.
+Throwing:     aimed, not physical - hold an object, push the right stick
+              forward for a trajectory arc, press a button to throw (short
+              hand launch animation).
 Hands:        physical hands - the visual hand model collides with the world
               and stops at walls/props instead of passing through, then
               catches back up to the real controller position (Half-Life:
@@ -467,8 +470,28 @@ Grabbing and props:
     (recommended - one system, one set of hand states) vs XRI interactables.
     Build IGrabbable (or a Grabbable base) alongside the existing
     IHandTarget pattern.
-[ ] Grabbable physics props: pick up, hold, release; throw using velocity
-    averaged from the last few frames of PlayerTracking hand positions.
+[ ] Grabbable physics props: pick up, hold, release (release without
+    aiming = drop).
+[ ] Aimed throwing (decided 2026-09-29, replaces the physical throw that
+    averaged PlayerTracking hand velocity): grip holds the object; holding
+    that hand's trigger shows a trajectory arc (drawn as in-world UI with
+    OverlayMaterial); releasing the trigger plays a short hand visual
+    launch animation and throws the object along the arc. Either hand,
+    each with its own trigger. For accuracy, and to avoid the weirdness of
+    physical throwing in VR.
+    [x] Decide the throw input and distance (2026-09-29): trigger hold =
+        aim, trigger release = throw; distance from hand pitch with a fixed
+        launch speed, teleport-arc style.
+    [x] Decide how to cancel (2026-09-29): aim-at-nothing, teleport-arc
+        style - hand pitched too far up/down or no valid landing turns the
+        arc red/faded, and releasing the trigger then cancels. (Rejected
+        fast-release-throws / slow-release-cancels as unreliable under
+        stress and invisible; could be a later secondary cancel.)
+    [ ] Trajectory arc: sampled ballistic curve from the hand, stopping at
+        the first hit, with a landing marker; red/faded when invalid
+        (cancel state).
+    [ ] Launch animation on the hand visual, releasing the object at the
+        right moment with the velocity that matches the arc.
 [ ] Impact noise: ImpactNoise component emits a noise event on collision
     above a speed threshold, loudness scaled by impact speed + surface.
 [ ] Doors: hinged door, grabbed by handle and swung by the hand (or push to
