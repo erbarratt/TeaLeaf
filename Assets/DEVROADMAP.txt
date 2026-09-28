@@ -268,6 +268,11 @@ Scripting:
     [x] Greybox ladder in the test area with a mantleable edge at the top.
     [x] Test in headset: grab rungs at different heights, hand-over-hand
         up and down, mantle off the top, drop off the bottom.
+    [x] Front only (2026-09-28 - it could be grabbed from behind, and the
+        hand then snapped on facing the wrong way): IHandTarget gained
+        CanBeTargetedFrom(rayOrigin) (default true); Ladder refuses hands
+        behind its rung line unless climbableFromBack is ticked, which
+        also flips the grip for grabs from behind. Verified in headset.
 [x] Rope climbing: ClimbableRope (vertical line segment grab target) - built
     here so Phase 5's rope bolt only has to spawn one. Also uses the hand
     snap pose (hand wrapped around the rope at the grabbed height).
@@ -289,6 +294,14 @@ Scripting:
     [x] Greybox rope in the test area (with a mantleable edge at the top).
     [x] Test in headset: grab at different heights and from different
         sides, hand over hand up and down, mantle off the top, drop off.
+    [x] Solid rope + grab from inside (decided 2026-09-28): a rope can have
+        a solid collider (a thin Environment child, so the physical hands
+        stop against it) inside its larger trigger grab volume. A hand
+        INSIDE any hand target's volume targets it (PlayerHandInteraction
+        checks before casting the ray, since a ray never detects a collider
+        it starts inside) - so a hand against the rope can grab. The grab
+        capsule is always a trigger; a setup warning flags a solid child
+        reaching grabRadius. Verified in headset.
 [x] Gravity/fall interplay: releasing all grips mid-climb falls normally
     (verified in headset 2026-09-27). Fall damage: none for the slice -
     it comes later, in a dedicated damage phase after the slice.
@@ -362,7 +375,10 @@ performant approaches for Quest 3 before any code is written:
     hand's offset from the controller (in controller space) eases to zero
     over catchUpDuration (0.1s); beyond maxSeparation (0.4m) it snaps
     straight back and passes through (collision off) until the controller
-    is clear.
+    is clear. Revised 2026-09-28 (verified): position and rotation are held
+    and released separately, each with its own ease (the position used to
+    jump back while only the rotation eased); the snap-back also eases now,
+    through the wall with collision off, so every return is eased.
 [x] Step 5 - hand rays from the visual (verified in headset 2026-09-27):
     rays start from the controller pose shifted to where a surface holds
     the visual, so you can't target or grab through a wall.
@@ -388,19 +404,23 @@ performant approaches for Quest 3 before any code is written:
     position (when tools exist).
 [ ] Optional feedback: light haptic pulse on first contact; faint "ghost"
     hand at the real controller position while separated (as Alyx does).
-[ ] Debug (Scripts/Player/Debug): in-headset hand capsule visualiser.
-    Gizmos drawn in the Game view only show in one eye, offset and
-    distorted, in VR (a Unity limitation - they're drawn for one flat
-    camera, not per eye), so draw each hand's capsule with real geometry
-    instead: two spheres + a cylinder, see-through unlit material, colour
-    via MaterialPropertyBlock and only changed when contact flips. Same as
-    the PlayerHandVisuals gizmos: faint target capsule at the controller,
-    visual capsule green (free) / red (in contact). Toggled by enabling the
-    component; costs nothing while off. Until then, watch the gizmos in a
-    Scene view on the monitor while playing in the headset.
-[ ] Step 6 - test area + profiling (next session): wall, table edge,
-    pillar corner, a gap narrower than the hand; verify no jitter against
-    surfaces and no tunnelling on fast swings. Profile the cost on Quest.
+[x] Debug: in-headset gizmos (verified 2026-09-28). Gizmos only show in
+    one eye in VR (drawn for one flat camera), so - widened from "the hand
+    capsules" to every component with gizmos, on request - drawing is
+    written once against Core's DebugLines and goes to either the Scene
+    view's Gizmos or one line mesh rendered in both eyes (InHeadsetGizmos,
+    on the Debug object, costs nothing while off). A shared line mesh
+    instead of the planned two spheres + a cylinder per hand, so ledges,
+    ladders, ropes and later AI/visibility debug all use it. Also
+    DefaultLayerGizmos: magenta outlines of colliders left on Default.
+[x] Step 6a - test area (verified 2026-09-28): TeaLeaf > Build Physical
+    Hands Test Area builds an inside corner, 2cm thin panel, table with an
+    Interactable crate, pillar, 5cm gap, 45 degree slope and round post.
+    All block the hand with no tunnelling. Fixed from testing: jitter at
+    the 5cm gap (slides now re-aim at the goal - see DEVLOG).
+[ ] Step 6b - profiling: read PhysicalHands.Follow in the Profiler (worst
+    case a hand pressed into a corner or the gap), in the editor and on a
+    Quest standalone development build once one exists.
 Test scene:
 [ ] Extend the CharacterController test scene: ledge at chest height, ledge
     above head, mantle onto low-clearance shelf, 4m ladder, rope, a gap to

@@ -1,3 +1,4 @@
+using Core;
 using UnityEngine;
 
 namespace Interaction
@@ -21,10 +22,15 @@ namespace Interaction
     /// towards the player climbing it.
     /// </summary>
     [RequireComponent(typeof(BoxCollider))]
-    public class Ladder : MonoBehaviour, IHandTarget, IClimbable
+    public class Ladder : MonoBehaviour, IHandTarget, IClimbable, IDebugDrawable
     {
         // Shared hand offsets/pose for all ladders - see HandSnapProfile.
         [SerializeField] private HandSnapProfile snapProfile;
+
+        // Whether the ladder can also be grabbed from behind (its -Z side),
+        // e.g. an open ladder standing free in a room. Off: only from the
+        // front, so hand rays from behind find nothing to grab - no reticle.
+        [SerializeField] private bool climbableFromBack;
 
         [Header("Rungs")]
 
@@ -52,11 +58,13 @@ namespace Interaction
         private void OnEnable()
         {
             HandTargetRegistry.Register(_boxCollider, this);
+            DebugDrawRegistry.Register(this);
         }
 
         private void OnDisable()
         {
             HandTargetRegistry.Unregister(_boxCollider);
+            DebugDrawRegistry.Unregister(this);
         }
 
         /// <summary>
@@ -108,11 +116,31 @@ namespace Interaction
         }
 
         /// <summary>
+        /// Refuses hand rays from behind the ladder, unless
+        /// climbableFromBack is on. "Behind" means the ray starts on the -Z
+        /// side of the rung line (the box's centre front to back) - measured
+        /// from the hand, not from where the ray hit, so a hand in front
+        /// reaching round the side still counts as in front. Runs for each
+        /// hand ray that hits the ladder, so it's kept to one dot product.
+        /// </summary>
+        public bool CanBeTargetedFrom(Vector3 rayOrigin)
+        {
+            if (climbableFromBack) {
+                return true;
+            }
+
+            Vector3 rungLine = transform.TransformPoint(_boxCollider.center);
+            return Vector3.Dot(rayOrigin - rungLine, transform.forward) >= 0f;
+        }
+
+        /// <summary>
         /// Snaps a grabbing hand onto the rung nearest to where the ray hit,
         /// at the same point across the rung (clamped to the ladder's width),
         /// facing into the ladder with the grip frame's up matching the
         /// ladder's up. Rungs sit on the box's centre line front to back.
-        /// Only called on grab, so the maths here isn't a per-frame cost.
+        /// A grab from behind (only possible with climbableFromBack on) faces
+        /// the other way. Only called on grab, so the maths here isn't a
+        /// per-frame cost.
         /// </summary>
         public HandSnapPose GetSnapPose(bool isLeftHand, Vector3 grabPoint)
         {
@@ -127,16 +155,21 @@ namespace Interaction
             float heightAboveFirstRung = local.y - bottomCentre.y - firstRungHeight;
             int rung = Mathf.Clamp(Mathf.RoundToInt(heightAboveFirstRung / rungSpacing), 0, rungCount - 1);
 
+            // The ray hit the box's surface on the hand's side, so a hit
+            // behind the rung line means the hand is at the back.
+            bool fromBack = local.z < bottomCentre.z;
+
             local.x = Mathf.Clamp(local.x, bottomCentre.x - halfWidth, bottomCentre.x + halfWidth);
             local.y = bottomCentre.y + firstRungHeight + rung * rungSpacing;
             local.z = bottomCentre.z;
 
             Vector3 gripPosition = UnscaledLocalToWorld(local);
 
-            // Grip frame: forward points into the ladder (-Z), up is the
-            // ladder's up - the same frame a ledge uses, so a ledge-style
-            // profile is a sensible starting point.
-            Quaternion gripRotation = Quaternion.LookRotation(-transform.forward, transform.up);
+            // Grip frame: forward points into the ladder (-Z from the front,
+            // +Z from behind), up is the ladder's up - the same frame a ledge
+            // uses, so a ledge-style profile is a sensible starting point.
+            Vector3 intoLadder = fromBack ? transform.forward : -transform.forward;
+            Quaternion gripRotation = Quaternion.LookRotation(intoLadder, transform.up);
 
             // See ClimbableEdge.GetSnapPose() for why == null.
             if (snapProfile == null) {
@@ -147,33 +180,36 @@ namespace Interaction
         }
 
         /// <summary>
-        /// Always draws the ladder's box, rails and rungs faintly in the
-        /// Scene view, so its size and rung placement are visible while
-        /// laying out a level even though it has no mesh. Editor-only.
+        /// Always draws the ladder faintly in the Scene view, so its size and
+        /// rung placement are visible while laying out a level even though
+        /// it has no mesh - see DrawDebug(). Editor-only.
         /// </summary>
         private void OnDrawGizmos()
         {
-            DrawRungGizmos(_gizmoColor, false);
+            DebugLines.ForGizmos.Draw(this, false);
         }
 
         /// <summary>
-        /// While selected, draws the rungs brightly, a marker on each rung,
-        /// and an arrow out of the side the player climbs from. Editor-only.
+        /// While selected, draws the ladder brightly with its extra markers -
+        /// see DrawDebug(). Editor-only.
         /// </summary>
         private void OnDrawGizmosSelected()
         {
-            DrawRungGizmos(_gizmoSelectedColor, true);
+            DebugLines.ForGizmos.Draw(this, true);
         }
 
         /// <summary>
-        /// Draws the box's outline, the rails (the box's left and right edges
-        /// on the rung line) and a line per rung. With detailed on, also a
-        /// sphere at the middle of each rung and an arrow along +Z from the
-        /// bottom rung.
+        /// Draws the ladder - as Scene view gizmos and, while InHeadsetGizmos
+        /// is on, in the headset: the box's outline, the rails (the box's
+        /// left and right edges on the rung line) and a line per rung, faint.
+        /// With detailed on (selected), bright, plus a sphere at the middle
+        /// of each rung and an arrow along +Z from the bottom rung.
         /// </summary>
-        private void DrawRungGizmos(Color color, bool detailed)
+        public void DrawDebug(DebugLines lines, bool detailed)
         {
-            BoxCollider box = GetComponent<BoxCollider>();
+            // _boxCollider is only cached by Awake(), which hasn't run in
+            // the editor.
+            BoxCollider box = _boxCollider != null ? _boxCollider : GetComponent<BoxCollider>();
 
             if (box == null) {
                 return;
@@ -181,42 +217,56 @@ namespace Interaction
 
             MeasureRungs(box, out Vector3 bottomCentre, out float halfWidth, out int rungCount);
 
-            Gizmos.color = color;
+            lines.Color = detailed ? _gizmoSelectedColor : _gizmoColor;
 
             // The box outline is drawn in its own scaled local space, so it
             // matches the collider exactly.
-            Gizmos.matrix = transform.localToWorldMatrix;
-            Gizmos.DrawWireCube(box.center, box.size);
+            lines.Matrix = transform.localToWorldMatrix;
+            lines.WireCube(box.center, box.size);
 
             // Everything else in the unscaled local frame: every point below
             // is in real metres along the ladder's own axes.
-            Gizmos.matrix = Matrix4x4.TRS(transform.position, transform.rotation, Vector3.one);
+            lines.Matrix = Matrix4x4.TRS(transform.position, transform.rotation, Vector3.one);
 
             Vector3 across = new(halfWidth, 0f, 0f);
             Vector3 top = bottomCentre + Vector3.up * Vector3.Scale(box.size, transform.lossyScale).y;
 
-            Gizmos.DrawLine(bottomCentre - across, top - across);
-            Gizmos.DrawLine(bottomCentre + across, top + across);
+            lines.Line(bottomCentre - across, top - across);
+            lines.Line(bottomCentre + across, top + across);
 
             for (int i = 0; i < rungCount; i++) {
                 Vector3 rungCentre = bottomCentre + Vector3.up * (firstRungHeight + i * rungSpacing);
-                Gizmos.DrawLine(rungCentre - across, rungCentre + across);
+                lines.Line(rungCentre - across, rungCentre + across);
 
                 if (detailed) {
-                    Gizmos.DrawWireSphere(rungCentre, 0.03f);
+                    lines.WireSphere(rungCentre, 0.03f);
                 }
             }
 
             if (detailed) {
-                // Arrow out of the climbing side, from the bottom rung.
+                // An arrow out of each climbing side, from the bottom rung.
                 Vector3 start = bottomCentre + Vector3.up * firstRungHeight;
-                Vector3 end = start + Vector3.forward * 0.4f;
-                Gizmos.DrawLine(start, end);
-                Gizmos.DrawLine(end, end + new Vector3(-0.06f, 0f, -0.08f));
-                Gizmos.DrawLine(end, end + new Vector3(0.06f, 0f, -0.08f));
+                DrawSideArrow(lines, start, 1f);
+
+                if (climbableFromBack) {
+                    DrawSideArrow(lines, start, -1f);
+                }
             }
 
-            Gizmos.matrix = Matrix4x4.identity;
+            lines.Matrix = Matrix4x4.identity;
+        }
+
+        /// <summary>
+        /// Draws a 0.4m arrow from start along +Z (side 1) or -Z (side -1),
+        /// in the unscaled local frame - marks a side the ladder can be
+        /// climbed from.
+        /// </summary>
+        private static void DrawSideArrow(DebugLines lines, Vector3 start, float side)
+        {
+            Vector3 end = start + Vector3.forward * (0.4f * side);
+            lines.Line(start, end);
+            lines.Line(end, end + new Vector3(-0.06f, 0f, -0.08f * side));
+            lines.Line(end, end + new Vector3(0.06f, 0f, -0.08f * side));
         }
     }
 }

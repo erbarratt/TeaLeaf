@@ -30,8 +30,11 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
   hands design decisions.
 - **`Assets/Scripts/Interaction/CLAUDE.md`** — hand targets (`IHandTarget`, registry),
   climbables (`IClimbable`, `ClimbableEdge`, `Ladder`, `ClimbableRope`) and hand snap poses.
+- **`Assets/Scripts/Core/CLAUDE.md`** — shared debug drawing (`DebugLines`, `IDebugDrawable`,
+  `InHeadsetGizmos` - gizmos that also show in the headset); later game state, noise and
+  visibility.
 
-New system folders (`Core`, `AI`, `Inventory`, `UI`) get their own `CLAUDE.md` when their
+New system folders (`AI`, `Inventory`, `UI`) get their own `CLAUDE.md` when their
 first system lands. Read the relevant one before changing a system you haven't read this
 session, even when working from another folder.
 
@@ -83,6 +86,10 @@ silently reformat) existing code that doesn't yet match:
   depth-tested shader. Built-in shaders can't do this (see `Scripts/Player/CLAUDE.md`).
 - **Debug scripts:** always in a system-specific `Debug` subfolder (`Scripts/Player/Debug`,
   `Scripts/Inventory/Debug`, `Scripts/AI/Debug`, ...), never alongside runtime gameplay code.
+- **Gizmos must also show in the headset:** a component with gizmos implements `IDebugDrawable`
+  and draws through `DebugLines` (never `Gizmos` directly), so the same code draws the Scene
+  view gizmos and the in-headset view (`InHeadsetGizmos`). Plain Gizmos only show in one eye
+  in VR. See `Scripts/Core/CLAUDE.md`.
 - **Performance habits (Quest 3):** no per-frame allocations; cache `Animator.StringToHash`/
   `Shader.PropertyToID` results; use `MaterialPropertyBlock` rather than `.material` writes;
   only touch renderers/materials on state transitions, not every frame; prefer self-registering
@@ -97,7 +104,9 @@ the Unity Editor (open the project with the exact editor version in
 `ProjectSettings/ProjectVersion.txt`). `.sln`/`.csproj` files at the repo root are
 Unity-generated for IDE tooling (Rider/Visual Studio) and should not be hand-edited.
 
-Version control: git, remote `origin` on GitHub, branch `master`. A Unity `.gitignore` excludes
+Version control: git, remote `origin` on GitHub, branch `master`. **Commit once per session**
+(decided 2026-09-28): a single commit at the end, with the session's devlog/roadmap wrap-up,
+rather than one per change - unless the maintainer asks for a commit sooner. A Unity `.gitignore` excludes
 generated folders, `.csproj`/`.sln`, and `.idea/`. `.meta` files must always be committed with
 their assets. `*.blend` source files (`Blends/`) are ignored because they exceed GitHub's
 100 MB limit — they need Git LFS before they can be tracked.
@@ -226,9 +235,10 @@ fails and restarts. Agreed mechanics:
 
 ### Planned systems
 
-`Assets/Scripts/{AI,Core,Inventory,UI}` are still empty placeholder folders — future systems
-land there following the same one-class, one-responsibility pattern (Core: game state, noise,
-visibility; AI: guards; Inventory: items/loot; UI: wrist radial/display).
+`Assets/Scripts/{AI,Inventory,UI}` are still empty placeholder folders, and `Core` only holds
+the shared debug drawing so far — future systems land there following the same one-class,
+one-responsibility pattern (Core: game state, noise, visibility; AI: guards; Inventory:
+items/loot; UI: wrist radial/display).
 
 ### Scenes
 

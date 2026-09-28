@@ -1,3 +1,5 @@
+using Core;
+using Unity.Profiling;
 using UnityEngine;
 
 namespace Player
@@ -20,7 +22,7 @@ namespace Player
     /// its own: PlayerController calls Tick() after Move() and turning - see
     /// Tick().
     /// </summary>
-    public class PlayerHandVisuals : MonoBehaviour
+    public class PlayerHandVisuals : MonoBehaviour, IDebugDrawable
     {
         // The hand model transforms (children of the tracked Left/Right Hand
         // controllers), NOT the controllers themselves.
@@ -72,11 +74,15 @@ namespace Player
         private const string WristBoneName = "J_Left_Hand";
         private const string FingertipBoneName = "J_Left_HandMiddle4";
 
-        // Gizmo colours: where the controller wants the hand, where the visual
-        // is, and the visual while a surface is holding it back.
+        // Debug capsule colours (gizmos and in-headset): where the controller
+        // wants the hand, where the visual is, and the visual while a surface
+        // is holding it back.
         private static readonly Color _gizmoTargetColor = new(1f, 1f, 1f, 0.3f);
         private static readonly Color _gizmoFreeColor = new(0.3f, 1f, 0.4f, 1f);
         private static readonly Color _gizmoContactColor = new(1f, 0.3f, 0.2f, 1f);
+
+        // Profiler label for one hand's physical follow tick - see TickHand().
+        private static readonly ProfilerMarker _physicalFollowMarker = new("PhysicalHands.Follow");
 
         private HandPhysicalFollow _leftFollow;
         private HandPhysicalFollow _rightFollow;
@@ -176,6 +182,16 @@ namespace Player
             _rightFollow = new HandPhysicalFollow(rightHandVisual, rightWristBone, rightFingertipBone);
         }
 
+        private void OnEnable()
+        {
+            DebugDrawRegistry.Register(this);
+        }
+
+        private void OnDisable()
+        {
+            DebugDrawRegistry.Unregister(this);
+        }
+
         private void OnDestroy()
         {
             // Each follow's penetration collider lives at the scene root, so it
@@ -213,51 +229,68 @@ namespace Player
                 return;
             }
 
-            follow.Tick(collisionLayers, handRadius, skinWidth, catchUpDuration, maxSeparation, Time.deltaTime);
+            // Timed under its own name in the Profiler (search for it in the
+            // CPU module's Hierarchy view), so the physical hands' cost can
+            // be read directly. Auto() returns a struct that ends the sample
+            // when the using block closes - no allocation, and compiled out
+            // of non-development builds.
+            using (_physicalFollowMarker.Auto()) {
+                follow.Tick(collisionLayers, handRadius, skinWidth, catchUpDuration, maxSeparation, Time.deltaTime);
+            }
         }
 
         /// <summary>
-        /// While selected, draws each hand's collision capsule. In Play Mode:
-        /// where the controller wants the hand (faint) and where the visual
-        /// actually is (green, red while a surface holds it back). In Edit
-        /// Mode: the capsule between the bones, for checking handRadius
-        /// against the model. Editor-only.
+        /// While selected, draws each hand's collision capsule in the Scene
+        /// view - see DrawDebug(). Editor-only.
         /// </summary>
         private void OnDrawGizmosSelected()
         {
+            DebugLines.ForGizmos.Draw(this, true);
+        }
+
+        /// <summary>
+        /// Draws each hand's collision capsule - in the Scene view's gizmos
+        /// and, while InHeadsetGizmos is on, in the headset. In Play Mode:
+        /// where the controller wants the hand (faint) and where the visual
+        /// actually is (green, red while a surface holds it back). In Edit
+        /// Mode: the capsule between the bones, for checking handRadius
+        /// against the model. The same either way, so detailed is ignored.
+        /// </summary>
+        public void DrawDebug(DebugLines lines, bool detailed)
+        {
             if (Application.isPlaying && _leftFollow != null) {
-                DrawFollowGizmos(_leftFollow);
-                DrawFollowGizmos(_rightFollow);
+                DrawFollowCapsules(lines, _leftFollow);
+                DrawFollowCapsules(lines, _rightFollow);
                 return;
             }
 
-            Gizmos.color = _gizmoFreeColor;
-            DrawBoneCapsule(leftWristBone, leftFingertipBone);
-            DrawBoneCapsule(rightWristBone, rightFingertipBone);
+            lines.Color = _gizmoFreeColor;
+            DrawBoneCapsule(lines, leftWristBone, leftFingertipBone);
+            DrawBoneCapsule(lines, rightWristBone, rightFingertipBone);
         }
 
         /// <summary>
         /// Draws one hand's target and actual capsules in Play Mode.
         /// </summary>
-        private void DrawFollowGizmos(HandPhysicalFollow follow)
+        private void DrawFollowCapsules(DebugLines lines, HandPhysicalFollow follow)
         {
             follow.GetDebugCapsules(
                 handRadius,
                 out Vector3 targetWrist, out Vector3 targetFingertip,
                 out Vector3 visualWrist, out Vector3 visualFingertip);
 
-            Gizmos.color = _gizmoTargetColor;
-            DrawWireCapsule(targetWrist, targetFingertip, handRadius);
+            lines.Color = _gizmoTargetColor;
+            lines.WireCapsule(targetWrist, targetFingertip, handRadius);
 
-            Gizmos.color = follow.IsInContact ? _gizmoContactColor : _gizmoFreeColor;
-            DrawWireCapsule(visualWrist, visualFingertip, handRadius);
+            lines.Color = follow.IsInContact ? _gizmoContactColor : _gizmoFreeColor;
+            lines.WireCapsule(visualWrist, visualFingertip, handRadius);
         }
 
         /// <summary>
         /// Draws the capsule between two bones as the sweep would build it
         /// (ends pulled in by the radius). Skipped if a bone is missing.
         /// </summary>
-        private void DrawBoneCapsule(Transform wrist, Transform fingertip)
+        private void DrawBoneCapsule(DebugLines lines, Transform wrist, Transform fingertip)
         {
             if (wrist == null || fingertip == null) {
                 return;
@@ -269,39 +302,7 @@ namespace Player
             float inset = Mathf.Min(handRadius, axis.magnitude * 0.5f);
             Vector3 step = axis.normalized * inset;
 
-            DrawWireCapsule(a + step, b - step, handRadius);
-        }
-
-        /// <summary>
-        /// Gizmos has no capsule, so this draws one from a sphere at each end
-        /// and four lines down its sides.
-        /// </summary>
-        private static void DrawWireCapsule(Vector3 a, Vector3 b, float radius)
-        {
-            Gizmos.DrawWireSphere(a, radius);
-            Gizmos.DrawWireSphere(b, radius);
-
-            Vector3 axis = b - a;
-
-            if (axis.sqrMagnitude < 0.000001f) {
-                return;
-            }
-
-            // Two directions at right angles to the capsule's axis, for the
-            // side lines.
-            Vector3 side = Vector3.Cross(axis, Vector3.up);
-
-            if (side.sqrMagnitude < 0.000001f) {
-                side = Vector3.Cross(axis, Vector3.right);
-            }
-
-            side = side.normalized * radius;
-            Vector3 other = Vector3.Cross(axis.normalized, side);
-
-            Gizmos.DrawLine(a + side, b + side);
-            Gizmos.DrawLine(a - side, b - side);
-            Gizmos.DrawLine(a + other, b + other);
-            Gizmos.DrawLine(a - other, b - other);
+            lines.WireCapsule(a + step, b - step, handRadius);
         }
     }
 }

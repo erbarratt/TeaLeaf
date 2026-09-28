@@ -1,3 +1,4 @@
+using Core;
 using UnityEngine;
 
 namespace Interaction
@@ -19,7 +20,7 @@ namespace Interaction
     /// line (top face, +Z face).
     /// </summary>
     [RequireComponent(typeof(BoxCollider))]
-    public class ClimbableEdge : MonoBehaviour, IHandTarget, IClimbable
+    public class ClimbableEdge : MonoBehaviour, IHandTarget, IClimbable, IDebugDrawable
     {
         // Shared hand offsets/pose for all ledges - see HandSnapProfile.
         [SerializeField] private HandSnapProfile snapProfile;
@@ -65,11 +66,13 @@ namespace Interaction
         private void OnEnable()
         {
             HandTargetRegistry.Register(_boxCollider, this);
+            DebugDrawRegistry.Register(this);
         }
 
         private void OnDisable()
         {
             HandTargetRegistry.Unregister(_boxCollider);
+            DebugDrawRegistry.Unregister(this);
         }
 
         /// Whether the player can mantle onto this edge - see isMantleable.
@@ -150,15 +153,37 @@ namespace Interaction
         }
 
         /// <summary>
-        /// Always draws the edge's box in the Scene view, so edges are
-        /// visible while laying out a level even though they have no mesh:
-        /// the box's outline faintly and its lip brightly. Drawn in the box's
-        /// own (scaled) local space, so it matches the collider exactly.
-        /// Editor-only.
+        /// Always draws the edge in the Scene view, so edges are visible
+        /// while laying out a level even though they have no mesh - see
+        /// DrawDebug(). Editor-only.
         /// </summary>
         private void OnDrawGizmos()
         {
-            BoxCollider box = GetComponent<BoxCollider>();
+            DebugLines.ForGizmos.Draw(this, false);
+        }
+
+        /// <summary>
+        /// While this edge is selected, draws it again with its mantle
+        /// landing marker - see DrawDebug(). Editor-only.
+        /// </summary>
+        private void OnDrawGizmosSelected()
+        {
+            DebugLines.ForGizmos.Draw(this, true);
+        }
+
+        /// <summary>
+        /// Draws the edge - as Scene view gizmos and, while InHeadsetGizmos
+        /// is on, in the headset: the box's outline faintly and its lip
+        /// brightly, in the box's own (scaled) local space so it matches the
+        /// collider exactly. With detailed on (selected), a mantleable edge
+        /// also marks where a mantle lands: a sphere at the feet and a line
+        /// up to roughly head height (lower when the mantle ends crouched).
+        /// </summary>
+        public void DrawDebug(DebugLines lines, bool detailed)
+        {
+            // _boxCollider is only cached by Awake(), which hasn't run in
+            // the editor.
+            BoxCollider box = _boxCollider != null ? _boxCollider : GetComponent<BoxCollider>();
 
             if (box == null) {
                 return;
@@ -167,36 +192,28 @@ namespace Interaction
             Vector3 centre = box.center;
             Vector3 halfSize = box.size * 0.5f;
 
-            Gizmos.matrix = transform.localToWorldMatrix;
+            lines.Matrix = transform.localToWorldMatrix;
 
-            Gizmos.color = _gizmoBoxColor;
-            Gizmos.DrawWireCube(centre, box.size);
+            lines.Color = _gizmoBoxColor;
+            lines.WireCube(centre, box.size);
 
-            Gizmos.color = _gizmoLipColor;
+            lines.Color = _gizmoLipColor;
             Vector3 lipCentre = new(centre.x, centre.y + halfSize.y, centre.z + halfSize.z);
             Vector3 alongLip = new(halfSize.x, 0f, 0f);
-            Gizmos.DrawLine(lipCentre - alongLip, lipCentre + alongLip);
+            lines.Line(lipCentre - alongLip, lipCentre + alongLip);
 
-            Gizmos.matrix = Matrix4x4.identity;
-        }
+            lines.Matrix = Matrix4x4.identity;
 
-        /// <summary>
-        /// While this edge is selected in the editor, marks where a mantle
-        /// lands: a sphere at the feet and a line up to roughly head height
-        /// (lower when the mantle ends crouched). Editor-only.
-        /// </summary>
-        private void OnDrawGizmosSelected()
-        {
-            if (!isMantleable) {
+            if (!detailed || !isMantleable) {
                 return;
             }
 
             Vector3 feet = MantlePointWorld;
             float headHeight = mantleEndsCrouched ? 1f : 1.8f;
 
-            Gizmos.color = mantleEndsCrouched ? Color.yellow : Color.green;
-            Gizmos.DrawWireSphere(feet, 0.1f);
-            Gizmos.DrawLine(feet, feet + Vector3.up * headHeight);
+            lines.Color = mantleEndsCrouched ? Color.yellow : Color.green;
+            lines.WireSphere(feet, 0.1f);
+            lines.Line(feet, feet + Vector3.up * headHeight);
         }
 
         /// <summary>

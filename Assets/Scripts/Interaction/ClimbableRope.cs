@@ -1,3 +1,4 @@
+using Core;
 using UnityEngine;
 
 namespace Interaction
@@ -18,7 +19,7 @@ namespace Interaction
     /// wraps around the rope from whichever side it grabbed.
     /// </summary>
     [RequireComponent(typeof(CapsuleCollider))]
-    public class ClimbableRope : MonoBehaviour, IHandTarget, IClimbable
+    public class ClimbableRope : MonoBehaviour, IHandTarget, IClimbable, IDebugDrawable
     {
         // Shared hand offsets/pose for all ropes - see HandSnapProfile.
         [SerializeField] private HandSnapProfile snapProfile;
@@ -35,6 +36,9 @@ namespace Interaction
 
         // Smallest allowed length - keeps the capsule valid.
         private const float MinLength = 0.1f;
+
+        // The layer the rope (its grab volume) must be on - see WarnAboutSetup().
+        private const string ClimbableLayerName = "Climbable";
 
         // Gizmo colours: faint when the rope isn't selected, bright when it is.
         private static readonly Color _gizmoColor = new(0.9f, 0.8f, 0.4f, 0.35f);
@@ -54,11 +58,13 @@ namespace Interaction
         private void OnEnable()
         {
             HandTargetRegistry.Register(_capsuleCollider, this);
+            DebugDrawRegistry.Register(this);
         }
 
         private void OnDisable()
         {
             HandTargetRegistry.Unregister(_capsuleCollider);
+            DebugDrawRegistry.Unregister(this);
         }
 
         /// <summary>
@@ -84,6 +90,74 @@ namespace Interaction
             }
 
             FitCollider(capsule);
+            WarnAboutSetup(capsule);
+        }
+
+        /// <summary>
+        /// Editor-only, from OnValidate(): warns (clickable, selecting the
+        /// problem object) about set-ups that stop the rope being grabbed.
+        /// The intended set-up is this object's CapsuleCollider as the grab
+        /// volume - a trigger (FitCollider() makes sure) on the Climbable
+        /// layer - plus, optionally, a thinner solid collider on a child as
+        /// the rope itself (Environment, so the physical hands stop against
+        /// it). Hands inside the grab volume can still grab
+        /// (PlayerHandInteraction), so the solid rope only has to fit inside:
+        /// - this object not on the Climbable layer;
+        /// - a child collider reaching as far as grabRadius or further - hand
+        ///   rays would hit it before (or tied with) the grab volume, so the
+        ///   rope couldn't be aimed at reliably. Found 2026-09-28: both were
+        ///   0.04m, and the reticle flickered as rays hit one or the other.
+        /// </summary>
+        private void WarnAboutSetup(CapsuleCollider capsule)
+        {
+            int climbableLayer = LayerMask.NameToLayer(ClimbableLayerName);
+
+            if (climbableLayer >= 0 && gameObject.layer != climbableLayer) {
+                Debug.LogWarning(
+                    $"ClimbableRope '{name}': not on the {ClimbableLayerName} layer, so hand rays may miss " +
+                    "it or it may collide with things it shouldn't.",
+                    this);
+            }
+
+            // Allocates, but OnValidate only runs in the editor.
+            foreach (Collider child in GetComponentsInChildren<Collider>(true)) {
+                if (child == capsule || child.isTrigger) {
+                    continue;
+                }
+
+                if (FurthestFromAxis(child.bounds) >= grabRadius) {
+                    Debug.LogWarning(
+                        $"ClimbableRope '{name}': the collider on '{child.name}' reaches as far from the rope " +
+                        $"as grabRadius ({grabRadius}m) or further, so hand rays can hit it instead of the grab volume. " +
+                        "Make the solid rope thinner than the grab volume, or raise grabRadius.",
+                        child);
+                }
+            }
+        }
+
+        /// <summary>
+        /// How far the furthest corner of bounds (a world-space box) is from
+        /// the rope's axis, sideways. A box's corners reach further than a
+        /// round rope inside it, so this errs towards warning - fine for a
+        /// check that only has to catch a clearly oversized collider.
+        /// </summary>
+        private float FurthestFromAxis(Bounds bounds)
+        {
+            Vector3 top = transform.position;
+            Vector3 axis = transform.up;
+            float furthest = 0f;
+
+            for (int i = 0; i < 8; i++) {
+                Vector3 corner = bounds.center + Vector3.Scale(bounds.extents, new Vector3(
+                    (i & 1) == 0 ? -1f : 1f,
+                    (i & 2) == 0 ? -1f : 1f,
+                    (i & 4) == 0 ? -1f : 1f));
+
+                Vector3 sideways = Vector3.ProjectOnPlane(corner - top, axis);
+                furthest = Mathf.Max(furthest, sideways.magnitude);
+            }
+
+            return furthest;
         }
 
         /// <summary>
@@ -114,6 +188,10 @@ namespace Interaction
             float scaleY = Mathf.Max(Mathf.Abs(scale.y), 0.0001f);
             float scaleXZ = Mathf.Max(Mathf.Max(Mathf.Abs(scale.x), Mathf.Abs(scale.z)), 0.0001f);
 
+            // The grab volume is always a trigger: it's something to aim at,
+            // not a surface. Set here because the collider is locked in the
+            // Inspector, so it can't be ticked there.
+            capsule.isTrigger = true;
             capsule.direction = 1;
             capsule.center = new Vector3(0f, -length * 0.5f / scaleY, 0f);
             capsule.height = length / scaleY;
@@ -163,49 +241,43 @@ namespace Interaction
 
         /// <summary>
         /// Always draws the rope's line faintly in the Scene view, so it's
-        /// visible while laying out a level even though it has no mesh.
-        /// Editor-only.
+        /// visible while laying out a level even though it has no mesh - see
+        /// DrawDebug(). Editor-only.
         /// </summary>
         private void OnDrawGizmos()
         {
-            DrawRopeGizmos(_gizmoColor, false);
+            DebugLines.ForGizmos.Draw(this, false);
         }
 
         /// <summary>
-        /// While selected, draws the rope brightly with its grab thickness:
-        /// a ring at each end and four lines down the capsule's sides.
-        /// Editor-only.
+        /// While selected, draws the rope brightly with its grab thickness -
+        /// see DrawDebug(). Editor-only.
         /// </summary>
         private void OnDrawGizmosSelected()
         {
-            DrawRopeGizmos(_gizmoSelectedColor, true);
+            DebugLines.ForGizmos.Draw(this, true);
         }
 
         /// <summary>
-        /// Draws the rope's axis. With detailed on, also its grab thickness.
-        /// Drawn in the unscaled local frame, so the numbers are real metres.
+        /// Draws the rope - as Scene view gizmos and, while InHeadsetGizmos
+        /// is on, in the headset: its axis, faint. With detailed on
+        /// (selected), bright, plus its grab thickness: a sphere at each end
+        /// and four lines down the capsule's sides. Drawn in the unscaled
+        /// local frame, so the numbers are real metres.
         /// </summary>
-        private void DrawRopeGizmos(Color color, bool detailed)
+        public void DrawDebug(DebugLines lines, bool detailed)
         {
-            Gizmos.matrix = Matrix4x4.TRS(transform.position, transform.rotation, Vector3.one);
-            Gizmos.color = color;
+            lines.Matrix = Matrix4x4.TRS(transform.position, transform.rotation, Vector3.one);
+            lines.Color = detailed ? _gizmoSelectedColor : _gizmoColor;
 
             Vector3 bottom = Vector3.down * length;
-            Gizmos.DrawLine(Vector3.zero, bottom);
+            lines.Line(Vector3.zero, bottom);
 
             if (detailed) {
-                Gizmos.DrawWireSphere(Vector3.zero, grabRadius);
-                Gizmos.DrawWireSphere(bottom, grabRadius);
-
-                Vector3 x = Vector3.right * grabRadius;
-                Vector3 z = Vector3.forward * grabRadius;
-                Gizmos.DrawLine(x, bottom + x);
-                Gizmos.DrawLine(-x, bottom - x);
-                Gizmos.DrawLine(z, bottom + z);
-                Gizmos.DrawLine(-z, bottom - z);
+                lines.WireCapsule(Vector3.zero, bottom, grabRadius);
             }
 
-            Gizmos.matrix = Matrix4x4.identity;
+            lines.Matrix = Matrix4x4.identity;
         }
     }
 }

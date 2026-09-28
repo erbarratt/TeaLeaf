@@ -64,6 +64,16 @@ namespace Player
         private Vector3 _leftLocalRayDirection;
         private Vector3 _rightLocalRayDirection;
 
+        // Radius of the "is the hand inside a target?" check, in metres -
+        // effectively a point test; a sphere just because Unity has no point
+        // overlap query. See FindTargetContaining().
+        private const float InsideCheckRadius = 0.001f;
+
+        // Colliders found by that check. Shared by both hands (checked one
+        // after the other) and allocated once. A hand is rarely inside more
+        // than one or two colliders at a time.
+        private static readonly Collider[] _insideBuffer = new Collider[4];
+
         /// Whatever the left hand's ray is currently pointing at, or null.
         /// Exposed so other systems (e.g. PlayerClimbing, a future generic
         /// "interact" button) can act on whatever the hand is aimed at.
@@ -149,8 +159,8 @@ namespace Player
             RightRayOrigin = rightPosition;
             RightRayDirection = rightRotation * _rightLocalRayDirection;
 
-            LeftTarget = RaycastForTarget(LeftRayOrigin, LeftRayDirection, out Vector3 leftPoint);
-            RightTarget = RaycastForTarget(RightRayOrigin, RightRayDirection, out Vector3 rightPoint);
+            LeftTarget = FindTarget(LeftRayOrigin, LeftRayDirection, out Vector3 leftPoint);
+            RightTarget = FindTarget(RightRayOrigin, RightRayDirection, out Vector3 rightPoint);
 
             LeftTargetPoint = leftPoint;
             RightTargetPoint = rightPoint;
@@ -182,10 +192,64 @@ namespace Player
         }
 
         /// <summary>
+        /// Returns the IHandTarget the hand at origin is aiming at, with point
+        /// set to where it's being targeted, or null (point then undefined).
+        ///
+        /// A hand already INSIDE a target's volume targets it, at the hand
+        /// itself - checked first, and the ray is skipped. A ray can't do
+        /// this on its own: a ray that starts inside a collider never detects
+        /// that collider. Grab volumes are deliberately bigger than what they
+        /// belong to (a rope's is far thicker than the rope, so it's easy to
+        /// aim at), so the hand is often inside one when reaching for it -
+        /// and a physical hand stopped against a solid rope always is.
+        ///
+        /// Otherwise casts the ray (see RaycastForTarget()).
+        /// </summary>
+        private IHandTarget FindTarget(Vector3 origin, Vector3 direction, out Vector3 point)
+        {
+            IHandTarget inside = FindTargetContaining(origin);
+
+            if (inside is not null) {
+                point = origin;
+                return inside;
+            }
+
+            return RaycastForTarget(origin, direction, out point);
+        }
+
+        /// <summary>
+        /// The first hand target whose collider contains origin and which
+        /// accepts a hand there (IHandTarget.CanBeTargetedFrom), or null. One
+        /// tiny overlap query into a shared buffer - no allocation - and a
+        /// registry lookup per collider found; usually it finds nothing.
+        /// </summary>
+        private IHandTarget FindTargetContaining(Vector3 origin)
+        {
+            int count = Physics.OverlapSphereNonAlloc(
+                origin,
+                InsideCheckRadius,
+                _insideBuffer,
+                interactableLayers,
+                QueryTriggerInteraction.Collide);
+
+            for (int i = 0; i < count; i++) {
+                IHandTarget target = HandTargetRegistry.Find(_insideBuffer[i]);
+
+                if (target is not null && target.CanBeTargetedFrom(origin)) {
+                    return target;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
         /// Casts a ray from origin in direction and returns whichever
         /// IHandTarget it hits first (with point set to where the ray hit
-        /// it), or null if it hits nothing (or hits something that isn't
-        /// registered as an IHandTarget) - point is undefined in that case.
+        /// it), or null if it hits nothing, hits something that isn't
+        /// registered as an IHandTarget, or hits a target that refuses rays
+        /// from origin (IHandTarget.CanBeTargetedFrom) - point is undefined
+        /// in the first two cases.
         ///
         /// Looks the hit Collider up in HandTargetRegistry rather than
         /// calling hit.collider.GetComponent<IHandTarget>() - GetComponent
@@ -206,7 +270,11 @@ namespace Player
                 QueryTriggerInteraction.Collide);
 
             point = rayHit ? hit.point : default;
-            return rayHit ? HandTargetRegistry.Find(hit.collider) : null;
+            IHandTarget target = rayHit ? HandTargetRegistry.Find(hit.collider) : null;
+
+            // The target may refuse rays from where this hand is (e.g. from
+            // behind a ladder) - then it's as if nothing was hit.
+            return target is not null && target.CanBeTargetedFrom(origin) ? target : null;
         }
     }
 }

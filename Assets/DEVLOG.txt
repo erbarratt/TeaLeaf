@@ -5,6 +5,97 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 (Unity, OpenXR + XR Interaction Toolkit). Newest updates are at the top.
 
 
+2026-09-28
+----------
+- In-headset gizmos (Phase 1 debug item, widened on request from "the
+  hand capsules" to every component with gizmos). Gizmos only show in one
+  eye in VR - Unity draws them for one flat camera. New Scripts/Core/Debug
+  (the first thing in Core, with its own CLAUDE.md): DebugLines draws
+  line-built wireframes (line, circle, sphere, box, capsule) to either the
+  Scene view's Gizmos or a list of line vertices; a component implements
+  IDebugDrawable.DrawDebug(lines, detailed) once and registers with
+  DebugDrawRegistry, so the Scene view and the headset always match.
+  InHeadsetGizmos (on a Debug object) puts every drawable into one line
+  mesh, one draw call, drawn with a new TeaLeaf/DebugLines shader (vertex
+  colour, depth test as a material property for "see through walls").
+  PlayerHandVisuals, ClimbableEdge, Ladder and ClimbableRope converted;
+  DebugLines is now the only code calling Gizmos directly, and a root
+  CLAUDE.md rule says new gizmos go through it. Chose one shared line
+  mesh over the roadmap's two spheres + a cylinder per hand, so every
+  system (later AI vision cones, shadow volumes) can use it.
+  Learned: the mesh is rebuilt in RenderPipelineManager.
+  beginContextRendering, not LateUpdate - the Tracked Pose Drivers move
+  the controllers again just before rendering, so anything built earlier
+  trails the hands. Also DefaultLayerGizmos: magenta outlines of colliders
+  left on the Default layer (colliders only - the layer matters for
+  physics; lights and groups are fine on Default). Using it, colliders
+  were moved to proper layers in Main.unity.
+- Bug: after a hand had been in a wall, its position sometimes jumped
+  back to the controller while its rotation still eased. Cause: one
+  "in contact" flag covered both, and contact only ended once the hand
+  fitted at the controller's rotation - a hand free to move but not to
+  turn stayed in contact, and contact movement isn't eased. Fix:
+  HandPhysicalFollow holds and releases position and rotation separately,
+  each with its own elastic-band ease. Then, on request, the maxSeparation
+  snap-back eases too (through the wall, collision off, then waits on the
+  controller until it's clear) - every return to the controller is eased.
+- Ladder could be grabbed from behind, and the hand snapped on facing the
+  wrong way. IHandTarget gained CanBeTargetedFrom(rayOrigin) - a C#
+  default interface method returning true, so only targets that care
+  override it. Ladder refuses hands behind its rung line unless
+  climbableFromBack is ticked, which also flips the grip for back grabs.
+  A refused ray still stops at the ladder: no reticle, no grab.
+- Physical hands step 6a, test area: an editor menu (TeaLeaf > Build
+  Physical Hands Test Area, Scripts/Player/Debug/Editor) builds an inside
+  corner, a 2cm thin panel, a table with an Interactable crate, a pillar, a
+  5cm gap (the hand is 7cm), a 45 degree slope and a round post - exact
+  sizes, rebuildable, undoable. Added a PhysicalHands.Follow
+  ProfilerMarker for step 6b. Everything blocked the hand with no
+  tunnelling except one bug:
+- Bug: the visual jittered left and right with the controller in the 5cm
+  gap, more the deeper it went. Two guessed fixes didn't cure it (both
+  kept, as they close real holes): crease handling in collide-and-slide
+  (in a V, slide only along the line where the two surfaces meet), and a
+  sweep starting against a surface now stops instead of letting the hand
+  through - only the first sweep, when the push-out couldn't clear the
+  hand, lets it through. Then built PhysicalHandsTrace (Player/Debug):
+  logs every sweep's hit (collider, distance, normal) for colliders
+  matching a name filter, enabled before Play since toggling things in the
+  headset is awkward, read back from Editor.log. The trace showed the
+  real cause at once: each slide carried the leftover length of the
+  original move (about the controller's depth) redirected along the
+  surface, so the hand slid round a block's edge and out - 6.8cm sideways
+  and further from the controller than it started - then straight back
+  next frame. Fix: every slide re-aims at the goal (the way to the goal,
+  projected onto the surface), which can never take the hand further from
+  it. Learned: after two failed guesses, instrument instead of guessing;
+  and a jitter that grows with input distance points at code that moves
+  by "whatever's left".
+- Rope: the reticle flickered on and off while reaching for it, and it
+  couldn't be grabbed once the hand touched it. Cause: the scene rope's
+  grab capsule (grabRadius 0.04, and not a trigger) and its visible
+  cylinder (radius 0.04, moved from Climbable to Environment in the
+  Default-layer cleanup) were the same size, so rays tied between them.
+  Decided: a rope has a solid Environment collider inside a larger trigger
+  grab volume, and a hand INSIDE any hand target's volume can grab it -
+  PlayerHandInteraction checks for that (a 1mm overlap query) before
+  casting the ray, since a ray never detects a collider it starts inside.
+  ClimbableRope always makes its grab capsule a trigger (the collider is
+  locked in the Inspector) and warns if a solid child collider reaches
+  grabRadius. grabRadius raised to 0.05 in the scene.
+- Process decided: commit once per session, at wrap-up (root CLAUDE.md).
+  This session's two interim commits were squashed into the wrap-up.
+- Roadmap: ticked the in-headset gizmos item (reworded to the line-mesh
+  approach), split step 6 into 6a test area (done) and 6b profiling
+  (open), updated step 4 for the separate/eased returns, and added
+  sub-items for front-only ladders and the solid rope + grab from inside.
+- Still to do: step 6b profiling; the small pop when grabbing while a
+  surface holds the hand off the controller; the rope's setup warning
+  measures its child collider's bounding box, so it still fires on the
+  scene rope (cylinder 0.04 inside grabRadius 0.05) - it could measure
+  capsule colliders exactly.
+
+
 2026-09-27 (second session)
 ---------------------------
 - First periodic performance review (to be repeated now and then, so

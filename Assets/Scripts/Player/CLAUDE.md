@@ -138,43 +138,61 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   (0.035m), `skinWidth` (0.005m), `catchUpDuration` (0.1s), `maxSeparation` (0.4m), and the wrist/fingertip bones per hand. `Reset()` / the "Find
   Hand Bones" context menu find the visuals and bones by name (`J_Left_Hand`,
   `J_Left_HandMiddle4` - the mirrored right hand shares the Left names). Exposes
-  `IsLeftHandInContact`/`IsRightHandInContact`. Gizmos (selected): in Play Mode the target
-  capsule (faint) and the visual's (green, red in contact); in Edit Mode the bone capsule, for
-  checking `handRadius`.
+  `IsLeftHandInContact`/`IsRightHandInContact`. Debug capsules (`IDebugDrawable` - gizmos when
+  selected, and in the headset while `InHeadsetGizmos` is on, see `Scripts/Core/CLAUDE.md`): in
+  Play Mode the target capsule (faint) and the visual's (green, red in contact); in Edit Mode
+  the bone capsule, for checking `handRadius`.
 - **`HandPhysicalFollow`** — plain C# class, one per hand, the physical hands collision response
   (kinematic sweep, no Rigidbody). A capsule from wrist to middle fingertip (measured once from
   the bones at Awake, in controller space so the mirrored hand needs nothing special; ends inset
   by the radius) is `CapsuleCast` from last frame's visual position towards the controller's;
-  hits stop it `skinWidth` short and the rest of the move is projected onto the surface and
-  re-swept (collide-and-slide, max 3 sweeps, no allocations). Triggers are ignored. **Before**
+  hits stop it `skinWidth` short and the way *to the goal* from there is projected onto the
+  surface and re-swept (collide-and-slide, max 3 sweeps, no allocations). **Re-aimed at the
+  goal each sweep, never the leftover of the last move** - moving along the goal's projection
+  can't take the hand further from the goal. Carrying the leftover (until 2026-09-28) slid the
+  hand round a block's edge and out, as far sideways as the controller was deep (the 5cm gap
+  jitter, diagnosed with `PhysicalHandsTrace`). **Creases:** if a slide would
+  push back into the surface the previous sweep slid along (a V, e.g. the mouth of a gap
+  narrower than the hand), the move is projected onto the line where the two surfaces meet
+  instead (their normals' cross product); parallel surfaces stop it. Triggers are ignored. **Before**
   the sweep, `Depenetrate()` pushes the capsule - at last frame's position, with this frame's
   rotation - out of anything it overlaps (`OverlapCapsuleNonAlloc` into a shared static buffer,
   then `ComputePenetration` per overlap, moved by distance + `skinWidth`, max 3 passes). It runs
   before rather than after, because a rotation-induced overlap is shallow at the start, while
   after a sweep the hand could be past the middle of a thin wall and get pushed out of the far
-  side. A sweep that still starts inside (distance 0, e.g. a gap narrower than the hand)
-  doesn't block. `ComputePenetration` needs an enabled collider for the hand but takes the pose
+  side. `Depenetrate()` reports `isClear`; a sweep hit at distance 0 lets the hand move freely
+  **only** on the first sweep when the start couldn't be cleared (genuinely stuck inside, so it
+  isn't pinned) - any other distance-0 hit is "touching" and stops the sweep (2026-09-28;
+  every distance-0 hit used to let the hand through). `ComputePenetration` needs an enabled collider for the hand but takes the pose
   as arguments, so each hand builds a `Penetration Collider` (trigger `CapsuleCollider` on Z,
   `PlayerHands` layer, parked at y -1000 at the scene root, never moved, height = wrist to
   fingertip, radius synced from `handRadius` on change, destroyed from
   `PlayerHandVisuals.OnDestroy()`). Blocked →
-  visual detached and placed by code. Attached state is read from the actual parent, since
-  `HandVisualSnap` detaches the same transform. Rotation follows the controller while free and
-  is held at the controller's rotation from the first blocked frame while in contact; contact
-  only ends once the path to the controller's position is clear *and* a `CheckCapsule` at the
-  controller's own rotation is clear (otherwise it would ease back with its fingers in the wall
-  and flicker). **Elastic band:** when contact ends the hand doesn't jump back - its offset from
-  the controller (position and rotation, stored in the controller's space so the hand keeps
-  following the real hand's motion) eases to zero over `catchUpDuration` (0.1s, SmoothStep,
-  on `PlayerHandVisuals`), still swept each frame, so it can land back in contact; re-attached
-  when fully back. Rejected: an exponential chase of the controller (lags further the faster the
+  visual detached and placed by code (`IsPlacedByCode`). Attached state is read from the actual
+  parent, since `HandVisualSnap` detaches the same transform. **Position and rotation are held
+  and released separately** (`_isPositionHeld`/`_isRotationHeld`): a blocked sweep holds both;
+  the position is free as soon as the sweep reaches its goal, but the rotation (held at the
+  controller's rotation from the first blocked frame) only once a `CheckCapsule` at the hand's
+  current position, turned to the controller's rotation, is clear (otherwise it would turn with
+  its fingers in the wall and flicker). `IsInContact` = either is held. Split 2026-09-28: when
+  one flag covered both, a hand free to move but not to turn stayed "in contact", and contact
+  movement isn't eased, so its position jumped onto the controller while only the rotation
+  eased. **Elastic band:** each of position and rotation, from the moment it comes free, eases
+  its offset from the controller (stored in the controller's space so the hand keeps following
+  the real hand's motion) to zero over `catchUpDuration` (0.1s, SmoothStep via
+  `CatchUpWeight()`, on `PlayerHandVisuals`), still swept each frame, so it can land back in
+  contact; re-attached when both are fully back. Rejected: an exponential chase of the controller (lags further the faster the
   hand moves, may never settle). Tracked by `_handRotation` (last frame's rotation, as a
   controller rotation). **Snap-back:** in contact, if the visual is more than `maxSeparation`
-  (0.4m, 0 = never) from the controller, it jumps straight back onto it and enters
-  "passing through" - attached, collision off - until a `CheckCapsule` at the controller is
-  clear (one query per frame, only in that state). Without that, the next push-out would move
-  the hand to the nearest face of whatever the controller is inside; the near face would be too
-  far again and it would snap back every frame. Controllers are assumed unscaled (verified: Player → controllers all
+  (0.4m, 0 = never) from the controller, contact is dropped and the hand enters "passing
+  through" (`TickPassingThrough()`): collision off, it eases back onto the controller -
+  position and rotation, over `catchUpDuration`, straight through the wall - then stays on it
+  (attached) until a `CheckCapsule` at the controller is clear (one query per frame, only once
+  the ease is done). Was an instant jump until 2026-09-28; now every return to the controller
+  is eased. Without the wait, the next push-out would move the hand to the nearest face of
+  whatever the controller is inside; the near face would be too far again and it would snap
+  back every frame. The eases share `AdvanceEases()`/`StartPositionReturn()`/
+  `StartRotationReturn()`, and placement is `PlaceVisual()`. Controllers are assumed unscaled (verified: Player → controllers all
   scale 1). `Suspend()` while snapped/untracked.
 - **`HandVisualSnap`** — plain C# class (one per hand, owned and ticked by `PlayerHandVisuals`;
   other systems only call `Snap()`/`Release()`). Blends a hand *visual* (never the tracked
@@ -194,7 +212,14 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   controller while the visual is on it; last frame's placement, since rays run before the
   visuals tick) (configurable length, layer mask, and
   per-hand angle offset, pre-rotated into a cached local ray direction in `Awake()`/
-  `OnValidate()`) and records whatever `IHandTarget` it hits (nothing is highlighted -
+  `OnValidate()`) and records whatever `IHandTarget` it hits, if the target accepts a ray from
+  that hand (`CanBeTargetedFrom(origin)`, e.g. not from behind a ladder). **Before the ray**,
+  `FindTargetContaining()` checks whether the ray origin is already *inside* a target's
+  collider (a 1mm `OverlapSphereNonAlloc` into a shared buffer, triggers included, registry
+  lookup): if so that target wins, targeted at the hand itself, and the ray is skipped - a ray
+  never detects a collider it starts inside, and grab volumes are bigger than what they belong
+  to (added 2026-09-28 so a hand against a solid rope can grab it). One extra query per hand
+  per frame (nothing is highlighted -
   the reticle alone shows what can be interacted with). Exposes `LeftTarget`/`RightTarget` and
   the hit points `LeftTargetPoint`/`RightTargetPoint`; `PlayerClimbing` grabs from these.
   Ticked before climbing, so they're always this frame's. `TickReticles()` places the reticles
@@ -237,7 +262,21 @@ anything handedness-dependent.
 `Assets/Scripts/Player/Debug/` holds standalone debug/diagnostic MonoBehaviours (e.g.
 `VRDebugInput`, `InputTest`, `TrackingTest`, `TurnInputTest`, `TurnActionTest`,
 `LocomotionInputTest`, `HandRayDebug`, `MovementStateDebug`) used for manually verifying
-systems in Play Mode — not part of the runtime gameplay path.
+systems in Play Mode — not part of the runtime gameplay path. `Debug/Editor/` holds editor-only
+tools: **`PhysicalHandsTestArea`** (menu **TeaLeaf > Build Physical Hands Test Area**) builds
+a greybox row at (4.5, 0, -5.5), facing the spawn, under one root (rebuilding asks to replace
+it; undoable). Pieces: an inside corner (wall + return wall), a 2cm thin panel (tunnelling,
+far-side push-out, maxSeparation snap-back), a table (top, edges, underneath) with a static
+0.3m crate on Interactable, a pillar (outside corners), a 5cm gap between two blocks (narrower
+than the 7cm hand), a 45° slope and a round post. **`PhysicalHandsTrace`** (on the Debug object, enable *before* Play - toggling it in the
+headset is awkward) turns on `HandPhysicalFollow.TraceEnabled`: one log line per hand per
+frame whose sweep hits a collider whose name contains `colliderNameFilter` (default "Gap") -
+contact state, push-out, and each sweep's hit (collider, distance, normal), no stack trace.
+Read it from `%LOCALAPPDATA%/Unity/Editor/Editor.log`. Allocates while on. The hands' cost is
+profiled under the
+**`PhysicalHands.Follow`** `ProfilerMarker` (one sample per hand per frame, around
+`HandPhysicalFollow.Tick()` in `PlayerHandVisuals.TickHand()`). The in-headset gizmo view
+(`InHeadsetGizmos`) is shared by every system, so it lives in `Scripts/Core/Debug`.
 
 ## Locomotion and hands design decisions
 
