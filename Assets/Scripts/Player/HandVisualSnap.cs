@@ -37,6 +37,14 @@ namespace Player
         private readonly Vector3 _restLocalPosition;
         private readonly Quaternion _restLocalRotation;
 
+        // The "from" end of the blend, relative to the controller like the
+        // rest pose, so it follows the real hand while blending. Normally the
+        // rest pose, but a grab while a surface holds the visual off the
+        // controller (the physical hands) starts from where the visual
+        // actually is instead - see Snap().
+        private Vector3 _fromLocalPosition;
+        private Quaternion _fromLocalRotation;
+
         private HandSnapPose _snapPose;
 
         // 0 = at rest (following the controller), 1 = fully snapped.
@@ -63,6 +71,8 @@ namespace Player
             _restParent = visual.parent;
             _restLocalPosition = visual.localPosition;
             _restLocalRotation = visual.localRotation;
+            _fromLocalPosition = _restLocalPosition;
+            _fromLocalRotation = _restLocalRotation;
         }
 
         /// <summary>
@@ -73,6 +83,19 @@ namespace Player
         {
             _snapPose = pose;
             IsSnapped = true;
+
+            // Starting from rest: blend from wherever the visual is now,
+            // which isn't the rest pose if a surface is holding it off the
+            // controller. Blending from the rest pose made the hand jump back
+            // to the controller (maybe inside the wall) on the first frame.
+            // Stored in the controller's space; the controller is unscaled,
+            // so this is the inverse of TransformPoint(). Mid-release, the
+            // blend already runs from the rest pose, so it's left alone.
+            if (_blend <= 0f) {
+                Quaternion toController = Quaternion.Inverse(_restParent.rotation);
+                _fromLocalPosition = toController * (_visual.position - _restParent.position);
+                _fromLocalRotation = toController * _visual.rotation;
+            }
 
             // Detach so the controller's before-render update can't move it -
             // see the class comment. worldPositionStays keeps it exactly where
@@ -91,6 +114,12 @@ namespace Player
         public void Release()
         {
             IsSnapped = false;
+
+            // Always blend back onto the controller itself, never to where a
+            // surface held the hand before the grab. Released mid-snap-blend,
+            // this shifts the hand slightly; fully snapped, it can't be seen.
+            _fromLocalPosition = _restLocalPosition;
+            _fromLocalRotation = _restLocalRotation;
         }
 
         /// <summary>
@@ -122,11 +151,12 @@ namespace Player
                 return;
             }
 
-            // Where the visual would be if it were just following the
-            // controller this frame - the "from" end of the blend. Read from
-            // _restParent, not _visual.parent, since the visual is detached.
-            Vector3 restPosition = _restParent.TransformPoint(_restLocalPosition);
-            Quaternion restRotation = _restParent.rotation * _restLocalRotation;
+            // The "from" end of the blend this frame: normally where the
+            // visual would be if it were just following the controller (see
+            // _fromLocalPosition). Read from _restParent, not _visual.parent,
+            // since the visual is detached.
+            Vector3 fromPosition = _restParent.TransformPoint(_fromLocalPosition);
+            Quaternion fromRotation = _restParent.rotation * _fromLocalRotation;
 
             // SmoothStep eases in and out, so the hand doesn't start or stop
             // moving abruptly at either end of the blend.
@@ -134,8 +164,8 @@ namespace Player
             Weight = t;
 
             _visual.SetPositionAndRotation(
-                Vector3.Lerp(restPosition, _snapPose.Position, t),
-                Quaternion.Slerp(restRotation, _snapPose.Rotation, t));
+                Vector3.Lerp(fromPosition, _snapPose.Position, t),
+                Quaternion.Slerp(fromRotation, _snapPose.Rotation, t));
         }
     }
 }

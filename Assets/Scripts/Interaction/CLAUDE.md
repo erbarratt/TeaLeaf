@@ -98,4 +98,8 @@ pose), `IHandSnapTarget.GetSnapPose(isLeftHand, grabPoint)`. The target computes
 model-agnostic grip frame; a shared `HandSnapProfile` ScriptableObject (Create > TeaLeaf > Hand
 Snap Profile) applies per-hand position/rotation offsets in that frame, so all targets of one
 kind are tuned in one asset. Profiles live in `Assets/Data/` (`LedgeGrip`, `LadderRung`,
-`RopeGrip` - the latter two still start from the ledge values).
+`RopeGrip`), each with its own finger-pose clip, all tuned in the headset (rung and rope on
+2026-09-30). The profile's `pose` field
+picks the finger pose: `LedgeGrip`, `RungGrip` (ladder rungs) or `RopeGrip` (ropes); a target
+with no profile falls back to its own pose. **Append new `HandPose` values at the end, never
+with explicit numbers** - profiles serialize the pose as its number.

@@ -12,8 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 818e631233dd2a64eb27938ec822a0d9, type: 3}
   m_Name: RopeGrip
   m_EditorClassIdentifier: Assembly-CSharp::Interaction.HandSnapProfile
-  pose: 0
-  leftPositionOffset: {x: 0, y: -0.18, z: 0}
-  leftRotationOffset: {x: 180, y: -93, z: 0}
-  rightPositionOffset: {x: 0, y: -0.18, z: 0}
-  rightRotationOffset: {x: 180, y: 93, z: 0}
+  pose: 2
+  leftPositionOffset: {x: -0.015, y: 0, z: -0.13}
+  leftRotationOffset: {x: -90, y: 90, z: -90}
+  rightPositionOffset: {x: 0.015, y: 0, z: -0.13}
+  rightRotationOffset: {x: -90, y: -90, z: 90}

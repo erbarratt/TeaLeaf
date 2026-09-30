@@ -5,7 +5,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project overview
 
 TeaLeaf is a Thief-style VR stealth game (Unity 6000.3.23f1, Universal Render Pipeline) built
-around OpenXR + XR Interaction Toolkit (3.3.2) and the new Input System. Target order: PCVR
+on OpenXR and the new Input System, with no XR Interaction Toolkit: the project started from
+XRI's XR Origin sample rig, and every XRI part has since been replaced by the project's own
+code or removed (the package itself on 2026-09-30). Keep it lean - add a package or third-party
+component only when it's clearly needed. Target order: PCVR
 first (dev/test via Quest 3 streamed through Virtual Desktop; originally built against an HP
 Reverb G2 v2 with Oasis drivers through SteamVR), then Quest 3 standalone. Performance is a
 major, ongoing priority because the real target is Quest 3 standalone hardware.
@@ -15,8 +18,8 @@ and its `Locomotion` object, with all its providers (Move, Turn, Snap Turn, Cont
 Teleportation, Climb, Grab Move, Jump), deleted. Movement, turning, gravity, crouching,
 climbing, ladders and ropes are all hand-built instead, for full control, easier Quest 3
 optimization, easier debugging, consistent behavior across headsets, and a better
-understanding of how everything works. **Do not suggest re-enabling or using XRI's built-in
-locomotion, teleportation, or climb providers.** Teleport locomotion will never be used.
+understanding of how everything works. **Do not suggest bringing back XRI (or its locomotion,
+teleportation, climb or interaction components).** Teleport locomotion will never be used.
 Quest 3 input and tracking have been verified working.
 
 ## Where the detail lives
@@ -163,17 +166,17 @@ add, rather than calling `Move()` directly. The one exception is a mantle, which
 rig directly. Everything runs in **`Update()`, not `FixedUpdate()`** — CharacterController
 movement and VR tracking both want per-frame updates, for lower latency.
 
-### Player hierarchy (`Main.unity`, unpacked from XRI's XR Origin prefab)
+### Player hierarchy (`Main.unity`, originally unpacked from XRI's XR Origin prefab)
 
 ```
-Player                 [Player layer] XROrigin, InputActionManager, XRInputModalityManager,
-                       XRGazeAssistance, CharacterController, PlayerTracking, PlayerInputXR,
-                       PlayerLocomotion, PlayerClimbing, PlayerMantling, PlayerController
-  Camera Offset        (crouch shifts this; Camera Y Offset 1.6m)
-    Main Camera
+Player                 [Player layer] CharacterController, PlayerTracking, PlayerInputXR,
+                       PlayerHaptics, PlayerLocomotion, PlayerClimbing, PlayerMantling,
+                       PlayerController
+  Camera Offset        (saved at y 1.6m = standing eye height; crouch shifts it)
+    Main Camera        Tracked Pose Driver (Tracking/Head* actions)
       Mantle Indicator (MantleIndicator - head-locked, placed a little below centre ~0.5m ahead)
     Hands              PlayerHandInteraction, PlayerHandVisuals, PlayerHandAnimation (identity transform)
-      Left Hand        [PlayerHands] tracked controller
+      Left Hand        [PlayerHands] tracked controller - Tracked Pose Driver (Tracking/LeftHand*)
         Left Hand Visual   (hand.fbx instance, Animator)
         Left Hand Reticle
       Right Hand       [PlayerHands] same, visual mirrored (scale.x -1)
@@ -188,10 +191,17 @@ crouch lowers the tracked hierarchy by moving `Camera Offset`.
 Anything that must stay world-fixed (a snapped hand, a hand held off a wall) can't be a child
 of a tracked transform - it's detached while that applies.
 
-XRI's `XR Input Modality Manager` on Player deactivates the Left/Right Hand (controller) objects
-while that controller is untracked, including at scene start before their children's `Awake()`
-has run. Anything under those objects that is ticked externally must tolerate being inactive
-(see `HandRayReticle.Tick()`).
+**Tracking setup** (replaced XROrigin, InputActionManager and XRI's actions, 2026-09-30):
+`PlayerTracking.Start()` puts XR tracking in **Device** mode (head measured from where the
+headset started or was last recentred, not the real floor), and `Camera Offset`'s saved 1.6m
+lifts that to standing eye height - the same for every player, while real crouching still
+lowers the head. The three Tracked Pose Drivers (Input System's, not XRI's) read the project's
+own `Tracking` action map, auto-enabled with the rest of `InputSystem_Actions`. Controllers
+bind the **pointer** (aim) pose, not the grip pose, as XRI's actions did - hand visual
+placement, ray angles and snap offsets are all tuned against it. An untracked controller stays
+active and holds its last pose (nothing deactivates it since XRI's Input Modality Manager went);
+the few guards for an inactive controller (`HandRayReticle.Tick()`, the physical follow) are
+kept in case untracked hands are hidden later.
 
 ### Physics layers
 
@@ -247,4 +257,5 @@ items/loot; UI: wrist radial/display).
 
 ### Scenes
 
-`Assets/Scenes/Main.unity` is the sole scene currently in the project.
+`Assets/Scenes/Main.unity` is the sole scene currently in the project, and the only (first)
+scene in the build list.

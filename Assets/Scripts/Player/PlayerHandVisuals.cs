@@ -1,3 +1,4 @@
+using System;
 using Core;
 using Unity.Profiling;
 using UnityEngine;
@@ -17,6 +18,9 @@ namespace Player
     ///   tools. While a hand is snapped or blending, it owns that visual.
     /// - Physical follow (HandPhysicalFollow): otherwise, the visual follows
     ///   its controller but stops at surfaces instead of passing through them.
+    ///
+    /// It also owns each hand's HandGhost: a faint copy at the real
+    /// controller, shown while the physical follow holds the visual away.
     ///
     /// Lives on the Hands object with the other hand systems. No Update() of
     /// its own: PlayerController calls Tick() after Move() and turning - see
@@ -61,6 +65,21 @@ namespace Player
         // well into or through something. 0 = never snap back.
         [SerializeField] private float maxSeparation = 0.4f;
 
+        [Header("Ghost Hands")]
+
+        // Whether a faint ghost hand shows at the real controller while a
+        // surface holds the hand visual away from it (see HandGhost). A
+        // likely player setting later, like PlayerHaptics.HapticsEnabled.
+        [SerializeField] private bool showGhostHands = true;
+
+        // How far, in metres, the visual must be held from the controller
+        // before the ghost appears (it hides again within half this), so
+        // just brushing a surface doesn't flash it up.
+        [SerializeField] private float ghostShowDistance = 0.03f;
+
+        // The ghost's flat colour; keep the alpha low. Read once, in Awake().
+        [SerializeField] private Color ghostColor = new(1f, 1f, 1f, 0.2f);
+
         // The bones the hand capsule is measured between (wrist to the tip of
         // the middle finger) - once, at Awake, at the bind pose. Filled in by
         // Reset() or the "Find Hand Bones" context menu.
@@ -84,8 +103,14 @@ namespace Player
         // Profiler label for one hand's physical follow tick - see TickHand().
         private static readonly ProfilerMarker _physicalFollowMarker = new("PhysicalHands.Follow");
 
+        // TeaLeaf/Ghost - see FindGhostShader().
+        private const string GhostShaderName = "TeaLeaf/Ghost";
+
         private HandPhysicalFollow _leftFollow;
         private HandPhysicalFollow _rightFollow;
+        private HandGhost _leftGhost;
+        private HandGhost _rightGhost;
+        private Material _ghostMaterial;
 
         /// Blends the left hand visual onto a snap pose and back. Other
         /// systems call Snap()/Release() on it (e.g. PlayerClimbing on grab)
@@ -102,6 +127,12 @@ namespace Player
 
         /// True while a surface is holding the right hand visual back.
         public bool IsRightHandInContact => _rightFollow.IsInContact;
+
+        /// Raised on the frame a hand visual starts touching a surface (its
+        /// debug capsule turns red), with true for the left hand - e.g. for
+        /// PlayerHaptics' contact tap. Not raised by snapping onto a grab
+        /// target. A plain C# event, invoked from inside Tick().
+        public event Action<bool> HandContactStarted;
 
         /// <summary>
         /// The left controller's pose, shifted to where its hand visual
@@ -180,6 +211,30 @@ namespace Player
             RightVisualSnap = new HandVisualSnap(rightHandVisual, snapBlendDuration);
             _leftFollow = new HandPhysicalFollow(leftHandVisual, leftWristBone, leftFingertipBone);
             _rightFollow = new HandPhysicalFollow(rightHandVisual, rightWristBone, rightFingertipBone);
+
+            // One material shared by both ghosts. The ghosts copy the visuals,
+            // so this must run while the visuals are still on their
+            // controllers at their rest pose - true in Awake().
+            _ghostMaterial = new Material(FindGhostShader()) { color = ghostColor };
+            _leftGhost = new HandGhost(leftHandVisual, _ghostMaterial);
+            _rightGhost = new HandGhost(rightHandVisual, _ghostMaterial);
+        }
+
+        /// <summary>
+        /// The TeaLeaf/Ghost shader (Art/Shaders/Resources, so it's in builds
+        /// and Shader.Find() works on the Quest too), or Unity's pink error
+        /// shader with an error logged if it's missing.
+        /// </summary>
+        private Shader FindGhostShader()
+        {
+            Shader shader = Shader.Find(GhostShaderName);
+
+            if (shader == null) {
+                Debug.LogError($"PlayerHandVisuals: shader '{GhostShaderName}' not found - ghost hands will be pink.", this);
+                shader = Shader.Find("Hidden/InternalErrorShader");
+            }
+
+            return shader;
         }
 
         private void OnEnable()
@@ -198,6 +253,13 @@ namespace Player
             // isn't destroyed along with this object. Null if Awake() never ran.
             _leftFollow?.Destroy();
             _rightFollow?.Destroy();
+
+            // A material made in code isn't cleaned up with the scene. The
+            // ghost objects themselves are children of the controllers, so
+            // they go with the rig.
+            if (_ghostMaterial != null) {
+                Destroy(_ghostMaterial);
+            }
         }
 
         /// <summary>
@@ -210,8 +272,8 @@ namespace Player
         /// </summary>
         public void Tick()
         {
-            TickHand(LeftVisualSnap, _leftFollow);
-            TickHand(RightVisualSnap, _rightFollow);
+            TickHand(LeftVisualSnap, _leftFollow, _leftGhost, true);
+            TickHand(RightVisualSnap, _rightFollow, _rightGhost, false);
         }
 
         /// <summary>
@@ -220,14 +282,22 @@ namespace Player
         /// follow. Snapping always wins: a hand gripping a ledge sits exactly
         /// on the ledge, even if the controller is inside the wall.
         /// </summary>
-        private void TickHand(HandVisualSnap snap, HandPhysicalFollow follow)
+        private void TickHand(HandVisualSnap snap, HandPhysicalFollow follow, HandGhost ghost, bool isLeftHand)
         {
             snap.Tick(Time.deltaTime);
 
             if (snap.IsSnapped || snap.Weight > 0f) {
                 follow.Suspend();
+                // A snapped hand is meant to be off the controller (it's on
+                // the ledge), so no ghost.
+                ghost.Tick(false, ghostShowDistance);
                 return;
             }
+
+            // Contact only counts as "started" going from free to touching
+            // within a tick. A snapped hand's follow is suspended, which
+            // clears contact without raising anything.
+            bool wasInContact = follow.IsInContact;
 
             // Timed under its own name in the Profiler (search for it in the
             // CPU module's Hierarchy view), so the physical hands' cost can
@@ -237,6 +307,13 @@ namespace Player
             using (_physicalFollowMarker.Auto()) {
                 follow.Tick(collisionLayers, handRadius, skinWidth, catchUpDuration, maxSeparation, Time.deltaTime);
             }
+
+            if (!wasInContact && follow.IsInContact) {
+                HandContactStarted?.Invoke(isLeftHand);
+            }
+
+            // After the follow, so it measures where the visual ended up.
+            ghost.Tick(showGhostHands, ghostShowDistance);
         }
 
         /// <summary>

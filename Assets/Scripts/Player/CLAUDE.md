@@ -20,12 +20,27 @@ field comments use `///` without `<summary>` (newer fields use `//`).
   `Tick()` is guarded by `Time.frameCount`, so only the first call each frame reads input.
   Gameplay code should always read input through this class rather than referencing Input
   Actions directly.
+- **`PlayerHaptics`** (on the Player root, added 2026-09-30) — the single way to buzz a
+  controller: `Pulse(isLeftHand, amplitude, duration)`. Sends through
+  `OpenXRInput.SendHapticImpulse` on the `LeftHaptic`/`RightHaptic` actions (PassThrough, bound
+  to each controller's `haptic` output - the name every OpenXR controller profile uses), which
+  it enables itself. No `Update()`/`Tick()`; for events, not per frame (OpenXR looks the
+  controller up by name on each call, a small allocation). Right-click "Test Left/Right Pulse"
+  (Play Mode) checks the bindings. Also owns the feedback tuning: it subscribes to
+  `PlayerHandVisuals.HandContactStarted` and taps that controller (`contactAmplitude` 0.15,
+  `contactDuration` 0.03s), at most once per `contactCooldown` (0.25s) per hand so sliding over
+  a bumpy surface doesn't buzz continuously. Verified working through Virtual Desktop + SteamVR
+  (both this route and the older `XR.InputDevice.SendHapticImpulse`).
+  Global on/off: `HapticsEnabled` (see the settings decision below).
 
 **Input assets:** all gameplay input reads the project-owned, project-wide
-`Assets/InputSystem_Actions.inputactions` (`Player` map, auto-enabled by Unity), never XRI's
-sample `XRI Default Input Actions`, which a package update could overwrite and whose bindings
-carry XRI interactions. (The XRI asset is still enabled by the Input Action Manager on Player
-for XRI's own use.) The `Player` map has an `XR`-group action for every Quest controller input,
+`Assets/InputSystem_Actions.inputactions` (auto-enabled by Unity, every map). (XRI and its
+sample `XRI Default Input Actions` were removed 2026-09-30; before that, gameplay already
+avoided them, since a package update could overwrite them and their bindings carried XRI
+interactions.) The `Tracking` map holds the head and controller poses the three Tracked Pose
+Drivers read (`Head`/`LeftHand`/`RightHand` + `Position`/`Rotation`/`TrackingState`: head
+`<XRHMD>/centerEye*`, controllers `<XRController>{Hand}/pointerPosition`/`pointerRotation` -
+the aim pose everything is tuned against - and `/trackingState`). The `Player` map has an `XR`-group action for every Quest controller input,
 named by function where gameplay uses it and by button as a placeholder where it doesn't yet:
 
 | Action | XR binding | Used by |
@@ -41,6 +56,7 @@ named by function where gameplay uses it and by button as a placeholder where it
 | `ButtonY` | `{LeftHand}/{SecondaryButton}` | unassigned placeholder |
 | `Menu` | `{LeftHand}/{MenuButton}` | unassigned placeholder |
 | `RightStickClick` | `{RightHand}/{Primary2DAxisClick}` | unassigned placeholder |
+| `LeftHaptic` / `RightHaptic` | `{LeftHand}`/`{RightHand}/haptic` | output, not input: `PlayerHaptics` (PassThrough) |
 
 Rename a placeholder to its function when it gets a job (e.g. the wrist radial menu), and add
 it to `PlayerInputXR` then - not before. Bind XR actions to a specific hand
@@ -58,7 +74,9 @@ therefore reads the project's own interaction-free `Player/Turn` action.
 
 - **`PlayerTracking`** — the single source of truth for tracked XR transforms (head, left hand,
   right hand), exposing position/rotation accessors. Other systems should query this class
-  instead of walking the XR Rig hierarchy.
+  instead of walking the XR Rig hierarchy. Its `Start()` also sets XR tracking to Device mode
+  (what XROrigin did; see "Tracking setup" in the root `CLAUDE.md`). Predates the coding
+  standards: odd indentation on the accessors and empty `//` comment lines.
 - **`PlayerController`** — the tick orchestrator and sole owner of `characterController.Move()`
   (see the tick order in the root `CLAUDE.md`).
 - **`PlayerLocomotion`** — thumbstick movement, turning, gravity, and crouch for the
@@ -138,7 +156,8 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   (0.035m), `skinWidth` (0.005m), `catchUpDuration` (0.1s), `maxSeparation` (0.4m), and the wrist/fingertip bones per hand. `Reset()` / the "Find
   Hand Bones" context menu find the visuals and bones by name (`J_Left_Hand`,
   `J_Left_HandMiddle4` - the mirrored right hand shares the Left names). Exposes
-  `IsLeftHandInContact`/`IsRightHandInContact`. Debug capsules (`IDebugDrawable` - gizmos when
+  `IsLeftHandInContact`/`IsRightHandInContact`, and raises `HandContactStarted(isLeftHand)` on the tick a
+  hand goes from free to in contact (not on snapping; for `PlayerHaptics`). Debug capsules (`IDebugDrawable` - gizmos when
   selected, and in the headset while `InHeadsetGizmos` is on, see `Scripts/Core/CLAUDE.md`): in
   Play Mode the target capsule (faint) and the visual's (green, red in contact); in Edit Mode
   the bone capsule, for checking `handRadius`.
@@ -194,10 +213,30 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   back every frame. The eases share `AdvanceEases()`/`StartPositionReturn()`/
   `StartRotationReturn()`, and placement is `PlaceVisual()`. Controllers are assumed unscaled (verified: Player → controllers all
   scale 1). `Suspend()` while snapped/untracked.
+- **`HandGhost`** (added 2026-09-30) — plain C# class, one per hand, owned and ticked by
+  `PlayerHandVisuals` (after the physical follow; told it can't show while snapped). A faint
+  copy of the hand at the real controller while a surface holds the visual away (Alyx style).
+  Made in `Awake()` by `Instantiate`-ing the visual under the controller at its rest pose (so
+  it follows tracking, including the before-render update, with no code moving it) with its
+  Animator destroyed; while shown, its bones copy the visual's `localRotation`s (one frame
+  behind, invisible on a ghost). Shown when the visual is more than `ghostShowDistance`
+  (0.03m) from it, hidden again within half that; the renderer is only switched on changes,
+  bones only copied while shown. Settings on `PlayerHandVisuals` (Ghost Hands):
+  `showGhostHands` (a likely player setting later), `ghostShowDistance`, `ghostColor` (white,
+  alpha 0.2, read once in `Awake()`). Drawn with **`TeaLeaf/Ghost`**
+  (`Art/Shaders/Resources/Ghost.shader`): Overlay's no-depth-test flat colour (the real hand
+  is usually inside the wall, so a depth-tested ghost would be hidden), queue `Overlay-1` so
+  UI markers stay on top, `Cull Back`, plus a stencil test on bit 128 so each pixel is drawn
+  once - without it the see-through hand darkens wherever its own triangles overlap.
 - **`HandVisualSnap`** — plain C# class (one per hand, owned and ticked by `PlayerHandVisuals`;
   other systems only call `Snap()`/`Release()`). Blends a hand *visual* (never the tracked
   controller) between its rest local pose and a world-space `HandSnapPose` over
-  `snapBlendDuration` (SmoothStep), both ways, and doesn't touch the transform at rest. Exposes
+  `snapBlendDuration` (SmoothStep), both ways, and doesn't touch the transform at rest. A grab
+  from rest blends **from where the visual actually is** (captured in `Snap()` in the
+  controller's space, so it still follows the real hand), not from the rest pose - a surface
+  may be holding it off the controller (fixed 2026-09-30: it used to jump back to the
+  controller on the first frame, the "pop"). `Release()` resets that to the rest pose, so a
+  release always blends back onto the controller. Exposes
   the eased blend as `Weight` (0 = following the controller, 1 = snapped), which
   `PlayerHandAnimation` uses as the finger pose layer weight so the two stay in step. While
   snapped the visual is **detached to the scene root** and re-attached when the release blend
@@ -235,10 +274,12 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   snapped hand (ledges, rungs, ropes now; props, tools later) gets its target's finger pose and
   fades back to input curl on release. `SetFloat()`/`Play()`/`SetLayerWeight()` only run when
   the curl, pose or weight changes; both Animators set `keepAnimatorStateOnDisable` in `Awake()`
-  so those caches stay valid when XRI deactivates an untracked controller. The layer index is looked up by name; state hashes are built once from
+  so those caches stay valid if a controller object is ever deactivated (XRI's Input Modality
+  Manager used to, when untracked; nothing does now). The layer index is looked up by name; state hashes are built once from
   `HandPose`'s enum names. (Replaced an earlier `HandState` enum — every non-input pose is a
   snap pose, so the snap weight already says who owns the fingers.) New poses: add a `HandPose`
-  value plus a same-named state and clip on the layer, no new code.
+  value plus a same-named state and clip on the layer, no new code; `Awake()` warns once for
+  any `HandPose` with no matching state.
 
 ### Hand art/animation
 
@@ -250,11 +291,13 @@ pose clips: Base Layer (`TriggerCurl`, index) and Grip (`GripCurl`, middle+ring+
 Avatar Masks are used — each clip only keys its own finger bones, and a Generic-rig layer only
 writes the properties its clips animate. New pose clips should likewise key only the bones they
 need. On top sits the `Snap Pose` layer (Override, default weight 0, driven from code): one
-state per `HandPose` value, **named exactly like the enum value** (e.g. `LedgeGrip`), each
+state per `HandPose` value, **named exactly like the enum value** (`LedgeGrip`, `RungGrip`,
+`RopeGrip`), each
 holding a single-keyframe clip. A snap clip must key **every joint (1, 2 and 3) of every finger
 it poses**: like the other layers it only writes the bones it keys (Write Defaults doesn't reset
 unkeyed bones here), so any unkeyed joint keeps the input layers' curl - and grip is held while
-climbing. The thumb isn't animated yet. Keep the mirrored right hand in mind for colliders and
+climbing. The thumb (`J_Left_HandThumb1-4`) is only posed by the `RungGrip` and `RopeGrip` snap
+clips (2026-09-30) - the input layers and `LedgeGrip` leave it at rest. Keep the mirrored right hand in mind for colliders and
 anything handedness-dependent.
 
 ## Debug scripts
@@ -268,7 +311,25 @@ a greybox row at (4.5, 0, -5.5), facing the spawn, under one root (rebuilding as
 it; undoable). Pieces: an inside corner (wall + return wall), a 2cm thin panel (tunnelling,
 far-side push-out, maxSeparation snap-back), a table (top, edges, underneath) with a static
 0.3m crate on Interactable, a pillar (outside corners), a 5cm gap between two blocks (narrower
-than the 7cm hand), a 45° slope and a round post. **`PhysicalHandsTrace`** (on the Debug object, enable *before* Play - toggling it in the
+than the 7cm hand), a 45° slope and a round post. **`LocomotionTestCourse`** (menu **TeaLeaf >
+Build Locomotion Test Course**, added 2026-09-30) builds the same way a row 10m in front of the
+spawn (root at (12, 0, 10), turned 180° so the pieces face it; locally a row along X, fronts at
+z = 0 facing +Z): a 1.3m chest ledge, a 2.3m above-head ledge, a 1.1m low shelf under a
+ceiling 1.2m above it (edge ends the mantle crouched), a 4m tower with a ladder (visible
+Environment rails/rungs inside the `Ladder` grab box, rungs from the same
+`firstRungHeight`/`rungSpacing`) and a 3.7m rope (thin Environment cylinder inside the
+`ClimbableRope`) sharing one mantleable top edge, a 20° ramp to three 1m platforms with a 1.5m
+(walking) and a 2.5m (sprint) jump gap, 0.45m (jumpable) and 0.6m (control) crates, and a
+ceiling slab at 2m to jump under. Sizes come from the player settings (see the class
+comment). Every climbable is built as its setup checks expect - trigger volumes on Climbable,
+larger than the solid part, colliders set up before the component is added - with its
+`LedgeGrip`/`LadderRung`/`RopeGrip` profile. Edge volumes are unscaled lip strips (0.2m tall,
+0.3m deep, 5cm past the solid top and face), mantle point where "Reset Mantle Point" puts it.
+Both builders make their pieces through **`TestGeometry`** (`Box()`, `Primitive()`), which
+gives every test piece the brown `Assets/Art/Materials/TestGeometry.mat` (URP Lit, created by
+the first build if missing; edit it in the Inspector) so test areas stand out from the grey
+floor - new test-area builders should use it too.
+**`PhysicalHandsTrace`** (on the Debug object, enable *before* Play - toggling it in the
 headset is awkward) turns on `HandPhysicalFollow.TraceEnabled`: one log line per hand per
 frame whose sweep hits a collider whose name contains `colliderNameFilter` (default "Gap") -
 contact state, push-out, and each sweep's hit (collider, distance, normal), no stack trace.
@@ -300,11 +361,14 @@ profiled under the
 - **Crouch is a button-driven toggle, not physical** — `HandleCrouch()` smoothly moves the
   CharacterController height between the standing height (captured in `Awake`) and
   `minimumHeight`, keeps `center.y` in sync, and shifts `cameraOffsetTransform` by the
-  *relative* height delta (never an absolute value, which would discard the XR Origin's Camera
-  Y Offset). `UpdateCharacterControllerCentre()` only touches X/Z.
+  *relative* height delta (never an absolute value, which would discard `Camera Offset`'s saved
+  1.6m standing eye height). `UpdateCharacterControllerCentre()` only touches X/Z.
 - **CharacterController settings** — Slope Limit 45°, Step Offset 0.3m (validated in a test
-  scene: 0.2m step and 30° ramp climbable, 60° ramp not). XR Origin uses Device tracking mode
-  with a 1.6m Camera Y Offset.
+  scene: 0.2m step and 30° ramp climbable, 60° ramp not). Device tracking mode (set by
+  `PlayerTracking`) with `Camera Offset` at 1.6m. The CharacterController is kept rather than
+  replaced with a custom one (decided 2026-09-30): it runs natively inside PhysX with nothing
+  unused costing anything, and a C# replacement would be slower on Quest and a large source of
+  bugs.
 - **Mantling** — a quick, committed move onto a *mantleable* (always horizontal)
   `ClimbableEdge`. When a hand grips one and the head has been pulled up near the top, a small
   white head-locked arrow appears; pushing up on either thumbstick then starts the mantle. It
@@ -357,5 +421,7 @@ profiled under the
   jitter-prone, needs teleports for snap turn/mantle). Being built step by step (steps in
   `DEVROADMAP.txt` Phase 1).
 - **Settings will eventually move out of serialized fields** — Smooth Turn/Snap Turn, turn
-  speed, snap angle, and movement speed are expected to become user-configurable options (out
-  of scope for the vertical slice).
+  speed, snap angle, movement speed and vibration on/off are expected to become
+  user-configurable options (out of scope for the vertical slice). Vibration already has its
+  public switch: `PlayerHaptics.HapticsEnabled` (serialized `hapticsEnabled`, default on),
+  checked once in `Pulse()` so it silences every haptic.

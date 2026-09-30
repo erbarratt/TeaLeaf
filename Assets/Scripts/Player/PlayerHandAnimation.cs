@@ -79,9 +79,11 @@ namespace Player
         {
             _snapPoseLayer = leftHandAnimator.GetLayerIndex(SnapPoseLayerName);
 
-            // XRI's Input Modality Manager deactivates a controller object
-            // (hand visual and Animator included) whenever it loses tracking.
-            // By default a disabled Animator resets its parameters, layer
+            // If a controller object (hand visual and Animator included) is
+            // ever deactivated - XRI's Input Modality Manager used to do this
+            // whenever it lost tracking; nothing does now, but it's a likely
+            // way to hide an untracked hand later - then by default the
+            // disabled Animator resets its parameters, layer
             // weights and states - which would leave the "last applied"
             // caches below describing values the Animator no longer has, so
             // e.g. a curled finger would stay open after tracking returns
@@ -92,6 +94,26 @@ namespace Player
 
             if (_snapPoseLayer < 0) {
                 Debug.LogWarning($"PlayerHandAnimation: no \"{SnapPoseLayerName}\" layer on the hand Animator Controller - snapped hands will keep their input pose.", this);
+                return;
+            }
+
+            WarnAboutMissingPoseStates();
+        }
+
+        /// <summary>
+        /// Checks once, at startup, that the Snap Pose layer has a state for
+        /// every HandPose value. A HandPose added in code without its
+        /// same-named state would otherwise only show up as a vague Animator
+        /// warning on every grab, with the hand keeping its input pose.
+        /// </summary>
+        private void WarnAboutMissingPoseStates()
+        {
+            string[] names = Enum.GetNames(typeof(HandPose));
+
+            for (int i = 0; i < _poseStateHashes.Length; i++) {
+                if (!leftHandAnimator.HasState(_snapPoseLayer, _poseStateHashes[i])) {
+                    Debug.LogWarning($"PlayerHandAnimation: no \"{names[i]}\" state on the \"{SnapPoseLayerName}\" layer - hands snapped with HandPose.{names[i]} will keep their input pose.", this);
+                }
             }
         }
 

@@ -166,6 +166,24 @@
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
+                },
+                {
+                    "name": "LeftHaptic",
+                    "type": "PassThrough",
+                    "id": "301cb8ed-3dab-4cf3-bb3b-534a58829a8b",
+                    "expectedControlType": "Haptic",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "RightHaptic",
+                    "type": "PassThrough",
+                    "id": "8f3da0f0-9f18-443a-9438-4a21c4bbcbb1",
+                    "expectedControlType": "Haptic",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
                 }
             ],
             "bindings": [
@@ -661,6 +679,216 @@
                     "processors": "",
                     "groups": "XR",
                     "action": "RightStickClick",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "d875dff5-c8d0-4c84-897e-4c3e9da65314",
+                    "path": "<XRController>{LeftHand}/haptic",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "XR",
+                    "action": "LeftHaptic",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "4cad7025-0339-4265-b086-7f04265ba78a",
+                    "path": "<XRController>{RightHand}/haptic",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "XR",
+                    "action": "RightHaptic",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                }
+            ]
+        },
+        {
+            "name": "Tracking",
+            "id": "2724094d-ef4e-4015-bf53-3d54a993f4a5",
+            "actions": [
+                {
+                    "name": "HeadPosition",
+                    "type": "Value",
+                    "id": "aef29401-032e-4740-9490-c5c991e45fc1",
+                    "expectedControlType": "Vector3",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "HeadRotation",
+                    "type": "Value",
+                    "id": "6907ad4e-768a-4d9c-8775-d5ac7dbcc8bd",
+                    "expectedControlType": "Quaternion",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "HeadTrackingState",
+                    "type": "Value",
+                    "id": "dc256ab1-6083-4d74-ba60-bd5665e17dd1",
+                    "expectedControlType": "Integer",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "LeftHandPosition",
+                    "type": "Value",
+                    "id": "3b2f3917-b495-4648-ba61-753a7387a15a",
+                    "expectedControlType": "Vector3",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "LeftHandRotation",
+                    "type": "Value",
+                    "id": "6f90dd08-4dbe-4518-a80e-8a1f78b59487",
+                    "expectedControlType": "Quaternion",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "LeftHandTrackingState",
+                    "type": "Value",
+                    "id": "d2ac6ae8-8858-42e1-8616-71293950314c",
+                    "expectedControlType": "Integer",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "RightHandPosition",
+                    "type": "Value",
+                    "id": "a8c4814e-0f81-4c9a-84d6-1cff25abcb73",
+                    "expectedControlType": "Vector3",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "RightHandRotation",
+                    "type": "Value",
+                    "id": "d6abcdcd-3ce7-4799-aba7-f8a192c24191",
+                    "expectedControlType": "Quaternion",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                },
+                {
+                    "name": "RightHandTrackingState",
+                    "type": "Value",
+                    "id": "171a3132-f3ad-4fd1-8119-20adeb0971c8",
+                    "expectedControlType": "Integer",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": true
+                }
+            ],
+            "bindings": [
+                {
+                    "name": "",
+                    "id": "07c3dc41-611f-45b0-90df-0974cc7975cb",
+                    "path": "<XRHMD>/centerEyePosition",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "XR",
+                    "action": "HeadPosition",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "d87f82a9-b21f-45bd-adf5-2ef9a0598225",
+                    "path": "<XRHMD>/centerEyeRotation",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "XR",
+                    "action": "HeadRotation",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "f334161b-0213-4816-889d-74f6a6c57a37",
+                    "path": "<XRHMD>/trackingState",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "XR",
+                    "action": "HeadTrackingState",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "9089f59d-d393-4493-b845-984f959edb58",
+                    "path": "<XRController>{LeftHand}/pointerPosition",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "XR",
+                    "action": "LeftHandPosition",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "235c0d41-d184-41af-8fd0-468c7e8b47e6",
+                    "path": "<XRController>{LeftHand}/pointerRotation",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "XR",
+                    "action": "LeftHandRotation",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "d1a530da-57e2-417b-a210-a949fad8235c",
+                    "path": "<XRController>{LeftHand}/trackingState",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "XR",
+                    "action": "LeftHandTrackingState",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "31460e2e-019b-4c9c-8cfa-e9c34998a0a3",
+                    "path": "<XRController>{RightHand}/pointerPosition",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "XR",
+                    "action": "RightHandPosition",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "7509a887-c25e-4b9c-8086-d83aefcef954",
+                    "path": "<XRController>{RightHand}/pointerRotation",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "XR",
+                    "action": "RightHandRotation",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "be6380d0-1340-4ae5-a24f-9f2c51471263",
+                    "path": "<XRController>{RightHand}/trackingState",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "XR",
+                    "action": "RightHandTrackingState",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

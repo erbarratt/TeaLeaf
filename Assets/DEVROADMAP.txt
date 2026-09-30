@@ -28,9 +28,9 @@ Tools:        blackjack takedown, hand crossbow (either hand, physically
 Inventory:    wrist radial menu to select tools/bolt types; loot pickup and
               pocketing with a running loot total.
 Bodies:       grab and drag KO'd guards to hide them.
-Throwing:     aimed, not physical - hold an object, push the right stick
-              forward for a trajectory arc, press a button to throw (short
-              hand launch animation).
+Throwing:     aimed, not physical - hold an object, hold that hand's
+              trigger for a trajectory arc, release the trigger to throw
+              (short hand launch animation).
 Hands:        physical hands - the visual hand model collides with the world
               and stops at walls/props instead of passing through, then
               catches back up to the real controller position (Half-Life:
@@ -322,8 +322,10 @@ Animation:
     hand is snapped (see the ray-targeted climb grab item above).
     Hand_L_LedgeGrip keys joints 1-3 of all four fingers. Verified in
     headset.
-[ ] Ladder rung and rope grip poses (can reuse the ledge pose initially),
-    supplied by Ladder/ClimbableRope snap poses.
+[x] Ladder rung and rope grip poses (2026-09-30): HandPose.RungGrip and
+    RopeGrip, each with its own clip (both also pose the thumb) and tuned
+    LadderRung/RopeGrip profile offsets, supplied by Ladder/ClimbableRope
+    snap poses. Verified in headset.
 Physical hands (Player namespace) - a core concept, moved here from
 Phase 3 (2026-09-27). Built as part of Phase 1, since grabbing, tools
 and climbing all sit on top of where the visual hand ends up.
@@ -402,11 +404,13 @@ performant approaches for Quest 3 before any code is written:
     back away from the wall as the wrist tilted while pushing deeper.
 [ ] Integrate with existing systems. Done: snapping takes priority over
     the physical follow (steps 1-2); hand rays use the visual hand (step
-    5). Left: the small pop when grabbing while a surface holds the hand
-    off the controller; held items/tools inherit the visual hand's
-    position (when tools exist).
-[ ] Optional feedback: light haptic pulse on first contact; faint "ghost"
-    hand at the real controller position while separated (as Alyx does).
+    5); no pop when grabbing while a surface holds the hand off the
+    controller (fixed 2026-09-30). Left: held items/tools inherit the
+    visual hand's position (when tools exist).
+[x] Optional feedback (2026-09-30): light haptic pulse on first contact
+    (PlayerHaptics, with a global vibration on/off for a future settings
+    dialogue); faint "ghost" hand at the real controller position while
+    separated (HandGhost, as Alyx does). Verified in headset.
 [x] Debug: in-headset gizmos (verified 2026-09-28). Gizmos only show in
     one eye in VR (drawn for one flat camera), so - widened from "the hand
     capsules" to every component with gizmos, on request - drawing is
@@ -425,9 +429,11 @@ performant approaches for Quest 3 before any code is written:
     case a hand pressed into a corner or the gap), in the editor and on a
     Quest standalone development build once one exists.
 Test scene:
-[ ] Extend the CharacterController test scene: ledge at chest height, ledge
+[x] Extend the CharacterController test scene: ledge at chest height, ledge
     above head, mantle onto low-clearance shelf, 4m ladder, rope, a gap to
     jump across, a jump up onto a low crate, a low ceiling over a jump spot.
+    Done 2026-09-30 as TeaLeaf > Build Locomotion Test Course (an editor
+    builder, like the physical hands test area). Verified in headset.
 
 
 Phase 2 - Core stealth framework (Core namespace)
@@ -468,6 +474,7 @@ Physical hands: moved to Phase 1 (2026-09-27) - done before this phase.
 Grabbing and props:
 [ ] Decide grab approach: custom grab consistent with PlayerClimbing
     (recommended - one system, one set of hand states) vs XRI interactables.
+    Decided 2026-09-30: custom grab - XRI was removed from the project.
     Build IGrabbable (or a Grabbable base) alongside the existing
     IHandTarget pattern.
 [ ] Grabbable physics props: pick up, hold, release (release without

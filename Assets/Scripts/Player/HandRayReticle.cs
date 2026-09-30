@@ -57,14 +57,14 @@ namespace Player
         /// </summary>
         public void Tick(bool active, Vector3 worldPoint, Vector3 viewerPosition)
         {
-            // The reticle lives under its hand's controller object, which
-            // XRI's XR Input Modality Manager (on Player) deactivates
-            // whenever that controller isn't tracked - including at scene
-            // start, in its OnEnable, before this object's Awake() has run.
-            // Awake() only runs once the controller is first tracked, so
-            // until then _meshRenderer doesn't exist yet (PlayerController
-            // still ticks this every frame). Skip the frame:
-            // an untracked hand has nothing to show a reticle for anyway.
+            // The reticle lives under its hand's controller object. Nothing
+            // deactivates that now, but XRI's XR Input Modality Manager used
+            // to whenever the controller wasn't tracked - including at scene
+            // start, before this object's Awake() had run, so _meshRenderer
+            // didn't exist yet (PlayerController still ticks this every
+            // frame). Kept as a cheap guard in case controllers are ever
+            // hidden while untracked again: skip the frame, an inactive hand
+            // has nothing to show a reticle for anyway.
             if (!isActiveAndEnabled) {
                 return;
             }

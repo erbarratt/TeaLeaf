@@ -2,7 +2,106 @@ TeaLeaf Development Log
 ========================
 
 This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
-(Unity, OpenXR + XR Interaction Toolkit). Newest updates are at the top.
+(Unity, OpenXR + Input System; XR Interaction Toolkit until 2026-09-30).
+Newest updates are at the top.
+
+
+2026-09-30
+----------
+- Rung and rope grip poses (Phase 1). HandPose gained RungGrip and
+  RopeGrip, appended at the end: HandSnapProfile assets store the pose as
+  its number and PlayerHandAnimation uses it as an array index, so
+  inserting or reordering values would silently change every profile's
+  pose (noted on the enum). Ladder and ClimbableRope fall back to them
+  without a profile; the LadderRung/RopeGrip profiles point at them.
+  PlayerHandAnimation.Awake() now warns once for any HandPose with no
+  same-named state on the Snap Pose layer, instead of a vague Animator
+  warning on every grab. New clips Hand_L_RungGrip/Hand_L_RopeGrip, shaped
+  in the Animation window on a temporary hand next to the rung/rope, then
+  the profile offsets tuned in the headset while gripping (release and
+  re-grab after each change - the profile is only read on grab). Both new
+  clips also pose the thumb, which nothing had animated before; it returns
+  to rest on release. The rope's frame has the same shape as the ladder's
+  (forward into the thing, up = up), so its offsets started from the tuned
+  rung values plus a quarter turn. Test rung mesh made thinner.
+- Fixed the grab "pop" (Phase 1 integration): grabbing while a surface
+  held the visual hand off the controller made it jump back to the
+  controller - possibly inside the wall - for a frame, then ease onto the
+  ledge. HandVisualSnap always blended from the rest pose on the
+  controller. Now Snap() records where the visual actually is (in the
+  controller's space, so it still follows the real hand during the blend)
+  as the blend's start; Release() resets it so a release still blends back
+  onto the controller.
+- Haptics (Phase 1 optional feedback). LeftHaptic/RightHaptic actions
+  (PassThrough, <XRController>{Hand}/haptic - the name every OpenXR
+  controller profile uses) and a new PlayerHaptics on the Player root, the
+  single way to buzz a controller: Pulse(), via
+  OpenXRInput.SendHapticImpulse. First test didn't buzz; temporary logging
+  plus a second test through the older XR.InputDevice API showed both
+  routes working on the next try (likely the actions weren't picked up
+  before a recompile) - removed again. PlayerHandVisuals raises
+  HandContactStarted on the frame a hand goes from free to touching (not
+  on snapping); PlayerHaptics taps that controller (0.15 / 0.03s) with a
+  0.25s per-hand cooldown so sliding over bumps doesn't buzz constantly.
+  Global vibration on/off: PlayerHaptics.HapticsEnabled (serialized,
+  checked once in Pulse(), so it covers every future haptic), for a later
+  settings dialogue alongside smooth/snap turn. Verified through Virtual
+  Desktop + SteamVR.
+- Ghost hands (Phase 1 optional feedback): HandGhost, one per hand, owned
+  by PlayerHandVisuals. A copy of the hand visual made at startup under
+  the controller (so tracking moves it, with no code), Animator removed,
+  finger bones copied from the visual while shown. Shows once the visual
+  is held 3cm from the controller, hides within half that, never while
+  snapped. New TeaLeaf/Ghost shader: no depth test (the real hand is
+  usually inside the wall, so a depth-tested ghost would be hidden), queue
+  Overlay-1 so reticles stay on top, and a stencil test so each pixel
+  draws once - without it a see-through 3D hand darkens wherever its own
+  triangles overlap. Settings: showGhostHands, ghostShowDistance,
+  ghostColor.
+- Locomotion test course (Phase 1 test scene): TeaLeaf > Build Locomotion
+  Test Course, an editor builder like the physical hands test area.
+  Chest and above-head ledges, a low shelf that ends the mantle crouched,
+  a 4m tower with a ladder and a rope sharing one top edge, walking (1.5m)
+  and sprint (2.5m) jump gaps up a ramp, 0.45m/0.6m crates and a 2m
+  ceiling to jump under, sized from the player settings. Climbables are
+  built the way their setup checks expect, colliders configured before
+  the component is added so no false warnings fire. Then a shared
+  TestGeometry editor helper (both builders' Box() copies merged) that
+  gives every test piece a brown TestGeometry material, so test areas
+  stand out from the grey floor.
+- Lean project cleanup: audited every component in Main.unity. Removed
+  XROrigin (its only jobs were Device tracking mode, now set in
+  PlayerTracking.Start(), and the 1.6m height, now just Camera Offset's
+  saved value - and it would have reset Camera Offset on a recentre,
+  undoing a crouch), XRI's InputActionManager, the XR Interaction Manager
+  object, the Global Volume (camera post-processing was off) and the old
+  loose test geometry the new course replaces. The three Tracked Pose
+  Drivers (Input System's, kept - we use nearly all of it and it already
+  updates before any Update()) now read a new Tracking action map in
+  InputSystem_Actions. Learned: XRI's controller pose actions bound the
+  POINTER (aim) pose first via its own fallback composite, so hand
+  placement, rays and snap offsets were all tuned against the aim pose;
+  the new actions bind pointerPosition/pointerRotation directly and
+  nothing moved. Then removed the XR Interaction Toolkit and Visual Studio
+  packages, Assets/Samples and Assets/XRI. Kept the CharacterController:
+  it runs natively in PhysX, and a C# replacement would be slower on Quest
+  and a big source of bugs. XRInputModalityManager/XRGazeAssistance had
+  already gone from the scene; the root CLAUDE.md still listed them.
+- Build scene list now holds just Main.unity (it only had a missing
+  SampleScene).
+- Roadmap: ticked rung/rope grip poses, optional feedback and the test
+  scene; the grab pop marked fixed under integration; Phase 3's grab
+  approach decided (custom - XRI is gone); the feature list's Throwing
+  line corrected to the trigger aiming decided 2026-09-29.
+- Docs: root CLAUDE.md (no XRI, keep it lean, Player hierarchy, tracking
+  setup, build list), Scripts/Player/CLAUDE.md (PlayerHaptics, HandGhost,
+  HandVisualSnap blend start, Tracking actions, test builders,
+  CharacterController decision) and Scripts/Interaction/CLAUDE.md
+  (HandPose ordering, tuned profiles).
+- Still to do: Phase 1 step 6b profiling (needs a Quest standalone build);
+  held items following the visual hand (when tools exist). Next: Phase 2,
+  starting with the screen fade. PlayerTracking.cs predates the coding
+  standards (indentation, empty // lines) - flagged, not reformatted.
 
 
 2026-09-29

@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.XR;
 
 namespace Player
 {
@@ -26,6 +28,35 @@ namespace Player
         // Reference to the right controller transform.
         // Updated automatically by OpenXR every frame.
         [SerializeField] private Transform rightHand;
+
+        // Filled by SubsystemManager.GetSubsystems() in Start() - a reused
+        // list, so the lookup doesn't allocate a new one.
+        private static readonly List<XRInputSubsystem> _inputSubsystems = new();
+
+        /// <summary>
+        /// Puts XR tracking in Device mode (replaced XROrigin 2026-09-30,
+        /// which did only this for us, plus setting the height below). Device
+        /// mode measures the head from where the headset was at startup (or
+        /// the last recentre) rather than from the real floor, and Camera
+        /// Offset - saved 1.6m up in the scene - lifts that to standing eye
+        /// height. So every player stands at the same height whatever their
+        /// real height, while real crouching still lowers the head. Once, at
+        /// startup: XR is initialised before the first scene loads, so the
+        /// subsystem is already running by Start().
+        /// </summary>
+        private void Start()
+        {
+            SubsystemManager.GetSubsystems(_inputSubsystems);
+            bool isSet = false;
+
+            foreach (XRInputSubsystem subsystem in _inputSubsystems) {
+                isSet |= subsystem.TrySetTrackingOriginMode(TrackingOriginModeFlags.Device);
+            }
+
+            if (!isSet) {
+                Debug.LogWarning("PlayerTracking: couldn't set Device tracking mode - is a headset connected and XR initialised on startup? Head height may be wrong.", this);
+            }
+        }
 
         // TRANSFORM ACCESS
         //

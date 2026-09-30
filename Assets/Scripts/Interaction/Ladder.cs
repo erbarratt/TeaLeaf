@@ -173,7 +173,7 @@ namespace Interaction
 
             // See ClimbableEdge.GetSnapPose() for why == null.
             if (snapProfile == null) {
-                return new HandSnapPose(gripPosition, gripRotation, HandPose.LedgeGrip);
+                return new HandSnapPose(gripPosition, gripRotation, HandPose.RungGrip);
             }
 
             return snapProfile.Apply(isLeftHand, gripPosition, gripRotation);
