@@ -323,12 +323,32 @@ Environment rails/rungs inside the `Ladder` grab box, rungs from the same
 ceiling slab at 2m to jump under. Sizes come from the player settings (see the class
 comment). Every climbable is built as its setup checks expect - trigger volumes on Climbable,
 larger than the solid part, colliders set up before the component is added - with its
-`LedgeGrip`/`LadderRung`/`RopeGrip` profile. Edge volumes are unscaled lip strips (0.2m tall,
-0.3m deep, 5cm past the solid top and face), mantle point where "Reset Mantle Point" puts it.
-Both builders make their pieces through **`TestGeometry`** (`Box()`, `Primitive()`), which
-gives every test piece the brown `Assets/Art/Materials/TestGeometry.mat` (URP Lit, created by
-the first build if missing; edit it in the Inspector) so test areas stand out from the grey
-floor - new test-area builders should use it too.
+`LedgeGrip`/`LadderRung`/`RopeGrip` profile, mantle points where "Reset Mantle Point" puts
+them. **`TownTestArea`** (menu **TeaLeaf > Build Town Test Area**, added 2026-09-30) builds a
+larger greybox town square (root at (0, 0, -35), behind the spawn): six flat-roofed mud-brick
+style houses modelled on a reference photo of a two-storey Gulf house, big shapes only, each
+from a `BuildingSpec` (size, optional tower over one end or all of it, terrace, balcony, door
+position) in its own frame (front outer face at z = 0 facing +Z, turned to face the square),
+plus four free-standing 2.4m compound walls and a few crates. A 3.6m ground floor (door,
+auto-spaced windows) under a slab that is both lower roof and tower first floor, a 0.6m roof
+parapet; the tower adds a 3.2m storey (door onto the lower roof, windows, balcony door) and
+its own parapet. Doors and windows are empty openings (walls are built as the pieces around
+them); steps are smooth ramps - the terrace's 20° front ramp and a ramp up the tower's outer
+side wall inside, under a hole in the first floor from where headroom runs out. Ledges where a
+building has them, about a metre apart so every face climbs hand over hand to the roof:
+window sills (both sides, mantled into crouched - a 1.2m window is too low to stand in),
+window hoods and the band below each roofline (grab only), and parapets, balcony balustrades,
+compound walls (both sides) and pergola roofs (mantleable; these long ones with "Move
+Horizontally To Point" off, so a mantle lands straight ahead). **Every mantle lands on top of
+what it climbs** (mantling moves the player with collision off, so a landing beyond a wall
+would drag the feet through it); the player steps or drops down after. All three builders make
+their pieces through **`TestGeometry`**: `Box()`/`Primitive()` give every test piece the brown
+`Assets/Art/Materials/TestGeometry.mat` (URP Lit, created by the first build if missing; edit
+it in the Inspector) so test areas stand out from the grey floor; `Edge()` makes a
+`ClimbableEdge` on a solid lip facing any yaw - an unscaled trigger strip on Climbable (0.2m
+tall, 0.3m deep, 5cm past the solid top and face), set up before the component is added, with
+the landing `landingInset` in from the lip (`TopCentreInset(thickness)` = the middle of a wall
+top). New test-area builders should use it too.
 **`PhysicalHandsTrace`** (on the Debug object, enable *before* Play - toggling it in the
 headset is awkward) turns on `HandPhysicalFollow.TraceEnabled`: one log line per hand per
 frame whose sweep hits a collider whose name contains `colliderNameFilter` (default "Gap") -
@@ -373,8 +393,11 @@ profiled under the
   `ClimbableEdge`. When a hand grips one and the head has been pulled up near the top, a small
   white head-locked arrow appears; pushing up on either thumbstick then starts the mantle. It
   overrides all other locomotion (movement, turning, gravity, jump, crouch, climbing) and can't
-  be cancelled, and always lands the feet at the edge's designer-set mantle point (the same
-  spot wherever the mantle started), crouched if the edge says so.
+  be cancelled, and lands the feet at the edge's designer-set mantle point (the same spot
+  wherever the mantle started), crouched if the edge says so - or, for an edge with "Move
+  Horizontally To Point" off, straight ahead of the player at that point's height and distance
+  from the lip (`ClimbableEdge.GetMantleLanding()`, decided 2026-09-30 for long ledges). The
+  mantle's rise-then-forward motion is the same either way.
 - **Throwing is aimed, not physical** (decided 2026-09-29, not built yet - Phase 3) — the
   player doesn't release a held object with a throwing motion. Grip picks an object up; while
   holding it, that hand's trigger held shows a trajectory arc, and releasing the trigger plays

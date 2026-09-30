@@ -6,6 +6,50 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-09-30 (after the first commit)
+-----------------------------------
+- Town test area (on request, before starting Phase 2): TeaLeaf > Build
+  Town Test Area, a third editor builder, modelled on a reference photo of
+  a two-storey Gulf mud-brick house - big shapes only. Six houses from
+  BuildingSpecs round a square 35m behind the spawn: a 3.6m ground floor
+  with a roof parapet, an optional tower (second storey over one end or
+  the whole house) with its own parapet, an optional raised terrace with
+  a 20 degree ramp for its steps, and an optional balcony with a pergola
+  roof. Doors and windows are empty openings - each wall is built as the
+  pieces around its openings. Inside each tower a ramp runs up the side
+  wall to the first floor through a hole cut from where headroom runs
+  out; a door leads out onto the lower roof. Plus four 2.4m compound
+  walls and some crates. Ledges sit where a building has them, about a
+  metre apart so every face climbs hand over hand to the roof: sills
+  (both sides, mantled into crouched - a 1.2m window is too low to stand
+  in), window hoods and roofline bands (grab only), parapets,
+  balustrades, compound walls and pergolas (mantleable).
+  Learned: a mantle moves the player with collision off, rising then
+  moving forward, so it must land ON TOP of what it climbs (a parapet or
+  balustrade top) - a landing point beyond a wall or railing would drag
+  the feet through it. The player steps or drops down afterwards.
+  Edge creation moved into the shared TestGeometry.Edge() (any yaw,
+  landing inset, TopCentreInset()); the locomotion course uses it too.
+- Mantling: new per-edge "Move Horizontally To Point" switch on
+  ClimbableEdge (moveHorizontallyToPoint, default on = unchanged
+  behaviour, so every existing edge is unaffected). Off, the mantle lands
+  straight ahead of the player: the mantle point's height and distance
+  back from the lip, but the player's own position along the edge (feet
+  measured square-on, clamped to the lip's ends). Found testing the town:
+  its parapets run for up to 10m, and a fixed point carried the player
+  sideways to the middle. ClimbableEdge.GetMantleLanding(feet) returns
+  either landing and PlayerMantling uses it; the rise-then-forward motion
+  is unchanged. The selected-edge gizmo draws a landing line instead of a
+  point when it's off. The town's long ledges use off; window sills keep
+  the fixed point (the middle of the opening). Verified in headset.
+- Roadmap: noted the switch on the Phase 1 mantle destination item and
+  the town under the test scene item.
+- Docs: Scripts/Player/CLAUDE.md (town builder, TestGeometry.Edge(),
+  mantle landing decision), Scripts/Interaction/CLAUDE.md
+  (moveHorizontallyToPoint).
+- Next: Phase 2, starting with the screen fade.
+
+
 2026-09-30
 ----------
 - Rung and rope grip poses (Phase 1). HandPose gained RungGrip and

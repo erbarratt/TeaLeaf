@@ -50,7 +50,14 @@ Keep it up to date with every change to these systems, like the root file.
   **not** `TransformPoint()`, since ledges are stretched cubes). Defaulted from the box (top
   face, 0.4m in from the lip) by `Reset()` / the "Reset Mantle Point" context menu; a gizmo
   shows it while the edge is selected (the detailed view, which also redraws the box and lip,
-  so a selected edge looks slightly brighter).
+  so a selected edge looks slightly brighter). **`moveHorizontallyToPoint`** ("Move
+  Horizontally To Point", added 2026-09-30, default on = the original behaviour): on, a mantle
+  always lands exactly on the mantle point; off, it lands straight ahead of the player - the
+  mantle point's height and distance back from the lip, but the player's own position along
+  the edge (feet measured square-on, clamped to the lip's ends). `GetMantleLanding(feet)`
+  returns either, and is what `PlayerMantling` uses; `MantlePointWorld` is the fixed point.
+  Off suits long edges (roof parapets, walls) where being carried sideways to one spot feels
+  wrong; the gizmo then draws the landing line along the edge instead of one point.
   **Orientation convention:** local X runs along the edge, +Y is up, +Z points out from the
   wall towards the player.
   **Setup check:** `OnValidate()` warns (clickable) if the `BoxCollider` isn't a trigger or the

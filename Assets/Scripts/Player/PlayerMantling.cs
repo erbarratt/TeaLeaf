@@ -14,9 +14,11 @@ namespace Player
     /// Pushing up on either thumbstick while it's possible starts it.
     ///
     /// Where the mantle lands and whether it ends crouched are set per edge
-    /// by the level designer (ClimbableEdge.MantlePointWorld /
-    /// MantleEndsCrouched), so every mantle onto a ledge ends in exactly the
-    /// same place.
+    /// by the level designer (ClimbableEdge.GetMantleLanding() /
+    /// MantleEndsCrouched): by default every mantle onto a ledge ends in
+    /// exactly the same place, or, for an edge with "Move Horizontally To
+    /// Point" off, straight ahead of the player at that place's height and
+    /// distance from the lip.
     ///
     /// Once started, the mantle owns the player's body until it finishes:
     /// PlayerController stops ticking climbing, movement, gravity, jump,
@@ -157,7 +159,7 @@ namespace Player
             // off to the side of the origin - so move the rig by however far
             // the capsule's bottom is from the point, and the capsule lands
             // exactly on it.
-            Vector3 feetTarget = edge.MantlePointWorld + Vector3.up * landingLift;
+            Vector3 feetTarget = edge.GetMantleLanding(CapsuleBottom()) + Vector3.up * landingLift;
             _startPosition = playerTransform.position;
             _targetPosition = _startPosition + (feetTarget - CapsuleBottom());
             _elapsed = 0f;

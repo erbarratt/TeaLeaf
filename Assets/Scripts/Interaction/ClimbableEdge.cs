@@ -45,6 +45,15 @@ namespace Interaction
         // face, DefaultMantleInset in from the lip.
         [SerializeField] private Vector3 mantlePoint = new(0f, 0.1f, -0.2f);
 
+        // Ticked (the default, and how every mantle worked before this
+        // option): a mantle always lands exactly on mantlePoint. Unticked:
+        // it lands straight ahead of the player instead - at mantlePoint's
+        // height and distance back from the lip, but wherever along the edge
+        // the player is (see GetMantleLanding()). For long ledges like roof
+        // parapets and walls, where being carried sideways to one fixed spot
+        // would feel wrong.
+        [SerializeField] private bool moveHorizontallyToPoint = true;
+
         // How far in from the lip the default mantle point is, in metres.
         private const float DefaultMantleInset = 0.4f;
 
@@ -85,6 +94,41 @@ namespace Interaction
         /// rotated and offset by this edge's transform, but not scaled (see
         /// mantlePoint), which is why this isn't TransformPoint().
         public Vector3 MantlePointWorld => transform.position + transform.rotation * mantlePoint;
+
+        /// <summary>
+        /// World position a mantle lands the feet at, when it starts with
+        /// them at feetPosition. With moveHorizontallyToPoint ticked, always
+        /// MantlePointWorld. Unticked, the same height and distance back from
+        /// the lip, but slid along the edge to straight in front of
+        /// feetPosition (where it is along the edge, measured square-on),
+        /// never past either end. Only called when a mantle starts.
+        /// </summary>
+        public Vector3 GetMantleLanding(Vector3 feetPosition)
+        {
+            if (moveHorizontallyToPoint) {
+                return MantlePointWorld;
+            }
+
+            // mantlePoint's frame: position and rotation, not scale.
+            Vector3 local = Quaternion.Inverse(transform.rotation) * (feetPosition - transform.position);
+            GetLipExtent(_boxCollider, out float lipStart, out float lipEnd);
+            float along = Mathf.Clamp(local.x, lipStart, lipEnd);
+            return transform.position + transform.rotation * new Vector3(along, mantlePoint.y, mantlePoint.z);
+        }
+
+        /// <summary>
+        /// Where the lip starts and ends along the edge (its X), in real
+        /// metres in mantlePoint's unscaled frame: the box's X extent times
+        /// the scale, lowest first.
+        /// </summary>
+        private void GetLipExtent(BoxCollider box, out float lipStart, out float lipEnd)
+        {
+            float scaleX = transform.lossyScale.x;
+            float a = (box.center.x - box.size.x * 0.5f) * scaleX;
+            float b = (box.center.x + box.size.x * 0.5f) * scaleX;
+            lipStart = Mathf.Min(a, b);
+            lipEnd = Mathf.Max(a, b);
+        }
 
         /// <summary>
         /// Editor-only: runs when the component is first added. Fills in a
@@ -177,7 +221,10 @@ namespace Interaction
         /// brightly, in the box's own (scaled) local space so it matches the
         /// collider exactly. With detailed on (selected), a mantleable edge
         /// also marks where a mantle lands: a sphere at the feet and a line
-        /// up to roughly head height (lower when the mantle ends crouched).
+        /// up to roughly head height (lower when the mantle ends crouched) -
+        /// or, when it lands straight ahead of the player
+        /// (moveHorizontallyToPoint off), a line along the edge where the
+        /// feet can land, with a head-height line at each end.
         /// </summary>
         public void DrawDebug(DebugLines lines, bool detailed)
         {
@@ -208,12 +255,24 @@ namespace Interaction
                 return;
             }
 
-            Vector3 feet = MantlePointWorld;
             float headHeight = mantleEndsCrouched ? 1f : 1.8f;
-
             lines.Color = mantleEndsCrouched ? Color.yellow : Color.green;
-            lines.WireSphere(feet, 0.1f);
-            lines.Line(feet, feet + Vector3.up * headHeight);
+
+            if (moveHorizontallyToPoint) {
+                Vector3 feet = MantlePointWorld;
+                lines.WireSphere(feet, 0.1f);
+                lines.Line(feet, feet + Vector3.up * headHeight);
+                return;
+            }
+
+            // Lands anywhere along the edge: a line where the feet can land,
+            // with the head-height marker at each end.
+            GetLipExtent(box, out float lipStart, out float lipEnd);
+            Vector3 startFeet = transform.position + transform.rotation * new Vector3(lipStart, mantlePoint.y, mantlePoint.z);
+            Vector3 endFeet = transform.position + transform.rotation * new Vector3(lipEnd, mantlePoint.y, mantlePoint.z);
+            lines.Line(startFeet, endFeet);
+            lines.Line(startFeet, startFeet + Vector3.up * headHeight);
+            lines.Line(endFeet, endFeet + Vector3.up * headHeight);
         }
 
         /// <summary>

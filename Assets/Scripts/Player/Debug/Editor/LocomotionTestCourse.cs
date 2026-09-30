@@ -43,14 +43,6 @@ namespace Player
         private static readonly Vector3 _rootPosition = new(12f, 0f, 10f);
         private static readonly Quaternion _rootRotation = Quaternion.Euler(0f, 180f, 0f);
 
-        // Edge grab volumes: a strip along the lip, EdgeHeight tall and
-        // EdgeDepth deep, sticking EdgeOverhang out past the solid top and
-        // front face so hand rays reach it before the solid geometry - the
-        // same shape as the edges already in Main.unity.
-        private const float EdgeHeight = 0.2f;
-        private const float EdgeDepth = 0.3f;
-        private const float EdgeOverhang = 0.05f;
-
         // How far in from the lip a mantle lands the feet - the same as
         // ClimbableEdge's own "Reset Mantle Point" default.
         private const float MantleInset = 0.4f;
@@ -304,11 +296,9 @@ namespace Player
 
         /// <summary>
         /// A ClimbableEdge along the lip of a block whose top is at top and
-        /// front face at front: a trigger strip (see EdgeHeight) on
-        /// Climbable, unscaled, with its origin on the lip itself, so the
-        /// numbers below are real metres. The mantle point goes on the grab
-        /// volume's top, MantleInset in from its lip - where ClimbableEdge's
-        /// "Reset Mantle Point" would put it.
+        /// front face at front, facing +Z (see TestGeometry.Edge()). The
+        /// mantle point goes MantleInset in from the lip - where
+        /// ClimbableEdge's "Reset Mantle Point" would put it.
         /// </summary>
         private static void Edge(
             string name,
@@ -322,24 +312,7 @@ namespace Player
             HandSnapProfile profile,
             int climbable)
         {
-            GameObject edge = new(name);
-            edge.layer = climbable;
-            edge.transform.SetParent(parent, false);
-            edge.transform.localPosition = new Vector3(x, top, front);
-
-            // Trigger first, so the ClimbableEdge's setup check never sees a
-            // solid box.
-            BoxCollider box = edge.AddComponent<BoxCollider>();
-            box.isTrigger = true;
-            box.center = new Vector3(0f, EdgeOverhang - EdgeHeight * 0.5f, EdgeOverhang - EdgeDepth * 0.5f);
-            box.size = new Vector3(width, EdgeHeight, EdgeDepth);
-
-            SerializedObject settings = new(edge.AddComponent<ClimbableEdge>());
-            settings.FindProperty("snapProfile").objectReferenceValue = profile;
-            settings.FindProperty("isMantleable").boolValue = isMantleable;
-            settings.FindProperty("mantleEndsCrouched").boolValue = endsCrouched;
-            settings.FindProperty("mantlePoint").vector3Value = new Vector3(0f, EdgeOverhang, EdgeOverhang - MantleInset);
-            settings.ApplyModifiedPropertiesWithoutUndo();
+            TestGeometry.Edge(name, parent, new Vector3(x, top, front), 0f, width, isMantleable, endsCrouched, MantleInset, profile, climbable);
         }
     }
 }

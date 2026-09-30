@@ -184,7 +184,11 @@ Scripting:
         Prefilled on the top face, 0.4m in from the lip, centred along
         the edge (Reset() / "Reset Mantle Point" context menu); a gizmo
         shows it while the edge is selected. (Verified in headset - landing
-        is on the point.)
+        is on the point.) Extended 2026-09-30 with a per-edge "Move
+        Horizontally To Point" switch (default on = the above): off, the
+        mantle lands straight ahead of the player at the point's height
+        and distance from the lip, for long ledges like roof parapets.
+        (Verified in headset.)
     [x] End stance (simplified 2026-09-27): a per-edge "mantle ends
         crouched" switch, set by the designer for low shelves - no
         runtime clearance checks. (Verified in headset.)
@@ -434,6 +438,9 @@ Test scene:
     jump across, a jump up onto a low crate, a low ceiling over a jump spot.
     Done 2026-09-30 as TeaLeaf > Build Locomotion Test Course (an editor
     builder, like the physical hands test area). Verified in headset.
+    Also (2026-09-30, on request): TeaLeaf > Build Town Test Area - six
+    greybox houses round a square, from a reference photo, for climbing,
+    mantling and later sneaking in a larger space. Verified in headset.
 
 
 Phase 2 - Core stealth framework (Core namespace)
