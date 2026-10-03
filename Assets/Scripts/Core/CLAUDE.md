@@ -4,9 +4,42 @@ Detail for the core systems. The root `CLAUDE.md` holds the project rules, the t
 the physics layers; this file is loaded when working in this folder. Keep it up to date with
 every change to these systems, like the root file.
 
-Planned here (Phase 2): game state/level manager, noise events, shadow volumes,
-light-to-volume linking, surfaces and footsteps. The screen fade and the shared debug drawing
-exist so far.
+Planned here (Phase 2): noise events, shadow volumes, light-to-volume linking, surfaces and
+footsteps. The game state/level manager, the screen fade and the shared debug drawing exist so
+far.
+
+## Game state and level manager (added 2026-10-03)
+
+- **`GameState`** (enum) — `Playing`, `Caught`, `Won`: the single value for whether the level
+  is still being played.
+- **`LevelManager`** (one per scene, on its own `Level Manager` object at the scene root) —
+  owns `State` and what ending the level does. `LevelManager.Instance` (set in `Awake()`, no
+  scene search), `State`, `HasObjective`, and the instance event `StateChanged(GameState)`
+  (instance, not static, so a reload leaves no subscribers from the old scene). Other systems
+  report, this class decides: guards call `Caught()`; the objective item calls
+  `SetObjectiveCarried(bool)` (picked up / dropped or thrown). The level ends only from
+  `Playing`, so the first ending wins and nothing reloads twice: `EndLevel()` sets the state,
+  raises `StateChanged`, then `ScreenFade.FadeOut(duration, ReloadLevel)` - the reload runs in
+  the fade's callback, behind full black (`caughtFadeDuration` 1s, `wonFadeDuration` 2s), and
+  the reloaded scene's `ScreenFade` fades back in by itself. Restart = `SceneManager.LoadScene`
+  of the active scene (synchronous; the hitch is hidden by the black). **Win** is private:
+  the manager's own `Update()` checks `ExitZone.AnyContains(player.position)` (`player` = the
+  Player root transform, a plain `Transform` so `Core` doesn't depend on `Player`), and that
+  `Update()` only runs while the objective is carried (component disabled otherwise). Won
+  currently restarts like Caught; Phase 9 replaces that with the "Mission complete" panel.
+  **The player's body is frozen during the end fade**: `PlayerController` subscribes to
+  `StateChanged` and, once the level is over, runs only the hand systems (see the tick order
+  in the root `CLAUDE.md`). Right-click
+  "Test Caught"/"Test Take Objective" in Play Mode.
+- **`ExitZone`** — a box (serialized `size`, centred on the object, following its
+  position/rotation/scale) tested with `InverseTransformPoint`, not a trigger collider: no
+  physics layer, nothing for hand rays to hit, and it works while a mantle has the
+  CharacterController off. Self-registering static list; `AnyContains(worldPoint)`,
+  `Contains(worldPoint)`. The point tested is the player's feet, so sink the box a little into
+  the floor. `IDebugDrawable` (green wire box).
+- **`GameStateDebug`** (`Core/Debug`, on the Debug object) — keyboard driver for testing in the
+  headset before guards and the objective exist (Game view needs focus): `C` = caught, `O` =
+  toggle objective carried; logs every state change.
 
 ## Screen fade
 
@@ -55,7 +88,7 @@ against `DebugLines`, and the same code feeds both the Scene view and the headse
   `DebugLines.ForGizmos.Draw(this, true)` in `OnDrawGizmosSelected` if it has a detailed view.
   **Any new component with gizmos should do this rather than call `Gizmos` directly.**
   Implemented by: `PlayerHandVisuals` (hand collision capsules), `ClimbableEdge`, `Ladder`,
-  `ClimbableRope`, `DefaultLayerGizmos` - every component with gizmos. `DebugLines` is now the only code that calls
+  `ClimbableRope`, `ExitZone`, `DefaultLayerGizmos` - every component with gizmos. `DebugLines` is now the only code that calls
   `Gizmos` directly.
 - **`DebugDrawRegistry`** — static list of enabled drawables (self-registering, no scene
   search), read with `Count`/`Get(i)`.

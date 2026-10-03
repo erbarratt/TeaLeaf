@@ -136,7 +136,9 @@ Keep it up to date with every change to these systems, like the root file.
   visible, solid rope is a child object (e.g. a thin Environment cylinder) inside the grab
   volume. **Setup check** (`WarnAboutSetup()` from `OnValidate()`, clickable): not on the
   Climbable layer, or a non-trigger child collider reaching `grabRadius` or further from the
-  axis (measured by its bounds' corners, so it errs towards warning). Added 2026-09-28: the
+  axis (measured by the corners of the collider's own local box, so it errs towards warning;
+  not `Collider.bounds`, whose world-aligned box round a long angled rope is enormous - until
+  2026-10-03 that falsely warned about the angled zip line). Added 2026-09-28: the
   test rope's grab volume and solid cylinder were both 0.04m (and the grab volume not a
   trigger), so hand rays tied between them and the reticle flickered. `SetLength()` is for Phase 5's rope
   bolt. `GetSnapPose()`: nearest point on the rope's pieces (clamped to the ends), grip frame

@@ -6,6 +6,48 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-03 (continued)
+----------------------
+- Game state and level manager (Phase 2). Core.GameState (Playing, Caught,
+  Won) and Core.LevelManager on a Level Manager object at the scene root:
+  LevelManager.Instance, State, HasObjective and a StateChanged event (an
+  instance event, so a scene reload leaves no subscribers from the old
+  scene). Other systems report and the manager decides: guards will call
+  Caught(), the objective item SetObjectiveCarried(). The level only ends
+  from Playing, so the first ending wins and nothing reloads twice. Ending
+  fades out with ScreenFade and reloads the scene in the fade's callback,
+  behind full black; the reloaded scene's ScreenFade fades back in by
+  itself. Won restarts like Caught for now (1s and 2s fades) - Phase 9
+  replaces that with the "Mission complete" panel.
+- Exit zone. Core.ExitZone is a box worked out with maths
+  (InverseTransformPoint), not a trigger collider, like the planned shadow
+  volumes: no physics layer, nothing for hand rays to hit, and it works
+  while a mantle has the CharacterController off. The point tested is the
+  player's feet, so the box is sunk a little into the floor. The win check
+  is LevelManager's own Update(), which only runs while the objective is
+  carried. Draws as a green wire box (IDebugDrawable).
+- Player frozen during the end fade. PlayerController subscribes to
+  StateChanged and, once the level is over, stops its frame after input
+  and tracking: no walking, turning, gravity, crouch, grabbing, climbing
+  or mantling. The hand systems keep running, so the hands still follow
+  the controllers and stop against surfaces - dead hands in VR look like a
+  tracking fault.
+- Core/Debug/GameStateDebug: keyboard driver until guards and the
+  objective item exist - C = caught, O = toggle objective carried; logs
+  state changes. LevelManager also has right-click "Test Caught" and "Test
+  Take Objective".
+- Level Manager, Exit Zone and GameStateDebug are in Main.unity. The
+  caught/win/restart loop and the freeze are not yet confirmed tested in
+  the headset.
+- Rope setup warning, false alarm fixed. The angled zip line warned that
+  its visible rope reached past grabRadius. The check measured
+  Collider.bounds, a box lined up with the world's axes: round a long rope
+  at an angle it is enormous, with corners metres from the rope. It now
+  measures the collider's own local box, turned with its object
+  (ClimbableRope.LocalBox(): box, sphere, capsule, mesh). Learned:
+  Collider.bounds is only a tight fit for things lined up with the world.
+
+
 2026-10-03
 ----------
 - Two-sided edges. Wall tops in the town (parapets, balustrades, compound

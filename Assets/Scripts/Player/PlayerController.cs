@@ -1,3 +1,4 @@
+using Core;
 using UnityEngine;
 
 namespace Player
@@ -46,6 +47,14 @@ namespace Player
         // the start of every frame.
         private Vector3 _frameMovement;
 
+        // The level manager subscribed to in Start(), kept so the same one
+        // is unsubscribed from in OnDestroy(). Null if the scene has none.
+        private LevelManager _levelManager;
+
+        // True once the level has ended (caught or won): the body stays
+        // where it is while the view fades out - see Update().
+        private bool _isLevelOver;
+
         /// <summary>
         /// Editor-only convenience: Unity calls Reset() when the component is
         /// first added (or via the Inspector's Reset menu item), so every
@@ -82,6 +91,37 @@ namespace Player
             }
         }
 
+        /// <summary>
+        /// Listens for the level ending. Start() rather than Awake():
+        /// LevelManager sets Instance in its own Awake(), and every Awake()
+        /// has run before the first Start(). A scene with no LevelManager
+        /// (a test scene) simply never freezes.
+        /// </summary>
+        private void Start()
+        {
+            _levelManager = LevelManager.Instance;
+
+            if (_levelManager != null) {
+                _levelManager.StateChanged += OnGameStateChanged;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (_levelManager != null) {
+                _levelManager.StateChanged -= OnGameStateChanged;
+            }
+        }
+
+        /// <summary>
+        /// Called by LevelManager once, when the level ends. Told by an
+        /// event rather than asking the manager every frame.
+        /// </summary>
+        private void OnGameStateChanged(GameState state)
+        {
+            _isLevelOver = state != GameState.Playing;
+        }
+
         private void Update()
         {
             // 1. Input first, so every system below reads this frame's
@@ -92,6 +132,22 @@ namespace Player
             // frame, put the view upright and at the right height again -
             // before anything below reads the head or hands.
             playerTracking.Tick();
+
+            // The level has ended (caught or won) and the view is fading
+            // out: the body is frozen where it is - no walking, turning,
+            // gravity, crouch, grabbing, climbing or mantling, and a mantle
+            // or fall in progress just stops. Only the hands carry on, so
+            // they still follow the controllers and stop against surfaces
+            // (the head is tracked regardless - freezing the view itself
+            // would be nauseating). A hand gripping something stays snapped
+            // to it, since nothing runs that could release it.
+            if (_isLevelOver) {
+                playerHandInteraction.Tick();
+                playerHandVisuals.Tick();
+                playerHandInteraction.TickReticles();
+                playerHandAnimation.Tick();
+                return;
+            }
 
             // 2. Body shape: re-centre the capsule under the headset and
             // apply crouch height. Before the hand systems, because crouch

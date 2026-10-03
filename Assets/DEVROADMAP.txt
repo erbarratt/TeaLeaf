@@ -473,16 +473,22 @@ Traversal additions (2026-10-03, on request, before Phase 2):
 
 Phase 2 - Core stealth framework (Core namespace)
 -------------------------------------------------
-[ ] GameState/LevelManager: Playing, Caught, Won. Restart the level on
+[x] GameState/LevelManager: Playing, Caught, Won. Restart the level on
     Caught (fade to black, reload scene). Won when the objective item is
-    carried into the exit zone.
+    carried into the exit zone. Done 2026-10-03 as Core.GameState,
+    Core.LevelManager (Caught(), SetObjectiveCarried(), StateChanged) and
+    Core.ExitZone (a maths box, no collider). The player's body is frozen
+    during the end fade. Won restarts like Caught until Phase 9's panel.
+    Driven from the keyboard by GameStateDebug until guards (Phase 6) and
+    the objective item (Phase 3/4) call it. Not yet confirmed tested in
+    the headset.
 [x] Screen fade: simple fade-to-black sphere/quad around the head camera
     (used for caught, restart, level start). Done 2026-10-03 as
     Core.ScreenFade: a cube round the head drawn with the overlay shader,
     FadeOut/FadeIn with a completion callback, level start black then
     fading to clear, Hold()/Release() for work that must finish behind
-    the black. Level-start fade verified in headset; FadeOut is first
-    used by the game state (next).
+    the black. Level-start fade verified in headset; FadeOut is used
+    by the level manager (above).
 [ ] Noise event system: NoiseSystem static/singleton with
     Emit(position, loudness/radius, NoiseType, source). Listeners (guards)
     register on enable. No per-frame allocation - use a struct payload.

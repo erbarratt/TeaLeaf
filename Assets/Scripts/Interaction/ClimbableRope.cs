@@ -276,7 +276,7 @@ namespace Interaction
                     continue;
                 }
 
-                if (FurthestFromAxis(child.bounds) >= grabRadius) {
+                if (FurthestFromAxis(child) >= grabRadius) {
                     Debug.LogWarning(
                         $"ClimbableRope '{name}': the collider on '{child.name}' reaches as far from the rope " +
                         $"as grabRadius ({grabRadius}m) or further, so hand rays can hit it instead of the grab volume. " +
@@ -287,30 +287,80 @@ namespace Interaction
         }
 
         /// <summary>
-        /// How far the furthest corner of bounds (a world-space box) is from
-        /// the rope's axis, sideways. A box's corners reach further than a
-        /// round rope inside it, so this errs towards warning - fine for a
-        /// check that only has to catch a clearly oversized collider.
+        /// How far the furthest corner of a collider's box is from the
+        /// rope's axis, sideways. A box's corners reach further than a round
+        /// rope inside it, so this errs towards warning - fine for a check
+        /// that only has to catch a clearly oversized collider.
+        ///
+        /// The box is the collider's own, turned with its object
+        /// (LocalBox()), not Collider.bounds: that one is lined up with the
+        /// world's axes, so around a long rope running at an angle it is
+        /// enormous and its corners are metres from the rope. Fixed
+        /// 2026-10-03 - the angled zip line's 2cm visible rope was warned
+        /// about.
         /// </summary>
-        private float FurthestFromAxis(Bounds bounds)
+        private float FurthestFromAxis(Collider collider)
         {
             // From the rope's two ends rather than this object's own up, so
             // a rope with an end point is measured along its real line.
             Vector3 top = GetPoint(0f);
             Vector3 axis = (top - GetPoint(1f)).normalized;
+            Bounds box = LocalBox(collider);
+            Transform colliderTransform = collider.transform;
             float furthest = 0f;
 
             for (int i = 0; i < 8; i++) {
-                Vector3 corner = bounds.center + Vector3.Scale(bounds.extents, new Vector3(
+                Vector3 localCorner = box.center + Vector3.Scale(box.extents, new Vector3(
                     (i & 1) == 0 ? -1f : 1f,
                     (i & 2) == 0 ? -1f : 1f,
                     (i & 4) == 0 ? -1f : 1f));
 
+                Vector3 corner = colliderTransform.TransformPoint(localCorner);
                 Vector3 sideways = Vector3.ProjectOnPlane(corner - top, axis);
                 furthest = Mathf.Max(furthest, sideways.magnitude);
             }
 
             return furthest;
+        }
+
+        /// <summary>
+        /// The box around a collider in its own object's local space, so it
+        /// turns and scales with the object. Editor-only (from OnValidate()).
+        /// </summary>
+        private static Bounds LocalBox(Collider collider)
+        {
+            switch (collider) {
+                case BoxCollider box:
+                    return new Bounds(box.center, box.size);
+
+                case SphereCollider sphere:
+                    return new Bounds(sphere.center, Vector3.one * (sphere.radius * 2f));
+
+                case CapsuleCollider capsule: {
+                    // Round across, and at least that long: a capsule's
+                    // height can't be less than its width. direction is the
+                    // local axis it runs along (0 = X, 1 = Y, 2 = Z).
+                    float diameter = capsule.radius * 2f;
+                    Vector3 size = Vector3.one * diameter;
+                    size[capsule.direction] = Mathf.Max(capsule.height, diameter);
+                    return new Bounds(capsule.center, size);
+                }
+
+                case MeshCollider mesh when mesh.sharedMesh != null:
+                    return mesh.sharedMesh.bounds;
+
+                default: {
+                    // Anything else: the world-aligned box, brought into
+                    // local space by its centre and size only. Over-sized
+                    // if the object is rotated, so it can still warn falsely.
+                    Transform colliderTransform = collider.transform;
+                    Vector3 scale = colliderTransform.lossyScale;
+                    Vector3 size = collider.bounds.size;
+                    return new Bounds(
+                        colliderTransform.InverseTransformPoint(collider.bounds.center),
+                        new Vector3(size.x / scale.x, size.y / scale.y, size.z / scale.z));
+                }
+            }
         }
 
         /// <summary>

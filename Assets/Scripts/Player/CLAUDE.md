@@ -96,7 +96,9 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   therefore be rotated and moved** - don't assume its saved pose. Predates the coding
   standards: odd indentation on the accessors and empty `//` comment lines.
 - **`PlayerController`** — the tick orchestrator and sole owner of `characterController.Move()`
-  (see the tick order in the root `CLAUDE.md`).
+  (see the tick order in the root `CLAUDE.md`). Subscribes to `Core.LevelManager.StateChanged`
+  in `Start()` (2026-10-03): once the level has ended, the body is frozen for the end fade and
+  only the hand systems tick.
 - **`PlayerLocomotion`** — thumbstick movement, turning, gravity, and crouch for the
   `CharacterController`, exposed as `TickBody()`/`TickMovement(isClimbing)`/`TickTurning()`. It
   returns its movement rather than calling `Move()` itself. Movement is relative to the rig root

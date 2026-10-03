@@ -33,9 +33,10 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
   hands design decisions.
 - **`Assets/Scripts/Interaction/CLAUDE.md`** — hand targets (`IHandTarget`, registry),
   climbables (`IClimbable`, `ClimbableEdge`, `Ladder`, `ClimbableRope`) and hand snap poses.
-- **`Assets/Scripts/Core/CLAUDE.md`** — the screen fade (`ScreenFade`), shared debug drawing
+- **`Assets/Scripts/Core/CLAUDE.md`** — game state and level restart (`GameState`,
+  `LevelManager`, `ExitZone`), the screen fade (`ScreenFade`), shared debug drawing
   (`DebugLines`, `IDebugDrawable`, `InHeadsetGizmos` - gizmos that also show in the headset);
-  later game state, noise and visibility.
+  later noise and visibility.
 
 New system folders (`AI`, `Inventory`, `UI`) get their own `CLAUDE.md` when their
 first system lands. Read the relevant one before changing a system you haven't read this
@@ -130,6 +131,10 @@ behaviour. The current order is:
 1. `playerInput.Tick()` — cache this frame's input (must be first); then
    `playerTracking.Tick()` — if the headset was recentred since last frame, put the view
    upright and at standing height again, before anything reads the head or hands.
+   **Once the level has ended** (`LevelManager.StateChanged` → not `Playing`; caught or won,
+   during the end fade) **the frame stops here**: the body is frozen - only
+   `playerHandInteraction.Tick()`, `playerHandVisuals.Tick()`, `TickReticles()` and
+   `playerHandAnimation.Tick()` run, so the hands still follow the controllers.
 2. `playerLocomotion.TickBody()` — re-centre the capsule under the headset and apply crouch
    height (before the hand systems, since crouch moves the tracked hierarchy).
 3. `playerHandInteraction.Tick()` — hand rays + targets (reticles are placed at 8b).
@@ -260,9 +265,11 @@ fails and restarts. Agreed mechanics:
 ### Planned systems
 
 `Assets/Scripts/{AI,Inventory,UI}` are still empty placeholder folders, and `Core` only holds
-the screen fade and the shared debug drawing so far — future systems land there following the same one-class,
-one-responsibility pattern (Core: game state, noise, visibility; AI: guards; Inventory:
-items/loot; UI: wrist radial/display).
+the game state/level manager, the screen fade and the shared debug drawing so far — future
+systems land there following the same one-class, one-responsibility pattern (Core: noise,
+visibility; AI: guards; Inventory: items/loot; UI: wrist radial/display). Ending the level
+always goes through `LevelManager` (`Caught()`, `SetObjectiveCarried()`): no other system
+fades out or reloads the scene itself.
 
 ### Scenes
 
