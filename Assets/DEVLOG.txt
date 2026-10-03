@@ -6,6 +6,93 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-03 (third part - noise and sound)
+-----------------------------------------
+- Headset tests passed for last session's work: the caught/win/restart
+  loop and the end-fade freeze, the ladder mantle and both zip lines.
+  Ticked in the roadmap.
+- Noise events (Phase 2). Core.Noise (a struct: position, radius, type,
+  source), NoiseType, INoiseListener and the static NoiseSystem:
+  Emit() tells every registered listener the noise reaches. Nothing per
+  frame, no scene search, no allocation. An Emitted event is raised for
+  every noise, heard or not, for debug drawing and UI. SoundCue is one
+  asset for one kind of sound, holding both halves: the audio (clips,
+  volume, pitch variation, audible range) and the noise (type, radius).
+  How far the player hears a sound and how far guards react to it are
+  separate values, tuned in one place.
+- Sound design, and how it changed. The aim: a sound should tell the
+  player truthfully where it is on stereo headphones (in Thief VR, guard
+  sounds had little distance or blocking processing, and a guard on
+  another floor is confusing with no up/down cue). First plan: sound
+  zones linked by hand (same zone clear, linked muffled, unlinked silent)
+  plus ray checks to muffle anything behind geometry. Replaced the same
+  day by Thief's own idea, rooms and portals, which does the same job
+  better: the floor above is heard from the stairwell, not just switched
+  off. The in-room ray checks were then dropped - with portals handling
+  walls, a guard in the same room should simply be clear; position and
+  reverb matter more there. Roadmap Phase 2 gained a sound system section.
+- Rooms and portals. SoundRoom is a maths box like ExitZone; anywhere not
+  in a room is "outside", one big room of its own. SoundPortal is a
+  rectangle in a doorway, stairwell or window; it finds the room on each
+  side by probing a short way out from each face. SoundPropagation gives
+  the route between two points: straight in the same room, otherwise the
+  shortest way through portals, or nothing. The cost is paid ahead of
+  time - a table of shortest routes between every pair of portals
+  (Floyd-Warshall), rebuilt only when the layout or a door changes - so a
+  query is a few additions, no physics. Sound arrives from the point of
+  the last portal nearest the straight line, so a source seen through an
+  open doorway is heard exactly where it is. A closed portal adds muffle
+  and extra distance; one that never opens is a thin wall or window.
+  Walls never leak by themselves. NoiseSystem uses the same routes, so
+  guards hear by path distance and are told where the noise seemed to
+  come from (the doorway to turn towards).
+- SoundPlayer. A pool of 16 AudioSources made once; Play(cue, position)
+  emits the cue's noise and plays its audio along the route: from the
+  direction of the portal, placed as far away as the whole route, so
+  Unity's own panning and distance fade follow the route. The low-pass
+  filter is switched off on voices that aren't muffled. One-shots only so
+  far. Placeholder sounds are generated from maths (TeaLeaf > Create
+  Placeholder Sounds): footstep and impact .wav files and their cues.
+- Tuning from listening. Sounds faded in noticeably when moving fast: the
+  fade was a straight line to silence at a short range, and routes are
+  longer than they look. Ranges raised (footsteps 12m to 25m, impact 20m
+  to 35m) and the fade changed to a curve, (1 - distance/range) squared,
+  which drops fast close up and slowly far away. Then a mild muffle for
+  every open portal a sound passes (Open Muffle 0.3, adding up), except a
+  source heard in a straight line through an open doorway.
+- Test areas and debug. TeaLeaf > Build Sound Test Area (three rooms, a
+  closed portal) and Build Sound Test House (two storeys, stairwell
+  portal lying flat in the stair hole, closed door, window, a walled yard
+  as its own room, a stand-in guard walking Bedroom to Kitchen and back).
+  NoiseDebug draws each noise as a fading sphere; NoiseListenerDebug is
+  a stand-in pair of ears; SoundEmitterDebug repeats a cue;
+  WaypointMoverDebug walks a route. N and L write a one-entry report to
+  the Console (rooms, straight and route distances, muffle, heard or
+  not), which can be read back from Editor.log - much quicker than
+  judging cubes in the headset. All verified in headset.
+- Portal links in the editor. Asked whether to bake each portal's rooms
+  in the editor: decided not to - the lookup costs well under a
+  millisecond once per layout change, and baked links would go stale
+  silently when something is moved. Instead a door opening or closing no
+  longer redoes the lookup (MarkLayoutDirty vs MarkDirty), SoundRoom is
+  ExecuteAlways so rooms are known in Edit Mode, a portal with the same
+  room on both sides is drawn yellow, and its Inspector names the two
+  rooms it joins (SoundPortalEditor).
+- Bugs and lessons. The first NoiseListenerDebug only drew a wire marker,
+  the same size as its cube, so nothing appeared to change - the cube now
+  changes colour. Unity recompiled half-way through a change spanning
+  several new files and logged errors for a class not yet written:
+  harmless, gone on the next compile. "Internal build system error ...
+  BuildFinishedMessage" was Unity failing to rename
+  Library/Bee/TundraBuildState.state because something had it open
+  (probably Dropbox syncing Library - not confirmed); a retry cleared it.
+  Two points that are both "outside" hear each other in a straight line,
+  even through a building: outdoor areas that should block each other
+  need their own rooms.
+- Next: player footsteps (surfaces, stance, landing), then looping
+  sounds, reverb per room and a spatialiser plugin for front/back.
+
+
 2026-10-03 (continued)
 ----------------------
 - Game state and level manager (Phase 2). Core.GameState (Playing, Caught,

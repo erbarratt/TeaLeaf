@@ -34,9 +34,11 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
 - **`Assets/Scripts/Interaction/CLAUDE.md`** — hand targets (`IHandTarget`, registry),
   climbables (`IClimbable`, `ClimbableEdge`, `Ladder`, `ClimbableRope`) and hand snap poses.
 - **`Assets/Scripts/Core/CLAUDE.md`** — game state and level restart (`GameState`,
-  `LevelManager`, `ExitZone`), the screen fade (`ScreenFade`), shared debug drawing
-  (`DebugLines`, `IDebugDrawable`, `InHeadsetGizmos` - gizmos that also show in the headset);
-  later noise and visibility.
+  `LevelManager`, `ExitZone`), the screen fade (`ScreenFade`), noise events and sound
+  propagation (`NoiseSystem`, `SoundCue`, `SoundRoom`, `SoundPortal`, `SoundPropagation`, `SoundPlayer`;
+  loops, reverb and a spatialiser planned), shared debug
+  drawing (`DebugLines`, `IDebugDrawable`, `InHeadsetGizmos` - gizmos that also show in the
+  headset); later visibility.
 
 New system folders (`AI`, `Inventory`, `UI`) get their own `CLAUDE.md` when their
 first system lands. Read the relevant one before changing a system you haven't read this
@@ -242,6 +244,13 @@ fails and restarts. Agreed mechanics:
   to the volumes they light, so extinguishing one darkens its area. Crouch/sprint modify it.
 - **Noise:** footsteps by surface type (scaled by stance), thrown/dropped physics objects,
   doors/interactions — all via a shared noise event system that guards listen to.
+- **Sound (decided 2026-10-03):** a sound must tell the player truthfully where it is on
+  stereo headphones. Thief-style rooms and portals: designer-placed sound rooms joined by
+  portals (doorways, stairwells); sound travels room to room only through portals, never
+  through walls, and is heard from the last portal at the distance of the whole path - so a
+  guard on the floor above is heard from the stairwell or not at all. Closed doors muffle
+  (high end rolled off). Guards' hearing follows the same paths. No ray-cast muffling inside
+  a room; per-room reverb is planned. Detail in `Assets/Scripts/Core/CLAUDE.md`.
 - **Guard AI:** patrol → suspicion → search → chase → catch (no combat). Knockout state;
   guards react to finding bodies. Placeholder humanoid + Mixamo animations, NavMesh.
 - **Tools:** blackjack (from-behind takedown on unaware guards), hand crossbow usable in either
@@ -265,9 +274,9 @@ fails and restarts. Agreed mechanics:
 ### Planned systems
 
 `Assets/Scripts/{AI,Inventory,UI}` are still empty placeholder folders, and `Core` only holds
-the game state/level manager, the screen fade and the shared debug drawing so far — future
-systems land there following the same one-class, one-responsibility pattern (Core: noise,
-visibility; AI: guards; Inventory: items/loot; UI: wrist radial/display). Ending the level
+the game state/level manager, the screen fade, the noise and sound system and the
+shared debug drawing so far — future systems land there following the same one-class,
+one-responsibility pattern (Core: visibility; AI: guards; Inventory: items/loot; UI: wrist radial/display). Ending the level
 always goes through `LevelManager` (`Caught()`, `SetObjectiveCarried()`): no other system
 fades out or reloads the scene itself.
 

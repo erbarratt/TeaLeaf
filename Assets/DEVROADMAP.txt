@@ -455,15 +455,16 @@ Traversal additions (2026-10-03, on request, before Phase 2):
     down on a strung rope (thumb towards the player, whichever way they
     face), wrist towards that hand's shoulder on a hanging one. Verified
     in headset.
-[ ] Ladder mantle: IMantleable (ClimbableEdge, Ladder). A ladder is
+[x] Ladder mantle: IMantleable (ClimbableEdge, Ladder). A ladder is
     mantleable by default - arrow with a hand on the top rung, landing on
-    its mantle point. Built; test in headset (course tower ladder).
-[ ] Zip lines: ClimbableRope "Is Zip Line" (IZipLine) - a grab slides the
+    its mantle point. Verified in headset 2026-10-03 (course tower
+    ladder).
+[x] Zip lines: ClimbableRope "Is Zip Line" (IZipLine) - a grab slides the
     hand and player along the rope (downhill, or the facing direction on a
     level rope) until they let go, reach the end or are blocked, then they
-    drop. Built; test in headset (course: a level one between posts, an
-    angled one down from the tower). Sagging zip lines are not supported
-    (decided 2026-10-03 - they slide, but with no physics).
+    drop. Verified in headset 2026-10-03 (course: a level one between
+    posts, an angled one down from the tower). Sagging zip lines are not
+    supported (decided 2026-10-03 - they slide, but with no physics).
 [x] View calibration at level start (PlayerTracking): through Virtual
     Desktop/SteamVR the tracking space often started upside down with its
     origin on the floor. Behind the level-start fade, Camera Offset is
@@ -480,8 +481,8 @@ Phase 2 - Core stealth framework (Core namespace)
     Core.ExitZone (a maths box, no collider). The player's body is frozen
     during the end fade. Won restarts like Caught until Phase 9's panel.
     Driven from the keyboard by GameStateDebug until guards (Phase 6) and
-    the objective item (Phase 3/4) call it. Not yet confirmed tested in
-    the headset.
+    the objective item (Phase 3/4) call it. Verified in headset
+    2026-10-03.
 [x] Screen fade: simple fade-to-black sphere/quad around the head camera
     (used for caught, restart, level start). Done 2026-10-03 as
     Core.ScreenFade: a cube round the head drawn with the overlay shader,
@@ -489,9 +490,41 @@ Phase 2 - Core stealth framework (Core namespace)
     fading to clear, Hold()/Release() for work that must finish behind
     the black. Level-start fade verified in headset; FadeOut is used
     by the level manager (above).
-[ ] Noise event system: NoiseSystem static/singleton with
+[x] Noise event system: NoiseSystem static/singleton with
     Emit(position, loudness/radius, NoiseType, source). Listeners (guards)
     register on enable. No per-frame allocation - use a struct payload.
+    Done 2026-10-03: Core.Noise (struct), NoiseType, INoiseListener,
+    NoiseSystem (plus an Emitted event for debug/UI), and SoundCue - one
+    asset holding a sound's audio half and its noise half. Verified.
+Sound system (added 2026-10-03 - a sound must tell the player truthfully
+where it is, on stereo headphones; see Scripts/Core/CLAUDE.md):
+[x] Rooms and portals, Thief style: SoundRoom boxes joined by SoundPortal
+    rectangles (doorways, stairwells). Sound and noise go straight within
+    a room, room to room only through portals, never through walls, and
+    arrive from the last portal at the length of the whole route
+    (SoundPropagation: portal-to-portal tables, rebuilt only when the
+    layout or a door changes). No route, or too long = not heard - so a
+    guard on the floor above is heard from the stairwell or not at all.
+    Closed portals (doors, thin walls, windows) muffle and add distance.
+    Guards hear by the same routes. Verified in headset.
+[x] SoundPlayer: 16 pooled voices; plays a cue from the direction of the
+    portal it came through, at the route's distance; high end rolled off
+    a little per open portal passed and more per closed one; volume falls
+    off along a curve (fast near, slow far). One-shots only. Verified in
+    headset with generated placeholder sounds.
+[x] Test areas: TeaLeaf > Build Sound Test Area (three rooms) and Build
+    Sound Test House (two storeys, stairwell, closed door, window, walled
+    yard, a stand-in guard walking a route). Verified in headset.
+[ ] Looping sounds (torches, ambience): re-check the route a few times a
+    second, with the apparent position and muffle eased.
+[ ] Reverb per room: one shared reverb set from the listener's room, not
+    one per voice. Approach not chosen.
+[ ] Spatialiser plugin for front/back direction (Unity's own audio only
+    pans left/right). Candidate: Meta XR Audio SDK - check Unity 6000.3
+    and PCVR through SteamVR/Virtual Desktop first. Fallback: Steam Audio.
+[ ] Sound direction indicator (UI) - an idea to experiment with; it can
+    read NoiseSystem.Emitted.
+[ ] Real audio: replace the generated placeholder clips in the cues.
 [ ] Shadow volumes: ShadowVolume component (trigger box) with a darkness
     value. PlayerVisibility (Player namespace) tracks which volumes the
     player's body/head is inside and outputs a single Visibility 0-1.
@@ -506,12 +539,16 @@ Phase 2 - Core stealth framework (Core namespace)
     mapped via a small SurfaceTag component or physics material lookup.
 [ ] Footsteps: PlayerFootsteps measures horizontal distance travelled,
     emits a step every N metres, raycasts down for SurfaceType, plays the
-    surface sound and emits a noise event scaled by surface x stance.
+    surface sound and emits a noise event scaled by surface x stance
+    (one SoundPlayer.Play() of the surface's SoundCue does both).
     No steps while climbing or airborne. Landing (from a jump or fall)
     emits a noise event scaled by fall speed x surface - jumping is loud.
 [ ] Debug (Scripts/Core/Debug): on-screen/world-space readout of current
     visibility, stance and last noise; gizmos drawing shadow volumes and
-    noise radii.
+    noise radii. Done 2026-10-03 for noise and sound: NoiseDebug (noise
+    spheres, N = test noise + report), NoiseListenerDebug (stand-in
+    ears), SoundEmitterDebug, SoundDebug (L = report). Left: visibility
+    and stance.
 
 
 Phase 3 - Interaction framework (Interaction namespace)
