@@ -1,13 +1,14 @@
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace Player
+namespace Core
 {
     /// <summary>
     /// Builds materials for in-world UI markers (hand reticles, the mantle
-    /// arrow): a flat colour, drawn after everything else and on top of it,
-    /// in both eyes. One place for this so every UI marker renders the same
-    /// way.
+    /// arrow) and the screen fade: a flat colour, drawn after everything
+    /// else and on top of it, in both eyes. One place for this so every UI
+    /// marker renders the same way. In Core because several systems share
+    /// it (Player's markers, Core's ScreenFade, later UI).
     ///
     /// Uses the project's own TeaLeaf/Overlay shader
     /// (Art/Shaders/Resources/Overlay.shader), which has the depth test

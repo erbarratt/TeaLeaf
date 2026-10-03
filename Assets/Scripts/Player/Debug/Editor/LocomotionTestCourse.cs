@@ -9,7 +9,9 @@ namespace Player
     /// builds a greybox course for every traversal case in Phase 1: ledges
     /// at chest height and above the head, a mantle into a low-clearance
     /// shelf, a 4m ladder and rope up one tower, walking and sprinting jump
-    /// gaps, crates to jump onto, and a low ceiling to jump under. Sizes are
+    /// gaps, crates to jump onto, a low ceiling to jump under, two ropes
+    /// strung between posts (one sagging, one a level zip line) and an
+    /// angled zip line down from the tower. Sizes are
     /// worked out from the player's settings (1.6m capsule, 0.3m step offset,
     /// 0.5m jump, 3 / 4.5 m/s walk / sprint, 1m crouch) - see each piece.
     /// Built from code so it can be rebuilt identically after changes, and
@@ -38,8 +40,10 @@ namespace Player
         private const string RopeProfilePath = "Assets/Data/RopeGrip.asset";
 
         // 10m in front of the spawn, turned round so the pieces' fronts face
-        // back towards it. The row runs from local x = -1 to 25, so local
-        // x = 12 (the middle) lands straight ahead of the spawn.
+        // back towards it. The original row runs from local x = -1 to 25, so
+        // local x = 12 (its middle) lands straight ahead of the spawn; the
+        // strung ropes, added later, carry on past the end to x = 32, and the
+        // angled zip line runs back from the tower to local z = -11.
         private static readonly Vector3 _rootPosition = new(12f, 0f, 10f);
         private static readonly Quaternion _rootRotation = Quaternion.Euler(0f, 180f, 0f);
 
@@ -126,15 +130,22 @@ namespace Player
             Edge("Low Shelf Edge", parent, shelfX, shelfWidth, shelfTop, 0f, true, true, ledgeProfile, climbable);
 
             // 4 and 5. Tower, 4m: a ladder up the left half of its front and
-            //    a rope in front of the right half, both topping out at one
-            //    mantleable edge along the whole lip.
+            //    a rope in front of the right half. The ladder tops out with
+            //    its own mantle, from its top rung; the rope with a
+            //    mantleable edge along the right half of the lip only, so
+            //    the two exits can be told apart.
             const float towerX = 11f;
             const float towerWidth = 3f;
             const float towerHeight = 4f;
             Block("Tower", parent, towerX, towerWidth, towerHeight, 2f, environment);
-            Edge("Tower Edge", parent, towerX, towerWidth, towerHeight, 0f, true, false, ledgeProfile, climbable);
+            Edge("Tower Edge", parent, towerX + towerWidth * 0.25f, towerWidth * 0.5f, towerHeight, 0f, true, false, ledgeProfile, climbable);
             BuildLadder(parent, towerX - 0.75f, towerHeight, ladderProfile, environment, climbable);
             BuildRope(parent, towerX + 0.75f, ropeProfile, environment, climbable);
+
+            // 5b. Angled zip line: from above the back of the tower top down
+            //    to a post behind the row. Climb the tower, reach up, grab,
+            //    and it carries you downhill and drops you at the bottom.
+            BuildAngledZipLine(parent, towerX, towerHeight, -2f, ropeProfile, environment, climbable);
 
             // 6. Jump gaps: a 20 degree ramp up to three 1m-high platforms in
             //    a line running away from the front (-Z). A 0.5m jump is about
@@ -165,7 +176,160 @@ namespace Player
                 }
             }
 
+            // 9. Strung ropes: two ropes on their sides between pairs of
+            //    posts, 2.2m up (reach up to grab, then go hand over hand).
+            //    The front one droops 0.3m in the middle; the back one is
+            //    perfectly straight, like a zip line. The sagging one is
+            //    placed by an end point, the straight one by rotation and
+            //    length, so both ways of setting a rope up get tested.
+            //    The straight one is also a zip line: grab it and it carries
+            //    you along, the way you're facing (it's level), until you
+            //    let go or reach the post.
+            BuildStrungRope(parent, "Sagging Rope", 27f, -0.5f, 0.3f, true, false, ropeProfile, environment, climbable);
+            BuildStrungRope(parent, "Zip Line", 27f, -2f, 0f, false, true, ropeProfile, environment, climbable);
+
             Selection.activeGameObject = root;
+        }
+
+        /// <summary>
+        /// A rope strung along X between two posts, from x for 5m at depth
+        /// z, drooping sag metres in the middle (0 = straight). With
+        /// useEndPoint the rope is placed by its two ends (an empty "Rope
+        /// End" child at the far post); without, by turning the rope object
+        /// and setting its length - so the course has one of each.
+        /// isZipLine makes it a zip wire (see ClimbableRope). The visible
+        /// rope comes from AddVisibleRope().
+        /// </summary>
+        private static void BuildStrungRope(Transform parent, string name, float x, float z, float sag, bool useEndPoint, bool isZipLine, HandSnapProfile profile, int environment, int climbable)
+        {
+            const float span = 5f;
+            const float height = 2.2f;
+            const float postSize = 0.15f;
+            const float postHeight = height + 0.1f;
+
+            for (int end = 0; end < 2; end++) {
+                TestGeometry.Box(name + " Post", parent,
+                    new Vector3(x + end * span, postHeight * 0.5f, z),
+                    new Vector3(postSize, postHeight, postSize), environment);
+            }
+
+            // From the first post's inner face to the second's.
+            float length = span - postSize;
+            GameObject rope = new(name);
+            rope.layer = climbable;
+            rope.transform.SetParent(parent, false);
+            rope.transform.localPosition = new Vector3(x + postSize * 0.5f, height, z);
+            ClimbableRope ropeComponent = rope.AddComponent<ClimbableRope>();
+
+            SerializedObject settings = new(ropeComponent);
+            settings.FindProperty("snapProfile").objectReferenceValue = profile;
+            settings.FindProperty("sag").floatValue = sag;
+            settings.FindProperty("isZipLine").boolValue = isZipLine;
+
+            if (useEndPoint) {
+                // Placed by its two ends: an empty child at the far post.
+                GameObject end = new("Rope End");
+                end.transform.SetParent(rope.transform, false);
+                end.transform.localPosition = new Vector3(length, 0f, 0f);
+                settings.FindProperty("endPoint").objectReferenceValue = end.transform;
+            } else {
+                // Placed by rotation and length: a quarter turn points the
+                // rope's local -Y along +X.
+                rope.transform.localRotation = Quaternion.Euler(0f, 0f, 90f);
+                settings.FindProperty("length").floatValue = length;
+            }
+
+            settings.ApplyModifiedPropertiesWithoutUndo();
+
+            AddVisibleRope(ropeComponent, environment);
+        }
+
+        /// <summary>
+        /// A zip line sloping down from above the back of the tower top to a
+        /// post on the ground behind the row (along -Z). It starts 2.2m
+        /// above the tower top, just inside its back edge, so it's grabbed
+        /// standing there with an arm up; it ends 2.6m above the ground, so
+        /// a player hanging by an arm arrives with their feet a little off
+        /// the floor and drops the rest. Placed by an end point, like the
+        /// sagging rope. Both ends hang from a short arm off a post standing
+        /// to one side, so the posts aren't in the rider's way.
+        /// </summary>
+        private static void BuildAngledZipLine(Transform parent, float x, float towerHeight, float towerBackZ, HandSnapProfile profile, int environment, int climbable)
+        {
+            const float reachHeight = 2.2f;
+            const float endHeight = 2.6f;
+            const float run = 9f;
+            const float postSize = 0.15f;
+            const float postOffset = 0.7f;
+
+            Vector3 start = new(x, towerHeight + reachHeight, towerBackZ + 0.3f);
+            Vector3 end = new(x, endHeight, towerBackZ - run);
+
+            ZipPost("Zip Start Post", parent, start, towerHeight, postOffset, postSize, environment);
+            ZipPost("Zip End Post", parent, end, 0f, postOffset, postSize, environment);
+
+            GameObject rope = new("Angled Zip Line");
+            rope.layer = climbable;
+            rope.transform.SetParent(parent, false);
+            rope.transform.localPosition = start;
+            ClimbableRope ropeComponent = rope.AddComponent<ClimbableRope>();
+
+            // The rope object is unrotated, so the end point's local
+            // position is simply the offset from start to end.
+            GameObject ropeEnd = new("Rope End");
+            ropeEnd.transform.SetParent(rope.transform, false);
+            ropeEnd.transform.localPosition = end - start;
+
+            SerializedObject settings = new(ropeComponent);
+            settings.FindProperty("snapProfile").objectReferenceValue = profile;
+            settings.FindProperty("endPoint").objectReferenceValue = ropeEnd.transform;
+            settings.FindProperty("isZipLine").boolValue = true;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+
+            AddVisibleRope(ropeComponent, environment);
+        }
+
+        /// <summary>
+        /// A post standing on baseY, postOffset to the +X side of a zip line
+        /// end at ropeEnd, with a short arm reaching across to hold the
+        /// rope - the top of the arm is just above the rope's end.
+        /// </summary>
+        private static void ZipPost(string name, Transform parent, Vector3 ropeEnd, float baseY, float postOffset, float postSize, int environment)
+        {
+            float top = ropeEnd.y + postSize;
+
+            TestGeometry.Box(name, parent,
+                new Vector3(ropeEnd.x + postOffset, (baseY + top) * 0.5f, ropeEnd.z),
+                new Vector3(postSize, top - baseY, postSize), environment);
+
+            TestGeometry.Box(name + " Arm", parent,
+                new Vector3(ropeEnd.x + postOffset * 0.5f, top - postSize * 0.5f, ropeEnd.z),
+                new Vector3(postOffset + postSize, postSize, postSize), environment);
+        }
+
+        /// <summary>
+        /// The visible rope for a ClimbableRope: one thin solid Environment
+        /// cylinder per straight piece of the rope (one for a straight rope,
+        /// several along a sagging one's curve), as children of the rope,
+        /// laid between the same points its grab volumes use (GetPoint()).
+        /// A Unity cylinder is 2m tall at scale 1, centred on its origin,
+        /// running along its Y. Call after the rope's settings are applied.
+        /// </summary>
+        private static void AddVisibleRope(ClimbableRope rope, int environment)
+        {
+            int count = rope.SegmentCount;
+            Vector3 from = rope.GetPoint(0f);
+
+            for (int i = 0; i < count; i++) {
+                Vector3 to = rope.GetPoint((i + 1f) / count);
+                Vector3 along = to - from;
+
+                GameObject visible = TestGeometry.Primitive(PrimitiveType.Cylinder, "Rope Visible", rope.transform, environment);
+                visible.transform.SetPositionAndRotation((from + to) * 0.5f, Quaternion.FromToRotation(Vector3.up, along));
+                visible.transform.localScale = new Vector3(0.04f, along.magnitude * 0.5f, 0.04f);
+
+                from = to;
+            }
         }
 
         /// <summary>
@@ -196,6 +360,12 @@ namespace Player
             settings.FindProperty("snapProfile").objectReferenceValue = profile;
             settings.FindProperty("firstRungHeight").floatValue = FirstRungHeight;
             settings.FindProperty("rungSpacing").floatValue = RungSpacing;
+
+            // The ladder's own mantle: from the top rung onto the tower top,
+            // MantleInset in from its lip (the ladder stands standoff out
+            // from the tower's front face).
+            settings.FindProperty("isMantleable").boolValue = true;
+            settings.FindProperty("mantlePoint").vector3Value = new Vector3(0f, height, -standoff - MantleInset);
             settings.ApplyModifiedPropertiesWithoutUndo();
 
             // The visible ladder, as children, inside the grab volume. Rungs

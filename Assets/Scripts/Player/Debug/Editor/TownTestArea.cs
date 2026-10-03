@@ -19,9 +19,9 @@ namespace Player
     ///
     /// Ledges sit where a real building has them, about a metre apart so
     /// every face can be climbed hand over hand from the ground to the roof:
-    /// window sills (both sides, mantled into crouched), the hoods over
+    /// window sills (two-sided, mantled into crouched), the hoods over
     /// windows and the band below each roofline (grab only), roof parapets
-    /// and balcony balustrades (both sides, mantleable) and pergola roofs.
+    /// and balcony balustrades (two-sided, mantleable) and pergola roofs.
     /// Every mantle lands the feet on top of the thing it climbs (mantling
     /// moves the player with collision off, so landing beyond a wall or
     /// railing would drag the feet through it) - the player then steps or
@@ -117,6 +117,14 @@ namespace Player
         // Free-standing compound walls around the square.
         private const float CompoundWallHeight = 2.4f;
         private const float CompoundWallThickness = 0.5f;
+
+        // Every edge in the town follows its solid geometry almost exactly:
+        // the grab volume is only this far outside the solid top and faces,
+        // and no taller than a thin piece like a hood or pergola roof.
+        private const float EdgeFit = TestGeometry.TightOverhang;
+
+        // Wall-top stretches shorter than this get no mantleable edge.
+        private const float MinEdgeLength = 0.5f;
 
         // Set at the start of Build() - editor-only, so shared static state
         // keeps every helper's argument list short.
@@ -510,7 +518,7 @@ namespace Player
         /// up height, with its openings left empty: full-height pieces
         /// between openings, and a piece below (a window's sill) and above
         /// (the lintel) each one. Each window also gets its ledges: a sill
-        /// edge on both sides (mantled into crouched - a window is too low to
+        /// edge gripped from either side (mantled into crouched - a window is too low to
         /// stand in) and a hood with a grab edge above it outside.
         /// </summary>
         private static void BuildWall(Transform parent, string name, Face face, float bottom, float height, float thickness, List<Opening> openings)
@@ -563,24 +571,25 @@ namespace Player
         }
 
         /// <summary>
-        /// A window's ledges: a mantleable sill edge on each side (landing
-        /// on the sill, crouched) and, outside, a projecting hood over the
-        /// opening with a grab-only edge on it.
+        /// A window's ledges: a two-sided mantleable sill edge (gripped from
+        /// outside or inside, landing on the sill, crouched) and, outside, a
+        /// projecting hood over the opening with a grab-only edge on it.
         /// </summary>
         private static void WindowLedges(Transform parent, Face face, Opening window, float bottom, float thickness)
         {
             float sillY = bottom + window.Bottom;
-            float sillInset = TestGeometry.TopCentreInset(thickness);
+            float sillInset = TestGeometry.TopCentreInset(thickness, EdgeFit);
             Vector3 outerSill = face.Point(window.Centre, sillY);
-            TestGeometry.Edge("Sill Edge", parent, outerSill, face.Yaw, window.Width, true, true, sillInset, _ledgeProfile, _climbable);
-            TestGeometry.Edge("Sill Edge", parent, outerSill + face.Inward * thickness, face.Yaw + 180f, window.Width, true, true, sillInset, _ledgeProfile, _climbable);
+            TestGeometry.Edge("Sill Edge", parent, outerSill, face.Yaw, window.Width, true, true, sillInset, _ledgeProfile, _climbable,
+                bothSidesThickness: thickness, overhang: EdgeFit);
 
             float hoodTop = bottom + window.Top + HoodGap;
             float hoodLength = window.Width + 0.3f;
             Vector3 hoodCentre = face.Point(window.Centre, hoodTop - HoodHeight * 0.5f) - face.Inward * (HoodProjection * 0.5f);
             TestGeometry.Box("Window Hood", parent, hoodCentre, Size(face, hoodLength, HoodHeight, HoodProjection), _environment);
             Vector3 hoodLip = face.Point(window.Centre, hoodTop) - face.Inward * HoodProjection;
-            TestGeometry.Edge("Hood Edge", parent, hoodLip, face.Yaw, hoodLength, false, false, 0f, _ledgeProfile, _climbable);
+            TestGeometry.Edge("Hood Edge", parent, hoodLip, face.Yaw, hoodLength, false, false, 0f, _ledgeProfile, _climbable,
+                overhang: EdgeFit, height: HoodHeight + EdgeFit * 2f);
         }
 
         /// <summary>
@@ -594,33 +603,53 @@ namespace Player
             Vector3 centre = face.Point(middle, topY - BandHeight * 0.5f) - face.Inward * (BandProjection * 0.5f);
             TestGeometry.Box("Band", parent, centre, Size(face, face.Length + BandProjection * 2f, BandHeight, BandProjection), _environment);
             Vector3 lip = face.Point(middle, topY) - face.Inward * BandProjection;
-            TestGeometry.Edge("Band Edge", parent, lip, face.Yaw, face.Length, false, false, 0f, _ledgeProfile, _climbable);
+            TestGeometry.Edge("Band Edge", parent, lip, face.Yaw, face.Length, false, false, 0f, _ledgeProfile, _climbable,
+                overhang: EdgeFit, height: BandHeight + EdgeFit * 2f);
         }
 
         /// <summary>
         /// A roof parapet on the stretch from..to of a face, standing on the
-        /// roof at roofY, with a mantleable edge on each side of its top: up
+        /// roof at roofY, with a two-sided mantleable edge on its top: up
         /// from outside, or back over from the roof. Both land on the top.
         /// </summary>
         private static void Parapet(Transform parent, Face face, float from, float to, float roofY)
         {
             float top = roofY + ParapetHeight;
             WallPiece(parent, "Parapet", face, from, to, roofY, top, ParapetThickness);
-            EdgePair(parent, face, (from + to) * 0.5f, top, to - from, ParapetThickness);
+            TwoSidedEdge(parent, face, (from + to) * 0.5f, top, to - from, ParapetThickness);
         }
 
         /// <summary>
-        /// Mantleable edges on both sides of a wall top thickness deep, at
-        /// the middle a of a face, length long, both landing on the top -
-        /// straight ahead of the player, since these run for metres (see
-        /// ClimbableEdge's moveHorizontallyToPoint).
+        /// One two-sided mantleable edge across a wall top thickness deep, at
+        /// the middle a of a face, length long: gripped from either side (the
+        /// hand snaps onto the face on the player's side - see ClimbableEdge's
+        /// grabbableFromBothSides) and landing on the top, straight ahead of
+        /// the player, since these run for metres (moveHorizontallyToPoint).
+        /// Was a pair of back-to-back edges until 2026-10-03: their grab
+        /// volumes overlapped, so a grab often got the far side's edge and
+        /// the hand snapped onto the wrong face, reversed.
         /// </summary>
-        private static void EdgePair(Transform parent, Face face, float a, float top, float length, float thickness)
+        private static void TwoSidedEdge(Transform parent, Face face, float a, float top, float length, float thickness)
         {
-            float inset = TestGeometry.TopCentreInset(thickness);
-            Vector3 outer = face.Point(a, top);
-            TestGeometry.Edge("Top Edge", parent, outer, face.Yaw, length, true, false, inset, _ledgeProfile, _climbable, false);
-            TestGeometry.Edge("Top Edge", parent, outer + face.Inward * thickness, face.Yaw + 180f, length, true, false, inset, _ledgeProfile, _climbable, false);
+            TwoSidedEdge(parent, face.Point(a, top), face.Yaw, length, thickness);
+        }
+
+        /// <summary>
+        /// The same two-sided edge, given directly: outerLip is the middle of
+        /// the wall top's lip on one face, and yaw turns the edge's +Z to
+        /// point out from that face (0 = +Z, 90 = +X, -90 = -X); the wall
+        /// runs thickness back from there. Stretches shorter than
+        /// MinEdgeLength get no edge - there's nothing to stand on.
+        /// </summary>
+        private static void TwoSidedEdge(Transform parent, Vector3 outerLip, float yaw, float length, float thickness)
+        {
+            if (length < MinEdgeLength) {
+                return;
+            }
+
+            float inset = TestGeometry.TopCentreInset(thickness, EdgeFit);
+            TestGeometry.Edge("Top Edge", parent, outerLip, yaw, length, true, false, inset, _ledgeProfile, _climbable,
+                false, thickness, EdgeFit);
         }
 
         /// <summary>
@@ -694,7 +723,13 @@ namespace Player
 
             // The front balustrade faces +Z, like the building front.
             Face balustrade = new(new Vector3(bx0, 0f, BalconyDepth), Vector3.right, Vector3.back, bx1 - bx0, 0f);
-            EdgePair(parent, balustrade, middle - bx0, railTop, bx1 - bx0, BalustradeThickness);
+            TwoSidedEdge(parent, balustrade, middle - bx0, railTop, bx1 - bx0, BalustradeThickness);
+
+            // The two side balustrades, from the tower wall to the front
+            // one: outer faces at bx0 (facing -X) and bx1 (facing +X).
+            float sideLength = BalconyDepth - BalustradeThickness;
+            TwoSidedEdge(parent, new Vector3(bx0, railTop, sideLength * 0.5f), -90f, sideLength, BalustradeThickness);
+            TwoSidedEdge(parent, new Vector3(bx1, railTop, sideLength * 0.5f), 90f, sideLength, BalustradeThickness);
 
             float pergolaTop = floor + PergolaHeight;
             Slab(parent, "Pergola", towerX0 + 0.1f, towerX1 - 0.1f, 0f, PergolaDepth, pergolaTop - PergolaThickness, PergolaThickness);
@@ -705,8 +740,11 @@ namespace Player
                     floor, PergolaHeight - PergolaThickness);
             }
 
+            // Lands 0.4m in from the pergola's front lip; the grab volume is
+            // only as tall as the thin roof.
             TestGeometry.Edge("Pergola Edge", parent, new Vector3(middle, pergolaTop, PergolaDepth), 0f,
-                towerX1 - towerX0 - 0.2f, true, false, 0.45f, _ledgeProfile, _climbable, false);
+                towerX1 - towerX0 - 0.2f, true, false, 0.4f + EdgeFit, _ledgeProfile, _climbable, false,
+                overhang: EdgeFit, height: PergolaThickness + EdgeFit * 2f);
         }
 
         /// <summary>
@@ -729,11 +767,20 @@ namespace Player
             Slab(parent, "Terrace Wall", rampX1, x1, frontZ0, TerraceDepth, TerraceHeight, TerraceWallHeight);
             Slab(parent, "Terrace Wall", x0, x0 + TerraceWallThickness, 0f, frontZ0, TerraceHeight, TerraceWallHeight);
             Slab(parent, "Terrace Wall", x1 - TerraceWallThickness, x1, 0f, frontZ0, TerraceHeight, TerraceWallHeight);
+
+            // A two-sided mantleable edge along each wall top: the two front
+            // pieces (outer faces at z = TerraceDepth, facing +Z; the short
+            // stub beside the ramp is under MinEdgeLength, so it gets none)
+            // and the two sides (outer faces at x0 facing -X, x1 facing +X).
+            TwoSidedEdge(parent, new Vector3((x0 + rampX0) * 0.5f, wallTop, TerraceDepth), 0f, rampX0 - x0, TerraceWallThickness);
+            TwoSidedEdge(parent, new Vector3((rampX1 + x1) * 0.5f, wallTop, TerraceDepth), 0f, x1 - rampX1, TerraceWallThickness);
+            TwoSidedEdge(parent, new Vector3(x0, wallTop, frontZ0 * 0.5f), -90f, frontZ0, TerraceWallThickness);
+            TwoSidedEdge(parent, new Vector3(x1, wallTop, frontZ0 * 0.5f), 90f, frontZ0, TerraceWallThickness);
         }
 
         /// <summary>
         /// A free-standing wall centred on centre, length long along X, with
-        /// mantleable edges on both sides of its top.
+        /// a two-sided mantleable edge on its top.
         /// </summary>
         private static void CompoundWall(Transform parent, string name, Vector3 centre, float length)
         {
@@ -748,7 +795,7 @@ namespace Player
             // Seen from +Z, as a face: its outer face is the +Z side.
             float half = CompoundWallThickness * 0.5f;
             Face face = new(new Vector3(-length * 0.5f, 0f, half), Vector3.right, Vector3.back, length, 0f);
-            EdgePair(w, face, length * 0.5f, CompoundWallHeight, length, CompoundWallThickness);
+            TwoSidedEdge(w, face, length * 0.5f, CompoundWallHeight, length, CompoundWallThickness);
         }
     }
 }

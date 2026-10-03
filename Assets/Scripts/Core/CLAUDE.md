@@ -4,8 +4,37 @@ Detail for the core systems. The root `CLAUDE.md` holds the project rules, the t
 the physics layers; this file is loaded when working in this folder. Keep it up to date with
 every change to these systems, like the root file.
 
-Planned here (Phase 2): game state/level manager, screen fade, noise events, shadow volumes,
-light-to-volume linking, surfaces and footsteps. Only the shared debug drawing exists so far.
+Planned here (Phase 2): game state/level manager, noise events, shadow volumes,
+light-to-volume linking, surfaces and footsteps. The screen fade and the shared debug drawing
+exist so far.
+
+## Screen fade
+
+- **`ScreenFade`** (added 2026-10-03; on a `Screen Fade` child of Main Camera at the local
+  origin, so head-locked with no code) — fades the whole view to `fadeColor` (black) and
+  back. `FadeOut(duration, onComplete)` covers the view (caught, restart: reload in the
+  callback, once nothing can be seen); `FadeIn(duration, onComplete)` clears it. A fade starts
+  from the current `Alpha`, so interrupting one is smooth; a replaced fade's callback is
+  dropped. `ScreenFade.Instance` (set in `Awake()`, no scene search), `Alpha`, `IsFading`.
+  **Level start:** with `fadeInOnStart` (default on) `Awake()` makes the view black before the
+  first frame renders, holds for `startHoldDuration` (0.3s, covers tracking settling and
+  uneven first frames), then fades to clear over `startFadeDuration` (1.5s). A scene reload
+  therefore fades back in by itself. Drawn as a runtime-built 1m cube around the head (from
+  inside, every view direction crosses exactly one face, so the whole view is covered once in
+  both eyes) with an `OverlayMaterial` at queue Overlay + 100, so it also covers the UI
+  markers. Eased with SmoothStep on unscaled time (works at time scale 0), each frame's step
+  capped at 0.05s so a loading hitch can't jump it. **Costs nothing while clear:** the
+  renderer is off and the component disables itself, so `Update()` only runs during a fade -
+  the reason it has its own `Update()` rather than a `Tick()` (it isn't a player system and
+  has no ordering needs). The colour is set on the material it created, not via
+  `renderer.material`. Right-click "Test Fade Out"/"Test Fade In" in Play Mode.
+  **`Hold()`/`Release()`** (counted) freeze any fade until every hold is released - for work
+  that must finish behind the black: `PlayerTracking` holds the level-start fade while it
+  waits for tracking and calibrates the view (upright, standing eye height).
+- **`OverlayMaterial`** — the static factory for overlay (drawn last, no depth test)
+  materials, moved here from `Scripts/Player` on 2026-10-03 because `ScreenFade` needs it and
+  `Core` shouldn't depend on `Player`. Detail in `Scripts/Player/CLAUDE.md` (its users are
+  mostly the player's UI markers).
 
 ## Debug drawing (`Core/Debug`) - gizmos that also show in the headset
 

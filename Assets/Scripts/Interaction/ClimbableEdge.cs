@@ -20,10 +20,21 @@ namespace Interaction
     /// line (top face, +Z face).
     /// </summary>
     [RequireComponent(typeof(BoxCollider))]
-    public class ClimbableEdge : MonoBehaviour, IHandTarget, IClimbable, IDebugDrawable
+    public class ClimbableEdge : MonoBehaviour, IHandTarget, IClimbable, IMantleable, IDebugDrawable
     {
         // Shared hand offsets/pose for all ledges - see HandSnapProfile.
         [SerializeField] private HandSnapProfile snapProfile;
+
+        // For edges on something free-standing that can be gripped from
+        // either side - a wall top, parapet, railing, window sill. Ticked,
+        // a hand snaps onto the lip on the player's side (the box's
+        // top-front line from in front, its top-back line from behind),
+        // facing in from that side. Unticked (the default), it always snaps
+        // onto the front lip - right for a ledge set into a wall, which only
+        // has a front. The box must then span the whole thickness of the
+        // thing, so its back face lines up with the real back face the same
+        // way its front does.
+        [SerializeField] private bool grabbableFromBothSides;
 
         [Header("Mantling")]
 
@@ -94,6 +105,23 @@ namespace Interaction
         /// rotated and offset by this edge's transform, but not scaled (see
         /// mantlePoint), which is why this isn't TransformPoint().
         public Vector3 MantlePointWorld => transform.position + transform.rotation * mantlePoint;
+
+        /// <summary>
+        /// A mantle is possible on a mantleable edge once the head has been
+        /// pulled up to within headBelowTopAllowance of the ledge top - no
+        /// mantling from a full arm-hang. The lip point's height is the
+        /// ledge top, since mantleable edges are always horizontal. Where
+        /// along the edge the hand grips doesn't matter.
+        /// </summary>
+        public bool CanMantleFrom(Vector3 gripPoint, Vector3 headPosition, float headBelowTopAllowance)
+        {
+            if (!isMantleable) {
+                return false;
+            }
+
+            float ledgeTop = ClosestLipPoint(headPosition).y;
+            return headPosition.y >= ledgeTop - headBelowTopAllowance;
+        }
 
         /// <summary>
         /// World position a mantle lands the feet at, when it starts with
@@ -249,6 +277,12 @@ namespace Interaction
             Vector3 alongLip = new(halfSize.x, 0f, 0f);
             lines.Line(lipCentre - alongLip, lipCentre + alongLip);
 
+            // A two-sided edge has a second lip along the top-back line.
+            if (grabbableFromBothSides) {
+                Vector3 backLipCentre = new(centre.x, centre.y + halfSize.y, centre.z - halfSize.z);
+                lines.Line(backLipCentre - alongLip, backLipCentre + alongLip);
+            }
+
             lines.Matrix = Matrix4x4.identity;
 
             if (!detailed || !isMantleable) {
@@ -278,9 +312,20 @@ namespace Interaction
         /// <summary>
         /// The point on this edge's lip (its top-front line) nearest to
         /// worldPoint, clamped so it never goes past either end of the edge.
-        /// Used both to snap a grabbing hand and to find where a mantle lands.
+        /// Mantling uses it for the height of the ledge top (the same for
+        /// either lip of a two-sided edge).
         /// </summary>
         public Vector3 ClosestLipPoint(Vector3 worldPoint)
+        {
+            return ClosestLipPoint(worldPoint, false);
+        }
+
+        /// <summary>
+        /// The point on one of this edge's lips nearest to worldPoint,
+        /// clamped to the edge's length: the front lip (top-front line), or
+        /// with backLip the back one (top-back line).
+        /// </summary>
+        private Vector3 ClosestLipPoint(Vector3 worldPoint, bool backLip)
         {
             // Work in the box's local space, where the lip is a simple
             // axis-aligned line. BoxCollider.center/size are local values,
@@ -290,12 +335,22 @@ namespace Interaction
             Vector3 halfSize = _boxCollider.size * 0.5f;
 
             // Slide along the edge to wherever the point is, but never past
-            // either end; then pin to the top face and the front face.
+            // either end; then pin to the top face and the front (or back)
+            // face.
             local.x = Mathf.Clamp(local.x, centre.x - halfSize.x, centre.x + halfSize.x);
             local.y = centre.y + halfSize.y;
-            local.z = centre.z + halfSize.z;
+            local.z = backLip ? centre.z - halfSize.z : centre.z + halfSize.z;
 
             return transform.TransformPoint(local);
+        }
+
+        /// <summary>
+        /// Whether worldPoint is behind this edge: on the -Z side of the
+        /// plane through the middle of the box, front to back.
+        /// </summary>
+        private bool IsBehind(Vector3 worldPoint)
+        {
+            return transform.InverseTransformPoint(worldPoint).z < _boxCollider.center.z;
         }
 
         /// <summary>
@@ -303,14 +358,23 @@ namespace Interaction
         /// top-front line nearest to where the ray hit, facing into the wall
         /// with the grip frame's up matching the edge's up. The profile then
         /// offsets that into the hand visual's actual root pose.
+        ///
+        /// A two-sided edge (grabbableFromBothSides) gripped from behind uses
+        /// the top-back line instead, facing the other way. Which side is
+        /// decided by the head, not the hand or where the ray hit: a hand
+        /// reaches over the top of a wall and a ray lands anywhere across it,
+        /// but the head stays on the side the player is standing or hanging.
         /// </summary>
-        public HandSnapPose GetSnapPose(bool isLeftHand, Vector3 grabPoint)
+        public HandSnapPose GetSnapPose(bool isLeftHand, Vector3 grabPoint, Vector3 headPosition, Vector3 headForward)
         {
-            Vector3 gripPosition = ClosestLipPoint(grabPoint);
+            bool fromBehind = grabbableFromBothSides && IsBehind(headPosition);
+            Vector3 gripPosition = ClosestLipPoint(grabPoint, fromBehind);
 
-            // Grip frame: forward points into the wall (-Z), up is the edge's
-            // up - the direction the back of a palm-down hand faces.
-            Quaternion gripRotation = Quaternion.LookRotation(-transform.forward, transform.up);
+            // Grip frame: forward points into the wall (-Z from the front, +Z
+            // from behind), up is the edge's up - the direction the back of a
+            // palm-down hand faces.
+            Vector3 intoWall = fromBehind ? transform.forward : -transform.forward;
+            Quaternion gripRotation = Quaternion.LookRotation(intoWall, transform.up);
 
             // Without a profile, still snap to the bare grip frame so a
             // missing reference is obvious (hand badly offset), not a crash.

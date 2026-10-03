@@ -6,6 +6,93 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-03
+----------
+- Two-sided edges. Wall tops in the town (parapets, balustrades, compound
+  walls, window sills) each had two back-to-back ClimbableEdges whose grab
+  volumes almost entirely overlapped, so a grab often got the far side's
+  edge and the hand snapped onto the far face, reversed. Now one edge with
+  "Grabbable From Both Sides" (off by default): the hand snaps onto the
+  top-front or top-back lip, whichever is on the player's side. The side
+  comes from the head, not the hand or the ray hit - a hand reaches over a
+  wall top and a ray lands anywhere across it. The box must span the whole
+  thickness, which is why it's off by default (a ledge set into a wall has
+  no real back lip). GetSnapPose() gained headPosition (and later
+  headForward). Verified in headset.
+- Town edges fitted to the geometry (on request): every town edge now sits
+  1cm outside the solid (TestGeometry.TightOverhang) instead of 5cm, and
+  is no taller than a thin piece (hood, band, pergola). Not flush - a
+  volume level with the solid ties with it for hand rays. Added the missing
+  mantleable edges on the balcony side balustrades and the terrace walls.
+- Strung ropes. A ClimbableRope turned on its side works as a rope between
+  buildings; the grip frame is built from the rope's own direction. New:
+  sag (a parabola below the line between the ends; the grab volume becomes
+  a chain of 8 capsules made in Awake, since one capsule can't bend) and
+  an optional End Point transform (place two ends instead of rotating the
+  object and working out a length). Grip direction took three goes in the
+  headset: up along the facing direction put the thumb away from the
+  player both ways, so it's now against the facing direction on a strung
+  rope. Then the side the hand grips from was fixed rather than taken from
+  where the hand was: straight below on a strung rope (wrist down), and on
+  a hanging rope towards the player turned 20 degrees round the rope to
+  that hand's shoulder (Shoulder Angle). Verified in headset.
+- Screen fade (Phase 2 begins). Core.ScreenFade on a child of Main Camera:
+  a 1m cube round the head drawn with the overlay shader at queue Overlay
+  + 100 - from inside a cube every view direction crosses exactly one
+  face, so the whole view is covered once in both eyes. FadeOut/FadeIn
+  with a completion callback, ScreenFade.Instance, SmoothStep on unscaled
+  time. Level start is black from Awake (no flash of the level), holds
+  0.3s, then fades to clear. Costs nothing while clear (renderer off,
+  component disabled). OverlayMaterial moved from Player to Core so Core
+  doesn't depend on Player.
+- Upside-down start, fixed. Through Virtual Desktop/SteamVR the level
+  often started upside down until the Quest was recentred. The log showed
+  the head's raw rotation rolled 178 degrees with the rig unrotated, and
+  the height came out near the floor - the tracking space itself was
+  flipped, with its origin on the ground. Tried in order:
+  XRInputSubsystem.TryRecenter() behind the fade (no effect, removed); a
+  one-off half turn of Camera Offset (upright, but the height stayed wrong
+  and a later Quest recentre flipped the view again, since the runtime had
+  then put its tracking right). What works: PlayerTracking.Calibrate()
+  turns Camera Offset upright if the head is upside down and shifts it so
+  the head is at standing eye height (less the crouch drop), at level
+  start behind the fade (ScreenFade.Hold()/Release()) and again whenever
+  the head's raw pose jumps faster than a head can move (a recentre) -
+  PlayerTracking.Tick(), a new step 1b in PlayerController. Verified in
+  headset. Learned: Camera Offset can no longer be assumed unrotated.
+- Ladder mantle. Mantling no longer knows about ledges: IMantleable
+  (CanMantleFrom, GetMantleLanding, MantleEndsCrouched), implemented by
+  ClimbableEdge (head near the ledge top) and Ladder (a hand on the top
+  rung, found from the grab point PlayerClimbing now records). Ladders are
+  mantleable by default; "Reset Mantle Point" puts the landing level with
+  the box top, 0.4m behind its back face. A ladder saved before this comes
+  out mantleable with a fallback landing - reset it. Not yet tested in the
+  headset.
+- Zip lines. ClimbableRope "Is Zip Line" (IZipLine): any grab slides the
+  hand and the player along the rope, speeding up to Zip Speed (6 m/s),
+  downhill or - on a level rope - the way the player faces. It ends when
+  they let go, reach the end (the hand is force-released and needs a
+  regrip), grab something else, or the body falls 0.5m behind the grip
+  (blocked by a wall or the ground). The slide is added to
+  PlayerClimbing.FrameMovement, so the single Move() rule holds and
+  ordinary climbing works on top; the snapped hand pose is moved with
+  HandVisualSnap.MoveSnapPose(). No release momentum, as for all climbing.
+  Sagging zip lines are not supported (they slide, without physics). Not
+  yet tested in the headset.
+- Locomotion course: two 5m ropes between posts (one sagging, placed by an
+  end point; one straight, a level zip line), an angled zip line from 2.2m
+  above the back of the tower top down 9m to 2.6m above the ground, and
+  the tower ladder mantling by itself (the tower's edge now covers only
+  the rope half of the lip). The zip lines and ladder mantle need a
+  rebuild of the course (TeaLeaf > Build Locomotion Test Course).
+- Roadmap: ticked the screen fade; added a "Traversal additions" group at
+  the end of Phase 1 (ladder mantle and zip lines left open until tested).
+- Docs: root CLAUDE.md (tick order step 1b, tracking setup, hierarchy),
+  Core, Interaction and Player CLAUDE.md.
+- Next: test the ladder mantle and zip lines, then Phase 2's
+  GameState/LevelManager (restart on Caught using the fade).
+
+
 2026-09-30 (after the first commit)
 -----------------------------------
 - Town test area (on request, before starting Phase 2): TeaLeaf > Build

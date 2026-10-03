@@ -441,6 +441,34 @@ Test scene:
     Also (2026-09-30, on request): TeaLeaf > Build Town Test Area - six
     greybox houses round a square, from a reference photo, for climbing,
     mantling and later sneaking in a larger space. Verified in headset.
+    2026-10-03: town edges now follow the solid geometry to within 1cm
+    (TestGeometry.TightOverhang), wall tops/parapets/balustrades/sills are
+    single two-sided edges, and the balcony side balustrades and terrace
+    walls gained mantleable edges.
+Traversal additions (2026-10-03, on request, before Phase 2):
+[x] Two-sided edges: ClimbableEdge "Grabbable From Both Sides" - the hand
+    snaps onto the lip on the player's side (decided by the head), for
+    free-standing wall tops. Off by default. Verified in headset.
+[x] Strung ropes: a ClimbableRope turned on its side or given an End Point
+    transform, with optional sag (a chain of capsule grab volumes along a
+    parabola). Grip is fixed rather than from where the hand was: wrist
+    down on a strung rope (thumb towards the player, whichever way they
+    face), wrist towards that hand's shoulder on a hanging one. Verified
+    in headset.
+[ ] Ladder mantle: IMantleable (ClimbableEdge, Ladder). A ladder is
+    mantleable by default - arrow with a hand on the top rung, landing on
+    its mantle point. Built; test in headset (course tower ladder).
+[ ] Zip lines: ClimbableRope "Is Zip Line" (IZipLine) - a grab slides the
+    hand and player along the rope (downhill, or the facing direction on a
+    level rope) until they let go, reach the end or are blocked, then they
+    drop. Built; test in headset (course: a level one between posts, an
+    angled one down from the tower). Sagging zip lines are not supported
+    (decided 2026-10-03 - they slide, but with no physics).
+[x] View calibration at level start (PlayerTracking): through Virtual
+    Desktop/SteamVR the tracking space often started upside down with its
+    origin on the floor. Behind the level-start fade, Camera Offset is
+    turned upright and set to standing eye height, and again whenever the
+    headset is recentred. Verified in headset.
 
 
 Phase 2 - Core stealth framework (Core namespace)
@@ -448,8 +476,13 @@ Phase 2 - Core stealth framework (Core namespace)
 [ ] GameState/LevelManager: Playing, Caught, Won. Restart the level on
     Caught (fade to black, reload scene). Won when the objective item is
     carried into the exit zone.
-[ ] Screen fade: simple fade-to-black sphere/quad around the head camera
-    (used for caught, restart, level start).
+[x] Screen fade: simple fade-to-black sphere/quad around the head camera
+    (used for caught, restart, level start). Done 2026-10-03 as
+    Core.ScreenFade: a cube round the head drawn with the overlay shader,
+    FadeOut/FadeIn with a completion callback, level start black then
+    fading to clear, Hold()/Release() for work that must finish behind
+    the black. Level-start fade verified in headset; FadeOut is first
+    used by the game state (next).
 [ ] Noise event system: NoiseSystem static/singleton with
     Emit(position, loudness/radius, NoiseType, source). Listeners (guards)
     register on enable. No per-frame allocation - use a struct payload.

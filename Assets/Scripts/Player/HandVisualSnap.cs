@@ -109,6 +109,17 @@ namespace Player
         }
 
         /// <summary>
+        /// Shifts the pose the hand is snapped to by movement (world space),
+        /// keeping its rotation and finger pose - for a grip that travels,
+        /// like a hand sliding along a zip line. Tick() places the visual at
+        /// the moved pose as usual.
+        /// </summary>
+        public void MoveSnapPose(Vector3 movement)
+        {
+            _snapPose = new HandSnapPose(_snapPose.Position + movement, _snapPose.Rotation, _snapPose.Pose);
+        }
+
+        /// <summary>
         /// Starts blending the visual back to following the controller.
         /// </summary>
         public void Release()

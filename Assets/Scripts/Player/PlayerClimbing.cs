@@ -73,6 +73,29 @@ namespace Player
         // ReportAppliedMovement().
         private Vector3 _pendingLocalDelta;
 
+        // The zip line being ridden, or null. While set, each hand gripping
+        // it slides along it every frame - see TickZip().
+        private IZipLine _zipLine;
+
+        // Which way the ride goes along the line (+1 towards its far end, -1
+        // towards its start), and its current speed in metres per second -
+        // shared by both hands, so a second hand joining slides in step.
+        private int _zipDirection;
+        private float _zipSpeed;
+
+        // How far along the line (0-1) each hand's grip currently is.
+        private float _leftZipT;
+        private float _rightZipT;
+
+        // How far the primary hand's grip slid this frame, in world space -
+        // added to FrameMovement so the player travels with it.
+        private Vector3 _zipMovement;
+
+        // A zip ride ends if the player's body falls this far behind the
+        // sliding grip, in metres - it has hit something (a wall, the
+        // ground at the bottom of the line) and can't follow.
+        private const float ZipBlockedDistance = 0.5f;
+
         /// True while a hand is gripping a climbable and driving climb movement.
         public bool IsClimbing { get; private set; }
 
@@ -86,15 +109,20 @@ namespace Player
         /// IsLeftHandGripping.
         public bool IsRightHandGripping => _rightGrabbed is not null;
 
-        /// The ledge the left hand is gripping, or null if it's gripping
-        /// nothing or something that isn't a ledge (e.g. a ladder) - so
-        /// PlayerMantling can check whether it's mantleable. "as" is a cheap
-        /// type check, fine every frame.
-        public ClimbableEdge LeftGrabbedEdge => _leftGrabbed as ClimbableEdge;
+        /// What the left hand is gripping (a ledge, ladder or rope), or null -
+        /// so PlayerMantling can ask it whether a mantle is possible.
+        public IClimbable LeftGrabbed => _leftGrabbed;
 
-        /// The ledge the right hand is gripping, or null - mirrors
-        /// LeftGrabbedEdge.
-        public ClimbableEdge RightGrabbedEdge => _rightGrabbed as ClimbableEdge;
+        /// What the right hand is gripping, or null - mirrors LeftGrabbed.
+        public IClimbable RightGrabbed => _rightGrabbed;
+
+        /// Where the left hand grabbed what it's gripping (world space, the
+        /// hand ray's hit point at the moment of the grab) - e.g. which
+        /// ladder rung it's on. Only meaningful while LeftGrabbed isn't null.
+        public Vector3 LeftGrabPoint { get; private set; }
+
+        /// Where the right hand grabbed - mirrors LeftGrabPoint.
+        public Vector3 RightGrabPoint { get; private set; }
 
         /// This frame's climb movement, for PlayerController to add to its
         /// frame movement accumulator.
@@ -141,6 +169,7 @@ namespace Player
                 ref _rightNeedsRegrip,
                 _leftGrabbed);
 
+            TickZip();
             UpdateFrameMovement();
         }
 
@@ -171,6 +200,7 @@ namespace Player
             IsClimbing = false;
             FrameMovement = Vector3.zero;
             _pendingLocalDelta = Vector3.zero;
+            EndZip();
         }
 
         /// <summary>
@@ -229,14 +259,36 @@ namespace Player
                 // The climbable decides where this hand goes and how it's
                 // posed - this class never needs to know what a ledge or rung
                 // grip looks like. Computed once at grab time: the pose is
-                // fixed in world space for as long as the hand holds on.
-                visualSnap.Snap(climbable.GetSnapPose(hand == Hand.Left, rayTargetPoint));
+                // fixed in world space for as long as the hand holds on. The
+                // head position tells a two-sided ledge which side the player
+                // is on, so the hand snaps onto the face nearest them; the
+                // head's forward tells a strung rope which way along it the
+                // player faces, so the hand isn't back to front.
+                visualSnap.Snap(climbable.GetSnapPose(
+                    hand == Hand.Left,
+                    rayTargetPoint,
+                    playerTracking.HeadPosition,
+                    playerTracking.HeadRotation * Vector3.forward));
+
+                // Remember where it grabbed - a ladder uses it to tell which
+                // rung the hand is on (for mantling off the top).
+                if (hand == Hand.Left) {
+                    LeftGrabPoint = rayTargetPoint;
+                } else {
+                    RightGrabPoint = rayTargetPoint;
+                }
 
                 // Every new grab takes over movement, even if the other hand
                 // is already gripping something - the most recently grabbed
                 // hand always drives climbing.
                 _primaryHand = hand;
                 _primaryHandLastLocalPosition = playerTransform.InverseTransformPoint(handPosition);
+
+                // A zip line starts carrying the hand along from here. The
+                // property pattern is a type check plus one bool read.
+                if (climbable is IZipLine { IsZipLine: true } zipLine) {
+                    BeginZipGrip(hand, zipLine, rayTargetPoint);
+                }
 
                 return;
             }
@@ -268,9 +320,169 @@ namespace Player
         }
 
         /// <summary>
+        /// A hand has just grabbed a zip line at grabPoint: start a ride if
+        /// one isn't already running on this line (from rest, in the
+        /// direction the line says - downhill, or the way the player faces
+        /// on a level line), and note how far along the line this hand is.
+        /// A second hand grabbing the line mid-ride just joins it at the
+        /// ride's current speed.
+        /// </summary>
+        private void BeginZipGrip(Hand hand, IZipLine zipLine, Vector3 grabPoint)
+        {
+            if (!ReferenceEquals(_zipLine, zipLine)) {
+                _zipLine = zipLine;
+                _zipSpeed = 0f;
+                _zipDirection = zipLine.GetZipDirection(playerTracking.HeadRotation * Vector3.forward);
+            }
+
+            float t = zipLine.GetClosestT(grabPoint);
+
+            if (hand == Hand.Left) {
+                _leftZipT = t;
+            } else {
+                _rightZipT = t;
+            }
+        }
+
+        /// <summary>
+        /// Forgets the zip ride. The hands are released separately - this
+        /// only clears the ride's own state.
+        /// </summary>
+        private void EndZip()
+        {
+            _zipLine = null;
+            _zipSpeed = 0f;
+            _zipMovement = Vector3.zero;
+        }
+
+        /// <summary>
+        /// Advances a zip ride by one frame: speeds up towards the line's top
+        /// speed, then slides each hand gripping the line that far along it.
+        /// The primary hand's slide becomes _zipMovement, which
+        /// UpdateFrameMovement() adds to the player's movement - so the body
+        /// travels with the grip, and ordinary climbing (pulling yourself
+        /// about relative to the hand) still works on top.
+        ///
+        /// The ride ends when no hand is on the line any more (let go, or
+        /// slid off the end), or when the hand driving movement has grabbed
+        /// something else - then the hand left on the line is let go too,
+        /// rather than sliding away from a body that's now held in place.
+        /// Does nothing while there's no ride.
+        /// </summary>
+        private void TickZip()
+        {
+            _zipMovement = Vector3.zero;
+
+            if (_zipLine == null) {
+                return;
+            }
+
+            bool isLeftOnLine = ReferenceEquals(_leftGrabbed, _zipLine);
+            bool isRightOnLine = ReferenceEquals(_rightGrabbed, _zipLine);
+
+            if (!isLeftOnLine && !isRightOnLine) {
+                EndZip();
+                return;
+            }
+
+            IClimbable primaryGrabbed = _primaryHand == Hand.Left ? _leftGrabbed : _rightGrabbed;
+
+            if (!ReferenceEquals(primaryGrabbed, _zipLine)) {
+                if (isLeftOnLine) {
+                    ForceRelease(Hand.Left);
+                }
+
+                if (isRightOnLine) {
+                    ForceRelease(Hand.Right);
+                }
+
+                EndZip();
+                return;
+            }
+
+            _zipSpeed = Mathf.MoveTowards(_zipSpeed, _zipLine.ZipSpeed, _zipLine.ZipAcceleration * Time.deltaTime);
+
+            // The distance to slide this frame, as a fraction of the line.
+            float deltaT = _zipDirection * _zipSpeed * Time.deltaTime / Mathf.Max(_zipLine.Length, 0.01f);
+
+            if (isLeftOnLine) {
+                SlideHand(Hand.Left, ref _leftZipT, deltaT, playerHandVisuals.LeftVisualSnap);
+            }
+
+            if (isRightOnLine) {
+                SlideHand(Hand.Right, ref _rightZipT, deltaT, playerHandVisuals.RightVisualSnap);
+            }
+        }
+
+        /// <summary>
+        /// Slides one hand's grip deltaT further along the zip line (never
+        /// past either end): moves the pose its visual is snapped to, and,
+        /// if it's the hand driving movement, records the slide for the
+        /// player to follow. A grip that reaches the end it was heading for
+        /// is let go - with nothing left holding on, the player drops.
+        /// </summary>
+        private void SlideHand(Hand hand, ref float zipT, float deltaT, HandVisualSnap visualSnap)
+        {
+            float newT = Mathf.Clamp01(zipT + deltaT);
+            Vector3 movement = _zipLine.GetPoint(newT) - _zipLine.GetPoint(zipT);
+            zipT = newT;
+
+            visualSnap.MoveSnapPose(movement);
+
+            if (hand == _primaryHand) {
+                _zipMovement = movement;
+            }
+
+            bool hasReachedEnd = _zipDirection > 0 ? newT >= 1f : newT <= 0f;
+
+            if (hasReachedEnd) {
+                ForceRelease(hand);
+            }
+        }
+
+        /// <summary>
+        /// Makes one hand let go, whatever its grip is doing: its visual
+        /// starts blending back to the controller, and it can't grab again
+        /// until its grip has been released (see _leftNeedsRegrip) - or it
+        /// would re-grab the same rope on the next frame. If it was the hand
+        /// driving movement, the other hand takes over if it's gripping
+        /// something; otherwise climbing stops and the player falls.
+        /// </summary>
+        private void ForceRelease(Hand hand)
+        {
+            bool isLeft = hand == Hand.Left;
+
+            if (isLeft) {
+                _leftGrabbed = null;
+                _leftNeedsRegrip = true;
+                playerHandVisuals.LeftVisualSnap.Release();
+            } else {
+                _rightGrabbed = null;
+                _rightNeedsRegrip = true;
+                playerHandVisuals.RightVisualSnap.Release();
+            }
+
+            if (_primaryHand != hand) {
+                return;
+            }
+
+            IClimbable otherGrabbed = isLeft ? _rightGrabbed : _leftGrabbed;
+
+            if (otherGrabbed is null) {
+                _primaryHand = Hand.None;
+                return;
+            }
+
+            _primaryHand = isLeft ? Hand.Right : Hand.Left;
+            Vector3 otherHandPosition = isLeft ? playerTracking.RightHandPosition : playerTracking.LeftHandPosition;
+            _primaryHandLastLocalPosition = playerTransform.InverseTransformPoint(otherHandPosition);
+        }
+
+        /// <summary>
         /// Moves the player by the inverse of the primary hand's real-world
         /// movement this frame, so the grabbed point stays fixed in world
-        /// space relative to the hand.
+        /// space relative to the hand. On a zip line the grabbed point itself
+        /// moves, so that frame's slide (_zipMovement) is added on top.
         ///
         /// The delta is computed in playerTransform's local space, not world
         /// space, then converted back to a world-space vector at the end.
@@ -308,7 +520,7 @@ namespace Player
             _primaryHandLastLocalPosition = currentLocalPosition;
 
             IsClimbing = true;
-            FrameMovement = -playerTransform.TransformVector(_pendingLocalDelta);
+            FrameMovement = -playerTransform.TransformVector(_pendingLocalDelta) + _zipMovement;
 
             // Optimistically assume this will be applied in full - if it
             // isn't, ReportAppliedMovement() folds whatever's left back in
@@ -336,6 +548,14 @@ namespace Player
         {
             Vector3 unappliedWorldMovement = FrameMovement - actualWorldMovement;
             _pendingLocalDelta += -playerTransform.InverseTransformVector(unappliedWorldMovement);
+
+            // On a zip line the grip keeps sliding whether or not the body
+            // can follow. Once the body is well behind it - blocked by a
+            // wall, or by the ground where the line comes down - let go,
+            // rather than stretching further and further from the hands.
+            if (_zipLine != null && _pendingLocalDelta.sqrMagnitude > ZipBlockedDistance * ZipBlockedDistance) {
+                ReleaseAll();
+            }
         }
     }
 }

@@ -31,6 +31,13 @@ namespace Player
         private const float EdgeDepth = 0.3f;
         private const float EdgeOverhang = 0.05f;
 
+        // A much smaller overhang, for edges that should follow the solid
+        // geometry almost exactly (the town): the grab volume and the lip a
+        // hand snaps to sit a centimetre off the solid surface rather than
+        // five. Not zero - a volume flush with the solid would tie with it
+        // for hand rays, and the reticle would flicker between the two.
+        public const float TightOverhang = 0.01f;
+
         /// <summary>
         /// The test geometry material asset, created the first time it's
         /// needed (an ordinary URP Lit material, so it can be tweaked in the
@@ -93,6 +100,20 @@ namespace Player
         /// moveHorizontallyToPoint off lands a mantle straight ahead of the
         /// player rather than always at the middle of the edge - for long
         /// edges (see ClimbableEdge).
+        ///
+        /// bothSidesThickness above 0 makes a two-sided edge for the top of
+        /// something free-standing that thick (a wall, parapet, railing,
+        /// sill): one grab volume across the whole top, EdgeOverhang past
+        /// both faces, with grabbableFromBothSides ticked so a hand snaps
+        /// onto whichever side the player is on. Use a top-centre landing
+        /// with it, so a mantle from either side lands in the same place.
+        ///
+        /// overhang is how far the grab volume sticks out past the solid's
+        /// top and face(s) - EdgeOverhang by default, TightOverhang to follow
+        /// the geometry closely. height is how tall the volume is, from its
+        /// top down: pass the solid's own height plus two overhangs for
+        /// something thinner than EdgeHeight (a hood, a pergola roof), so
+        /// the volume doesn't hang below it.
         /// </summary>
         public static GameObject Edge(
             string name,
@@ -105,8 +126,17 @@ namespace Player
             float landingInset,
             HandSnapProfile profile,
             int climbableLayer,
-            bool moveHorizontallyToPoint = true)
+            bool moveHorizontallyToPoint = true,
+            float bothSidesThickness = 0f,
+            float overhang = EdgeOverhang,
+            float height = EdgeHeight)
         {
+            bool isTwoSided = bothSidesThickness > 0f;
+
+            // One-sided: a strip EdgeDepth deep behind the lip. Two-sided:
+            // the whole thickness plus the overhang past the back face too.
+            float depth = isTwoSided ? bothSidesThickness + overhang * 2f : EdgeDepth;
+
             GameObject edge = new(name);
             edge.layer = climbableLayer;
             edge.transform.SetParent(parent, false);
@@ -116,26 +146,28 @@ namespace Player
             // solid box.
             BoxCollider box = edge.AddComponent<BoxCollider>();
             box.isTrigger = true;
-            box.center = new Vector3(0f, EdgeOverhang - EdgeHeight * 0.5f, EdgeOverhang - EdgeDepth * 0.5f);
-            box.size = new Vector3(width, EdgeHeight, EdgeDepth);
+            box.center = new Vector3(0f, overhang - height * 0.5f, overhang - depth * 0.5f);
+            box.size = new Vector3(width, height, depth);
 
             SerializedObject settings = new(edge.AddComponent<ClimbableEdge>());
             settings.FindProperty("snapProfile").objectReferenceValue = profile;
             settings.FindProperty("isMantleable").boolValue = isMantleable;
             settings.FindProperty("mantleEndsCrouched").boolValue = endsCrouched;
-            settings.FindProperty("mantlePoint").vector3Value = new Vector3(0f, EdgeOverhang, EdgeOverhang - landingInset);
+            settings.FindProperty("mantlePoint").vector3Value = new Vector3(0f, overhang, overhang - landingInset);
             settings.FindProperty("moveHorizontallyToPoint").boolValue = moveHorizontallyToPoint;
+            settings.FindProperty("grabbableFromBothSides").boolValue = isTwoSided;
             settings.ApplyModifiedPropertiesWithoutUndo();
             return edge;
         }
 
         /// <summary>
         /// The landing inset (see Edge()) that puts a mantle's feet on the
-        /// middle of the top of a wall, parapet or sill thickness deep.
+        /// middle of the top of a wall, parapet or sill thickness deep, for
+        /// an edge made with the same overhang.
         /// </summary>
-        public static float TopCentreInset(float thickness)
+        public static float TopCentreInset(float thickness, float overhang = EdgeOverhang)
         {
-            return EdgeOverhang + thickness * 0.5f;
+            return overhang + thickness * 0.5f;
         }
     }
 }

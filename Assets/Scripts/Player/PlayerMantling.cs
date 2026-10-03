@@ -7,15 +7,17 @@ namespace Player
     /// Mantling: a quick, committed move from gripping a ledge to standing
     /// (or crouching) on top of it.
     ///
-    /// A mantle is possible (and the MantleIndicator arrow shows) when:
-    /// - a hand is gripping a mantleable ClimbableEdge, and
-    /// - the head has been pulled up to within headBelowTopAllowance of the
-    ///   ledge top - no mantling from a full arm-hang.
+    /// A mantle is possible (and the MantleIndicator arrow shows) when a
+    /// hand is gripping something mantleable (IMantleable) that says so:
+    /// - a mantleable ClimbableEdge, once the head has been pulled up to
+    ///   within headBelowTopAllowance of the ledge top - no mantling from a
+    ///   full arm-hang;
+    /// - a mantleable Ladder, while a hand is on its top rung.
     /// Pushing up on either thumbstick while it's possible starts it.
     ///
-    /// Where the mantle lands and whether it ends crouched are set per edge
-    /// by the level designer (ClimbableEdge.GetMantleLanding() /
-    /// MantleEndsCrouched): by default every mantle onto a ledge ends in
+    /// Where the mantle lands and whether it ends crouched are set per
+    /// target by the level designer (IMantleable.GetMantleLanding() /
+    /// MantleEndsCrouched). For a ledge, by default every mantle onto a ledge ends in
     /// exactly the same place, or, for an edge with "Move Horizontally To
     /// Point" off, straight ahead of the player at that place's height and
     /// distance from the lip.
@@ -82,10 +84,10 @@ namespace Player
         public bool CanMantle { get; private set; }
 
         /// <summary>
-        /// The edge a mantle would go onto this frame, or null. Only set
-        /// while CanMantle.
+        /// What a mantle would go onto this frame (a ledge or a ladder), or
+        /// null. Only set while CanMantle.
         /// </summary>
-        public ClimbableEdge MantleEdge { get; private set; }
+        public IMantleable MantleTarget { get; private set; }
 
         /// <summary>
         /// True from the frame a mantle starts until the frame it lands.
@@ -127,12 +129,12 @@ namespace Player
                 return;
             }
 
-            MantleEdge = FindMantleEdge();
-            CanMantle = MantleEdge is not null;
+            MantleTarget = FindMantleTarget();
+            CanMantle = MantleTarget is not null;
             mantleIndicator.SetVisible(CanMantle);
 
             if (CanMantle && IsStickPushedUp()) {
-                StartMantle(MantleEdge);
+                StartMantle(MantleTarget);
             }
         }
 
@@ -148,24 +150,24 @@ namespace Player
         }
 
         /// <summary>
-        /// Commits to a mantle onto edge: works out the rig's end position,
+        /// Commits to a mantle onto target: works out the rig's end position,
         /// lets go of the ledge, hands the body over from locomotion, and
         /// turns off collision for the move.
         /// </summary>
-        private void StartMantle(ClimbableEdge edge)
+        private void StartMantle(IMantleable target)
         {
             // The mantle point is where the FEET go. The rig origin isn't the
             // feet - the capsule is re-centred under the headset, so it sits
             // off to the side of the origin - so move the rig by however far
             // the capsule's bottom is from the point, and the capsule lands
             // exactly on it.
-            Vector3 feetTarget = edge.GetMantleLanding(CapsuleBottom()) + Vector3.up * landingLift;
+            Vector3 feetTarget = target.GetMantleLanding(CapsuleBottom()) + Vector3.up * landingLift;
             _startPosition = playerTransform.position;
             _targetPosition = _startPosition + (feetTarget - CapsuleBottom());
             _elapsed = 0f;
 
             playerClimbing.ReleaseAll();
-            playerLocomotion.BeginMantle(edge.MantleEndsCrouched);
+            playerLocomotion.BeginMantle(target.MantleEndsCrouched);
 
             // A disabled CharacterController takes no part in physics, so the
             // rig can be positioned directly. Re-enabling it at the end syncs
@@ -174,7 +176,7 @@ namespace Player
 
             IsMantling = true;
             CanMantle = false;
-            MantleEdge = null;
+            MantleTarget = null;
             mantleIndicator.SetVisible(false);
 
             // Move on the starting frame too, so the push feels immediate.
@@ -235,39 +237,37 @@ namespace Player
         }
 
         /// <summary>
-        /// A gripped, mantleable edge the head has been pulled up close
-        /// enough to, or null. Checks the left hand first - if the two hands
-        /// are on different mantleable edges, either is a fine ledge to
-        /// mantle.
+        /// Something a hand is gripping that can be mantled from here (a
+        /// ledge the head has been pulled up to, a ladder gripped by its top
+        /// rung), or null. Checks the left hand first - if the two hands are
+        /// on different mantleable things, either is fine to mantle.
         /// </summary>
-        private ClimbableEdge FindMantleEdge()
+        private IMantleable FindMantleTarget()
         {
-            ClimbableEdge left = playerClimbing.LeftGrabbedEdge;
+            IMantleable left = MantleableFromHere(playerClimbing.LeftGrabbed, playerClimbing.LeftGrabPoint);
 
-            if (IsMantleableFromHere(left)) {
+            if (left is not null) {
                 return left;
             }
 
-            ClimbableEdge right = playerClimbing.RightGrabbedEdge;
-
-            return IsMantleableFromHere(right) ? right : null;
+            return MantleableFromHere(playerClimbing.RightGrabbed, playerClimbing.RightGrabPoint);
         }
 
         /// <summary>
-        /// Whether edge is gripped (not null), mantleable, and the head is
-        /// high enough relative to its top. The lip point's height is the
-        /// ledge top, since mantleable edges are always horizontal.
+        /// grabbed as a mantle target, if it is one and says a mantle is
+        /// possible for a hand gripping it at gripPoint - otherwise null
+        /// (including when the hand grips nothing). The rule itself belongs
+        /// to the target - see IMantleable.CanMantleFrom(). The type check
+        /// is cheap, fine every frame.
         /// </summary>
-        private bool IsMantleableFromHere(ClimbableEdge edge)
+        private IMantleable MantleableFromHere(IClimbable grabbed, Vector3 gripPoint)
         {
-            if (edge is null || !edge.IsMantleable) {
-                return false;
+            if (grabbed is IMantleable mantleable
+                && mantleable.CanMantleFrom(gripPoint, playerTracking.HeadPosition, headBelowTopAllowance)) {
+                return mantleable;
             }
 
-            Vector3 headPosition = playerTracking.HeadPosition;
-            float ledgeTop = edge.ClosestLipPoint(headPosition).y;
-
-            return headPosition.y >= ledgeTop - headBelowTopAllowance;
+            return null;
         }
     }
 }

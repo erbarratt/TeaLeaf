@@ -75,7 +75,25 @@ therefore reads the project's own interaction-free `Player/Turn` action.
 - **`PlayerTracking`** — the single source of truth for tracked XR transforms (head, left hand,
   right hand), exposing position/rotation accessors. Other systems should query this class
   instead of walking the XR Rig hierarchy. Its `Start()` also sets XR tracking to Device mode
-  (what XROrigin did; see "Tracking setup" in the root `CLAUDE.md`). Predates the coding
+  (what XROrigin did; see "Tracking setup" in the root `CLAUDE.md`), then - with
+  `calibrateView` (default on) and XR running - starts the one-off `CalibrateWhenTracked()`
+  coroutine: `ScreenFade.Instance.Hold()`, wait until the head reports a tracked position and
+  rotation (`InputDevices`/`CommonUsages.trackingState`) or `trackingTimeout` (3s),
+  `Calibrate()`, one more frame, `Release()`. **`Calibrate()`** puts the view right by moving
+  Camera Offset (`head.parent`), never the tracked transforms: (1) if the head's up points
+  below the horizon (`IsHeadUpsideDown()`), `FlipTrackingSpace()` turns Camera Offset half a
+  turn about the head's level facing direction, through the head's position - same spot, same
+  facing, upright - and logs the rotations it found; (2) it shifts Camera Offset vertically so
+  the head is at standing eye height (Camera Offset's saved 1.6m, captured in `Awake()`) less
+  the game crouch's drop (standing capsule height - current). **`Tick()`** (PlayerController
+  step 1b) recalibrates whenever the head's raw local pose jumps faster than a head can move
+  (8 m/s or 1500°/s, scaled by frame time) - i.e. the headset was recentred. Added 2026-10-03:
+  through Virtual Desktop/SteamVR the level often started with the tracking space rolled 180°
+  (head local rotation ~(358, 1, 178)) and its origin on the floor until the Quest was
+  recentred; `XRInputSubsystem.TryRecenter()` didn't cure it (tried and removed), a one-off
+  flip left the height wrong, and a later Quest recentre then turned the view upside down
+  again - hence height in the calibration and the per-frame jump check. **Camera Offset can
+  therefore be rotated and moved** - don't assume its saved pose. Predates the coding
   standards: odd indentation on the accessors and empty `//` comment lines.
 - **`PlayerController`** — the tick orchestrator and sole owner of `characterController.Move()`
   (see the tick order in the root `CLAUDE.md`).
@@ -115,12 +133,25 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   since "held" grabbing would otherwise instantly re-grab. Sets
   `characterController.minMoveDistance = 0` so slow hand movement isn't swallowed. Exposes
   `IsClimbing`, `IsLeftHandGripping`/`IsRightHandGripping`, `FrameMovement`, and
-  `LeftGrabbedEdge`/`RightGrabbedEdge` (the held `ClimbableEdge`, or null while holding nothing
-  or a non-ledge - used by mantling).
-- **`PlayerMantling`** — decides when a mantle is possible (`CanMantle`, `MantleEdge`) and shows
-  the `MantleIndicator` to match: a hand grips a mantleable edge and the head is at least
-  `ledge top - headBelowTopAllowance`. No physics queries - where the mantle lands and whether
-  it ends crouched are per-edge designer data on `ClimbableEdge`. Either stick pushed up
+  `LeftGrabbed`/`RightGrabbed` (the held `IClimbable` or null) with
+  `LeftGrabPoint`/`RightGrabPoint` (the ray hit at the moment of the grab) - used by mantling.
+  **Zip lines** (2026-10-03): grabbing an `IZipLine` with `IsZipLine` starts a ride
+  (`BeginZipGrip()`: from rest, direction from the line; a second hand joins at the ride's
+  speed). `TickZip()` (after the grabs, before `UpdateFrameMovement()`) speeds up towards
+  `ZipSpeed` and slides each hand on the line - `HandVisualSnap.MoveSnapPose()` moves the
+  snapped pose, and the primary hand's slide (`_zipMovement`) is added to `FrameMovement`, so
+  ordinary climbing still works on top and the single `Move()` rule holds. A hand reaching
+  the end is `ForceRelease()`d (needs a regrip, so it can't re-grab the rope next frame); with
+  none left the player drops, from rest (no release momentum, as for all climbing). The ride
+  also ends if the primary hand grabs something else (the hand left on the line is let go), or
+  if the body falls more than 0.5m behind the grip (`ZipBlockedDistance`: blocked by a wall
+  or the ground - checked in `ReportAppliedMovement()`).
+- **`PlayerMantling`** — decides when a mantle is possible (`CanMantle`, `MantleTarget`) and
+  shows the `MantleIndicator` to match: a hand grips an `IMantleable` whose own rule
+  (`CanMantleFrom()`) says so - a mantleable edge with the head at least `ledge top -
+  headBelowTopAllowance`, or a mantleable ladder with a hand on its top rung (2026-10-03). No
+  physics queries - where the mantle lands and whether it ends crouched are per-target
+  designer data (`ClimbableEdge`, `Ladder`). Either stick pushed up
   (`stickUpThreshold`) starts the mantle: `PlayerClimbing.ReleaseAll()`,
   `PlayerLocomotion.BeginMantle(endsCrouched)`, CharacterController disabled, then the rig is
   positioned directly along an eased up-and-over arc (`duration`, `riseEndsAt`,
@@ -132,16 +163,16 @@ therefore reads the project's own interaction-free `Player/Turn` action.
 - **`MantleIndicator`** — runtime-built white arrow on a child of Main Camera (so head-locked
   with no code). Uses an `OverlayMaterial` so it draws through walls (the face is against the
   wall while climbing). `SetVisible()` only touches the renderer on change.
-- **`OverlayMaterial`** — static factory for in-world UI marker materials (reticles, mantle
-  arrow, later UI) using the project's own `TeaLeaf/Overlay` shader
+- **`OverlayMaterial`** (in `Scripts/Core`, namespace `Core`, since 2026-10-03 - the screen
+  fade uses it too; `using Core;`) — static factory for in-world UI marker materials (reticles,
+  mantle arrow, later UI) using the project's own `TeaLeaf/Overlay` shader
   (`Assets/Art/Shaders/Resources/Overlay.shader`: flat `_Color`, `ZTest Always`, `ZWrite Off`,
   `Cull Off`, alpha blend, Overlay queue 4000, `SRPDefaultUnlit` pass, single-pass-instanced
   stereo macros; in `Resources` so `Shader.Find()` works in builds). Replaced `UI/Default` +
   a material override of `unity_GUIZTestMode` (2026-09-27): that property isn't declared in
   UI/Default's Properties, so the override did nothing and walls and hands still hid both
   markers; URP's Unlit has no depth-test property at all. **Every UI marker must use it** - the
-  maintainer's rule: UI draws after everything else. Candidate to move to `Scripts/UI` when
-  that folder gets its first system.
+  maintainer's rule: UI draws after everything else.
 
 ## Hands
 
@@ -319,8 +350,14 @@ ceiling 1.2m above it (edge ends the mantle crouched), a 4m tower with a ladder 
 Environment rails/rungs inside the `Ladder` grab box, rungs from the same
 `firstRungHeight`/`rungSpacing`) and a 3.7m rope (thin Environment cylinder inside the
 `ClimbableRope`) sharing one mantleable top edge, a 20° ramp to three 1m platforms with a 1.5m
-(walking) and a 2.5m (sprint) jump gap, 0.45m (jumpable) and 0.6m (control) crates, and a
-ceiling slab at 2m to jump under. Sizes come from the player settings (see the class
+(walking) and a 2.5m (sprint) jump gap, 0.45m (jumpable) and 0.6m (control) crates, a
+ceiling slab at 2m to jump under, and (2026-10-03) two 5m ropes strung between posts 2.2m up
+past the end of the row - one sagging 0.3m (placed by an `endPoint` child), one straight
+(a `ClimbableRope` turned on its side) that is a level zip line; an angled zip line
+(`BuildAngledZipLine()`) from 2.2m above the back of the tower top down 9m behind the row to
+2.6m above the ground, both ends hung from an arm off a post to one side; the tower's ladder
+mantles from its top rung by itself, and the tower's mantleable edge now only covers the rope
+half of the lip so the two exits can be told apart - each rope (`AddVisibleRope()`) with a visible cylinder per piece of its curve. Sizes come from the player settings (see the class
 comment). Every climbable is built as its setup checks expect - trigger volumes on Climbable,
 larger than the solid part, colliders set up before the component is added - with its
 `LedgeGrip`/`LadderRung`/`RopeGrip` profile, mantle points where "Reset Mantle Point" puts
@@ -336,10 +373,18 @@ its own parapet. Doors and windows are empty openings (walls are built as the pi
 them); steps are smooth ramps - the terrace's 20° front ramp and a ramp up the tower's outer
 side wall inside, under a hole in the first floor from where headroom runs out. Ledges where a
 building has them, about a metre apart so every face climbs hand over hand to the roof:
-window sills (both sides, mantled into crouched - a 1.2m window is too low to stand in),
+window sills (two-sided, mantled into crouched - a 1.2m window is too low to stand in),
 window hoods and the band below each roofline (grab only), and parapets, balcony balustrades,
-compound walls (both sides) and pergola roofs (mantleable; these long ones with "Move
-Horizontally To Point" off, so a mantle lands straight ahead). **Every mantle lands on top of
+compound walls (all two-sided) and pergola roofs (mantleable; these long ones with "Move
+Horizontally To Point" off, so a mantle lands straight ahead). Two-sided = one edge across
+the whole top with "Grabbable From Both Sides" on (2026-10-03, replacing back-to-back pairs
+whose overlapping volumes snapped the hand onto the far face). Also two-sided and mantleable
+(added 2026-10-03): the balcony's two side balustrades and the terrace's low walls (front
+pieces and sides; wall-top stretches under 0.5m get none). **Town edges follow the solid
+geometry almost exactly** (maintainer's request, 2026-10-03): every town edge uses
+`TestGeometry.TightOverhang` (1cm past the solid top and faces, not the default 5cm) and is
+no taller than a thin piece (hood, band, pergola roof). Not zero: a volume flush with the
+solid ties with it for hand rays and the reticle flickers. **Every mantle lands on top of
 what it climbs** (mantling moves the player with collision off, so a landing beyond a wall
 would drag the feet through it); the player steps or drops down after. All three builders make
 their pieces through **`TestGeometry`**: `Box()`/`Primitive()` give every test piece the brown
@@ -348,7 +393,9 @@ it in the Inspector) so test areas stand out from the grey floor; `Edge()` makes
 `ClimbableEdge` on a solid lip facing any yaw - an unscaled trigger strip on Climbable (0.2m
 tall, 0.3m deep, 5cm past the solid top and face), set up before the component is added, with
 the landing `landingInset` in from the lip (`TopCentreInset(thickness)` = the middle of a wall
-top). New test-area builders should use it too.
+top); `bothSidesThickness` above 0 makes it two-sided (volume across the whole top, 5cm past
+both faces, "Grabbable From Both Sides" on); `overhang` (default 5cm, `TightOverhang` 1cm)
+and `height` (default 0.2m) size the volume against the solid. New test-area builders should use it too.
 **`PhysicalHandsTrace`** (on the Debug object, enable *before* Play - toggling it in the
 headset is awkward) turns on `HandPhysicalFollow.TraceEnabled`: one log line per hand per
 frame whose sweep hits a collider whose name contains `colliderNameFilter` (default "Gap") -
@@ -419,7 +466,9 @@ profiled under the
   grab-and-pull-delta approach from `PlayerClimbing` by implementing `IClimbable` (an
   interface, not a shared base class). Ladder and rope movement is unconstrained like ledges
   (ropes are static - no swinging); their top exit is a mantleable `ClimbableEdge` placed on
-  the lip (no ladder/rope-specific mantle), and their bottom exit is letting go. Letting go of
+  the lip, or for a ladder its own mantle from the top rung (2026-10-03; ropes have none), and
+  their bottom exit is letting go. A rope marked as a zip line slides the grip instead of
+  being climbed (2026-10-03). Letting go of
   every grip mid-climb falls normally; no fall damage in the slice.
 - **Ray-targeted grabs + hand snap poses** — climbing starts when grip is held while the hand
   ray/reticle is on a climbable (replaced the old SphereCollider overlap). On grab the visual

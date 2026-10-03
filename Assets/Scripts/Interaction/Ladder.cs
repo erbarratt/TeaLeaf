@@ -14,15 +14,17 @@ namespace Interaction
     ///
     /// Climbing it is PlayerClimbing's job, and it moves the player just like
     /// a ledge (the pull isn't locked to the ladder's axis). Getting off the
-    /// top is a mantleable ClimbableEdge placed on the lip above the ladder;
-    /// getting off the bottom is letting go.
+    /// top is a mantle: either the ladder's own (isMantleable - the arrow
+    /// shows with a hand on the top rung, landing on mantlePoint) or a
+    /// mantleable ClimbableEdge placed on the lip above it. Getting off the
+    /// bottom is letting go.
     ///
     /// Orientation convention (matches ClimbableEdge) - local X runs across
     /// the ladder (along the rungs), +Y is up the ladder, and +Z points out
     /// towards the player climbing it.
     /// </summary>
     [RequireComponent(typeof(BoxCollider))]
-    public class Ladder : MonoBehaviour, IHandTarget, IClimbable, IDebugDrawable
+    public class Ladder : MonoBehaviour, IHandTarget, IClimbable, IMantleable, IDebugDrawable
     {
         // Shared hand offsets/pose for all ladders - see HandSnapProfile.
         [SerializeField] private HandSnapProfile snapProfile;
@@ -39,6 +41,34 @@ namespace Interaction
 
         // Distance between rungs, in metres. Real ladders are ~0.25-0.3m.
         [SerializeField] private float rungSpacing = 0.3f;
+
+        [Header("Mantling")]
+
+        // Whether the player can mantle off the top of this ladder (see
+        // PlayerMantling): with a hand on the top rung the mantle arrow
+        // shows, and pushing a stick up moves them to mantlePoint. On by
+        // default - every ladder is mantleable unless unticked (e.g. one
+        // that tops out under a ceiling, or whose top exit is a separate
+        // mantleable ClimbableEdge on the lip above).
+        [SerializeField] private bool isMantleable = true;
+
+        // Whether the mantle ends with the player crouched - tick it where
+        // there's no room to stand at the top.
+        [SerializeField] private bool mantleEndsCrouched;
+
+        // Where the mantle lands the bottom of the player's capsule (their
+        // feet). In metres along this ladder's own axes (X across, Y up, Z
+        // out towards the climber), from its origin - position and rotation
+        // apply, scale doesn't, the same as ClimbableEdge's mantlePoint.
+        // Filled in by Reset() / the "Reset Mantle Point" context menu: level
+        // with the top of the box, DefaultMantleInset behind its back face -
+        // on top of whatever the ladder leans against. Move it if the ladder
+        // tops out somewhere else.
+        [SerializeField] private Vector3 mantlePoint = new(0f, 2f, -0.5f);
+
+        // How far behind the box's back face the default mantle point is, in
+        // metres.
+        private const float DefaultMantleInset = 0.4f;
 
         // Smallest allowed rungSpacing - stops a typo like 0 from producing
         // a divide by zero or thousands of gizmo lines.
@@ -65,6 +95,72 @@ namespace Interaction
         {
             HandTargetRegistry.Unregister(_boxCollider);
             DebugDrawRegistry.Unregister(this);
+        }
+
+        /// Whether a mantle off the top of this ladder ends crouched.
+        public bool MantleEndsCrouched => mantleEndsCrouched;
+
+        /// World position a mantle lands the player's feet at - mantlePoint
+        /// rotated and offset by this ladder's transform, but not scaled.
+        public Vector3 MantlePointWorld => UnscaledLocalToWorld(mantlePoint);
+
+        /// <summary>
+        /// A mantle is possible on a mantleable ladder while a hand is on
+        /// its top rung: gripPoint is where the hand grabbed, so this finds
+        /// the rung the same way GetSnapPose() did when it snapped the hand
+        /// there. The head's height doesn't matter - reaching the top rung is
+        /// the whole rule.
+        /// </summary>
+        public bool CanMantleFrom(Vector3 gripPoint, Vector3 headPosition, float headBelowTopAllowance)
+        {
+            if (!isMantleable) {
+                return false;
+            }
+
+            MeasureRungs(_boxCollider, out Vector3 bottomCentre, out _, out int rungCount);
+            Vector3 local = Quaternion.Inverse(transform.rotation) * (gripPoint - transform.position);
+            return NearestRung(local, bottomCentre, rungCount) == rungCount - 1;
+        }
+
+        /// <summary>
+        /// Every mantle off this ladder lands on its mantle point, wherever
+        /// the feet started.
+        /// </summary>
+        public Vector3 GetMantleLanding(Vector3 feetPosition)
+        {
+            return MantlePointWorld;
+        }
+
+        /// <summary>
+        /// Editor-only: runs when the component is first added. Fills in a
+        /// sensible default mantle point for this box.
+        /// </summary>
+        private void Reset()
+        {
+            ResetMantlePoint();
+        }
+
+        /// <summary>
+        /// Puts the mantle point level with the top of this box,
+        /// DefaultMantleInset behind its back face, centred across the
+        /// ladder. Also available from the component's right-click menu, for
+        /// ladders placed before this existed or after resizing one.
+        /// </summary>
+        [ContextMenu("Reset Mantle Point")]
+        private void ResetMantlePoint()
+        {
+            BoxCollider box = GetComponent<BoxCollider>();
+            Vector3 scale = transform.lossyScale;
+            Vector3 centre = Vector3.Scale(box.center, scale);
+            Vector3 size = Vector3.Scale(box.size, scale);
+
+#if UNITY_EDITOR
+            // Lets the change be undone, and marks the object dirty so it's
+            // actually saved - a context menu edit isn't otherwise tracked.
+            UnityEditor.Undo.RecordObject(this, "Reset Mantle Point");
+#endif
+
+            mantlePoint = new Vector3(centre.x, centre.y + size.y * 0.5f, centre.z - size.z * 0.5f - DefaultMantleInset);
         }
 
         /// <summary>
@@ -106,6 +202,17 @@ namespace Interaction
         }
 
         /// <summary>
+        /// Which rung (0 = the lowest) is nearest to local, a point in this
+        /// ladder's unscaled local frame: how many spacings above the first
+        /// rung it is, rounded to a whole rung and kept on the ladder.
+        /// </summary>
+        private int NearestRung(Vector3 local, Vector3 bottomCentre, int rungCount)
+        {
+            float heightAboveFirstRung = local.y - bottomCentre.y - firstRungHeight;
+            return Mathf.Clamp(Mathf.RoundToInt(heightAboveFirstRung / rungSpacing), 0, rungCount - 1);
+        }
+
+        /// <summary>
         /// Converts a point from this ladder's unscaled local frame (see
         /// MeasureRungs()) to world space - position and rotation apply,
         /// scale doesn't, which is why this isn't TransformPoint().
@@ -142,7 +249,7 @@ namespace Interaction
         /// the other way. Only called on grab, so the maths here isn't a
         /// per-frame cost.
         /// </summary>
-        public HandSnapPose GetSnapPose(bool isLeftHand, Vector3 grabPoint)
+        public HandSnapPose GetSnapPose(bool isLeftHand, Vector3 grabPoint, Vector3 headPosition, Vector3 headForward)
         {
             MeasureRungs(_boxCollider, out Vector3 bottomCentre, out float halfWidth, out int rungCount);
 
@@ -150,10 +257,7 @@ namespace Interaction
             // UnscaledLocalToWorld().
             Vector3 local = Quaternion.Inverse(transform.rotation) * (grabPoint - transform.position);
 
-            // Nearest rung: how many spacings above the first rung the grab
-            // is, rounded to a whole rung and kept on the ladder.
-            float heightAboveFirstRung = local.y - bottomCentre.y - firstRungHeight;
-            int rung = Mathf.Clamp(Mathf.RoundToInt(heightAboveFirstRung / rungSpacing), 0, rungCount - 1);
+            int rung = NearestRung(local, bottomCentre, rungCount);
 
             // The ray hit the box's surface on the hand's side, so a hit
             // behind the rung line means the hand is at the back.
@@ -254,6 +358,16 @@ namespace Interaction
             }
 
             lines.Matrix = Matrix4x4.identity;
+
+            // Where a mantle off the top lands: a sphere at the feet and a
+            // line up to roughly head height (lower when it ends crouched),
+            // like ClimbableEdge's.
+            if (detailed && isMantleable) {
+                Vector3 feet = MantlePointWorld;
+                lines.Color = mantleEndsCrouched ? Color.yellow : Color.green;
+                lines.WireSphere(feet, 0.1f);
+                lines.Line(feet, feet + Vector3.up * (mantleEndsCrouched ? 1f : 1.8f));
+            }
         }
 
         /// <summary>

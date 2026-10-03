@@ -39,6 +39,16 @@ Keep it up to date with every change to these systems, like the root file.
   starts a climb, unlike future handles/tools/props). Adds no members yet: every climbable
   moves the player the same way. `PlayerClimbing` finds it on a hand's ray target with a type
   check. Implemented by `ClimbableEdge`, `Ladder` and `ClimbableRope`.
+- **`IMantleable`** (added 2026-10-03) — a climbable the player can mantle off the top of:
+  `MantleEndsCrouched`, `CanMantleFrom(gripPoint, headPosition, headBelowTopAllowance)` (each
+  target's own rule, called every frame a hand grips it) and `GetMantleLanding(feetPosition)`.
+  `PlayerMantling` asks whatever each hand grips, so it never knows what kind of thing is
+  being mantled. Implemented by `ClimbableEdge` (head pulled up to within the allowance of the
+  ledge top) and `Ladder` (a hand on the top rung).
+- **`IZipLine`** (added 2026-10-03) — a climbable that carries a gripping hand along itself:
+  `IsZipLine`, `ZipSpeed`, `ZipAcceleration`, `Length`, `GetPoint(t)`, `GetClosestT(point)`,
+  `GetZipDirection(headForward)` (t = 0-1 along the line). The line only describes itself;
+  the sliding is `PlayerClimbing`'s. Implemented by `ClimbableRope`.
 - **`ClimbableEdge`** — designer-placed `BoxCollider` that is the hand-ray target
   (`IHandTarget`, registered with `HandTargetRegistry`). Gizmos always draw its box faintly and
   its lip (top-front line) brightly. Implements `IClimbable` (so `IHandSnapTarget`): the snap
@@ -58,6 +68,18 @@ Keep it up to date with every change to these systems, like the root file.
   returns either, and is what `PlayerMantling` uses; `MantlePointWorld` is the fixed point.
   Off suits long edges (roof parapets, walls) where being carried sideways to one spot feels
   wrong; the gizmo then draws the landing line along the edge instead of one point.
+  **`grabbableFromBothSides`** ("Grabbable From Both Sides", added 2026-10-03, default off =
+  the original behaviour): for the top of something free-standing gripped from either side
+  (wall, parapet, railing, window sill). On, `GetSnapPose()` snaps the hand onto the lip on
+  the player's side - the top-front line from in front, the top-back line from behind, with
+  the grip frame facing in from that side. The side is where the **head** is relative to the
+  middle of the box front to back (`IsBehind()`), not the hand or the ray hit: a hand reaches
+  over a wall top and a ray lands anywhere across it. The box must span the thing's whole
+  thickness, overhanging both faces alike, so the back lip is a real one - which is why it's
+  off by default and off for ledges set into a wall. One two-sided edge replaces two
+  back-to-back edges: their volumes overlapped, a grab often got the far side's edge, and the
+  hand snapped onto the far face, reversed. The gizmo draws both lips bright. Mantling is
+  unchanged (same landing from either side, so use a top-centre mantle point).
   **Orientation convention:** local X runs along the edge, +Y is up, +Z points out from the
   wall towards the player.
   **Setup check:** `OnValidate()` warns (clickable) if the `BoxCollider` isn't a trigger or the
@@ -77,10 +99,36 @@ Keep it up to date with every change to these systems, like the root file.
   behind the rung line (-Z), unless `climbableFromBack` is ticked; then a grab from behind
   (hit point behind the rung line) flips the grip frame to face +Z.
   Gizmos: box outline, rails and rungs always drawn faintly; when selected, bright with a
-  sphere per rung and an arrow out of each climbing side. Top exit = a mantleable
-  `ClimbableEdge` on the lip above.
-- **`ClimbableRope`** — `IHandTarget` + `IClimbable`. A static straight line (no swinging)
-  hanging from its transform's position down local -Y for `length` metres. Sizes its own
+  sphere per rung and an arrow out of each climbing side. **Top exit = a mantle**: either
+  the ladder's own (`IMantleable`, added 2026-10-03 - `isMantleable`, **on by default**, so every
+  ladder is mantleable unless unticked; a ladder saved before the option existed also comes
+  out mantleable, with the field's fallback `mantlePoint` - run "Reset Mantle Point" on it:
+  with a hand
+  on the top rung the arrow shows and the mantle lands on `mantlePoint`, unscaled local like
+  an edge's, crouched if `mantleEndsCrouched`; `Reset()` / "Reset Mantle Point" put it level
+  with the box top, 0.4m behind its back face; shown as a gizmo when selected) or a mantleable
+  `ClimbableEdge` on the lip above. The top rung is found from the hand's grab point
+  (`PlayerClimbing.LeftGrabPoint`/`RightGrabPoint`) with the same `NearestRung()` the snap
+  uses.
+- **`ClimbableRope`** — `IHandTarget` + `IClimbable`. A static line (no swinging) running
+  from its transform's position along local -Y for `length` metres: unrotated it hangs
+  straight down, turned on its side it's a rope strung between buildings (2026-10-03). The
+  grip frame comes from the rope's own direction, so a strung rope gets the hanging rope's
+  pose turned to match with no extra setup. **`endPoint`** (optional Transform, 2026-10-03):
+  set, the rope runs from its position straight to that transform's, and its own rotation and
+  `length` are ignored (`Length` returns the distance) - place two ends instead of aiming the
+  object; an empty child or an object on the other building both work. Read at `Awake()`: the
+  rope doesn't follow an end point that moves later. **`sag`** (default 0 = straight, e.g. zip lines):
+  how far the middle droops below the straight line between the ends, straight down in the
+  world, as a parabola (`GetPoint(t)`, public - builders lay the visible rope along it);
+  `length` is then the straight distance between the ends. A sagging rope is `sagSegments`
+  (8) straight pieces, a straight one 1. A rope that sags or has an end point
+  (`UsesSegments`) can't use its own capsule (it can't bend, and only points along local
+  -Y): `Awake()` makes one trigger capsule per piece on a child object (`BuildSegments()`,
+  all registered to the rope in `HandTargetRegistry`) and disables the object's own capsule;
+  snapping, gizmos and `SegmentCount` use the same pieces. Set `sag`/`endPoint` before Play,
+  keep such a rope at scale 1, and leave `sag` 0 on hanging ropes. The child-collider
+  setup check is skipped for a sagging rope (it measures from a straight axis). Sizes its own
   `CapsuleCollider` (Awake, OnValidate, `SetLength()`), dividing real metres by scale, and
   locks it (`HideFlags.NotEditable`) and always makes it a trigger - `length`/`grabRadius` on
   the rope are the only size controls, and the top (the object's position) stays put when
@@ -91,9 +139,24 @@ Keep it up to date with every change to these systems, like the root file.
   axis (measured by its bounds' corners, so it errs towards warning). Added 2026-09-28: the
   test rope's grab volume and solid cylinder were both 0.04m (and the grab volume not a
   trigger), so hand rays tied between them and the reticle flickered. `SetLength()` is for Phase 5's rope
-  bolt. `GetSnapPose()`: nearest point on the axis (clamped to the ends), grip frame facing
-  into the rope from the side the ray hit (a rope has no front), `RopeGrip` `HandSnapProfile`.
-  Gizmos: the line always, faint; when selected, bright with end rings and the capsule's sides.
+  bolt. `GetSnapPose()`: nearest point on the rope's pieces (clamped to the ends), grip frame
+  facing into the rope with up along the rope towards its top, `RopeGrip` `HandSnapProfile`.
+  **The side the hand grips from is fixed, not where the hand was** (2026-10-03, so the grip
+  looks the same every time): on a hanging rope, the player's side (from `headPosition`)
+  turned round the rope by `shoulderAngle` (20°) so the wrist points at that hand's shoulder -
+  anticlockwise from above for the right hand, clockwise for the left; on a strung stretch,
+  straight below (wrist hanging down). The grab side is only a fallback. **On a strung stretch** (direction within
+  about 45° of level, `StrungMaxUpY`) the frame's up is instead whichever way along the rope
+  points back towards the player - against the way their head faces (`headForward`; up along
+  the facing direction was tried first and put the thumb away from the player both ways), so the thumb points the same way relative to the
+  player from either direction (2026-10-03: it was back to front when facing away from the
+  rope's top). Decided per grab; hanging ropes are unaffected.
+  **Zip line** (`isZipLine`, `IZipLine`, added 2026-10-03): any grab slides the hand - and
+  the player - along the rope at up to `zipSpeed` (6 m/s, reached at `zipAcceleration` 8
+  m/s²) until they let go or reach the end, then they drop. Direction
+  (`GetZipDirection()`): downhill if the ends differ in height by more than 5cm, otherwise
+  the way the player faces along it. A zip line can't be climbed hand over hand.
+  Gizmos: the line (or curve) always, faint; when selected, bright with each piece's capsule.
   Exits as ladders.
 
 ## Hand snap poses
@@ -101,7 +164,9 @@ Keep it up to date with every change to these systems, like the root file.
 The general "hand snaps onto a grab target" mechanism, used by ledges, ladders and ropes now
 and handles, tools and props later. `HandPose` (enum of finger poses; `PlayerHandAnimation`
 owns how each maps to the Animator), `HandSnapPose` (readonly struct: world position, rotation,
-pose), `IHandSnapTarget.GetSnapPose(isLeftHand, grabPoint)`. The target computes a
+pose), `IHandSnapTarget.GetSnapPose(isLeftHand, grabPoint, headPosition, headForward)` (the head
+values are for targets that snap differently by where the player is or faces: a two-sided
+`ClimbableEdge` uses the position, a strung `ClimbableRope` the forward). The target computes a
 model-agnostic grip frame; a shared `HandSnapProfile` ScriptableObject (Create > TeaLeaf > Hand
 Snap Profile) applies per-hand position/rotation offsets in that frame, so all targets of one
 kind are tuned in one asset. Profiles live in `Assets/Data/` (`LedgeGrip`, `LadderRung`,

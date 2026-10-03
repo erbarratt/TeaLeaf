@@ -27,6 +27,7 @@ namespace Player
     public class PlayerController : MonoBehaviour
     {
         [SerializeField] private PlayerInputXR playerInput;
+        [SerializeField] private PlayerTracking playerTracking;
         [SerializeField] private PlayerLocomotion playerLocomotion;
         [SerializeField] private PlayerHandInteraction playerHandInteraction;
         [SerializeField] private PlayerClimbing playerClimbing;
@@ -56,6 +57,7 @@ namespace Player
         private void Reset()
         {
             playerInput = GetComponent<PlayerInputXR>();
+            playerTracking = GetComponent<PlayerTracking>();
             playerLocomotion = GetComponent<PlayerLocomotion>();
             playerClimbing = GetComponent<PlayerClimbing>();
             playerMantling = GetComponent<PlayerMantling>();
@@ -67,11 +69,29 @@ namespace Player
             playerHandAnimation = GetComponentInChildren<PlayerHandAnimation>();
         }
 
+        /// <summary>
+        /// Fills in playerTracking if the scene hasn't got it wired: the
+        /// field was added after this component was set up in Main.unity,
+        /// and Reset() only runs when a component is first added. It's on
+        /// the same object, so this is one lookup at startup.
+        /// </summary>
+        private void Awake()
+        {
+            if (playerTracking == null) {
+                playerTracking = GetComponent<PlayerTracking>();
+            }
+        }
+
         private void Update()
         {
             // 1. Input first, so every system below reads this frame's
             // values - see PlayerInputXR.Tick().
             playerInput.Tick();
+
+            // 1b. Tracking check: if the headset was recentred since last
+            // frame, put the view upright and at the right height again -
+            // before anything below reads the head or hands.
+            playerTracking.Tick();
 
             // 2. Body shape: re-centre the capsule under the headset and
             // apply crouch height. Before the hand systems, because crouch

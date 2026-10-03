@@ -33,9 +33,9 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
   hands design decisions.
 - **`Assets/Scripts/Interaction/CLAUDE.md`** — hand targets (`IHandTarget`, registry),
   climbables (`IClimbable`, `ClimbableEdge`, `Ladder`, `ClimbableRope`) and hand snap poses.
-- **`Assets/Scripts/Core/CLAUDE.md`** — shared debug drawing (`DebugLines`, `IDebugDrawable`,
-  `InHeadsetGizmos` - gizmos that also show in the headset); later game state, noise and
-  visibility.
+- **`Assets/Scripts/Core/CLAUDE.md`** — the screen fade (`ScreenFade`), shared debug drawing
+  (`DebugLines`, `IDebugDrawable`, `InHeadsetGizmos` - gizmos that also show in the headset);
+  later game state, noise and visibility.
 
 New system folders (`AI`, `Inventory`, `UI`) get their own `CLAUDE.md` when their
 first system lands. Read the relevant one before changing a system you haven't read this
@@ -84,7 +84,7 @@ silently reformat) existing code that doesn't yet match:
   convention, not a deviation from it.
 - **UI draws after everything else:** in-world UI (hand reticles, the mantle arrow, later the
   wrist menu and any markers) renders last and on top, never hidden by world geometry or the
-  hands. Build its materials with `OverlayMaterial.Create()` (`Scripts/Player`; the project's
+  hands. Build its materials with `OverlayMaterial.Create()` (`Scripts/Core`; the project's
   `TeaLeaf/Overlay` shader - Overlay queue, `ZTest Always`, stereo-safe) rather than a
   depth-tested shader. Built-in shaders can't do this (see `Scripts/Player/CLAUDE.md`).
 - **Debug scripts:** always in a system-specific `Debug` subfolder (`Scripts/Player/Debug`,
@@ -127,11 +127,14 @@ rather than depending on Unity's unspecified order between components. It holds 
 and wiring only, with no gameplay logic: decisions belong in the system that owns the
 behaviour. The current order is:
 
-1. `playerInput.Tick()` — cache this frame's input (must be first).
+1. `playerInput.Tick()` — cache this frame's input (must be first); then
+   `playerTracking.Tick()` — if the headset was recentred since last frame, put the view
+   upright and at standing height again, before anything reads the head or hands.
 2. `playerLocomotion.TickBody()` — re-centre the capsule under the headset and apply crouch
    height (before the hand systems, since crouch moves the tracked hierarchy).
 3. `playerHandInteraction.Tick()` — hand rays + targets (reticles are placed at 8b).
-4. `playerClimbing.Tick()` — grab/release, climb movement (skipped while mantling); then
+4. `playerClimbing.Tick()` — grab/release, zip line slide, climb movement (skipped while
+   mantling); then
    `playerMantling.Tick()` — detects a possible mantle (arrow), starts one on a stick push, or
    advances the one in progress. **While `IsMantling`, the frame stops here**: the mantle has
    already positioned the rig directly (CharacterController disabled), so only `TickState()`,
@@ -175,6 +178,7 @@ Player                 [Player layer] CharacterController, PlayerTracking, Playe
   Camera Offset        (saved at y 1.6m = standing eye height; crouch shifts it)
     Main Camera        Tracked Pose Driver (Tracking/Head* actions)
       Mantle Indicator (MantleIndicator - head-locked, placed a little below centre ~0.5m ahead)
+      Screen Fade      (Core.ScreenFade - at the camera's local origin; fade to/from black)
     Hands              PlayerHandInteraction, PlayerHandVisuals, PlayerHandAnimation (identity transform)
       Left Hand        [PlayerHands] tracked controller - Tracked Pose Driver (Tracking/LeftHand*)
         Left Hand Visual   (hand.fbx instance, Animator)
@@ -195,7 +199,12 @@ of a tracked transform - it's detached while that applies.
 `PlayerTracking.Start()` puts XR tracking in **Device** mode (head measured from where the
 headset started or was last recentred, not the real floor), and `Camera Offset`'s saved 1.6m
 lifts that to standing eye height - the same for every player, while real crouching still
-lowers the head. The three Tracked Pose Drivers (Input System's, not XRI's) read the project's
+lowers the head. It then calibrates the view itself (`calibrateView`), after waiting for a
+tracked head pose, while `ScreenFade` holds the level-start black: if the head is upside down
+it turns `Camera Offset` half a turn, and it shifts `Camera Offset` so the head is at standing
+eye height; `PlayerTracking.Tick()` repeats this whenever the headset is recentred
+(2026-10-03: through Virtual Desktop/SteamVR the tracking space often started upside down
+with its origin on the floor - so `Camera Offset` isn't always at its saved pose). The three Tracked Pose Drivers (Input System's, not XRI's) read the project's
 own `Tracking` action map, auto-enabled with the rest of `InputSystem_Actions`. Controllers
 bind the **pointer** (aim) pose, not the grip pose, as XRI's actions did - hand visual
 placement, ray angles and snap offsets are all tuned against it. An untracked controller stays
@@ -251,7 +260,7 @@ fails and restarts. Agreed mechanics:
 ### Planned systems
 
 `Assets/Scripts/{AI,Inventory,UI}` are still empty placeholder folders, and `Core` only holds
-the shared debug drawing so far — future systems land there following the same one-class,
+the screen fade and the shared debug drawing so far — future systems land there following the same one-class,
 one-responsibility pattern (Core: game state, noise, visibility; AI: guards; Inventory:
 items/loot; UI: wrist radial/display).
 

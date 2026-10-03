@@ -9,9 +9,9 @@ namespace Interaction
     /// player the same way (freely, by the inverse of the hand's movement),
     /// so all it says is "grabbing this starts a climb". That's still worth
     /// its own type - door handles, tools and props will be snap targets too,
-    /// and grabbing one of those must not start a climb. If a climbable ever
-    /// needs to shape the movement (e.g. locking a rope to its axis), that
-    /// method belongs here.
+    /// and grabbing one of those must not start a climb. Climbables that do
+    /// more say so with a second interface: IMantleable (can be mantled off
+    /// the top of) and IZipLine (carries the grip along itself).
     /// </summary>
     public interface IClimbable : IHandSnapTarget
     {
