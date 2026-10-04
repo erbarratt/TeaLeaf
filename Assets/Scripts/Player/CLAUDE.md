@@ -164,6 +164,38 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   frame with a bar that fills with `Visibility` (blue to yellow) and a tick under it at the
   raw `LightLevel`; logs each time the value moves into a different tenth.
 
+## Carrying props (added 2026-10-04)
+
+- **`PlayerHandHolding`** (on `Hands`) — picks up, carries and drops `Interaction.Grabbable`s.
+  `Tick()` (tick step 4a): a hand whose grip is held, that isn't gripping a climbable, picks
+  up the `Grabbable` its hand ray is on ("held" grabbing, like climbing); letting go of grip
+  drops it (from rest - aimed throwing comes later). **A hand does one thing**: this class
+  reads `PlayerClimbing.IsLeft/RightHandGripping`, and `PlayerClimbing.Tick()` treats a
+  carrying hand's grip as not held (`IsLeftHolding`/`IsRightHolding`, last frame's);
+  `PlayerHandInteraction.TickReticles()` hides a carrying hand's reticle. `LeftHeld`/
+  `RightHeld` expose the prop. **Pick-up** inverts the prop's snap pose: the prop's pose
+  measured from `GetSnapPose()` (rotation and position only) is stored as its pose relative
+  to the hand visual, and the prop blends there from where it lay over `pickUpBlendDuration`
+  (0.1s) - the hand stays put, the prop comes to it. **The prop follows the hand visual, not
+  the controller** (maintainer's decision 2026-10-04), placed in `TickHeld()` (tick step 8a,
+  straight after `PlayerHandVisuals.Tick()`, on every path through `Update()`) **and again
+  in `RenderPipelineManager.beginContextRendering`**, because the Tracked Pose Drivers move
+  the hands once more before rendering; it isn't parented to the visual, since the right
+  visual is mirrored. Carried props are on the PlayerHands layer (`Grabbable.BeginHold`).
+  `OnDisable` drops both hands. Optional everywhere: `PlayerController`, `PlayerClimbing` and
+  `PlayerHandInteraction` find it in `Awake()` and work without it.
+- **Held shape** — so a carried prop stops at surfaces with the hand:
+  `PlayerHandVisuals.SetHeldShape(isLeftHand, centreFromVisual, radius)`/`ClearHeldShape()` →
+  `HandPhysicalFollow.SetHeldShape()` swaps the swept capsule (wrist to fingertip, hand
+  radius, ends inset) for one from the wrist to the middle of the prop with the prop's
+  `holdRadius`, ends not inset, resizing the penetration collider (on pick-up and drop only).
+  One round shape for hand and prop together is approximate, but the whole collide-and-slide
+  runs unchanged. `ShapeRadius(handRadius)` is the radius in use (the debug capsules draw
+  it). `PlayerHandVisuals.LeftHandVisual`/`RightHandVisual` expose the visuals, read-only.
+- **`GrabbableTestProps`** (`Debug/Editor`, menu **TeaLeaf > Add Grabbable Test Props**) — a
+  table 1.2m ahead of the main camera with a cube, a bottle (capsule) and a crate, each a
+  Rigidbody + `Grabbable` on Interactable with no grip point or profile (held by the middle).
+
 ## Climbing and mantling
 
 - **`PlayerClimbing`** — grab-and-pull climbing. A hand grabs the `IClimbable` (ledge, ladder or

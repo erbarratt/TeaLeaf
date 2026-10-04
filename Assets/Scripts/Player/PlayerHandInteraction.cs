@@ -55,6 +55,10 @@ namespace Player
         // that hand is holding something - see TickReticles().
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
+        // Read to hide a hand's reticle while it carries a prop. Optional:
+        // found in Awake() if not wired (it's on this same object).
+        [SerializeField] private PlayerHandHolding playerHandHolding;
+
         // Each hand's ray direction in its own local space - the angle
         // offset already applied to Vector3.forward. The offsets never
         // change during play, so the Quaternion.Euler() (six sin/cos calls)
@@ -114,6 +118,10 @@ namespace Player
         private void Awake()
         {
             CacheLocalRayDirections();
+
+            if (playerHandHolding == null) {
+                playerHandHolding = GetComponent<PlayerHandHolding>();
+            }
         }
 
         /// <summary>
@@ -180,8 +188,10 @@ namespace Player
         /// </summary>
         public void TickReticles()
         {
-            bool leftHolding = playerHandVisuals.LeftVisualSnap.IsSnapped;
-            bool rightHolding = playerHandVisuals.RightVisualSnap.IsSnapped;
+            // "Holding" = gripping a climbable (snapped) or carrying a prop.
+            bool hasHolding = playerHandHolding != null;
+            bool leftHolding = playerHandVisuals.LeftVisualSnap.IsSnapped || (hasHolding && playerHandHolding.IsLeftHolding);
+            bool rightHolding = playerHandVisuals.RightVisualSnap.IsSnapped || (hasHolding && playerHandHolding.IsRightHolding);
 
             // Read once for both reticles - HeadPosition is a call into the
             // engine each time, and the head doesn't move between the two.

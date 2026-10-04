@@ -121,6 +121,31 @@ namespace Player
         /// The right hand's snap - mirrors LeftVisualSnap.
         public HandVisualSnap RightVisualSnap { get; private set; }
 
+        /// The hand model transforms, for systems that follow where a hand
+        /// is drawn (a carried prop). Read only - this class places them.
+        public Transform LeftHandVisual => leftHandVisual;
+        public Transform RightHandVisual => rightHandVisual;
+
+        /// <summary>
+        /// Enlarges one hand's collision shape to cover a prop it's
+        /// carrying, so the prop stops at surfaces with the hand:
+        /// centreFromVisual is the middle of the prop relative to the hand
+        /// visual (in the visual's own axes), radius its size. See
+        /// HandPhysicalFollow.SetHeldShape().
+        /// </summary>
+        public void SetHeldShape(bool isLeftHand, Vector3 centreFromVisual, float radius)
+        {
+            (isLeftHand ? _leftFollow : _rightFollow).SetHeldShape(centreFromVisual, radius);
+        }
+
+        /// <summary>
+        /// Puts one hand's collision shape back to just the hand.
+        /// </summary>
+        public void ClearHeldShape(bool isLeftHand)
+        {
+            (isLeftHand ? _leftFollow : _rightFollow)?.ClearHeldShape();
+        }
+
         /// True while a surface is holding the left hand visual back from its
         /// controller - e.g. for a haptic pulse or debugging.
         public bool IsLeftHandInContact => _leftFollow.IsInContact;
@@ -356,11 +381,14 @@ namespace Player
                 out Vector3 targetWrist, out Vector3 targetFingertip,
                 out Vector3 visualWrist, out Vector3 visualFingertip);
 
+            // Bigger than the hand's while it carries a prop.
+            float radius = follow.ShapeRadius(handRadius);
+
             lines.Color = _gizmoTargetColor;
-            lines.WireCapsule(targetWrist, targetFingertip, handRadius);
+            lines.WireCapsule(targetWrist, targetFingertip, radius);
 
             lines.Color = follow.IsInContact ? _gizmoContactColor : _gizmoFreeColor;
-            lines.WireCapsule(visualWrist, visualFingertip, handRadius);
+            lines.WireCapsule(visualWrist, visualFingertip, radius);
         }
 
         /// <summary>

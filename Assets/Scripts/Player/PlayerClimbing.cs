@@ -50,6 +50,11 @@ namespace Player
         // always this frame's.
         [SerializeField] private PlayerHandInteraction playerHandInteraction;
 
+        // Carrying props. A hand with a prop in it can't grab a climbable -
+        // grip is already held, so without this check it would grab any
+        // ledge its ray crossed. Optional: found in Awake() if not wired.
+        [SerializeField] private PlayerHandHolding playerHandHolding;
+
         // Whatever each hand is holding - a ledge, a ladder, ... Typed as the
         // interface so this class never needs to know which.
         private IClimbable _leftGrabbed;
@@ -140,6 +145,13 @@ namespace Player
             // bit of hand movement actually reaches the CharacterController
             // instead of being silently eaten.
             characterController.minMoveDistance = 0f;
+
+            // The field was added after this component was set up in the
+            // scene. It's on the Hands object below this one; one lookup at
+            // startup. Stays null (nothing is ever carried) if there's none.
+            if (playerHandHolding == null) {
+                playerHandHolding = GetComponentInChildren<PlayerHandHolding>();
+            }
         }
 
         /// <summary>
@@ -149,9 +161,16 @@ namespace Player
         /// </summary>
         public void Tick()
         {
+            // Last frame's carrying state (PlayerHandHolding ticks after
+            // this class) - which is right: a prop picked up this frame was
+            // this frame's ray target, so it wasn't a climbable anyway.
+            bool hasHolding = playerHandHolding != null;
+            bool isLeftCarrying = hasHolding && playerHandHolding.IsLeftHolding;
+            bool isRightCarrying = hasHolding && playerHandHolding.IsRightHolding;
+
             UpdateHandGrab(
                 Hand.Left, Hand.Right,
-                playerInput.IsLeftGrabbing, playerInput.IsRightGrabbing,
+                playerInput.IsLeftGrabbing && !isLeftCarrying, playerInput.IsRightGrabbing && !isRightCarrying,
                 playerTracking.LeftHandPosition, playerTracking.RightHandPosition,
                 playerHandInteraction.LeftTarget, playerHandInteraction.LeftTargetPoint,
                 playerHandVisuals.LeftVisualSnap,
@@ -161,7 +180,7 @@ namespace Player
 
             UpdateHandGrab(
                 Hand.Right, Hand.Left,
-                playerInput.IsRightGrabbing, playerInput.IsLeftGrabbing,
+                playerInput.IsRightGrabbing && !isRightCarrying, playerInput.IsLeftGrabbing && !isLeftCarrying,
                 playerTracking.RightHandPosition, playerTracking.LeftHandPosition,
                 playerHandInteraction.RightTarget, playerHandInteraction.RightTargetPoint,
                 playerHandVisuals.RightVisualSnap,

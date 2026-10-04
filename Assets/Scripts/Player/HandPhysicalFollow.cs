@@ -90,7 +90,18 @@ namespace Player
         // Turns the penetration collider (a capsule along its own Z) to lie
         // along the wrist-to-fingertip line, relative to the controller.
         // Measured once, like the offsets above.
-        private readonly Quaternion _capsuleLocalRotation;
+        private readonly Quaternion _handCapsuleRotation;
+        private readonly float _handLength;
+
+        // The capsule actually being swept: normally the hand's (the three
+        // values above), but while the hand carries a prop it runs from the
+        // wrist to the middle of the prop, with the prop's radius - see
+        // SetHeldShape(). Same space as _wristFromRoot.
+        private Vector3 _capsuleStart;
+        private Vector3 _capsuleEnd;
+        private Quaternion _capsuleLocalRotation;
+        private bool _hasHeldShape;
+        private float _heldRadius;
 
         // Where the visual was placed last frame, in world space - the start
         // of this frame's sweep. Invalid until the first follow tick, and
@@ -170,8 +181,79 @@ namespace Player
             // included - so it's simply the wrist-to-fingertip length, and it
             // matches the swept capsule (whose ends are inset by the radius).
             Vector3 handAxis = _fingertipFromRoot - _wristFromRoot;
-            _capsuleLocalRotation = Quaternion.LookRotation(handAxis);
-            _penetrationCollider = CreatePenetrationCollider(visual.name, handAxis.magnitude);
+            _handCapsuleRotation = Quaternion.LookRotation(handAxis);
+            _handLength = handAxis.magnitude;
+            _penetrationCollider = CreatePenetrationCollider(visual.name, _handLength);
+
+            _capsuleStart = _wristFromRoot;
+            _capsuleEnd = _fingertipFromRoot;
+            _capsuleLocalRotation = _handCapsuleRotation;
+        }
+
+        /// <summary>
+        /// Makes the swept shape cover a prop the hand is carrying: a
+        /// capsule from the wrist to the middle of the prop, radius thick,
+        /// in place of the hand's own. One shape for hand and prop together
+        /// is rough - it's round, the prop may not be - but it means the
+        /// whole collide-and-slide below works unchanged, and the prop
+        /// stops at a wall with the hand instead of going into it.
+        /// centreFromVisual is the prop's middle relative to the visual's
+        /// root, in the visual's own axes.
+        ///
+        /// Only called on pick-up, so resizing the penetration collider
+        /// (which makes PhysX rebuild its shape) isn't a per-frame cost.
+        /// </summary>
+        public void SetHeldShape(Vector3 centreFromVisual, float radius)
+        {
+            // Into the controller's space, like the wrist and fingertip:
+            // the visual sits at _restLocalRotation from the controller.
+            _capsuleStart = _wristFromRoot;
+            _capsuleEnd = _restLocalRotation * centreFromVisual;
+
+            Vector3 axis = _capsuleEnd - _capsuleStart;
+
+            // A prop centred on the wrist leaves no line to lie along -
+            // nudge the end so the capsule is (as near as matters) a ball.
+            if (axis.sqrMagnitude < 0.0001f) {
+                axis = Vector3.forward * 0.01f;
+                _capsuleEnd = _capsuleStart + axis;
+            }
+
+            _capsuleLocalRotation = Quaternion.LookRotation(axis);
+            _heldRadius = radius;
+            _hasHeldShape = true;
+
+            // Unlike the hand's capsule, the ends aren't pulled in by the
+            // radius (the prop sticks out that far past its middle), so the
+            // collider's end-to-end height is the line plus a cap each end.
+            _penetrationCollider.radius = radius;
+            _penetrationCollider.height = axis.magnitude + radius * 2f;
+        }
+
+        /// <summary>
+        /// Back to the hand's own shape, when the prop is dropped. The
+        /// collider's radius is put back by the next Tick().
+        /// </summary>
+        public void ClearHeldShape()
+        {
+            _hasHeldShape = false;
+            _capsuleStart = _wristFromRoot;
+            _capsuleEnd = _fingertipFromRoot;
+            _capsuleLocalRotation = _handCapsuleRotation;
+
+            // Already destroyed if the scene is unloading.
+            if (_penetrationCollider != null) {
+                _penetrationCollider.height = _handLength;
+            }
+        }
+
+        /// <summary>
+        /// The radius of the shape being swept: the hand's (passed in, as
+        /// it's tuned on PlayerHandVisuals), or the carried prop's.
+        /// </summary>
+        public float ShapeRadius(float handRadius)
+        {
+            return _hasHeldShape ? _heldRadius : handRadius;
         }
 
         /// <summary>
@@ -199,8 +281,12 @@ namespace Player
                 return;
             }
 
-            // Only written when handRadius changes in the Inspector - resizing
-            // a collider makes PhysX rebuild its shape, so not every frame.
+            // Carrying a prop: everything below uses its radius instead.
+            radius = ShapeRadius(radius);
+
+            // Only written when handRadius changes in the Inspector (or a
+            // prop was just dropped) - resizing a collider makes PhysX
+            // rebuild its shape, so not every frame.
             if (!Mathf.Approximately(_penetrationCollider.radius, radius)) {
                 _penetrationCollider.radius = radius;
             }
@@ -644,10 +730,14 @@ namespace Player
         /// </summary>
         private void GetCapsuleOffsets(Quaternion rotation, float radius, out Vector3 wristOffset, out Vector3 fingertipOffset)
         {
-            wristOffset = rotation * _wristFromRoot;
-            fingertipOffset = rotation * _fingertipFromRoot;
+            wristOffset = rotation * _capsuleStart;
+            fingertipOffset = rotation * _capsuleEnd;
 
-            InsetCapsuleEnds(ref wristOffset, ref fingertipOffset, radius);
+            // A carried prop's shape isn't pulled in: it reaches its radius
+            // past the prop's middle, as the prop does.
+            if (!_hasHeldShape) {
+                InsetCapsuleEnds(ref wristOffset, ref fingertipOffset, radius);
+            }
         }
 
         /// <summary>

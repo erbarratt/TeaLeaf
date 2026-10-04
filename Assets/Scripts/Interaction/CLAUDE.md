@@ -16,6 +16,24 @@ Keep it up to date with every change to these systems, like the root file.
   `OnEnable`/unregister in `OnDisable`, so hand raycasts do a dictionary lookup instead of an
   interface `GetComponent`.
 
+## Grabbable props (added 2026-10-04)
+
+- **`Grabbable`** — a physics prop a hand picks up, carries and drops (`IHandTarget` +
+  `IHandSnapTarget`; `[RequireComponent(Rigidbody)]`; collider(s) on the Interactable layer,
+  all registered with `HandTargetRegistry`). The carrying itself is `Player.PlayerHandHolding`
+  (see `Scripts/Player/CLAUDE.md`). **Held at an authored pose** (maintainer's decision
+  2026-10-04, over "stays as grabbed"): `gripPoint` (a child Transform, the grip frame; empty
+  = the prop's own origin) and a shared `snapProfile` (`HandSnapProfile`; empty = the hand
+  sits exactly on the grip frame). `GetSnapPose()` returns where the hand visual would have
+  to be to hold the prop as it lies; the holder inverts that and brings the prop to the hand.
+  The grab point and head are ignored - a prop is held one way. `holdRadius` (guessed from
+  the colliders by `Reset()`) and `LocalCentre` (middle of the solid colliders, rotation-only
+  local, measured in `Awake()`) describe the ball the hand's collision grows to while it's
+  carried. `BeginHold(heldLayer)`: Rigidbody kinematic, every collider's object moved to the
+  PlayerHands layer (original layers remembered). `EndHold()`: layers restored, non-kinematic,
+  velocities zeroed - it drops from rest. `IsHeld`. No finger pose yet (`HandSnapPose.Pose`
+  is unused for props): a hold pose needs a new `HandPose` value and animation clip.
+
 ## Climbables
 
 - **Climbables have no mesh** — `ClimbableEdge`/`Ladder` are just a `BoxCollider` and

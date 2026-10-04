@@ -573,13 +573,19 @@ Phase 3 - Interaction framework (Interaction namespace)
 -------------------------------------------------------
 Physical hands: moved to Phase 1 (2026-09-27) - done before this phase.
 Grabbing and props:
-[ ] Decide grab approach: custom grab consistent with PlayerClimbing
+[x] Decide grab approach: custom grab consistent with PlayerClimbing
     (recommended - one system, one set of hand states) vs XRI interactables.
     Decided 2026-09-30: custom grab - XRI was removed from the project.
     Build IGrabbable (or a Grabbable base) alongside the existing
-    IHandTarget pattern.
+    IHandTarget pattern. Decided 2026-10-04: a carried prop follows the
+    visual hand and stops at walls with it; props are held at an
+    authored pose (grip point + HandSnapProfile).
 [ ] Grabbable physics props: pick up, hold, release (release without
-    aiming = drop).
+    aiming = drop). Written 2026-10-04 (Interaction.Grabbable,
+    Player.PlayerHandHolding, the hand sweep's held shape, test props) -
+    NOT yet compiled or tested in the headset; tick once it is.
+    [ ] Add PlayerHandHolding to the Hands object in Main.unity.
+    [ ] Author a prop grip profile and grip points for the test props.
 [ ] Aimed throwing (decided 2026-09-29, replaces the physical throw that
     averaged PlayerTracking hand velocity): grip holds the object; holding
     that hand's trigger shows a trajectory arc (drawn as in-world UI with

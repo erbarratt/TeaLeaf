@@ -20,13 +20,13 @@ RenderSettings:
   m_FogDensity: 0.01
   m_LinearFogStart: 0
   m_LinearFogEnd: 300
-  m_AmbientSkyColor: {r: 0.009211466, g: 0.015574945, b: 0.028301895, a: 1}
+  m_AmbientSkyColor: {r: 0, g: 0, b: 0, a: 1}
   m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
   m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
   m_AmbientIntensity: 0.21
   m_AmbientMode: 3
-  m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
-  m_SkyboxMaterial: {fileID: 10304, guid: 0000000000000000f000000000000000, type: 0}
+  m_SubtractiveShadowColor: {r: 0, g: 0, b: 0, a: 1}
+  m_SkyboxMaterial: {fileID: 2100000, guid: 846b6eefeae3af74f8acb2af863d80b0, type: 2}
   m_HaloStrength: 0.5
   m_FlareStrength: 1
   m_FlareFadeSpeed: 3
@@ -1388,6 +1388,7 @@ MonoBehaviour:
   playerTransform: {fileID: 1717954562106626084}
   playerHandVisuals: {fileID: 403779175}
   playerHandInteraction: {fileID: 403779174}
+  playerHandHolding: {fileID: 0}
 --- !u!114 &37101411
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1408,6 +1409,7 @@ MonoBehaviour:
   playerMantling: {fileID: 6520291404544364422}
   playerFootsteps: {fileID: 0}
   playerVisibility: {fileID: 0}
+  playerHandHolding: {fileID: 0}
   playerHandVisuals: {fileID: 403779175}
   playerHandAnimation: {fileID: 403779173}
   characterController: {fileID: 6232745471023633040}
@@ -16868,6 +16870,7 @@ GameObject:
   - component: {fileID: 403779174}
   - component: {fileID: 403779173}
   - component: {fileID: 403779175}
+  - component: {fileID: 403779176}
   m_Layer: 0
   m_Name: Hands
   m_TagString: Untagged
@@ -16930,6 +16933,7 @@ MonoBehaviour:
   leftReticle: {fileID: 88500003}
   rightReticle: {fileID: 88500006}
   playerHandVisuals: {fileID: 403779175}
+  playerHandHolding: {fileID: 0}
 --- !u!114 &403779175
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -16959,6 +16963,23 @@ MonoBehaviour:
   leftFingertipBone: {fileID: 4180845538375714171}
   rightWristBone: {fileID: 5894201985566810713}
   rightFingertipBone: {fileID: 4180845539188576383}
+--- !u!114 &403779176
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 403779171}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96d4f55a7a2bb84498d5e3c9092c9bf5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Player.PlayerHandHolding
+  playerInput: {fileID: 37101389}
+  playerHandInteraction: {fileID: 403779174}
+  playerHandVisuals: {fileID: 403779175}
+  playerClimbing: {fileID: 37101395}
+  pickUpBlendDuration: 0.1
 --- !u!1 &403997435
 GameObject:
   m_ObjectHideFlags: 0
@@ -17408,7 +17429,7 @@ Light:
   m_LightShadowCasterMode: 0
   m_AreaSize: {x: 1, y: 1}
   m_BounceIntensity: 1
-  m_ColorTemperature: 10821
+  m_ColorTemperature: 6706
   m_UseColorTemperature: 1
   m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
@@ -54381,7 +54402,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1156964677}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7497838c5eb81854babc3b1f3315f587, type: 3}
   m_Name: 

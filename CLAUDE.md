@@ -136,18 +136,21 @@ behaviour. The current order is:
    upright and at standing height again, before anything reads the head or hands.
    **Once the level has ended** (`LevelManager.StateChanged` → not `Playing`; caught or won,
    during the end fade) **the frame stops here**: the body is frozen - only
-   `playerHandInteraction.Tick()`, `playerHandVisuals.Tick()`, `TickReticles()` and
-   `playerHandAnimation.Tick()` run, so the hands still follow the controllers.
+   `playerHandInteraction.Tick()`, `playerHandVisuals.Tick()`, `playerHandHolding.TickHeld()`,
+   `TickReticles()` and `playerHandAnimation.Tick()` run, so the hands (and anything they
+   carry) still follow the controllers.
 2. `playerLocomotion.TickBody()` — re-centre the capsule under the headset and apply crouch
    height (before the hand systems, since crouch moves the tracked hierarchy).
 3. `playerHandInteraction.Tick()` — hand rays + targets (reticles are placed at 8b).
 4. `playerClimbing.Tick()` — grab/release, zip line slide, climb movement (skipped while
    mantling); then
+   4a. `playerHandHolding.Tick()` — pick up / drop props (also skipped while mantling; after
+   climbing, since a hand either grips a climbable or carries a prop); then
    `playerMantling.Tick()` — detects a possible mantle (arrow), starts one on a stick push, or
    advances the one in progress. **While `IsMantling`, the frame stops here**: the mantle has
    already positioned the rig directly (CharacterController disabled), so only `TickState()`,
-   `playerVisibility.Tick()`, `playerHandVisuals.Tick()`, `TickReticles()` and `playerHandAnimation.Tick()` run - no
-   locomotion, turning or `Move()`.
+   `playerVisibility.Tick()`, `playerHandVisuals.Tick()`, `playerHandHolding.TickHeld()`,
+   `TickReticles()` and `playerHandAnimation.Tick()` run - no locomotion, turning or `Move()`.
 5. `_frameMovement` = `playerLocomotion.TickMovement(isClimbing)` (thumbstick + gravity;
    zero while climbing) + `playerClimbing.FrameMovement` while climbing; then
    `playerLocomotion.TickTurning()`.
@@ -165,6 +168,9 @@ behaviour. The current order is:
 8. `playerHandVisuals.Tick()` — after turning/`Move()`: hand visuals are children of the rig,
    so a world-space snap pose placed earlier would be dragged off by them, and the physical
    hand sweep needs the controller's final position.
+   8a. `playerHandHolding.TickHeld()` — places carried props at the hand visuals, so straight
+   after them (skipped if the rig has no `PlayerHandHolding`; props are placed once more just
+   before rendering, by the component itself).
    8b. `playerHandInteraction.TickReticles()` — after grabs and hand visuals, so a hand that
    grabbed this frame already hides its reticle.
 9. `playerHandAnimation.Tick()` — last, so it reads this frame's snap weight from step 8
@@ -193,7 +199,8 @@ Player                 [Player layer] CharacterController, PlayerTracking, Playe
     Main Camera        Tracked Pose Driver (Tracking/Head* actions)
       Mantle Indicator (MantleIndicator - head-locked, placed a little below centre ~0.5m ahead)
       Screen Fade      (Core.ScreenFade - at the camera's local origin; fade to/from black)
-    Hands              PlayerHandInteraction, PlayerHandVisuals, PlayerHandAnimation (identity transform)
+    Hands              PlayerHandInteraction, PlayerHandHolding, PlayerHandVisuals,
+                       PlayerHandAnimation (identity transform)
       Left Hand        [PlayerHands] tracked controller - Tracked Pose Driver (Tracking/LeftHand*)
         Left Hand Visual   (hand.fbx instance, Animator)
         Left Hand Reticle
@@ -236,7 +243,9 @@ which still collides with everything. Collision matrix pairs that are ON among t
 Environment with Environment/Player/PlayerHands/Interactable/Guard/Projectile;
 Player-Interactable; Player-Guard; PlayerHands-Interactable; Interactable with
 Interactable/Guard/Projectile; Guard-Projectile. Everything else is off (notably
-Player-PlayerHands, and Climbable with everything - it's a grab volume, not geometry). The
+Player-PlayerHands, and Climbable with everything - it's a grab volume, not geometry). **A
+prop being carried is moved onto `PlayerHands`** (and back when dropped), so the body doesn't
+collide with it and hand rays, the hand sweep and light rays ignore it. The
 matrix doesn't affect raycasts/overlaps: queries must pass their own `LayerMask` (hand rays use
 Environment + Interactable + Climbable, so walls block them; physical hand sweeps use
 Environment + Interactable; light rays - `SceneLight` - use Environment + Interactable, so both block light).

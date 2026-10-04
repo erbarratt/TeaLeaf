@@ -35,6 +35,7 @@ namespace Player
         [SerializeField] private PlayerMantling playerMantling;
         [SerializeField] private PlayerFootsteps playerFootsteps;
         [SerializeField] private PlayerVisibility playerVisibility;
+        [SerializeField] private PlayerHandHolding playerHandHolding;
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
         [SerializeField] private PlayerHandAnimation playerHandAnimation;
         [SerializeField] private CharacterController characterController;
@@ -57,6 +58,9 @@ namespace Player
         // where it is while the view fades out - see Update().
         private bool _isLevelOver;
 
+        // Whether the rig has a PlayerHandHolding - see Awake().
+        private bool _hasHandHolding;
+
         /// <summary>
         /// Editor-only convenience: Unity calls Reset() when the component is
         /// first added (or via the Inspector's Reset menu item), so every
@@ -78,16 +82,18 @@ namespace Player
             playerTransform = transform;
 
             playerHandInteraction = GetComponentInChildren<PlayerHandInteraction>();
+            playerHandHolding = GetComponentInChildren<PlayerHandHolding>();
             playerHandVisuals = GetComponentInChildren<PlayerHandVisuals>();
             playerHandAnimation = GetComponentInChildren<PlayerHandAnimation>();
         }
 
         /// <summary>
-        /// Fills in playerTracking, playerFootsteps and playerVisibility if
-        /// the scene hasn't got them wired: the fields were added after
-        /// this component was set up in Main.unity, and Reset() only runs
-        /// when a component is first added. They're on the same object, so
-        /// this is one lookup each at startup.
+        /// Fills in playerTracking, playerFootsteps, playerVisibility and
+        /// playerHandHolding if the scene hasn't got them wired: the fields
+        /// were added after this component was set up in Main.unity, and
+        /// Reset() only runs when a component is first added. One lookup
+        /// each at startup (the first three on this object, holding on the
+        /// Hands object below it).
         /// </summary>
         private void Awake()
         {
@@ -102,6 +108,15 @@ namespace Player
             if (playerVisibility == null) {
                 playerVisibility = GetComponent<PlayerVisibility>();
             }
+
+            if (playerHandHolding == null) {
+                playerHandHolding = GetComponentInChildren<PlayerHandHolding>();
+            }
+
+            // Looked up once: Update() tests this plain bool rather than
+            // asking Unity whether the component exists several times a
+            // frame. Carrying is optional, like footsteps.
+            _hasHandHolding = playerHandHolding != null;
         }
 
         /// <summary>
@@ -157,6 +172,7 @@ namespace Player
             if (_isLevelOver) {
                 playerHandInteraction.Tick();
                 playerHandVisuals.Tick();
+                TickHeldProps();
                 playerHandInteraction.TickReticles();
                 playerHandAnimation.Tick();
                 return;
@@ -175,6 +191,13 @@ namespace Player
             // nothing may grab or climb until it finishes.
             if (!playerMantling.IsMantling) {
                 playerClimbing.Tick();
+
+                // 4a. Picking up and dropping props - after climbing, so it
+                // sees this frame's climbing grips (a hand does one or the
+                // other). A prop carried into a mantle just stays in hand.
+                if (_hasHandHolding) {
+                    playerHandHolding.Tick();
+                }
             }
 
             // 4b. Mantling - after climbing, so it sees this frame's grips.
@@ -196,6 +219,7 @@ namespace Player
                 }
 
                 playerHandVisuals.Tick();
+                TickHeldProps();
                 playerHandInteraction.TickReticles();
                 playerHandAnimation.Tick();
                 return;
@@ -261,6 +285,10 @@ namespace Player
             // be dragged along by this frame's movement until next frame.
             playerHandVisuals.Tick();
 
+            // 8a. Carried props - placed at the hand visuals, so straight
+            // after them.
+            TickHeldProps();
+
             // 8b. Reticles - after grabs (step 4) and hand visuals, so a hand
             // that grabbed something this frame already hides its reticle.
             playerHandInteraction.TickReticles();
@@ -269,6 +297,18 @@ namespace Player
             // frame's snap weight from step 8. Animators evaluate after all
             // Update() calls anyway, so nothing is lost by running it here.
             playerHandAnimation.Tick();
+        }
+
+        /// <summary>
+        /// Places any carried props at the hand visuals. Called straight
+        /// after playerHandVisuals.Tick() on every path through Update() -
+        /// normal, mid-mantle and after the level has ended.
+        /// </summary>
+        private void TickHeldProps()
+        {
+            if (_hasHandHolding) {
+                playerHandHolding.TickHeld();
+            }
         }
     }
 }
