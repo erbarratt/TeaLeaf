@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04ff625d5778d754bbf6d310c617c42a, type: 3}
+  m_Name: FootstepGrass
+  m_EditorClassIdentifier: Assembly-CSharp::Core.SoundCue
+  clips:
+  - {fileID: 8300000, guid: 52421d998c4f9ef4b8ac76a60470ab07, type: 3}
+  - {fileID: 8300000, guid: 6973df60fc005bb49b0b46341353cef8, type: 3}
+  - {fileID: 8300000, guid: 6e6b1e12b1e2621428f4054a9d14d010, type: 3}
+  - {fileID: 8300000, guid: 7ce9501a9d667004ab1972f5ab917fbb, type: 3}
+  - {fileID: 8300000, guid: 5b80cd0479de3cd4a86de90da63ed7d8, type: 3}
+  - {fileID: 8300000, guid: 8ab34d8c3b0838049b9036142d36a293, type: 3}
+  - {fileID: 8300000, guid: 7da192578049edd46b63cdc3912ccc7e, type: 3}
+  - {fileID: 8300000, guid: 59c9be17cdcd7ed4b833acedafaa0cda, type: 3}
+  - {fileID: 8300000, guid: 95f8f6071d3cc954496b0f7fa2941303, type: 3}
+  volume: 0.6
+  pitchVariation: 0.05
+  audibleRange: 18
+  noiseType: 0
+  noiseRadius: 3

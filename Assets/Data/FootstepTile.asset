@@ -1,0 +1,29 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04ff625d5778d754bbf6d310c617c42a, type: 3}
+  m_Name: FootstepTile
+  m_EditorClassIdentifier: Assembly-CSharp::Core.SoundCue
+  clips:
+  - {fileID: 8300000, guid: c69cab5678699c84b81d10c152857fb6, type: 3}
+  - {fileID: 8300000, guid: 40a1f34d9bde9c543a15f472d89f1597, type: 3}
+  - {fileID: 8300000, guid: eb4346aab0405ba47b04fee45e9ca9ac, type: 3}
+  - {fileID: 8300000, guid: a6df1feb92293404cb2228616057eefa, type: 3}
+  - {fileID: 8300000, guid: 21612011e830467418898dd99cc76371, type: 3}
+  - {fileID: 8300000, guid: 313df0ccd116d4946b143910910dc589, type: 3}
+  - {fileID: 8300000, guid: 376f5971334865a478e8e43228a76161, type: 3}
+  - {fileID: 8300000, guid: c68a829fd858f6144b35edbd477911ec, type: 3}
+  - {fileID: 8300000, guid: e1760baefba1c8d469b07214aba74fae, type: 3}
+  volume: 0.8
+  pitchVariation: 0.05
+  audibleRange: 28
+  noiseType: 0
+  noiseRadius: 9

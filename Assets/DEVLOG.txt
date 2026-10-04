@@ -6,6 +6,66 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-04 (surfaces and footsteps)
+-----------------------------------
+- Surfaces (Phase 2). Core.SurfaceType (Stone, Wood, Carpet, Metal, Water,
+  then Tile, Grass and Gravel added the same day - new ones go at the end,
+  since tags are saved as the number). Core.SurfaceTag marks a floor, on
+  the collider or any parent, so one tag on a group covers a whole floor;
+  anything untagged is stone. Chosen over a physics-material lookup for
+  that reason. Core.SurfaceSounds is one asset listing each surface's
+  footstep cue. A surface's loudness to guards is simply its cue's noise
+  radius, so audio and noise are tuned in one place as for other sounds.
+- Footsteps (Phase 2). Player.PlayerFootsteps, tick step 7b (straight
+  after TickState). A step is a distance, not a timer: real horizontal
+  movement is added up and a step sounds each time it reaches the gait's
+  stride (walk 1.4m, sprint 1.6m, crouch 1.2m), so pushing into a wall is
+  silent. Standing still keeps the distance so far - dropping it would
+  let short bursts of movement cross a room in silence. Loudness =
+  surface x stance x speed: each gait has a noise and a volume scale, and
+  a part-pushed stick gives quieter steps (average speed over the stride
+  against the gait's full speed, down to 0.4). The surface is found only
+  when a foot comes down: one ray, SurfaceTag.TryFindBelow().
+- Landings. First built with a landing cue per surface (a generated
+  thud); replaced the same day, maintainer's decision: a landing is the
+  surface's own step sound played loud, twice, 0.1s apart - one foot then
+  the other. One noise event for the whole landing (type Landing, 1.5x a
+  walking step's radius at a flat jump, scaled by fall speed).
+- SoundPlayer.Play() gained three optional parameters: volumeScale,
+  delay (AudioSource.PlayDelayed - the audio engine does the waiting, so
+  two-part sounds need no timers; the first landing version had its own
+  timer in Tick and had to handle a mantle interrupting it) and muffle
+  (extra dulling of one sound: filter only, not volume).
+- Real footstep clips. A CC-BY/CC0 footstep pack added under
+  Assets/Audio/footsteps (a license.txt in each folder; credit needed in
+  a release). The cues now play boots (stone), wood, metal, water, tile,
+  grass and gravel; carpet uses the grass clips until a real one turns
+  up. The first five cues kept their "Placeholder" names because the test
+  builders load them by path. The three new cues and the edits to the
+  existing ones were written straight into the .asset files (with .meta
+  files and guids made by hand) - Unity imported them without complaint.
+- The stand-in guard now walks on surfaces: SoundEmitterDebug takes an
+  optional SurfaceSounds and plays the step for the floor under it. The
+  Sound Test House gained floors for every surface (wood upstairs and
+  stairs, carpet Lounge, tile Kitchen, metal Store; puddle, gravel path
+  and lawn in the Yard).
+- Heel and toe (maintainer's idea, for hard surfaces). Per surface in
+  SurfaceSounds: a toggle, the share of steps that get it, the toe's
+  volume relative to the heel, the delay and a muffle amount. The step
+  plays as normal, then the same cue again, quieter and duller, a moment
+  later. Which steps get it is not a dice roll (that gives long runs):
+  HeelAndToeCadence adds the ratio to a credit each step and fires when
+  it passes a target re-picked at random around 1, so the average is the
+  ratio, a step early or late. Tried the other way round (quiet heel,
+  normal toe): rejected by ear. What made it work was muffling the toe.
+  On for stone (tuned by ear: ratio 0.71, toe volume 0.05, delay 0.08s,
+  muffle 0.5) and tile.
+- Lesson: when a field is renamed, [FormerlySerializedAs] keeps values
+  already tuned in the Inspector; and editing an asset on disk while the
+  Inspector holds unsaved changes to it risks losing them - new fields
+  were left at zero for the maintainer to set instead.
+
+
 2026-10-03 (third part - noise and sound)
 -----------------------------------------
 - Headset tests passed for last session's work: the caught/win/restart

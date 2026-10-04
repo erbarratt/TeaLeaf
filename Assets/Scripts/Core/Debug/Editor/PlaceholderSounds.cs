@@ -26,6 +26,7 @@ namespace Core
 
         public const string FootstepCuePath = CueFolder + "/FootstepPlaceholder.asset";
         public const string ImpactCuePath = CueFolder + "/ImpactPlaceholder.asset";
+        public const string SurfaceSoundsPath = CueFolder + "/SurfaceSoundsPlaceholder.asset";
 
         /// <summary>
         /// Makes any placeholder clips and cues that don't exist yet.
@@ -49,9 +50,114 @@ namespace Core
                 impacts[i] = EnsureClip($"{ClipFolder}/ImpactPlaceholder{i + 1}.wav", Impact(i));
             }
 
-            EnsureCue(FootstepCuePath, footsteps, 0.8f, 25f, NoiseType.Footstep, 6f);
+            // The original footstep doubles as stone, the default surface.
+            SoundCue stone = EnsureCue(FootstepCuePath, footsteps, 0.8f, 25f, NoiseType.Footstep, 6f);
             EnsureCue(ImpactCuePath, impacts, 1f, 35f, NoiseType.Impact, 10f);
+
+            // The other surfaces: the same recipe with different numbers
+            // (see SurfaceStep()), so each can be told apart by ear. The
+            // noise radius is the surface's loudness to guards at a walk:
+            // carpet barely carries, metal rings a long way.
+            SoundCue wood = EnsureCue(CueFolder + "/FootstepWoodPlaceholder.asset",
+                SurfaceClips("FootstepWoodPlaceholder", 300, 0.15f, 160f, 40f, 0.7f, 0.3f, 60f, 0.4f, 0.1f),
+                0.8f, 25f, NoiseType.Footstep, 7f);
+            SoundCue carpet = EnsureCue(CueFolder + "/FootstepCarpetPlaceholder.asset",
+                SurfaceClips("FootstepCarpetPlaceholder", 400, 0.15f, 60f, 45f, 0.35f, 0f, 40f, 0.6f, 0f),
+                0.5f, 15f, NoiseType.Footstep, 2.5f);
+            SoundCue metal = EnsureCue(CueFolder + "/FootstepMetalPlaceholder.asset",
+                SurfaceClips("FootstepMetalPlaceholder", 500, 0.4f, 430f, 14f, 0.5f, 0.5f, 80f, 0.2f, 0.4f),
+                0.9f, 30f, NoiseType.Footstep, 10f);
+            SoundCue water = EnsureCue(CueFolder + "/FootstepWaterPlaceholder.asset",
+                SurfaceClips("FootstepWaterPlaceholder", 600, 0.4f, 90f, 30f, 0.2f, 0f, 12f, 0.5f, 0.45f),
+                0.8f, 25f, NoiseType.Footstep, 8f);
+
+            EnsureSurfaceSounds(
+                new[] { SurfaceType.Stone, SurfaceType.Wood, SurfaceType.Carpet, SurfaceType.Metal, SurfaceType.Water },
+                new[] { stone, wood, carpet, metal, water });
+
             AssetDatabase.SaveAssets();
+        }
+
+        /// <summary>
+        /// Three variants of one surface's step, as clips named
+        /// name1.wav to name3.wav. Each variant is pitched a little higher
+        /// than the last. The numbers are SurfaceStep()'s.
+        /// </summary>
+        private static AudioClip[] SurfaceClips(string name, int seed, float duration, float tone, float toneDecay, float toneLevel, float overtoneLevel, float hissDecay, float dullHiss, float sharpHiss)
+        {
+            AudioClip[] clips = new AudioClip[3];
+
+            for (int i = 0; i < clips.Length; i++) {
+                float variantTone = tone * (1f + i * 0.12f);
+                float[] samples = SurfaceStep(seed + i, duration, variantTone, toneDecay, toneLevel, overtoneLevel, hissDecay, dullHiss, sharpHiss);
+                clips[i] = EnsureClip($"{ClipFolder}/{name}{i + 1}.wav", samples);
+            }
+
+            return clips;
+        }
+
+        /// <summary>
+        /// A step on some surface, from two ingredients. A tone (the body
+        /// of the sound: low for a thud, high for a ring), with an overtone
+        /// at a pitch that isn't a whole multiple of it - what makes metal
+        /// sound like metal - both dying away at toneDecay. And hiss (the
+        /// scuff or splash): a dull part and a sharp part, dying away at
+        /// hissDecay. A bigger decay is a shorter sound.
+        /// </summary>
+        private static float[] SurfaceStep(int seed, float duration, float tone, float toneDecay, float toneLevel, float overtoneLevel, float hissDecay, float dullHiss, float sharpHiss)
+        {
+            float[] samples = new float[(int)(SampleRate * duration)];
+            System.Random random = new(seed);
+            float smoothed = 0f;
+
+            for (int i = 0; i < samples.Length; i++) {
+                float time = i / (float)SampleRate;
+                float hiss = (float)(random.NextDouble() * 2.0 - 1.0);
+                smoothed += (hiss - smoothed) * 0.2f;
+
+                float body = Mathf.Sin(2f * Mathf.PI * tone * time)
+                    + overtoneLevel * Mathf.Sin(2f * Mathf.PI * tone * 2.76f * time);
+
+                samples[i] = body * toneLevel * Mathf.Exp(-time * toneDecay)
+                    + (smoothed * dullHiss + hiss * sharpHiss) * Mathf.Exp(-time * hissDecay);
+            }
+
+            return samples;
+        }
+
+        /// <summary>
+        /// Creates the SurfaceSounds asset if it isn't there: one entry per
+        /// surface, each with its footstep cue.
+        /// </summary>
+        private static void EnsureSurfaceSounds(SurfaceType[] surfaces, SoundCue[] footstepCues)
+        {
+            if (AssetDatabase.LoadAssetAtPath<SurfaceSounds>(SurfaceSoundsPath) != null) {
+                return;
+            }
+
+            SurfaceSounds sounds = ScriptableObject.CreateInstance<SurfaceSounds>();
+            SerializedObject serialized = new(sounds);
+
+            SerializedProperty entries = serialized.FindProperty("entries");
+            entries.arraySize = surfaces.Length;
+
+            for (int i = 0; i < surfaces.Length; i++) {
+                SerializedProperty entry = entries.GetArrayElementAtIndex(i);
+                entry.FindPropertyRelative("surface").enumValueIndex = (int)surfaces[i];
+                entry.FindPropertyRelative("footstep").objectReferenceValue = footstepCues[i];
+
+                // Heel and toe on stone only of these five (hard floor);
+                // the other values are set anyway, so ticking the box on
+                // another surface starts from something sensible.
+                entry.FindPropertyRelative("heelAndToe").boolValue = surfaces[i] == SurfaceType.Stone;
+                entry.FindPropertyRelative("heelAndToeRatio").floatValue = 1f;
+                entry.FindPropertyRelative("toeVolume").floatValue = 0.6f;
+                entry.FindPropertyRelative("toeDelay").floatValue = 0.1f;
+                entry.FindPropertyRelative("toeMuffle").floatValue = 0.5f;
+            }
+
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+            AssetDatabase.CreateAsset(sounds, SurfaceSoundsPath);
         }
 
         /// <summary>
@@ -123,17 +229,19 @@ namespace Core
         }
 
         /// <summary>
-        /// Creates the SoundCue asset at path if it isn't there. Its fields
-        /// are private and serialized, so they're set the way the Inspector
-        /// would set them.
+        /// Creates the SoundCue asset at path if it isn't there, and returns
+        /// it either way. Its fields are private and serialized, so they're
+        /// set the way the Inspector would set them.
         /// </summary>
-        private static void EnsureCue(string path, AudioClip[] clips, float volume, float audibleRange, NoiseType noiseType, float noiseRadius)
+        private static SoundCue EnsureCue(string path, AudioClip[] clips, float volume, float audibleRange, NoiseType noiseType, float noiseRadius)
         {
-            if (AssetDatabase.LoadAssetAtPath<SoundCue>(path) != null) {
-                return;
+            SoundCue cue = AssetDatabase.LoadAssetAtPath<SoundCue>(path);
+
+            if (cue != null) {
+                return cue;
             }
 
-            SoundCue cue = ScriptableObject.CreateInstance<SoundCue>();
+            cue = ScriptableObject.CreateInstance<SoundCue>();
             SerializedObject serialized = new(cue);
 
             SerializedProperty clipList = serialized.FindProperty("clips");
@@ -150,6 +258,7 @@ namespace Core
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             AssetDatabase.CreateAsset(cue, path);
+            return cue;
         }
 
         /// <summary>

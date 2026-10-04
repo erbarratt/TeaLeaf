@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04ff625d5778d754bbf6d310c617c42a, type: 3}
+  m_Name: FootstepMetalPlaceholder
+  m_EditorClassIdentifier: Assembly-CSharp::Core.SoundCue
+  clips:
+  - {fileID: 8300000, guid: 71f924d0bfe28904fbf9309d19e5971e, type: 3}
+  - {fileID: 8300000, guid: 0b8385a20999a414da00d917417c0dca, type: 3}
+  - {fileID: 8300000, guid: 6d0592e364479e1438c46fd7affbe8bd, type: 3}
+  - {fileID: 8300000, guid: 01f9a4b5a6c3689449d945f8e5a98726, type: 3}
+  - {fileID: 8300000, guid: 9662e10529bd5c74f867c3eabf4d5aea, type: 3}
+  - {fileID: 8300000, guid: 5338c03e970cdd94b8a56819c7356dcb, type: 3}
+  - {fileID: 8300000, guid: 6c85939f56261964083bf7298852b990, type: 3}
+  - {fileID: 8300000, guid: 8e23f5c7109c2e64599c6b23f498490e, type: 3}
+  volume: 0.9
+  pitchVariation: 0.05
+  audibleRange: 30
+  noiseType: 0
+  noiseRadius: 10

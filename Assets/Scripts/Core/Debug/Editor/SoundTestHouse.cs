@@ -148,9 +148,24 @@ namespace Core
             float slabY = WallHeight + SlabThickness * 0.5f;
             float mainWidth = Width - StairHoleWidth;
             float backLength = Depth - StairTopZ;
-            TestGeometry.Box("Upper Floor", parent, new Vector3(StairHoleWidth + mainWidth * 0.5f, slabY, Depth * 0.5f), new Vector3(mainWidth, SlabThickness, Depth), layer);
-            TestGeometry.Box("Upper Floor Stair Front", parent, new Vector3(StairHoleWidth * 0.5f, slabY, StairBottomZ * 0.5f), new Vector3(StairHoleWidth, SlabThickness, StairBottomZ), layer);
-            TestGeometry.Box("Upper Floor Stair Back", parent, new Vector3(StairHoleWidth * 0.5f, slabY, StairTopZ + backLength * 0.5f), new Vector3(StairHoleWidth, SlabThickness, backLength), layer);
+            Tag(TestGeometry.Box("Upper Floor", parent, new Vector3(StairHoleWidth + mainWidth * 0.5f, slabY, Depth * 0.5f), new Vector3(mainWidth, SlabThickness, Depth), layer), SurfaceType.Wood);
+            Tag(TestGeometry.Box("Upper Floor Stair Front", parent, new Vector3(StairHoleWidth * 0.5f, slabY, StairBottomZ * 0.5f), new Vector3(StairHoleWidth, SlabThickness, StairBottomZ), layer), SurfaceType.Wood);
+            Tag(TestGeometry.Box("Upper Floor Stair Back", parent, new Vector3(StairHoleWidth * 0.5f, slabY, StairTopZ + backLength * 0.5f), new Vector3(StairHoleWidth, SlabThickness, backLength), layer), SurfaceType.Wood);
+
+            // Floor coverings for the footstep surfaces, as thin slabs on
+            // the ground (which is untagged, so stone - the Hall and the
+            // edges of the Yard): a carpeted Lounge, a tiled Kitchen, a
+            // metal plate floor in the Store, and across the Yard from left
+            // to right a puddle, a gravel path from the gate and a lawn.
+            // The upper floor and stairs are wood.
+            const float coveringThickness = 0.02f;
+            float coveringY = 0.01f + coveringThickness * 0.5f;
+            Tag(TestGeometry.Box("Lounge Carpet", parent, new Vector3(8f, coveringY, 6f), new Vector3(7.6f, coveringThickness, 3.6f), layer), SurfaceType.Carpet);
+            Tag(TestGeometry.Box("Store Metal Floor", parent, new Vector3(10f, coveringY, 2f), new Vector3(3.6f, coveringThickness, 3.6f), layer), SurfaceType.Metal);
+            Tag(TestGeometry.Box("Yard Puddle", parent, new Vector3(2.5f, coveringY, -3f), new Vector3(3f, coveringThickness, 3f), layer), SurfaceType.Water);
+            Tag(TestGeometry.Box("Kitchen Tile Floor", parent, new Vector3(6f, coveringY, 2f), new Vector3(3.6f, coveringThickness, 3.6f), layer), SurfaceType.Tile);
+            Tag(TestGeometry.Box("Yard Gravel Path", parent, new Vector3(6f, coveringY, -3f), new Vector3(2f, coveringThickness, 5.6f), layer), SurfaceType.Gravel);
+            Tag(TestGeometry.Box("Yard Lawn", parent, new Vector3(9.5f, coveringY, -3f), new Vector3(4f, coveringThickness, 5f), layer), SurfaceType.Grass);
 
             // The stairs: a smooth ramp, like the town's. It rises the
             // height of the upper floor over the length of the hole (about
@@ -162,6 +177,7 @@ namespace Core
             float length = Mathf.Sqrt(run * run + UpperFloor * UpperFloor);
             GameObject ramp = TestGeometry.Box("Stairs", parent, new Vector3(WallThickness * 0.5f + StairWidth * 0.5f, UpperFloor * 0.5f - rampThickness * 0.6f, (StairBottomZ + StairTopZ) * 0.5f), new Vector3(StairWidth, rampThickness, length), layer);
             ramp.transform.localRotation = Quaternion.Euler(-angle, 0f, 0f);
+            Tag(ramp, SurfaceType.Wood);
 
             // Upper floor walls: the outer four and the Landing-Bedroom wall
             // with its doorway.
@@ -291,7 +307,25 @@ namespace Core
 
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
+            // The guard's steps follow the floor it's walking on (wood
+            // upstairs and on the stairs, stone in the Hall, tile in the
+            // Kitchen) rather than always playing the one cue.
+            SerializedObject emitter = new(guard.GetComponent<SoundEmitterDebug>());
+            emitter.FindProperty("surfaceSounds").objectReferenceValue = AssetDatabase.LoadAssetAtPath<SurfaceSounds>(PlaceholderSounds.SurfaceSoundsPath);
+            emitter.ApplyModifiedPropertiesWithoutUndo();
+
             SoundTestArea.AddEmitter("Sound Emitter Store (impact)", parent, new Vector3(10.5f, 1f, 1f), impactCue, 2f);
+        }
+
+        /// <summary>
+        /// Gives a floor piece a SurfaceTag. Its surface is a private
+        /// serialized field, so it's set the way the Inspector would set it.
+        /// </summary>
+        private static void Tag(GameObject floor, SurfaceType surface)
+        {
+            SerializedObject serialized = new(floor.AddComponent<SurfaceTag>());
+            serialized.FindProperty("surface").enumValueIndex = (int)surface;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>

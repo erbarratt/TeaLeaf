@@ -36,7 +36,8 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
 - **`Assets/Scripts/Core/CLAUDE.md`** — game state and level restart (`GameState`,
   `LevelManager`, `ExitZone`), the screen fade (`ScreenFade`), noise events and sound
   propagation (`NoiseSystem`, `SoundCue`, `SoundRoom`, `SoundPortal`, `SoundPropagation`, `SoundPlayer`;
-  loops, reverb and a spatialiser planned), shared debug
+  loops, reverb and a spatialiser planned), surfaces (`SurfaceType`, `SurfaceTag`,
+  `SurfaceSounds`), shared debug
   drawing (`DebugLines`, `IDebugDrawable`, `InHeadsetGizmos` - gizmos that also show in the
   headset); later visibility.
 
@@ -155,6 +156,9 @@ behaviour. The current order is:
 7. `playerLocomotion.TickState(isClimbing, appliedMovement, collisionFlags)` — after `Move()`,
    because it needs the real applied movement, the `CollisionFlags` `Move()` returned (to stop
    momentum pushing into walls/ceilings), and the `isGrounded` that `Move()` just updated.
+   7b. `playerFootsteps.Tick(appliedMovement)` — after `TickState()`, since a step depends on
+   this frame's `MovementState` and real movement (skipped if the Player has no
+   `PlayerFootsteps`; not run during a mantle or once the level has ended).
 8. `playerHandVisuals.Tick()` — after turning/`Move()`: hand visuals are children of the rig,
    so a world-space snap pose placed earlier would be dragged off by them, and the physical
    hand sweep needs the controller's final position.
@@ -181,7 +185,7 @@ movement and VR tracking both want per-frame updates, for lower latency.
 ```
 Player                 [Player layer] CharacterController, PlayerTracking, PlayerInputXR,
                        PlayerHaptics, PlayerLocomotion, PlayerClimbing, PlayerMantling,
-                       PlayerController
+                       PlayerFootsteps, PlayerController
   Camera Offset        (saved at y 1.6m = standing eye height; crouch shifts it)
     Main Camera        Tracked Pose Driver (Tracking/Head* actions)
       Mantle Indicator (MantleIndicator - head-locked, placed a little below centre ~0.5m ahead)
@@ -274,7 +278,7 @@ fails and restarts. Agreed mechanics:
 ### Planned systems
 
 `Assets/Scripts/{AI,Inventory,UI}` are still empty placeholder folders, and `Core` only holds
-the game state/level manager, the screen fade, the noise and sound system and the
+the game state/level manager, the screen fade, the noise and sound system, surfaces and the
 shared debug drawing so far — future systems land there following the same one-class,
 one-responsibility pattern (Core: visibility; AI: guards; Inventory: items/loot; UI: wrist radial/display). Ending the level
 always goes through `LevelManager` (`Caught()`, `SetObjectiveCarried()`): no other system

@@ -201,6 +201,14 @@ namespace Player
         public bool IsCrouching => _isCrouching;
 
         /// <summary>
+        /// Full-stick speed in metres per second, walking (and crouched)
+        /// and sprinting - for systems that compare the player's real speed
+        /// against it, e.g. footsteps getting quieter at a creep.
+        /// </summary>
+        public float MoveSpeed => moveSpeed;
+        public float SprintSpeed => sprintSpeed;
+
+        /// <summary>
         /// What the player's body is doing this frame - see MovementState.
         /// Updated by TickState() after the CharacterController has moved.
         /// </summary>

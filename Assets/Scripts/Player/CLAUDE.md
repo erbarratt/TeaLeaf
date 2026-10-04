@@ -109,7 +109,8 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   stick while grounded, kept as momentum while airborne (light air control/drag), and reduced to
   the actually-applied velocity when an airborne `Move()` hits a side. Jump (`HandleJump()`,
   before gravity) has coyote time, a jump buffer and a `_hasJumped` guard. Exposes
-  `IsSprinting`, `IsCrouching`, `MovementState`, and a `Landed` event (fall speed).
+  `IsSprinting`, `IsCrouching`, `MoveSpeed`/`SprintSpeed` (the full-stick speeds),
+  `MovementState`, and a `Landed` event (fall speed).
 - **`MovementState`** (enum) — `Still`, `Walking`, `Sprinting`, `CrouchStill`, `CrouchWalking`,
   `Climbing`, `Airborne`, `Mantling` (set whenever a mantle is running): the single value
   noise, visibility, AI and the wrist gem should read, rather than combining flags themselves.
@@ -119,6 +120,34 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   `airborneGraceTime` off the ground, since `isGrounded` flickers on steps and slopes - except
   after a jump, which is `Airborne` immediately. Physical roomscale walking doesn't count as
   moving yet.
+- **`PlayerFootsteps`** (added 2026-10-04; on the Player root) — footsteps and landings. A
+  step is one `Core.SurfaceSounds.PlayStep()`, giving the audio, the noise event (the Player
+  root as the noise source) and the toe sound on heel-and-toe surfaces (its own
+  `HeelAndToeCadence`; see `Scripts/Core/CLAUDE.md`). `Tick(appliedMovement)` (tick step 7b) adds up the real horizontal
+  distance moved and steps each time it reaches the current gait's `stride`, keeping the
+  remainder. Three serialized `Gait`s (`stride`, `noiseScale`, `volumeScale`): walking
+  (1.4m, 1, 1), sprinting (1.6m, 1.6, 1), crouching (1.2m, 0.4, 0.5), picked from
+  `MovementState`. Loudness to guards = the surface cue's noise radius x the gait's
+  `noiseScale`. `Still`/`CrouchStill` keep the distance so far (dropping it would let short
+  bursts of movement cross a room silently); `Airborne`/`Climbing` zero it. The surface is
+  found only when a sound is made: one ray down from 0.3m above the capsule's bottom
+  (`groundLayers`, Environment + Interactable; `SurfaceTag.TryFindBelow()`); a miss reuses the
+  last surface. **A landing is the surface's step sound played loud, twice** (maintainer's
+  decision 2026-10-04; no separate landing cue): on `PlayerLocomotion.Landed`, strength = fall
+  speed / `referenceLandingSpeed` (3 m/s, about a flat jump) clamped to `minLandingScale`-
+  `maxLandingScale` (0.5-2); the first foot plays at once and the second `secondFootDelay`
+  (0.1s) later (`Play()`'s `delay`, no timer here), both at volume x `landingVolumeScale`
+  (1.25) x strength, with noise scale 0. The noise is emitted once, directly through `NoiseSystem.Emit()`, as
+  `NoiseType.Landing` with radius = the cue's noise radius x `landingNoiseScale` (1.5) x
+  strength.
+  Sounds play 0.1m above the feet so
+  they're inside the sound room being stood in. Needs `surfaceSounds` assigned
+  (`Assets/Data/SurfaceSoundsPlaceholder.asset`); silent without it or without a
+  `SoundPlayer`. **Creeping is quieter** (2026-10-04): each step's noise and volume are also
+  scaled by `Lerp(slowestStepScale (0.4), 1, speed fraction)`, where the speed is the average
+  over the stride (distance / time spent moving, `_timeSinceStep`) against the gait's full
+  speed (`PlayerLocomotion.MoveSpeed`, or `SprintSpeed` when sprinting; crouch moves at walk
+  speed). So loudness = surface x stance x speed.
 
 ## Climbing and mantling
 

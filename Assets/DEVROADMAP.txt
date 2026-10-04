@@ -525,6 +525,8 @@ where it is, on stereo headphones; see Scripts/Core/CLAUDE.md):
 [ ] Sound direction indicator (UI) - an idea to experiment with; it can
     read NoiseSystem.Emitted.
 [ ] Real audio: replace the generated placeholder clips in the cues.
+    Footsteps done 2026-10-04 (except carpet). Left: the impact cue, a
+    carpet footstep, and renaming the cues still called "Placeholder".
 [ ] Shadow volumes: ShadowVolume component (trigger box) with a darkness
     value. PlayerVisibility (Player namespace) tracks which volumes the
     player's body/head is inside and outputs a single Visibility 0-1.
@@ -535,14 +537,22 @@ where it is, on stereo headphones; see Scripts/Core/CLAUDE.md):
     toggles the light, flame VFX and audio.
 [ ] Stance modifies visibility: crouching lowers it, sprinting raises it.
     Keep the multipliers as serialized fields for tuning.
-[ ] Surfaces: SurfaceType enum (Carpet, Wood, Stone, Metal, Water, ...),
+[x] Surfaces: SurfaceType enum (Carpet, Wood, Stone, Metal, Water, ...),
     mapped via a small SurfaceTag component or physics material lookup.
-[ ] Footsteps: PlayerFootsteps measures horizontal distance travelled,
+    Done 2026-10-04: SurfaceType (also Tile, Grass, Gravel), SurfaceTag
+    (on the collider or any parent; untagged = stone) and SurfaceSounds
+    (one asset: each surface's footstep cue and heel-and-toe settings).
+[x] Footsteps: PlayerFootsteps measures horizontal distance travelled,
     emits a step every N metres, raycasts down for SurfaceType, plays the
     surface sound and emits a noise event scaled by surface x stance
     (one SoundPlayer.Play() of the surface's SoundCue does both).
     No steps while climbing or airborne. Landing (from a jump or fall)
     emits a noise event scaled by fall speed x surface - jumping is loud.
+    Done 2026-10-04, with two additions: steps are also quieter at a
+    creep (scaled by speed), and hard surfaces can play heel and toe. A
+    landing is the surface's step played loud twice, not its own sound.
+    Real clips for every surface but carpet (which borrows grass).
+    Tuned by ear by the maintainer.
 [ ] Debug (Scripts/Core/Debug): on-screen/world-space readout of current
     visibility, stance and last noise; gizmos drawing shadow volumes and
     noise radii. Done 2026-10-03 for noise and sound: NoiseDebug (noise

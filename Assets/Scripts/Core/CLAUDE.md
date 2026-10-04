@@ -4,9 +4,46 @@ Detail for the core systems. The root `CLAUDE.md` holds the project rules, the t
 the physics layers; this file is loaded when working in this folder. Keep it up to date with
 every change to these systems, like the root file.
 
-Planned here (Phase 2): the rest of the sound system (below), shadow volumes, light-to-volume
-linking, surfaces and footsteps. The game state/level manager, the screen fade, noise events
-and the shared debug drawing exist so far.
+Planned here (Phase 2): the rest of the sound system (below), shadow volumes and
+light-to-volume linking. The game state/level manager, the screen fade, noise events, sound,
+surfaces and the shared debug drawing exist so far.
+
+## Surfaces (added 2026-10-04)
+
+What a floor is made of, for footsteps and landings - the player's now
+(`Player.PlayerFootsteps`, see `Scripts/Player/CLAUDE.md`), guards' later.
+
+- **`SurfaceType`** (enum) — `Stone`, `Wood`, `Carpet`, `Metal`, `Water`, `Tile`, `Grass`,
+  `Gravel`. `Stone` is first, so it's what anything untagged is: only floors that differ need
+  a tag. **Add new values at the end** - tags and `SurfaceSounds` entries are serialized as
+  the number.
+- **`SurfaceTag`** — data-only component holding a `SurfaceType`, on the collider's object or
+  **any parent** (a tag covers everything beneath it; a nearer tag overrides).
+  `SurfaceTag.Of(collider)` walks up the hierarchy with `TryGetComponent` and returns `Stone`
+  if there is none - called only when a foot comes down, never per frame.
+  `SurfaceTag.TryFindBelow(from, distance, layers, out surface)` is the shared floor lookup:
+  one ray straight down (triggers ignored), false on a miss. Chosen over a
+  physics-material lookup (2026-10-04) because one tag on a group covers a whole floor.
+- **`SurfaceSounds`** (ScriptableObject, Create > TeaLeaf > Surface Sounds) — one entry per
+  surface: a footstep `SoundCue`. `GetFootstep(surface)` indexes a lookup array built on
+  first use (rebuilt after an Inspector edit); a surface with no cue uses Stone's. **No
+  landing cues** (removed 2026-10-04, maintainer's decision): a landing is the surface's
+  step played loud, once per foot, by the walker.
+  **Heel and toe** (added 2026-10-04, for hard surfaces; on for Stone and Tile): per entry,
+  `heelAndToe` (toggle), `heelAndToeRatio` (share of steps that get it: 1 = every step, 0.6 =
+  six in ten on average), `toeVolume` (the second sound's volume as a fraction of the first),
+  `toeDelay` (seconds from heel to toe) and `toeMuffle` (0-1, how dull the toe is; passed as
+  `Play()`'s `muffle`). `PlayStep(surface, position, source, noiseScale,
+  volumeScale, ref cadence)` is how a walker makes a step: the cue with its noise, then the
+  toe - the same cue again (its own random clip), audio only, through `Play()`'s `delay`.
+  **Normal heel first, quieter toe second**: the reverse (quiet heel, then the toe at normal
+  volume) was tried 2026-10-04 and rejected by ear - don't suggest it again; `toeVolume`
+  carries `[FormerlySerializedAs("heelVolume")]` from that trial. Which steps get a
+  toe is decided by the walker's own **`HeelAndToeCadence`** (struct): each step adds the
+  ratio to a credit, and a toe sounds when the credit reaches a target re-picked at random in
+  0.5-1.5, spending 1 - so the average is the ratio, a step early or late, never a long run
+  either way (a per-step dice roll was rejected for that). **A surface's loudness to guards is its cue's `noiseRadius`**, not a
+  separate table; the walker scales it by stance through `Play()`'s `noiseScale`.
 
 ## Noise and sound (started 2026-10-03)
 
@@ -110,10 +147,18 @@ playback exist; loops, reverb and the spatialiser are the remaining design below
   knock in the Store, and a stand-in guard: a footstep emitter with **`WaypointMoverDebug`**
   (`Core/Debug`; walks a list of points there and back at `speed`, no collision) going
   Bedroom → Landing → stairs → Hall → Kitchen. Reuses `SoundTestArea`'s helpers (internal).
+  Also the footstep surface test (2026-10-04): upper floor and stairs tagged Wood, and 2cm
+  floor coverings tagged Carpet (Lounge), Tile (Kitchen), Metal (Store) and, across the Yard
+  left to right, Water (a puddle), Gravel (a path from the gate) and Grass (a lawn); the Hall
+  and the Yard's edges are untagged stone.
 - **`SoundPlayer`** (one per scene, on a `Sound Player` object at the scene root;
   `SoundPlayer.Instance`, set in `Awake()`) — plays every sound.
-  `Play(cue, position, source = null, noiseScale = 1)` emits the cue's noise (scaled; 0 =
-  none) and plays its audio if it reaches the `listener` (the Main Camera transform): a
+  `Play(cue, position, source = null, noiseScale = 1, volumeScale = 1, delay = 0, muffle = 0)`
+  (`muffle` 0-1 is added to the route's muffle for the low-pass cutoff only, not the volume -
+  a step's dull toe) emits the
+  cue's noise (scaled; 0 = none) and plays its audio (volume times `volumeScale` - a crouched
+  footstep, a hard landing; `delay` seconds from now via `AudioSource.PlayDelayed()`, for
+  two-part sounds like a landing's second foot or a step's toe, so callers need no timers) if it reaches the `listener` (the Main Camera transform): a
   straight-line range reject, then `SoundPropagation.TryGetPath()` limited to the cue's
   `audibleRange` - no path = not played (a guard on the floor above is heard from the
   stairwell, or not at all - no vertical confusion on stereo). Same room: played at its real
@@ -132,7 +177,10 @@ playback exist; loops, reverb and the spatialiser are the remaining design below
   No `Update()`. One-shots only so far: a sound's position and muffle are fixed when it
   starts. The voice cap is the main Quest cost control (per-voice spatialiser + filter).
 - **`SoundEmitterDebug`** (`Core/Debug`) — plays a cue from its position every `interval`
-  seconds (noise off by default). **`SoundDebug`** (`Core/Debug`, on the Debug object) — `L`
+  seconds (noise off by default). With `surfaceSounds` assigned it's a walker: each play
+  is a `SurfaceSounds.PlayStep()` on the floor beneath it, heel and toe included
+  (`SurfaceTag.TryFindBelow()`, 1m down, all layers by default), falling back to its own cue - so the test house's stand-in guard
+  changes sound from wood to stone to tile along its route. **`SoundDebug`** (`Core/Debug`, on the Debug object) — `L`
   writes one "SOUND REPORT" Console entry: the listener's room, voices playing, and each
   emitter's room, range, straight and path distance, muffle, heard-from point and
   played/not.
@@ -140,7 +188,23 @@ playback exist; loops, reverb and the spatialiser are the remaining design below
   — generated stand-in audio: three footstep and two impact `.wav` files in
   `Assets/Audio/Placeholder` and the cues `Assets/Data/FootstepPlaceholder.asset` (range 25m,
   noise 6m) and `ImpactPlaceholder.asset` (range 35m, noise 10m; ranges raised 2026-10-03 from 12m/20m, where sounds faded in too abruptly when moving fast). Existing files are kept.
-  Replace the clips in the cues with real recordings later.
+  Replace the clips in the cues with real recordings later. Added 2026-10-04: per-surface
+  footsteps from one recipe (`SurfaceStep()`: a tone with an inharmonic overtone, plus dull and
+  sharp hiss) - three clips and a cue each for wood (noise 7m), carpet (2.5m, range 15m), metal
+  (10m, range 30m) and water (8m), `FootstepPlaceholder` doubling as stone (6m); and
+  `Assets/Data/SurfaceSoundsPlaceholder.asset` (`SurfaceSoundsPath`) listing them all.
+  **Real clips swapped in 2026-10-04** from `Assets/Audio/footsteps/<set>/` (`.ogg`, each
+  folder with a `license.txt`): the cues kept their "Placeholder" names (the test builders
+  load them by path) but now play `boots` (stone, `FootstepPlaceholder`), `wood`, `metal` and
+  `water`. Carpet has no recording of its own: its cue plays the `grass` clips for now (at
+  carpet's own volume and 2.5m noise), leaving the generated carpet `.wav`s unused. Three
+  more cues were made by hand for the added surfaces (not by the generator, which would
+  recreate `SurfaceSoundsPlaceholder` with only the first five if it were deleted):
+  `FootstepTile` (noise 9m, range 28m), `FootstepGrass` (3m, 18m, volume 0.6) and
+  `FootstepGravel` (9m, 28m), all listed in `SurfaceSoundsPlaceholder`. Unused sets: `bones`,
+  `dog`, `mech`.
+  Most sets are CC-BY 3.0 (swuing, Eelke, EminYILDIRIM, ceberation, sabotovat, Lee Barkovich
+  - credit needed in a release); `bones` and `gravel` are CC0.
 
 **Remaining design (agreed 2026-10-03):**
 

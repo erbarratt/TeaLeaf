@@ -176,9 +176,17 @@ namespace Core
         /// Makes a sound at a world-space position: emits the cue's noise
         /// for guards (its radius multiplied by noiseScale - 0 for none) and
         /// plays its audio for the player, if it reaches them. source is who
-        /// made it (may be null). Returns whether the audio was played.
+        /// made it (may be null). volumeScale multiplies the cue's volume,
+        /// for one sound made softly or hard (a crouched footstep, a heavy
+        /// landing). delay starts the audio that many seconds from now (the
+        /// noise is still emitted at once): for a sound in two parts, like
+        /// the two feet of a landing, with no timer needed by the caller -
+        /// Unity's audio engine does the waiting. muffle (0-1) dulls this
+        /// one sound on top of whatever its route through portals adds: it
+        /// rolls off the high end only, leaving the volume to volumeScale.
+        /// Returns whether the audio was played.
         /// </summary>
-        public bool Play(SoundCue cue, Vector3 position, Transform source = null, float noiseScale = 1f)
+        public bool Play(SoundCue cue, Vector3 position, Transform source = null, float noiseScale = 1f, float volumeScale = 1f, float delay = 0f, float muffle = 0f)
         {
             cue.EmitNoise(position, source, noiseScale);
 
@@ -222,20 +230,28 @@ namespace Core
             audioSource.maxDistance = range;
             audioSource.clip = cue.GetClip(Random.Range(0, cue.ClipCount));
             audioSource.pitch = 1f + Random.Range(-cue.PitchVariation, cue.PitchVariation);
-            audioSource.volume = cue.Volume * Mathf.Lerp(1f, muffledVolume, path.Muffle);
+            audioSource.volume = cue.Volume * volumeScale * Mathf.Lerp(1f, muffledVolume, path.Muffle);
 
             // Pitch is heard in ratios, not Hz (each octave doubles), so the
             // cutoff slides between open and muffled by ratio too: halfway
             // muffled is halfway in octaves.
-            bool muffled = path.Muffle > 0f;
+            // The route's muffle plus the caller's own, capped at fully
+            // muffled.
+            float totalMuffle = Mathf.Clamp01(path.Muffle + muffle);
+            bool muffled = totalMuffle > 0f;
             filter.enabled = muffled;
 
             if (muffled) {
-                filter.cutoffFrequency = OpenCutoff * Mathf.Pow(muffledCutoff / OpenCutoff, path.Muffle);
+                filter.cutoffFrequency = OpenCutoff * Mathf.Pow(muffledCutoff / OpenCutoff, totalMuffle);
             }
 
-            audioSource.Play();
-            _startTimes[voice] = Time.time;
+            if (delay > 0f) {
+                audioSource.PlayDelayed(delay);
+            } else {
+                audioSource.Play();
+            }
+
+            _startTimes[voice] = Time.time + delay;
             return true;
         }
 

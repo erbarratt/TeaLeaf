@@ -33,6 +33,7 @@ namespace Player
         [SerializeField] private PlayerHandInteraction playerHandInteraction;
         [SerializeField] private PlayerClimbing playerClimbing;
         [SerializeField] private PlayerMantling playerMantling;
+        [SerializeField] private PlayerFootsteps playerFootsteps;
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
         [SerializeField] private PlayerHandAnimation playerHandAnimation;
         [SerializeField] private CharacterController characterController;
@@ -70,6 +71,7 @@ namespace Player
             playerLocomotion = GetComponent<PlayerLocomotion>();
             playerClimbing = GetComponent<PlayerClimbing>();
             playerMantling = GetComponent<PlayerMantling>();
+            playerFootsteps = GetComponent<PlayerFootsteps>();
             characterController = GetComponent<CharacterController>();
             playerTransform = transform;
 
@@ -79,15 +81,20 @@ namespace Player
         }
 
         /// <summary>
-        /// Fills in playerTracking if the scene hasn't got it wired: the
-        /// field was added after this component was set up in Main.unity,
-        /// and Reset() only runs when a component is first added. It's on
-        /// the same object, so this is one lookup at startup.
+        /// Fills in playerTracking and playerFootsteps if the scene hasn't
+        /// got them wired: the fields were added after this component was
+        /// set up in Main.unity, and Reset() only runs when a component is
+        /// first added. They're on the same object, so this is one lookup
+        /// each at startup.
         /// </summary>
         private void Awake()
         {
             if (playerTracking == null) {
                 playerTracking = GetComponent<PlayerTracking>();
+            }
+
+            if (playerFootsteps == null) {
+                playerFootsteps = GetComponent<PlayerFootsteps>();
             }
         }
 
@@ -222,6 +229,13 @@ namespace Player
             // it needs this frame's real movement, collision flags, and the
             // isGrounded that Move() just updated.
             playerLocomotion.TickState(isClimbing, appliedMovement, collisionFlags);
+
+            // 7b. Footsteps - after TickState(), since a step depends on
+            // this frame's movement state and real movement. Optional: a
+            // Player without the component is simply silent.
+            if (playerFootsteps != null) {
+                playerFootsteps.Tick(appliedMovement);
+            }
 
             // 8. Hand visuals - after Move() and turning, since the visuals
             // are children of the rig: a snap pose placed any earlier would
