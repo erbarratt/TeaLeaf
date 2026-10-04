@@ -218,6 +218,17 @@ namespace Core
             // outside hears everything else outside in a straight line.
             SoundTestArea.AddRoom("Sound Room Yard", parent, new Vector3(Width * 0.5f, 1.5f, -YardDepth * 0.5f), new Vector3(Width, 3f, YardDepth));
 
+            // Lights, for the visibility test: a torch in the Hall and one
+            // in the Kitchen, and a dimmer lamp at the doorway end of the
+            // Lounge. Nothing else is placed - the moon (a Moonlight on the
+            // scene's Directional Light) lights the Yard and the roofless
+            // upper floor wherever the walls don't shadow them, and the
+            // ground floor's ceiling keeps it out of the rooms below. The
+            // Store is dark: its closed door blocks the Kitchen's torch.
+            AddLight("Light Source Hall Torch", parent, new Vector3(2.5f, 2.2f, 4f), 1f, 6f);
+            AddLight("Light Source Kitchen Torch", parent, new Vector3(6f, 2.2f, 2f), 1f, 5f);
+            AddLight("Light Source Lounge Lamp", parent, new Vector3(5f, 1.2f, 6f), 0.7f, 4f);
+
             Vector2 doorSize = new(DoorWidth, DoorHeight);
             float doorY = DoorHeight * 0.5f;
 
@@ -315,6 +326,31 @@ namespace Core
             emitter.ApplyModifiedPropertiesWithoutUndo();
 
             SoundTestArea.AddEmitter("Sound Emitter Store (impact)", parent, new Vector3(10.5f, 1f, 1f), impactCue, 2f);
+        }
+
+        /// <summary>
+        /// Makes a LightSource under parent, with a Unity point light of
+        /// the same reach so the light can be seen as well as counted. The
+        /// source's level and range are private serialized fields, so
+        /// they're set the way the Inspector would set them.
+        /// </summary>
+        private static void AddLight(string name, Transform parent, Vector3 localPosition, float level, float range)
+        {
+            GameObject light = new(name);
+            light.transform.SetParent(parent, false);
+            light.transform.localPosition = localPosition;
+
+            Light visible = light.AddComponent<Light>();
+            visible.type = LightType.Point;
+            visible.range = range;
+            visible.intensity = 4f * level;
+            visible.color = new Color(1f, 0.75f, 0.45f);
+            visible.shadows = LightShadows.None;
+
+            SerializedObject serialized = new(light.AddComponent<LightSource>());
+            serialized.FindProperty("level").floatValue = level;
+            serialized.FindProperty("range").floatValue = range;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>

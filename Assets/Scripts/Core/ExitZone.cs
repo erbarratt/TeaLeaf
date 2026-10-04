@@ -8,7 +8,7 @@ namespace Core
     /// objective wins the level (LevelManager does the checking).
     ///
     /// Not a trigger collider - just a box worked out with maths, like the
-    /// planned shadow volumes. That keeps it off the physics layers
+    /// sound rooms. That keeps it off the physics layers
     /// entirely: nothing for hand rays to hit, no collision matrix pair to
     /// get right, and it works while a mantle has the CharacterController
     /// switched off.

@@ -34,6 +34,7 @@ namespace Player
         [SerializeField] private PlayerClimbing playerClimbing;
         [SerializeField] private PlayerMantling playerMantling;
         [SerializeField] private PlayerFootsteps playerFootsteps;
+        [SerializeField] private PlayerVisibility playerVisibility;
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
         [SerializeField] private PlayerHandAnimation playerHandAnimation;
         [SerializeField] private CharacterController characterController;
@@ -72,6 +73,7 @@ namespace Player
             playerClimbing = GetComponent<PlayerClimbing>();
             playerMantling = GetComponent<PlayerMantling>();
             playerFootsteps = GetComponent<PlayerFootsteps>();
+            playerVisibility = GetComponent<PlayerVisibility>();
             characterController = GetComponent<CharacterController>();
             playerTransform = transform;
 
@@ -81,11 +83,11 @@ namespace Player
         }
 
         /// <summary>
-        /// Fills in playerTracking and playerFootsteps if the scene hasn't
-        /// got them wired: the fields were added after this component was
-        /// set up in Main.unity, and Reset() only runs when a component is
-        /// first added. They're on the same object, so this is one lookup
-        /// each at startup.
+        /// Fills in playerTracking, playerFootsteps and playerVisibility if
+        /// the scene hasn't got them wired: the fields were added after
+        /// this component was set up in Main.unity, and Reset() only runs
+        /// when a component is first added. They're on the same object, so
+        /// this is one lookup each at startup.
         /// </summary>
         private void Awake()
         {
@@ -95,6 +97,10 @@ namespace Player
 
             if (playerFootsteps == null) {
                 playerFootsteps = GetComponent<PlayerFootsteps>();
+            }
+
+            if (playerVisibility == null) {
+                playerVisibility = GetComponent<PlayerVisibility>();
             }
         }
 
@@ -183,6 +189,12 @@ namespace Player
             // only what's still needed: movement state and the hands.
             if (playerMantling.IsMantling) {
                 playerLocomotion.TickState(false, Vector3.zero, CollisionFlags.None);
+
+                // A guard can still see someone climbing over a ledge.
+                if (playerVisibility != null) {
+                    playerVisibility.Tick();
+                }
+
                 playerHandVisuals.Tick();
                 playerHandInteraction.TickReticles();
                 playerHandAnimation.Tick();
@@ -235,6 +247,13 @@ namespace Player
             // Player without the component is simply silent.
             if (playerFootsteps != null) {
                 playerFootsteps.Tick(appliedMovement);
+            }
+
+            // 7c. Visibility - after TickState() too: it uses where the
+            // body ended up and this frame's movement state. Optional, like
+            // footsteps.
+            if (playerVisibility != null) {
+                playerVisibility.Tick();
             }
 
             // 8. Hand visuals - after Move() and turning, since the visuals

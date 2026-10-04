@@ -37,9 +37,9 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
   `LevelManager`, `ExitZone`), the screen fade (`ScreenFade`), noise events and sound
   propagation (`NoiseSystem`, `SoundCue`, `SoundRoom`, `SoundPortal`, `SoundPropagation`, `SoundPlayer`;
   loops, reverb and a spatialiser planned), surfaces (`SurfaceType`, `SurfaceTag`,
-  `SurfaceSounds`), shared debug
+  `SurfaceSounds`), gameplay light (`SceneLight`, `Moonlight`, `LightSource`), shared debug
   drawing (`DebugLines`, `IDebugDrawable`, `InHeadsetGizmos` - gizmos that also show in the
-  headset); later visibility.
+  headset).
 
 New system folders (`AI`, `Inventory`, `UI`) get their own `CLAUDE.md` when their
 first system lands. Read the relevant one before changing a system you haven't read this
@@ -146,7 +146,7 @@ behaviour. The current order is:
    `playerMantling.Tick()` — detects a possible mantle (arrow), starts one on a stick push, or
    advances the one in progress. **While `IsMantling`, the frame stops here**: the mantle has
    already positioned the rig directly (CharacterController disabled), so only `TickState()`,
-   `playerHandVisuals.Tick()`, `TickReticles()` and `playerHandAnimation.Tick()` run - no
+   `playerVisibility.Tick()`, `playerHandVisuals.Tick()`, `TickReticles()` and `playerHandAnimation.Tick()` run - no
    locomotion, turning or `Move()`.
 5. `_frameMovement` = `playerLocomotion.TickMovement(isClimbing)` (thumbstick + gravity;
    zero while climbing) + `playerClimbing.FrameMovement` while climbing; then
@@ -159,6 +159,9 @@ behaviour. The current order is:
    7b. `playerFootsteps.Tick(appliedMovement)` — after `TickState()`, since a step depends on
    this frame's `MovementState` and real movement (skipped if the Player has no
    `PlayerFootsteps`; not run during a mantle or once the level has ended).
+   7c. `playerVisibility.Tick()` — after `TickState()` too: it samples the light where the
+   body ended up and applies this frame's `MovementState` (skipped if the Player has no
+   `PlayerVisibility`; also run during a mantle, not once the level has ended).
 8. `playerHandVisuals.Tick()` — after turning/`Move()`: hand visuals are children of the rig,
    so a world-space snap pose placed earlier would be dragged off by them, and the physical
    hand sweep needs the controller's final position.
@@ -185,7 +188,7 @@ movement and VR tracking both want per-frame updates, for lower latency.
 ```
 Player                 [Player layer] CharacterController, PlayerTracking, PlayerInputXR,
                        PlayerHaptics, PlayerLocomotion, PlayerClimbing, PlayerMantling,
-                       PlayerFootsteps, PlayerController
+                       PlayerFootsteps, PlayerVisibility, PlayerController
   Camera Offset        (saved at y 1.6m = standing eye height; crouch shifts it)
     Main Camera        Tracked Pose Driver (Tracking/Head* actions)
       Mantle Indicator (MantleIndicator - head-locked, placed a little below centre ~0.5m ahead)
@@ -236,16 +239,21 @@ Interactable/Guard/Projectile; Guard-Projectile. Everything else is off (notably
 Player-PlayerHands, and Climbable with everything - it's a grab volume, not geometry). The
 matrix doesn't affect raycasts/overlaps: queries must pass their own `LayerMask` (hand rays use
 Environment + Interactable + Climbable, so walls block them; physical hand sweeps use
-Environment + Interactable). Shadow volumes are planned as physics-free point-in-box checks,
-so they have no layer.
+Environment + Interactable; light rays - `SceneLight` - use Environment + Interactable, so both block light).
 
 ### Vertical slice design (see `Assets/DEVROADMAP.txt` for the full plan)
 
 Target: one greybox docks/warehouse level — steal an objective item and escape; being caught
 fails and restarts. Agreed mechanics:
 
-- **Visibility:** designer-placed shadow volumes (not real light sampling); torches are linked
-  to the volumes they light, so extinguishing one darkens its area. Crouch/sprint modify it.
+- **Visibility:** worked out from the level's geometry, nothing placed by hand but the lights
+  (decided 2026-10-04, replacing designer-placed shadow volumes). Levels are at night: the
+  base light is **moonlight**, and a point is in full shadow when geometry stands between it
+  and the moon - one physics ray towards the moon, so gameplay shadows fall where the rendered
+  ones do. **Light sources** (torches, lamps) add light within their range, blocked by
+  geometry the same way; extinguishing one just disables it. The brightest light wins.
+  Crouch/sprint modify it: standing in moonlight can be seen, crouching in it only from
+  close up. The rendered shadow map is not read back (too slow); rays stand in for it.
 - **Noise:** footsteps by surface type (scaled by stance), thrown/dropped physics objects,
   doors/interactions — all via a shared noise event system that guards listen to.
 - **Sound (decided 2026-10-03):** a sound must tell the player truthfully where it is on
@@ -278,9 +286,9 @@ fails and restarts. Agreed mechanics:
 ### Planned systems
 
 `Assets/Scripts/{AI,Inventory,UI}` are still empty placeholder folders, and `Core` only holds
-the game state/level manager, the screen fade, the noise and sound system, surfaces and the
+the game state/level manager, the screen fade, the noise and sound system, surfaces, gameplay light and the
 shared debug drawing so far — future systems land there following the same one-class,
-one-responsibility pattern (Core: visibility; AI: guards; Inventory: items/loot; UI: wrist radial/display). Ending the level
+one-responsibility pattern (AI: guards; Inventory: items/loot; UI: wrist radial/display). Ending the level
 always goes through `LevelManager` (`Caught()`, `SetObjectiveCarried()`): no other system
 fades out or reloads the scene itself.
 

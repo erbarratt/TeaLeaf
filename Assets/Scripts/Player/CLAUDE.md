@@ -148,6 +148,21 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   over the stride (distance / time spent moving, `_timeSinceStep`) against the gait's full
   speed (`PlayerLocomotion.MoveSpeed`, or `SprintSpeed` when sprinting; crouch moves at walk
   speed). So loudness = surface x stance x speed.
+- **`PlayerVisibility`** (added 2026-10-04; on the Player root) — how easy the player is to
+  see: `Visibility` 0 (hidden) to 1 (plain sight), the one value guards' vision and the wrist
+  gem should read. `Tick()` (tick step 7c, and during a mantle) averages
+  `Core.SceneLight.LevelAt()` at the head (Main Camera) and the capsule's centre
+  (`LightLevel`, exposed for debug) - **sampled every `sampleInterval` (0.1s), not per
+  frame**, since each sample is a few physics rays - then every frame multiplies by stance
+  from `MovementState` (`crouchScale` 0.6 for both crouch states, `sprintScale` 1.3), clamps
+  to 0-1 and eases `Visibility` towards it at `changeSpeed` (4 per second) so a shadow's
+  edge fades rather than flickers. Stance multiplies, so full shadow stays 0 even when
+  sprinting. Moonlight (0.4)
+  gives 0.4 standing and 0.24 crouched: how far away each can be seen from is the guards'
+  vision to decide (Phase 6). **`VisibilityDebug`** (`Player/Debug`, on the Debug
+  object) - a head-locked gauge drawn through `DebugLines` (needs `InHeadsetGizmos` on): a
+  frame with a bar that fills with `Visibility` (blue to yellow) and a tick under it at the
+  raw `LightLevel`; logs each time the value moves into a different tenth.
 
 ## Climbing and mantling
 

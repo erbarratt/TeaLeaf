@@ -6,6 +6,52 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-04 (continued - visibility and the night look)
+------------------------------------------------------
+- Visibility (Phase 2), and how the design changed twice in a day. Built
+  first as the roadmap said: designer-placed shadow volumes in a lit
+  world. The maintainer pointed out the levels are at night, so it was
+  turned round - light volumes in a dark world, moonlight as a low-level
+  volume. Then the better idea: the editor already shows shadows cast by
+  the geometry, so use those, and place nothing but the lights. That's
+  what was kept. Neither volume version was ever placed in the scene.
+- How it works. The rendered shadows can't be read cheaply (they live on
+  the graphics card), so the same question is asked with a physics ray:
+  from a point towards the moon - does it hit anything? Core.SceneLight
+  .LevelAt(point) returns the brightest light reaching a point: moonlight
+  (Core.Moonlight, on the Directional Light, level 0.4) unless geometry
+  blocks the ray, and each Core.LightSource (torch, lamp: level, range,
+  full brightness out to half the range then fading) unless out of range
+  or blocked. Rays hit Environment + Interactable, so walls, roofs, props
+  and closed doors all block light. Disabling a LightSource puts it out.
+  The catch: gameplay shadows only match the rendered ones where the
+  shadow-casting mesh has a collider.
+- Player.PlayerVisibility (tick step 7c, also during a mantle): one
+  Visibility value, 0 hidden to 1 plain sight. Light is sampled at the
+  head and the middle of the body, averaged, ten times a second (each
+  sample is a few rays); every frame it's multiplied by stance (crouch
+  0.6, sprint 1.3) and eased, so a shadow's edge fades rather than
+  flickers. Moonlight gives 0.4 standing, 0.24 crouched - turning that
+  into "seen from afar" against "only close up" is the guards' vision
+  range, Phase 6.
+- VisibilityDebug: a head-locked gauge drawn through DebugLines (bar =
+  visibility, tick = raw light level), standing in for the wrist gem.
+- Sound Test House: three light sources with matching point lights (Hall
+  and Kitchen torches, a Lounge lamp); the moon does the rest - Yard and
+  roofless upper floor moonlit, ground floor dark away from the torches,
+  Store dark behind its closed door.
+- The night look (done in the editor by the maintainer): Directional
+  Light dimmed and tinted blue, ambient and reflection intensity turned
+  down, and a night sky - Assets/Art/Skyboxes/qwantani_night_puresky_4k
+  .exr (Poly Haven, CC0; 73 MB, under GitHub's 100 MB limit but over its
+  50 MB warning) on a Skybox/Panoramic material, NightSky. Lesson: the
+  Moonlight component is gameplay only - the Light stays enabled, and how
+  dark the scene looks is the light's intensity and, most of all, the
+  ambient setting.
+- Roadmap: Phase 2's shadow volume and light-linking items rewritten for
+  the geometry-based design.
+
+
 2026-10-04 (surfaces and footsteps)
 -----------------------------------
 - Surfaces (Phase 2). Core.SurfaceType (Stone, Wood, Carpet, Metal, Water,

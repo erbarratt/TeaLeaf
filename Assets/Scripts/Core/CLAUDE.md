@@ -4,9 +4,43 @@ Detail for the core systems. The root `CLAUDE.md` holds the project rules, the t
 the physics layers; this file is loaded when working in this folder. Keep it up to date with
 every change to these systems, like the root file.
 
-Planned here (Phase 2): the rest of the sound system (below), shadow volumes and
-light-to-volume linking. The game state/level manager, the screen fade, noise events, sound,
-surfaces and the shared debug drawing exist so far.
+Planned here (Phase 2): the rest of the sound system (below). The game state/level manager,
+the screen fade, noise events, sound, surfaces, gameplay light and the shared debug drawing
+exist so far.
+
+## Gameplay light (added 2026-10-04)
+
+How much light falls on a point, for visibility. **Worked out from the level's geometry;
+only the lights are placed by hand** (maintainer's decision 2026-10-04). Two earlier versions
+the same day were replaced before use: designer-placed shadow volumes in a lit world, then
+light volumes in a dark one - don't bring either back. Levels are at night. The player's
+side (`Player.PlayerVisibility`) is in `Scripts/Player/CLAUDE.md`.
+
+- **`SceneLight`** (static) — `LevelAt(worldPoint)`: 0 = full shadow, 1 = fully lit; the
+  **brightest** light reaching the point (they don't add). Moon first: one
+  `Physics.Raycast` from the point towards the moon; nothing hit = `Moonlight.Level`. Then
+  each lit `LightSource`: skipped if out of range or no brighter here than what's already
+  found, otherwise one `Physics.Linecast` from the source to the point. Rays use
+  Environment + Interactable (mask cached on first use), triggers ignored - so walls, roofs,
+  props and closed doors block light, and gameplay shadows fall where the rendered ones do
+  **provided every shadow-casting mesh has a collider on one of those layers**. The rendered
+  shadow map is deliberately not read back from the GPU (slow, and a frame late). No
+  allocation; callers should sample a few times a second, not per frame.
+- **`Moonlight`** — on the scene's Directional Light. `level` (0.4), `maxDistance` (200m, how
+  far the ray looks), `DirectionToMoon` = `-transform.forward`. `Moonlight.Instance` set in
+  `OnEnable`; with none in the scene nothing is moonlit. Turning the Directional Light moves
+  the gameplay shadows with the rendered ones.
+- **`LightSource`** — a torch or lamp: `level` (0-1), `range` (metres) and
+  `fullBrightnessFraction` (0.5): full level out to that fraction of the range, then a
+  straight-line fade to 0 at the range (`LevelAtDistance()`). Self-registering static list
+  (`Count`/`Get(i)`). **Disabling the component puts it out** - nothing else to update. It's
+  the gameplay light only; the visible light is an ordinary Unity `Light` on the same object
+  (toggling that, flame VFX and audio together is still to do, with the water bolt in
+  Phase 5). Place it a little out from the wall it hangs on. `IDebugDrawable`: orange wire
+  sphere at the range, plus the full-brightness distance when selected.
+- The Sound Test House has three sources with matching point lights (Hall torch, Kitchen
+  torch, Lounge lamp at 0.7); moonlight reaches the Yard and the roofless upper floor where
+  the walls don't shadow them; the Store is dark behind its closed door.
 
 ## Surfaces (added 2026-10-04)
 

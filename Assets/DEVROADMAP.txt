@@ -527,16 +527,23 @@ where it is, on stereo headphones; see Scripts/Core/CLAUDE.md):
 [ ] Real audio: replace the generated placeholder clips in the cues.
     Footsteps done 2026-10-04 (except carpet). Left: the impact cue, a
     carpet footstep, and renaming the cues still called "Placeholder".
-[ ] Shadow volumes: ShadowVolume component (trigger box) with a darkness
-    value. PlayerVisibility (Player namespace) tracks which volumes the
-    player's body/head is inside and outputs a single Visibility 0-1.
-    Default outside any volume = lit.
-[ ] Light-to-volume linking: LightSource component (torch, lamp) holds
-    references to the shadow volume(s) it "lights". While lit, those
-    volumes count as lit; when extinguished, they revert to dark. Also
-    toggles the light, flame VFX and audio.
-[ ] Stance modifies visibility: crouching lowers it, sprinting raises it.
-    Keep the multipliers as serialized fields for tuning.
+[x] Visibility from the level's geometry (changed 2026-10-04 from
+    designer-placed shadow volumes): levels are at night; the base light
+    is moonlight, and a point is in full shadow when geometry is between
+    it and the moon (one physics ray), so gameplay shadows fall where the
+    rendered ones do. Done 2026-10-04: Core.SceneLight.LevelAt(),
+    Core.Moonlight (on the Directional Light) and Player.PlayerVisibility
+    (head + body samples at 10Hz, eased, one Visibility 0-1). Awaiting a
+    proper headset test.
+[x] Light sources (was light-to-volume linking): LightSource component
+    (torch, lamp) with a level and range, blocked by geometry; disabling
+    it puts it out. Done 2026-10-04.
+    [ ] Left: one call that puts a torch out everywhere - the gameplay
+        LightSource, the visible Light, flame VFX and audio together
+        (needed by the water bolt, Phase 5).
+[x] Stance modifies visibility: crouching lowers it, sprinting raises it.
+    Keep the multipliers as serialized fields for tuning. Done 2026-10-04
+    (crouch 0.6, sprint 1.3, in PlayerVisibility).
 [x] Surfaces: SurfaceType enum (Carpet, Wood, Stone, Metal, Water, ...),
     mapped via a small SurfaceTag component or physics material lookup.
     Done 2026-10-04: SurfaceType (also Tile, Grass, Gravel), SurfaceTag
@@ -553,12 +560,13 @@ where it is, on stereo headphones; see Scripts/Core/CLAUDE.md):
     landing is the surface's step played loud twice, not its own sound.
     Real clips for every surface but carpet (which borrows grass).
     Tuned by ear by the maintainer.
-[ ] Debug (Scripts/Core/Debug): on-screen/world-space readout of current
+[x] Debug (Scripts/Core/Debug): on-screen/world-space readout of current
     visibility, stance and last noise; gizmos drawing shadow volumes and
     noise radii. Done 2026-10-03 for noise and sound: NoiseDebug (noise
     spheres, N = test noise + report), NoiseListenerDebug (stand-in
-    ears), SoundEmitterDebug, SoundDebug (L = report). Left: visibility
-    and stance.
+    ears), SoundEmitterDebug, SoundDebug (L = report). Done 2026-10-04
+    for visibility: VisibilityDebug (head-locked gauge + log) and the
+    LightSource range gizmo. Stance is logged by MovementStateDebug.
 
 
 Phase 3 - Interaction framework (Interaction namespace)
