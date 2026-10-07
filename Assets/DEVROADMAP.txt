@@ -649,8 +649,13 @@ Grabbing and props:
     PCVR and Quest standalone. Climbing uses the smoothed hands too.
     [ ] Tune the Quest standalone numbers on the device (first guesses
         so far; only the PCVR set has been tried).
-[ ] Impact noise: ImpactNoise component emits a noise event on collision
+[x] Impact noise: ImpactNoise component emits a noise event on collision
     above a speed threshold, loudness scaled by impact speed + surface.
+    Built and tested 2026-10-07 (Interaction.ImpactNoise): audio and
+    noise in one call; surface loudness from the footstep cues
+    (SurfaceSounds.GetLoudness).
+    [ ] Later: impact sounds per prop material and per surface (one
+        placeholder cue for everything so far).
 [ ] Doors: hinged door, grabbed by handle and swung by the hand (or push to
     open), with Locked state, creak noise event while moving, and NavMesh
     obstacle/link updates so guards can path through.

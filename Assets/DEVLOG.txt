@@ -6,6 +6,44 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-07 (third part - impact noise)
+--------------------------------------
+- Impact noise built (Interaction.ImpactNoise), tested, works. A prop
+  with it sounds when it hits something: one call to the sound player
+  plays the impact for the player and emits the noise for guards, at
+  the point of contact. On the prop's Rigidbody object, separate from
+  Grabbable, so anything physical can have one. Nothing per frame -
+  all of it is in OnCollisionEnter().
+- How hard it hit is the collision's impulse over the prop's mass: the
+  speed the collision took off the prop. Chosen over the speed the two
+  were closing at, because a prop sliding from one floor piece onto the
+  next starts a new collision without losing any speed, and would have
+  sounded. Below 1 m/s silent (a prop settling, or set down gently);
+  from there to 8 m/s the volume goes from a quarter to full and the
+  distance guards hear it from goes from 30% to the cue's whole radius.
+- What it hit: SurfaceSounds.GetLoudness(surface), new - the surface's
+  footstep noise radius over stone's (carpet about 0.4, wood 1.2, metal
+  1.7). So a surface's loudness is still tuned in one place, its
+  footstep cue; the cost is that impacts and footsteps can't be tuned
+  apart per surface. A soft surface also dulls the sound (the sound
+  player's muffle), not just quietens it.
+- Kept from repeating: at most one sound per prop every 0.15s (a prop
+  bouncing or rattling to rest starts many collisions a second), and
+  two props hitting each other sound once - both are told about the
+  same collision in the same physics step, so the second is skipped if
+  it's in the same step and within 0.3m of the last one played.
+- A carried prop makes no impacts: it's out of physics while held.
+- One cue per prop for every surface so far (the placeholder impact) -
+  a bottle sounds the same on wood as on stone but for volume and
+  dullness. Sounds per surface would be a later step.
+- TeaLeaf > Add Grabbable Test Props now gives each prop an ImpactNoise
+  with the placeholder cue and surface sounds. Main.unity as committed
+  does not have them: the scene wasn't saved after testing.
+- Correction to the entry below: the arc's dots were retuned to 0.6cm
+  radius, 30cm apart.
+- Roadmap: impact noise ticked in Phase 3.
+
+
 2026-10-07 (continued - aimed throwing, hand smoothing)
 -------------------------------------------------------
 - Aimed throwing built (Player.PlayerHandThrowing, on Hands), tested,

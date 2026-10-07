@@ -1,3 +1,4 @@
+using Core;
 using Interaction;
 using UnityEditor;
 using UnityEngine;
@@ -154,6 +155,14 @@ namespace Player
                 serialized.FindProperty("gripShape").enumValueIndex = (int)Grabbable.GripShape.Cylinder;
             }
             serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            // The sound it makes when it lands: the placeholder impact cue,
+            // scaled by the surface it hits. Missing assets just leave the
+            // fields empty (no cue = silent).
+            SerializedObject impact = new(prop.AddComponent<ImpactNoise>());
+            impact.FindProperty("cue").objectReferenceValue = AssetDatabase.LoadAssetAtPath<SoundCue>(PlaceholderSounds.ImpactCuePath);
+            impact.FindProperty("surfaceSounds").objectReferenceValue = AssetDatabase.LoadAssetAtPath<SurfaceSounds>(PlaceholderSounds.SurfaceSoundsPath);
+            impact.ApplyModifiedPropertiesWithoutUndo();
         }
     }
 }

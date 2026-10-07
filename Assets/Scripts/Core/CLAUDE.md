@@ -60,7 +60,11 @@ What a floor is made of, for footsteps and landings - the player's now
   physics-material lookup (2026-10-04) because one tag on a group covers a whole floor.
 - **`SurfaceSounds`** (ScriptableObject, Create > TeaLeaf > Surface Sounds) — one entry per
   surface: a footstep `SoundCue`. `GetFootstep(surface)` indexes a lookup array built on
-  first use (rebuilt after an Inspector edit); a surface with no cue uses Stone's. **No
+  first use (rebuilt after an Inspector edit); a surface with no cue uses Stone's.
+  `GetLoudness(surface)` (2026-10-07) = the surface's footstep noise radius over Stone's (1
+  for stone, about 0.4 carpet, 1.7 metal; 1 if a cue is missing): how loud a surface is for
+  anything else landing on it, used by `Interaction.ImpactNoise`, so a surface's loudness is
+  still tuned in one place. **No
   landing cues** (removed 2026-10-04, maintainer's decision): a landing is the surface's
   step played loud, once per foot, by the walker.
   **Heel and toe** (added 2026-10-04, for hard surfaces; on for Stone and Tile): per entry,

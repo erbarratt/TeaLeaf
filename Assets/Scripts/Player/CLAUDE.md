@@ -307,7 +307,8 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   `OnDestroy()` removes the root object, the mesh and the materials.
 - **`GrabbableTestProps`** (`Debug/Editor`, menu **TeaLeaf > Add Grabbable Test Props**) — a
   table 1.2m ahead of the main camera with a cube, a bottle and a crate, each a
-  Rigidbody + `Grabbable` on Interactable. The cube and crate have no grip point or profile
+  Rigidbody + `Grabbable` + `ImpactNoise` (placeholder impact cue and surface sounds, from
+  `Core.PlaceholderSounds`' paths) on Interactable. The cube and crate have no grip point or profile
   (held by the middle).
   The bottle (`BuildBottle()`) is an unscaled root at the middle of the body with a `Body`
   cylinder (8cm x 18cm, box collider so it stands) and a `Neck` cylinder (3cm x 8cm) as

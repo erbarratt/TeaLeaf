@@ -84,6 +84,26 @@ namespace Core
         }
 
         /// <summary>
+        /// How loud a surface is compared with stone: 1 for stone, less
+        /// for a softer surface (carpet), more for a louder one (metal).
+        /// It's the surface's footstep noise radius over stone's, so a
+        /// surface's loudness is still set in one place - its footstep
+        /// cue - and anything else that lands on it (a thrown prop) can
+        /// scale its own sound to match. 1 if either cue is missing.
+        /// </summary>
+        public float GetLoudness(SurfaceType surface)
+        {
+            SoundCue cue = GetFootstep(surface);
+            SoundCue stone = GetFootstep(SurfaceType.Stone);
+
+            if (cue == null || stone == null || stone.NoiseRadius <= 0f) {
+                return 1f;
+            }
+
+            return cue.NoiseRadius / stone.NoiseRadius;
+        }
+
+        /// <summary>
         /// Plays one step on surface at position: the surface's cue, with
         /// its noise (see SoundPlayer.Play() for source and the scales),
         /// then on a heel-and-toe surface the quieter toe a moment later -

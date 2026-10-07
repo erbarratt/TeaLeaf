@@ -77,6 +77,25 @@ Keep it up to date with every change to these systems, like the root file.
   Pose layer state and the `BottleHold` profile) for cylinders; a prop with no profile
   shows `LedgeGrip` (value 0). Other prop shapes (cube, crate) have no hold pose yet.
 
+- **`ImpactNoise`** (built and tested in the headset 2026-10-07) — a prop's sound
+  when it hits something, on its Rigidbody object (`[RequireComponent(Rigidbody)]`); separate
+  from `Grabbable`, so anything physical can have it. Nothing per frame: all in
+  `OnCollisionEnter()`. **How hard** = `collision.impulse.magnitude / mass`, the speed the
+  collision took off the prop in m/s (not `relativeVelocity`: a prop sliding onto the next
+  floor piece starts a collision but loses no speed). Below `minSpeed` (1) silent; from there
+  to `fullSpeed` (8) the volume goes `minVolume` (0.25) to 1 and the noise radius scale
+  `minNoiseScale` (0.3) to 1, of the `cue`'s. **What it hit** =
+  `SurfaceSounds.GetLoudness(SurfaceTag.Of(collision.collider))`, multiplying both (and
+  `Play()`'s `muffle` = 1 - loudness, so a soft surface is duller too); `surfaceSounds` is
+  optional (empty = everything is stone). One `SoundPlayer.Instance.Play()` does audio and
+  noise, at the first contact point (`GetContact(0)`, no array), with the prop as the source;
+  with no sound player in the scene, just `cue.EmitNoise()`. **Kept from repeating:**
+  `minInterval` (0.15s) between sounds from one prop (bouncing, rattling to rest), and two
+  props hitting each other play once - a static "last impact" step and position, skipped if
+  the same physics step and within 0.3m. A kinematic prop (a hand reaching for it) is
+  silent, and a carried one is out of physics, so it makes no impacts. The test props get
+  one from `GrabbableTestProps` with the placeholder impact cue and surface sounds.
+
 ## Climbables
 
 - **Climbables have no mesh** — `ClimbableEdge`/`Ladder` are just a `BoxCollider` and
