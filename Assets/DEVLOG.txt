@@ -81,8 +81,7 @@ Newest updates are at the top.
   built with climbing on the raw tracked position, on the reasoning
   that it moves the body by exactly how far the hand moved; but that
   is also why a shaking hand on a ledge shakes the whole view. The raw
-  position accessors were removed again. This last change is not yet
-  tried in the headset.
+  position accessors were removed again. Tested in the headset, works.
 - A working rule from the maintainer: when a prompt ends with a
   question, answer it and build nothing.
 - Roadmap: aimed throwing ticked in Phase 3.
