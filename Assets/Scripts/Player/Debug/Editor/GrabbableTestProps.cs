@@ -147,6 +147,11 @@ namespace Player
             Rigidbody body = prop.AddComponent<Rigidbody>();
             body.mass = mass;
 
+            // Smoothed between physics steps from the start, so a prop that
+            // is knocked over before it's ever picked up moves smoothly too
+            // (Grabbable sets this itself each time a hand lets go).
+            body.interpolation = RigidbodyInterpolation.Interpolate;
+
             SerializedObject serialized = new(prop.AddComponent<Grabbable>());
             serialized.FindProperty("holdRadius").floatValue = holdRadius;
             serialized.FindProperty("snapProfile").objectReferenceValue = profile;

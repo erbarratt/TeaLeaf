@@ -55,7 +55,9 @@ Keep it up to date with every change to these systems, like the root file.
   `BeginHold()` back to `None`. Physics steps 50 times a second (Fixed Timestep 0.02) and
   the headset draws 72-120, so an un-interpolated prop in flight looked like a low frame
   rate; while held it's placed through its parent, which interpolation would fight. A prop
-  that has never been picked up keeps whatever the scene gave it (None on the test props).
+  that has never been picked up keeps whatever the scene gave it: `Interpolate` on the test
+  props (set by `GrabbableTestProps` and in the scene, 2026-10-07), so one knocked over
+  before it's ever held moves smoothly too. Set it on any new prop.
   **A held prop pushes nothing** (maintainer's request 2026-10-07): `BeginCarry()` - called
   by the holder when the hand has reached the prop (`FinishReach()`), not at the start of
   the reach, so a stack on the prop falls as it's lifted rather than 0.12s early

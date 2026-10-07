@@ -8,6 +8,24 @@ Planned here (Phase 2): the rest of the sound system (below). The game state/lev
 the screen fade, noise events, sound, surfaces, gameplay light, the procedural night sky and
 the shared debug drawing exist so far.
 
+## Foveated rendering (added 2026-10-07; not yet run on a Quest)
+
+- **`FoveatedRendering`** (static, no component, nothing per frame) — asks the XR display for
+  fixed foveated rendering in a Quest build: the edges of each eye's view are drawn at lower
+  resolution. `Apply()` runs by itself once, after the first scene loads
+  (`[RuntimeInitializeOnLoadMethod(AfterSceneLoad)]`), on Android only, and sets
+  `XRDisplaySubsystem.foveatedRenderingLevel` to the `Level` constant (0.5, a first guess; 0 =
+  off, 1 = strongest) with no flags (fixed, not eye-tracked). The level stays set across
+  level restarts. It needs the OpenXR **Foveated Rendering** feature enabled for Android and
+  the **Foveated Rendering API** set to **SRP Foveation** (both set 2026-10-07 in
+  `Assets/XR/Settings/OpenXR Package Settings.asset`); without them the call does nothing.
+  PCVR is left alone. Tune `Level` on the device - too high shimmers at the edges, thin bright
+  things (the stars) first. If it ever needs changing at runtime (a settings menu), give it
+  a public method rather than a component.
+- Other Quest render settings changed the same day: HDR off in `Mobile_RPAsset` (nothing used
+  it; PC keeps it), and the Main Camera's far clip plane 1000m → 200m (the sky is drawn at the
+  far plane whatever its distance; `Moonlight.maxDistance` is a physics ray, unrelated).
+
 ## Procedural night sky (added 2026-10-07; compiles, not yet confirmed in the headset)
 
 **No skybox**: the camera clears to a flat colour (black) and the stars and moon are drawn

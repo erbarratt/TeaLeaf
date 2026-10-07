@@ -36,7 +36,7 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
 - **`Assets/Scripts/Core/CLAUDE.md`** — game state and level restart (`GameState`,
   `LevelManager`, `ExitZone`), the screen fade (`ScreenFade`), noise events and sound
   propagation (`NoiseSystem`, `SoundCue`, `SoundRoom`, `SoundPortal`, `SoundPropagation`, `SoundPlayer`;
-  loops, reverb and a spatialiser planned), surfaces (`SurfaceType`, `SurfaceTag`,
+  loops, reverb and a spatialiser planned), Quest foveated rendering (`FoveatedRendering`), surfaces (`SurfaceType`, `SurfaceTag`,
   `SurfaceSounds`), gameplay light (`SceneLight`, `Moonlight`, `LightSource`), the procedural
   night sky (`ProceduralSky`, `MoonSurfaceBuilder`), shared debug
   drawing (`DebugLines`, `IDebugDrawable`, `InHeadsetGizmos` - gizmos that also show in the
@@ -102,6 +102,38 @@ silently reformat) existing code that doesn't yet match:
   `Shader.PropertyToID` results; use `MaterialPropertyBlock` rather than `.material` writes;
   only touch renderers/materials on state transitions, not every frame; prefer self-registering
   static lists/registries over scene searches or interface `GetComponent` calls.
+
+### Performance rules (Quest 3) — apply to everything built from 2026-10-07
+
+The maintainer's rule: new systems, shaders, content and editor builders are designed against
+these from the start, not fixed up in Phase 10. Say so when a request would break one, and
+offer the cheaper route. The matching tasks are in `Assets/DEVROADMAP.txt` (the "Performance
+rules" block, and Phases 6, 8 and 10).
+
+- **Pixels are the tightest budget** (two eyes, high resolution). No full-screen or
+  post-process effects, and nothing that needs the camera depth or opaque texture, on Quest.
+  No parallax occlusion or other many-sample shaders on surfaces that fill the view. Keep
+  transparent overdraw small; UI and markers stay simple unlit shapes.
+- **Shaders:** unlit or the cheapest lit model that does the job; SRP Batcher compatible
+  (properties in `CBUFFER_START(UnityPerMaterial)`); single-pass-instanced stereo macros;
+  work per vertex rather than per pixel where it looks the same.
+- **Lighting:** baked where it can be, with light probes for things that move. Realtime
+  lights are few and short-ranged, with no realtime shadows of their own (point light shadows
+  are off on Quest). At most four lights besides the moon on any one object.
+- **Static level geometry** is marked Static, on `Environment`, with a small number of shared
+  materials, so it batches, bakes and occlusion-culls. Editor builders that make level or
+  test geometry should set this. Runtime-made renderers turn shadow casting and receiving off
+  unless they need them.
+- **Depth is modelled, detail is textured:** shapes the player gets close to are real
+  geometry (cheap on Quest, correct in stereo); normal maps are for fine surface detail only.
+- **Layout culls:** break long sightlines with level shape and doors, backed by an occlusion
+  bake. Distance haze, nearer cull distances for small props, impostors and application
+  spacewarp are reserves, tried only when profiling asks.
+- **CPU work is sliced:** anything costly (AI senses, pathfinding, light sampling, sound
+  paths) runs a few times a second on a staggered timer, never per frame, and less often
+  when far away or unseen. Physics queries are non-allocating, with their own `LayerMask`.
+- **Nothing is created or destroyed during play:** pool bolts, effects and audio voices;
+  build runtime meshes and materials once, at load.
 
 ## Working with this codebase
 

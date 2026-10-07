@@ -6,6 +6,103 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-07 (fifth part - performance rules and a settings review)
+-----------------------------------------------------------------
+- Started as questions, no code: normal maps against parallax maps,
+  Silent Hill's fog as a way to shorten the draw distance, and a list
+  of the performance tricks used since the start of 3D graphics.
+  What came out of it for this game:
+  - A normal map only changes how a flat surface is lit; parallax
+    shifts where the texture is read, so it shows real depth. The
+    convincing kind (parallax occlusion) takes many texture reads per
+    pixel - too much for Quest on walls and floors, which fill the
+    view. In VR two eyes show a normal-mapped wall is flat up close,
+    and a few real polygons are cheap. So: model the depth the player
+    gets near, keep normal maps for fine detail.
+  - Fog saves nothing itself. It hides the edge of the world so the
+    far clip plane can come in, and that saves draw calls and
+    vertices - not pixels, which are the tight budget. Indoors, walls
+    already do the job. And this game has stars: fogged buildings
+    would stand as flat shapes against them unless the sky fades into
+    the same haze at the horizon. Kept in reserve as thin haze, not
+    planned.
+- The maintainer's rule from today: everything built from here on is
+  designed against the performance list, not fixed up in Phase 10.
+  Written into the root CLAUDE.md as "Performance rules (Quest 3)":
+  pixels first (no full-screen effects, no many-sample shaders on
+  big surfaces), cheap batchable shaders, baked light with few
+  unshadowed realtime lights, static level geometry on shared
+  materials, modelled depth, layouts that break long sightlines,
+  costly CPU work sliced over time, nothing created during play.
+- Roadmap changes (made during the session, at the maintainer's
+  request):
+  - A "Performance rules" block before Phase 0.
+  - Phase 6: guards far away or out of sight think less often; one
+    skinned mesh and material per guard.
+  - Phase 8: lay the level out so it culls itself; mark what never
+    moves Static, on a few shared materials; decide how the moon and
+    the torches are lit (below); no more than four lights besides
+    the moon on one object; far clip plane; haze only if profiling
+    asks.
+  - Phase 10: the settings found in the review, as items.
+  - Stale wording rewritten: shadow volumes (feature list, water
+    bolt, guard vision, the yard beat), the dropped NoiseOccluder
+    layer in guard hearing, and "test scene" where test areas from
+    the TeaLeaf menu are meant. Finished items that mention shadow
+    volumes as history were left.
+- Review of what exists against the list - settings files, the scene
+  file and the scripts were read; nothing was profiled.
+  - Torches shine through walls. They are realtime point lights with
+    no shadows, while the gameplay light (LightSource) is blocked by
+    geometry - so what the player sees and what guards see disagree.
+    Point light shadows are off on Quest and cost six views each. To
+    try first in Phase 8: Mixed lights in Shadowmask mode with no
+    indirect light - the light stays realtime, so a water bolt can
+    still put it out, but its shadows from the level are baked.
+  - Nothing in Main.unity is Static, and the test-area builders don't
+    set it: no batching, lightmaps or occlusion culling, and the
+    whole scene is drawn into the moon's shadow map every frame.
+    Fine for test areas; not to be carried into the real level.
+  - Quest settings (Mobile_RPAsset): HDR on with nothing using it,
+    MSAA off, render scale 0.8, shadows out to 50m at 1024.
+    Foveation not enabled. Far clip plane 1000m.
+  - Every audio clip's .meta reads as Decompress On Load with
+    preloading off, which would mean a hitch the first time each
+    plays. Not checked in the Inspector - it may just be how Unity 6
+    writes the default.
+  - Already in line: no per-frame allocations, scene searches or
+    .material writes in the runtime scripts; physics queries
+    non-allocating and masked; light sampled at 10Hz; the project's
+    shaders unlit; single-pass instanced, Vulkan, IL2CPP, and no
+    post-processing or depth texture on Quest.
+- Changed, at the maintainer's request (none of it seen in the
+  headset or on a Quest; Rider shows no errors):
+  - HDR off in Mobile_RPAsset. PC keeps it.
+  - Foveated rendering set up for Quest builds: the OpenXR feature
+    enabled for Android with the SRP Foveation API (edited in the
+    settings asset by hand - worth confirming in Project Settings),
+    and Core.FoveatedRendering, a small static class that asks the
+    display for level 0.5 once at start-up, on Android only.
+    Enabling the feature only makes foveation possible; the level is
+    0 until code asks. It does nothing through Virtual Desktop: that
+    is a Windows build on SteamVR's runtime, which doesn't offer
+    Meta's foveation.
+  - Main Camera far clip plane 1000m to 200m, a placeholder until
+    there is a level to measure. The sky is drawn at the far plane
+    whatever its distance.
+  - Test props start with Rigidbody interpolation on (the builder
+    and the three in the scene).
+- A wrong finding, corrected: the review said thrown props weren't
+  interpolated. They are - Grabbable has turned interpolation on at
+  every drop and throw, and off while held, since earlier today. Only
+  a prop never yet picked up was missed, which the change above
+  covers. Lesson: read the component, not just the scene file - the
+  scene only shows how a thing starts.
+- Noticed, not changed: the OpenXR "Meta Quest Support" feature is
+  off for Android, so a Quest build isn't fully set up. Noted under
+  Phase 10's first build.
+
+
 2026-10-07 (fourth part - procedural night sky)
 -----------------------------------------------
 - The panoramic photo skybox is gone (the maintainer didn't like it):

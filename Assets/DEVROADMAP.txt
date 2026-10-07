@@ -15,9 +15,11 @@ Vertical slice feature list (agreed scope)
 Movement:     walk, smooth/snap turn, gravity, crouch (done), sprint, jump,
               ledge climbing (done), mantling,
               ladders, rope climbing.
-Visibility:   designer-placed shadow volumes (dark/lit areas), torches
-              linked to the volume they light - extinguishing a torch darkens
-              its area. Wrist-mounted visibility gem for feedback.
+Visibility:   worked out from the level's geometry - moonlight, shadowed
+              wherever something stands between the player and the moon,
+              plus torches and lamps within their range. Extinguishing a
+              torch darkens what it lit. Wrist-mounted visibility gem for
+              feedback.
 Noise:        footsteps by surface type (scaled by sprint/walk/crouch),
               thrown/dropped physics objects, doors and other interactions.
 Guard AI:     patrol, suspicion, search, chase, catch (= fail + restart).
@@ -40,6 +42,33 @@ Hands:        physical hands - the visual hand model collides with the world
 Art:          greybox (ProBuilder/primitives) for environment and props.
               Placeholder humanoid + Mixamo animations for guards. Existing
               real hand models with finger animation/grip poses.
+
+
+Performance rules for everything built from here (added 2026-10-07)
+-------------------------------------------------------------------
+Quest 3 standalone is the real target, and the cheap time to meet it is
+while each thing is built, not in Phase 10. Every phase below follows
+these; the short form is in the root CLAUDE.md ("Performance rules").
+The tasks they lead to are in Phases 6, 8 and 10.
+- Pixels are the tightest budget (two eyes, high resolution): no
+  full-screen effects, no parallax or other many-sample shaders on
+  surfaces that fill the view, as little see-through overdraw as
+  possible.
+- Light is baked where it can be; realtime lights are few, short-ranged
+  and cast no realtime shadows of their own.
+- Level geometry that never moves is marked Static and shares a small
+  number of materials, so it batches, bakes and occlusion-culls.
+- Depth the player gets close to is modelled; normal maps are for fine
+  detail only.
+- Level layout does the culling: bent approaches and doors break long
+  sightlines, backed by an occlusion bake.
+- Anything costly on the CPU (AI senses, pathfinding, light sampling,
+  sound paths) runs a few times a second, staggered, never every frame -
+  and less often again when far away or unseen.
+- Nothing is created or destroyed during play: pool it.
+- Tricks kept in reserve, to try only if profiling asks: light distance
+  haze with nearer cull distances for small props, application
+  spacewarp, impostors.
 
 
 Phase 0 - Finish in-progress work
@@ -717,7 +746,7 @@ Hand crossbow:
     crossbow).
 [ ] Bolt base class + subclasses:
     [ ] Water bolt: hit a LightSource's flame collider to extinguish it
-        (linked shadow volume goes dark). Small splash noise.
+        (what it lit goes dark). Small splash noise.
     [ ] Noisemaker bolt: sticks where it lands and emits repeated loud
         noise events for N seconds - guards investigate.
     [ ] Rope bolt: only sticks into surfaces tagged RopeTarget (wood); spawns
@@ -748,14 +777,16 @@ Setup:
 Perception:
 [ ] Vision: cone angle + range, checked on a staggered timer (e.g. 5-10Hz,
     offset per guard), LOS raycasts to 2-3 points on the player (head,
-    chest, feet). Detection rate scales with player Visibility (from shadow
-    volumes), distance, stance and movement. In full shadow the player is
-    only seen at very close range.
+    chest, feet). Detection rate scales with the player's Visibility
+    (PlayerVisibility, which already includes light and stance), distance
+    and movement. In full shadow the player is only seen at very close
+    range.
 [ ] Detection meter per guard (0-1) that rises/decays; thresholds drive
     state transitions.
-[ ] Hearing: register with NoiseSystem; ignore noises outside range
-    (optionally attenuate through a NoiseOccluder layer); louder noise =
-    more suspicion.
+[ ] Hearing: register with NoiseSystem as an INoiseListener. It already
+    delivers only the noises that reach the guard through rooms and
+    portals, with a loudness and the point it was heard from; louder
+    noise = more suspicion.
 [ ] Body discovery: seeing a KO'd guard in a lit area jumps to Search at the
     body and raises the whole level's alert level (for the slice: those
     guards search longer).
@@ -824,6 +855,14 @@ Performance:
 [ ] Budget: ~4-6 guards in the slice. Stagger perception, avoid
     allocations in state updates, and animator culling mode = cull
     completely when offscreen.
+[ ] Guards far from the player or out of sight think less often (added
+    2026-10-07): a slower perception timer by distance, and no vision
+    rays at all for a guard too far away to see the player. Path
+    requests spread out, never several in one frame.
+[ ] One skinned mesh and one material per guard, a modest bone count,
+    2 bone weights on Quest (the Mobile quality level already says so).
+    No realtime shadow from guards unless Phase 8's lighting choice
+    gives it cheaply; otherwise a blob shadow or none.
 
 
 Phase 7 - Animation
@@ -859,7 +898,7 @@ Design (on paper first):
     this order:
     1. Start: dockside at night, dark. Crouch and move quietly (wood dock
        vs metal ramp teaches surface noise).
-    2. Yard: one patrolling guard, crates, shadow volumes between lamps.
+    2. Yard: one patrolling guard, crates, shadows between the lamps.
        Teaches reading light/dark and patrol timing.
     3. Torch-lit gate: extinguish a torch with a water bolt to cross.
     4. Climb: ledge climb + mantle onto crates, a ladder up to a
@@ -879,11 +918,26 @@ Design (on paper first):
        the route in.
 [ ] Loot target and bolt counts: enough bolts to solve each beat with a
     small spare; tune after playtesting.
+[ ] Lay it out so the level culls itself (added 2026-10-07): no long
+    straight views across the whole site - bent approaches, the yard
+    wall, the warehouse's own walls and doors between areas, so that
+    from any spot only one or two areas can be seen. The interior and
+    the docks should rarely be on screen together.
 Greybox build:
 [ ] Block out in ProBuilder at true VR scale (door heights 2.1m, ceilings,
     catwalk rail heights, ledge heights tested at 1.2-2m).
+[ ] Mark everything that never moves Static (added 2026-10-07; nothing
+    in the scene is yet, and the test-area builders don't set it), on
+    the Environment layer, with a small number of shared materials -
+    one material and one colour-swatch texture can cover the greybox.
+    Box/capsule colliders where they fit; mesh colliders only where the
+    shape needs one.
+[ ] Small props (bottles, coins, crates) cast no realtime shadows.
+    They're on Interactable, not Environment, so that layer can be
+    given a nearer cull distance than walls if profiling asks for it.
 [ ] Tag surfaces (SurfaceType), RopeTarget beams, ClimbableEdges, ladders.
-[ ] Place ShadowVolumes, LightSources and their links.
+[ ] Place the LightSources, each with its visible Unity light (no shadow
+    volumes: visibility is worked out from the geometry, 2026-10-04).
 [ ] Bake the NavMesh; add NavMesh links/obstacles for doors; verify guards
     can't path onto player-only routes (catwalks/roofs).
 [ ] Place guards + PatrolRoutes, loot, bolt pickups, objective, exit zone,
@@ -893,9 +947,39 @@ Lighting (Quest-conscious):
     as a small number of realtime/mixed lights (baked lights can't be
     turned off by a water bolt). Keep realtime lights per view low and
     ranges short.
-[ ] Make sure visible light roughly matches the shadow volumes - the player
-    must be able to trust what they see.
+    [ ] Decide how the moon is lit (added 2026-10-07). It never moves,
+        so its light and shadows on the level can be baked. To try
+        first: the Directional Light as Mixed, lighting mode
+        Subtractive or Shadowmask - the level's shadows come from the
+        lightmap, and only moving things (guards, props, hands) are
+        drawn into a small, short-distance shadow map. Fully realtime,
+        as now, redraws the whole level into the shadow map each frame.
+    [ ] Decide how torches are lit (added 2026-10-07). The problem: a
+        realtime point light with no shadows shines through walls,
+        while the gameplay light (LightSource) is blocked by them - and
+        point light shadow maps cost six views each, off on Quest. To
+        try first: torches as Mixed lights in Shadowmask mode with
+        indirect light at zero - the light itself stays realtime, so a
+        water bolt can still put it out, but its shadows from the level
+        are baked, so walls block it for no shadow map. At most four
+        such lights may overlap at any one spot.
+    [ ] No more than four lights besides the moon reach any one object
+        on Quest (URP Forward's limit; extra ones are dropped and pop).
+        Keep torch ranges short and don't merge the level into a few
+        huge meshes - or test Forward+ on the device.
+    [ ] Light probes along every route the player, guards and props
+        use; one baked reflection probe, or none.
+[ ] Make sure visible light matches the gameplay light (SceneLight) -
+    the player must be able to trust what they see. Every mesh that
+    casts a shadow has a collider on Environment or Interactable.
 [ ] Occlusion culling bake; split the level into chunks that cull cleanly.
+[ ] Set the camera's far clip plane to a little more than the longest
+    view in the level (the sky doesn't depend on it). Brought in from
+    1000m to 200m on 2026-10-07 as a first step.
+[ ] If profiling asks for it: light distance haze (URP's built-in fog,
+    not a depth-based effect) with nearer cull distances for small
+    props. It needs the sky to fade into the same haze at the horizon,
+    and must stay thin enough to read lit and dark areas from afar.
 Audio (placeholder):
 [ ] Ambient bed (water lapping, distant bells, warehouse hum), footsteps per
     surface, door creaks, impacts, crossbow cock/fire, bolt effects,
@@ -924,30 +1008,67 @@ Phase 9 - Game loop, feedback and slice polish
 Phase 10 - Quest 3 performance pass
 -----------------------------------
 [ ] First standalone build (the baseline deferred from Phase 0); profile
-    with the Unity Profiler + OVR Metrics Tool.
+    with the Unity Profiler + OVR Metrics Tool. The OpenXR "Meta Quest
+    Support" feature is still off for Android (seen 2026-10-07) - turn
+    it on first.
     Target a stable 72Hz minimum (90Hz stretch).
 [ ] Rendering: draw call/batch count, SRP Batcher compatibility, MSAA vs
     cost, shadows (likely off for realtime lights), foveation, render
     scale.
+    Found in the 2026-10-07 settings review (Mobile_RPAsset is what a
+    Quest build uses), to settle on the device:
+    [x] HDR was on with no post-processing to use it. Turned off in
+        Mobile_RPAsset 2026-10-07 (PC keeps it). Not yet seen on the
+        device.
+    [ ] MSAA is off and render scale is 0.8. On Quest's GPU 4x MSAA is
+        cheap and matters a lot in VR; try 4x at scale 1.0 and come
+        down only if the frame time says so.
+    [ ] Foveated rendering. Set up 2026-10-07, untested: the OpenXR
+        feature is enabled for Android with the SRP Foveation API, and
+        Core.FoveatedRendering asks for level 0.5 when a Quest build
+        starts. Left: check it on the device and tune the level (watch
+        the stars at the edges of the view).
+    [ ] Dynamic resolution as the safety net for heavy moments.
+    [ ] Environment and prop materials are URP Lit (full PBR). Compare
+        Simple Lit and Baked Lit on the device once lighting is baked.
+    [ ] Main light shadows: distance 50m at 1024 with one cascade is
+        both costly and blurry; with baked level shadows (Phase 8) it
+        only has to cover moving things near the player - try 10-15m.
+    [ ] Keep off for Quest: post-processing, depth and opaque textures,
+        soft shadows, additional light shadows (all off today).
+    [ ] Textures: ASTC, sensible maximum sizes, mipmaps on anything in
+        the world.
+    [ ] Application spacewarp only as a last resort (it has artefacts
+        on fast hands and thin shapes).
 [ ] CPU: zero per-frame GC allocations in gameplay code, perception
     staggering verified, Animator culling, physics layer matrix trimmed,
     fixed timestep appropriate.
+    [x] Props are smoothed between physics steps (50Hz physics, 72-90Hz
+        headset) by Rigidbody interpolation, not a faster physics rate:
+        Grabbable has set it on every drop and throw since 2026-10-07,
+        and the test props now start with it on too.
+[ ] Audio: every clip's import settings read as Decompress On Load
+    with Preload Audio Data off (seen in the .meta files 2026-10-07;
+    check in the Inspector). If so, each clip is decoded on the main
+    thread the first time it plays - a hitch on the first footstep on
+    each surface. Turn preloading on for short sounds; long ambience
+    loops should stream or stay compressed in memory.
 [ ] Object pooling for bolts, impact/noise VFX and audio sources.
 [ ] Record final numbers in DEVLOG.txt as the post-slice baseline.
 
 
 Milestones
 ----------
-M1  Movement complete        Phases 0-1  (all traversal in the test scene)
+M1  Movement complete        Phases 0-1  (all traversal in a test area)
 M2  Stealth core             Phase 2     (visibility, noise, fail/win state)
 M3  Hands on everything      Phases 3-5  (grab, inventory, all tools)
 M4  Guards alive             Phases 6-7  (full AI loop with animation)
 M5  Playable slice           Phases 8-9  (the level, start to finish)
 M6  Quest-ready slice        Phase 10    (standalone at target frame rate)
 
-Recommended: build a small dedicated test scene per milestone (like the
-existing CharacterController test scene) so each system is proven in
-isolation before it goes into the level.
+Recommended: build a small test area per milestone from the TeaLeaf menu
+(like the Sound Test House) so each system is proven in isolation before
+it goes into the level.
 
 
 Explicitly out of scope for the slice
