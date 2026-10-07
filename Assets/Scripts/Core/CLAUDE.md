@@ -5,8 +5,82 @@ the physics layers; this file is loaded when working in this folder. Keep it up 
 every change to these systems, like the root file.
 
 Planned here (Phase 2): the rest of the sound system (below). The game state/level manager,
-the screen fade, noise events, sound, surfaces, gameplay light and the shared debug drawing
-exist so far.
+the screen fade, noise events, sound, surfaces, gameplay light, the procedural night sky and
+the shared debug drawing exist so far.
+
+## Procedural night sky (added 2026-10-07; compiles, not yet confirmed in the headset)
+
+**No skybox**: the camera clears to a flat colour (black) and the stars and moon are drawn
+over it as geometry. Two earlier versions the same day were replaced: a panoramic photo
+skybox (seam, pinched pole), then a generated 1024 cubemap of stars and nebula (seamless, but
+the stars were too soft - a cubemap pixel is ~0.11°, a Quest 3 pixel ~0.04° - and it took
+24 MB). Don't bring a star cubemap back. **A picture only - nothing in it is emissive or
+lights the scene**; brightness is the Directional Light's and the ambient setting's job
+(ambient is Flat).
+
+- **`ProceduralSky`** (`[ExecuteAlways]`; on the Directional Light or any scene object -
+  `Reset()` fills `viewCamera` with the main camera and `moonLight` from its own `Light`, else
+  the scene's `Moonlight`) — in `OnEnable()` makes a `TeaLeaf/Sky` material and two objects
+  at the scene root (`Sky Stars`, `Sky Moon`; `HideFlags.DontSave`, identity rotation - not
+  children, which would turn with the light), sets `RenderSettings.skybox` to null and the
+  camera (`viewCamera`, or `Camera.main` if empty) to clear to `skyColor`; `OnDisable()` puts
+  both back and destroys what it made. `Rebuild()` builds the meshes and sets the material:
+  about a millisecond, synchronous, before the first frame, so it's already behind
+  `ScreenFade`'s level-start black. Nothing per frame in a build: `OnValidate()` (flags a
+  rebuild after an Inspector change) and `Update()` (does it, and keeps the moon on the light
+  while it's rotated) are `#if UNITY_EDITOR`. No cache: there is nothing slow to save.
+- **Stars** — one mesh, one draw call: a quad per star (4 vertices, 2 triangles). Settings:
+  `seed`, `starCount` (2500), `starSize` (degrees, faintest to brightest), `minStarPixels`,
+  `starMinBrightness`/`starMaxBrightness`, `starFaintBias` (higher = fewer bright ones),
+  `starColors` (Gradient, a random point per star), `starColorAmount`, `horizonFade`. One
+  random "magnitude" per star drives both brightness and size. **No star is made below the
+  horizon** (maintainer's decision: they're never seen) - directions are picked on the upper
+  hemisphere only, fading in over `horizonFade` degrees (6) above the horizon.
+- **Moon** — a second one-quad mesh pointing +Z, on its own object that `AimMoon()` (public,
+  cheap) turns to `-moonLight.forward` (the same direction as `Moonlight.DirectionToMoon`);
+  call it if anything ever turns the light at runtime. Sorting order 1, so it's drawn after
+  the stars and covers them. `showMoon`, `moonSize` (degrees across, 4), `moonColor`.
+  It has its own material (same shader, `_SURFACE_TEXTURE` keyword on) when
+  `showMoonSurface` is set; off, a plain disc.
+- **Moon surface** (`MoonSurfaceBuilder`, static; settings in `MoonSurfaceSettings`, the
+  component's `moonSurface` field) — `Build(settings)` paints a greyscale RGBA32 texture
+  (`textureSize` 512, **with mipmaps**, trilinear) that the shader multiplies `moonColor` by.
+  Baked at level load rather than computed per pixel in the shader (decided 2026-10-07)
+  because mipmaps stop sub-pixel crater detail flickering with head movement. The texture is
+  the ball seen straight on: each pixel becomes a point on a unit sphere (`PointOnBall()`,
+  z towards the viewer) and every feature is worked out there, so craters foreshorten at the
+  limb. Burst jobs: `GroundJob` (parallel) - highlands, seas (`seaAmount`, `seaDarkness`,
+  `seaScale`; layered simplex noise over a threshold) and mottling (`roughness`);
+  `CratersJob` (single thread) - craters largest first so small ones overlie big
+  (`craterCount`, `craterSize` as a fraction of the moon's radius, `craterSmallBias`,
+  `craterContrast`: darker floor, bright rim, one side of the rim lit for relief), then
+  `rayCraters` mid-sized craters with streaks (`rayBrightness`, `rayLength`), then
+  `edgeDarkening` and the 8-bit encode. Lit flat as a full moon; no phases yet. A few
+  milliseconds. Jobs must not read static fields of the builder (it has none, for Burst).
+- **Shader `TeaLeaf/Sky`** (`Assets/Art/Shaders/Resources/Sky.shader`; in `Resources` for
+  `Shader.Find()`, stereo-instancing macros, `SRPDefaultUnlit`) — the mesh stores each
+  disc's centre direction (position), linear colour (alpha 0 = add, 1 = cover), corner +
+  radius + twinkle phase (UV0), twinkle speed + weight (UV1); the vertex shader builds the
+  quad. **Camera-locked**: corners are placed 1m from `_WorldSpaceCameraPos` in the star's
+  direction, then depth forced to the far plane - no parallax, identical direction in both
+  eyes (infinity), far clip distance irrelevant. **Minimum size**: a star under
+  `_MinPixelRadius` pixels is drawn at that size and dimmed by the area ratio instead
+  (sub-pixel stars flicker with head movement). **Twinkle**: three sines at unrelated speeds
+  off `_Time`, per-star phase and speed, `_TwinkleAmount`/`_TwinkleSpeed`, scaled from full
+  at the horizon to `_TwinkleOverhead` at the zenith (`twinkleAmount` 0.2, `twinkleSpeed` 5,
+  `twinkleOverhead` 0.3 on the component); brightness only, all per vertex. Fragment: a disc
+  with a one-pixel `fwidth()` edge. Queue `Transparent-400` with `ZTest LEqual`, `ZWrite
+  Off`: after opaques (hidden stars are depth-rejected), before other transparents.
+  `Blend One OneMinusSrcAlpha` so one shader both adds (stars) and covers (moon).
+  `#pragma multi_compile_local _ _SURFACE_TEXTURE` (not `shader_feature`: the moon's
+  material is made in code, so a build would strip the variant) multiplies the colour by
+  `_SurfaceTex`, sampled with the quad's corner coordinates.
+- **Nebula clouds: not built** (dropped with the cubemap; the maintainer wants them later).
+  The agreed route is a small cloud-only cubemap (about 256 per face) behind the stars -
+  clouds are soft, so low resolution doesn't show.
+- The old panorama (`qwantani_night_puresky_4k.exr`) and its `NightSky` material were
+  deleted 2026-10-07. The scene's default reflection was baked from the old sky and stays
+  until lighting is regenerated.
 
 ## Gameplay light (added 2026-10-04)
 

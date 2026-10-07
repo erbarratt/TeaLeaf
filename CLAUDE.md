@@ -37,7 +37,8 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
   `LevelManager`, `ExitZone`), the screen fade (`ScreenFade`), noise events and sound
   propagation (`NoiseSystem`, `SoundCue`, `SoundRoom`, `SoundPortal`, `SoundPropagation`, `SoundPlayer`;
   loops, reverb and a spatialiser planned), surfaces (`SurfaceType`, `SurfaceTag`,
-  `SurfaceSounds`), gameplay light (`SceneLight`, `Moonlight`, `LightSource`), shared debug
+  `SurfaceSounds`), gameplay light (`SceneLight`, `Moonlight`, `LightSource`), the procedural
+  night sky (`ProceduralSky`, `MoonSurfaceBuilder`), shared debug
   drawing (`DebugLines`, `IDebugDrawable`, `InHeadsetGizmos` - gizmos that also show in the
   headset).
 
@@ -317,6 +318,11 @@ fails and restarts. Agreed mechanics:
 - **Physical hands:** the visual hand collides with the world, stops at surfaces, and
   elastic-bands back to the controller once clear (Alyx / Thief VR style). A core concept, part
   of Phase 1; kinematic sweep, no Rigidbody (detail in `Assets/Scripts/Player/CLAUDE.md`).
+- **Sky (decided 2026-10-07):** no skybox - the camera clears to black and
+  `Core.ProceduralSky` draws the stars (camera-locked quads built at level load, none below
+  the horizon, twinkling in the shader) and the moon, a disc where the Directional Light
+  shines from, its cratered face painted into a small texture at level load. A picture only: it lights nothing. Nebula clouds may be added later.
+  Detail in `Assets/Scripts/Core/CLAUDE.md`.
 - **Art:** greybox only (ProBuilder/primitives); out of scope: settings/main menu, save/load,
   final art, combat, fall damage (fall damage/health come in a later damage phase, after the
   slice).
@@ -324,8 +330,8 @@ fails and restarts. Agreed mechanics:
 ### Planned systems
 
 `Assets/Scripts/{AI,Inventory,UI}` are still empty placeholder folders, and `Core` only holds
-the game state/level manager, the screen fade, the noise and sound system, surfaces, gameplay light and the
-shared debug drawing so far — future systems land there following the same one-class,
+the game state/level manager, the screen fade, the noise and sound system, surfaces, gameplay light, the
+procedural night sky and the shared debug drawing so far — future systems land there following the same one-class,
 one-responsibility pattern (AI: guards; Inventory: items/loot; UI: wrist radial/display). Ending the level
 always goes through `LevelManager` (`Caught()`, `SetObjectiveCarried()`): no other system
 fades out or reloads the scene itself.

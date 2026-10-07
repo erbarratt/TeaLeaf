@@ -6,6 +6,80 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-07 (fourth part - procedural night sky)
+-----------------------------------------------
+- The panoramic photo skybox is gone (the maintainer didn't like it):
+  qwantani_night_puresky_4k.exr (73 MB) and the NightSky material are
+  deleted. In its place Core.ProceduralSky, on the Directional Light,
+  makes the sky when the level loads - in OnEnable(), before the first
+  frame, so already behind the level-start black. The sky is a picture
+  only: nothing in it lights the scene; that stays with the Directional
+  Light and the ambient setting.
+- First version, replaced the same day: a generated cubemap (1024 per
+  face) of stars and nebula clouds, with the moon drawn by the skybox
+  shader. Seamless, because every pixel was worked out from its
+  direction alone, and it could be saved as a cached file. Seen in the
+  editor: the stars were too soft. A cubemap pixel at 1024 is about
+  0.11 degrees and a Quest 3 pixel about 0.04, so a star is always at
+  least a blurred cubemap pixel; 2048 would take 96 MB and still be
+  soft. Lesson: points of light don't belong in a texture. The
+  generator, its settings and the cache were removed, not kept.
+- Second version, the one committed: no skybox at all. The camera
+  clears to black and the stars are geometry - one mesh, one draw call,
+  a quad per star, the round shape and a one-pixel smooth edge worked
+  out in the shader (TeaLeaf/Sky). The mesh only stores each star's
+  direction, colour and size; the shader places the corners 1m from the
+  eye in that direction and pushes the depth to the far plane. So the
+  stars are locked to the camera: no parallax, the same direction in
+  both eyes (which is what infinity looks like in stereo), and the far
+  clip distance doesn't matter. Drawn after solid geometry, so stars
+  behind a building are rejected by the depth test.
+- No star is made below the horizon (they'd never be seen): directions
+  are picked on the upper half of the sphere only, fading in over the
+  first few degrees (horizonFade) so they don't stop at a line.
+- Twinkle, in the shader, per vertex: each star's brightness wavers by
+  three sine waves at unrelated speeds, with its own starting point and
+  speed, strongest at the horizon and least overhead. No script work
+  per frame.
+- Against shimmer: a star under a pixel wide flickers as the head
+  moves, so none is drawn smaller than minStarPixels (1.5) - it's drawn
+  that size and dimmed by as much as it was enlarged.
+- Moon: a second quad, turned to where the Directional Light shines
+  from (the same direction Moonlight uses), drawn after the stars so it
+  covers them. One blend mode does both jobs: alpha 0 adds (stars),
+  alpha 1 covers (moon).
+- Moon surface (Core.MoonSurfaceBuilder): the moon's face is painted
+  once at level load into a 512 texture that the shader multiplies the
+  moon's colour by - dark seas, craters of many sizes (largest first,
+  so small ones lie over big ones; darker floor, bright rim, one side
+  of the rim lit), a couple of craters with ray streaks, mottling and a
+  darker edge. Each pixel is first turned into a point on a ball, and
+  everything is worked out there, so craters near the edge are squashed
+  as on the real moon. Painted ahead of time rather than computed per
+  pixel in the shader because a texture has mipmaps, which stop crater
+  detail finer than a screen pixel from flickering. Burst jobs, a few
+  milliseconds. Flat lit, as a full moon; no phases.
+- Shader notes: the moon's version of the shader is a keyword
+  (_SURFACE_TEXTURE) declared with multi_compile, not shader_feature -
+  the moon's material is made in code, and a build strips shader_feature
+  versions that no saved material uses. And a Burst job mustn't touch a
+  class's managed static fields, so the builder has none.
+- Tuning: every setting is on the component and the sky is rebuilt as
+  they're changed, in Edit Mode too. The Scene view keeps its own
+  background, so judge the black in the Game view or the headset.
+- State: compiles, and Unity's log shows no shader or Burst errors. The
+  cubemap version was seen in the editor; the star-quad sky, the
+  twinkle and the moon surface are not yet confirmed in the editor or
+  the headset. To check there: star size and shimmer, twinkle strength,
+  and whether the moon's craters read at 4 degrees.
+- Not built: nebula clouds, left for later. The route agreed is a small
+  cloud-only cubemap (about 256 per face) behind the stars - clouds are
+  soft, so low resolution wouldn't show.
+- The scene's default reflection was baked from the old sky and stays
+  until lighting is regenerated.
+- Roadmap: no change - the sky isn't one of its items.
+
+
 2026-10-07 (third part - impact noise)
 --------------------------------------
 - Impact noise built (Interaction.ImpactNoise), tested, works. A prop
