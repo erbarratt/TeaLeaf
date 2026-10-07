@@ -26,7 +26,11 @@ namespace Player
     public class HandVisualSnap
     {
         private readonly Transform _visual;
-        private readonly float _blendDuration;
+
+        // Seconds a blend takes unless a Snap()/Release() call gives its
+        // own, and the duration of the blend currently running.
+        private readonly float _defaultBlendDuration;
+        private float _blendDuration;
 
         // The controller transform the visual normally lives under, and
         // returns to after a release.
@@ -67,6 +71,7 @@ namespace Player
         public HandVisualSnap(Transform visual, float blendDuration)
         {
             _visual = visual;
+            _defaultBlendDuration = blendDuration;
             _blendDuration = blendDuration;
             _restParent = visual.parent;
             _restLocalPosition = visual.localPosition;
@@ -81,6 +86,17 @@ namespace Player
         /// </summary>
         public void Snap(HandSnapPose pose)
         {
+            Snap(pose, _defaultBlendDuration);
+        }
+
+        /// <summary>
+        /// Snap() with its own blend time, in seconds - for a hand that
+        /// travels further than a grab onto a ledge does (reaching out to
+        /// pick up a prop).
+        /// </summary>
+        public void Snap(HandSnapPose pose, float blendDuration)
+        {
+            _blendDuration = blendDuration;
             _snapPose = pose;
             IsSnapped = true;
 
@@ -124,6 +140,15 @@ namespace Player
         /// </summary>
         public void Release()
         {
+            Release(_defaultBlendDuration);
+        }
+
+        /// <summary>
+        /// Release() with its own blend time, in seconds.
+        /// </summary>
+        public void Release(float blendDuration)
+        {
+            _blendDuration = blendDuration;
             IsSnapped = false;
 
             // Always blend back onto the controller itself, never to where a

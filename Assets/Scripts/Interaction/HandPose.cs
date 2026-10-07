@@ -18,6 +18,8 @@ namespace Interaction
         // Fingers wrapped round a thin bar (Ladder rungs).
         RungGrip,
         // Fingers wrapped round a thicker, vertical rope (ClimbableRope).
-        RopeGrip
+        RopeGrip,
+        // Fingers wrapped round a bottle/cylinder/mug etc.
+        BottleHold
     }
 }

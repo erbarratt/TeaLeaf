@@ -10,7 +10,10 @@ Keep it up to date with every change to these systems, like the root file.
   other systems decide what targeting means). One member, `CanBeTargetedFrom(rayOrigin)`, a
   default interface method returning true - override it to refuse rays from some places
   (`Ladder` does, for its back). A refused ray still stops at the target but finds nothing: no
-  reticle, no grab. **No highlighting** - removed 2026-09-27, the reticle is enough feedback.
+  reticle, no grab. `HasLongReach` (default interface property, false; added 2026-10-04):
+  true lets the hand ray target it out to `PlayerHandInteraction`'s `pickUpRayLength`
+  instead of `rayLength` - `Grabbable` returns true, climbables keep the short reach.
+  **No highlighting** - removed 2026-09-27, the reticle is enough feedback.
   (Was `IHighlightable`.)
 - **`HandTargetRegistry`** — static `Collider → IHandTarget` dictionary. Targets register in
   `OnEnable`/unregister in `OnDisable`, so hand raycasts do a dictionary lookup instead of an
@@ -25,14 +28,54 @@ Keep it up to date with every change to these systems, like the root file.
   2026-10-04, over "stays as grabbed"): `gripPoint` (a child Transform, the grip frame; empty
   = the prop's own origin) and a shared `snapProfile` (`HandSnapProfile`; empty = the hand
   sits exactly on the grip frame). `GetSnapPose()` returns where the hand visual would have
-  to be to hold the prop as it lies; the holder inverts that and brings the prop to the hand.
-  The grab point and head are ignored - a prop is held one way. `holdRadius` (guessed from
+  to be to hold the prop as it lies; the holder snaps the hand visual out to that pose, then
+  carries the prop at the same pose relative to the hand as the hand comes back.
+  **`gripShape`** (2026-10-04): `Point` (default) always uses the grip point, so the prop is
+  held one way (the grab point is ignored) - for things with a handle. `Cylinder` (maintainer's
+  request: a fixed grip point on the far side of a bottle made the hand or bottle flip round)
+  grips like a rope: the grip point (or the prop's origin) is the middle of the grippable
+  part with Y along the axis; `GetCylinderGripFrame()` puts the frame on the surface
+  (`cylinderRadius`, 0.04m) level with the grab point (clamped to `cylinderGripLength`, 0.1m,
+  centred on the grip point), facing straight in at the axis, up along the axis - so the
+  prop always ends the same way up in the hand. **The side is the player's, from the head**
+  (maintainer's request, later the same day; first built from the ray hit's side): towards
+  `headPosition`, turned round the axis by `shoulderAngle` (20°) per hand, exactly as a
+  hanging `ClimbableRope` does it; the ray hit's side, then the grip point's back, are only
+  fallbacks. Selected (and in the headset), a cylinder draws its grippable part through
+  `DebugLines` (`IDebugDrawable`). `holdRadius` (guessed from
   the colliders by `Reset()`) and `LocalCentre` (middle of the solid colliders, rotation-only
   local, measured in `Awake()`) describe the ball the hand's collision grows to while it's
   carried. `BeginHold(heldLayer)`: Rigidbody kinematic, every collider's object moved to the
-  PlayerHands layer (original layers remembered). `EndHold()`: layers restored, non-kinematic,
-  velocities zeroed - it drops from rest. `IsHeld`. No finger pose yet (`HandSnapPose.Pose`
-  is unused for props): a hold pose needs a new `HandPose` value and animation clip.
+  PlayerHands layer (original layers remembered). `EndHold(velocity, angularVelocity)`: non-kinematic,
+  starting with the velocity and spin given - both zero is a drop from rest, anything else a
+  throw (2026-10-07), which also switches the Rigidbody to `ContinuousDynamic` collision
+  detection so a fast prop can't pass through a thin wall between physics steps; its own
+  mode is put back by the next `BeginHold()` (a kinematic body doesn't support it).
+  **Interpolation** (2026-10-07): `EndHold()` sets the Rigidbody to `Interpolate`,
+  `BeginHold()` back to `None`. Physics steps 50 times a second (Fixed Timestep 0.02) and
+  the headset draws 72-120, so an un-interpolated prop in flight looked like a low frame
+  rate; while held it's placed through its parent, which interpolation would fight. A prop
+  that has never been picked up keeps whatever the scene gave it (None on the test props).
+  **A held prop pushes nothing** (maintainer's request 2026-10-07): `BeginCarry()` - called
+  by the holder when the hand has reached the prop (`FinishReach()`), not at the start of
+  the reach, so a stack on the prop falls as it's lifted rather than 0.12s early
+  (maintainer's request) - sets `Rigidbody.detectCollisions` false, `EndHold()` true. During
+  the reach the prop is kinematic but still solid, and doesn't move. A kinematic body otherwise shoves
+  every physics body it's moved into (PlayerHands collides with Interactable), so a carried
+  prop swept others off a table. It behaves like the hand visual, which has no collider: it
+  stops at things only through the hand sweep's held shape. Just before that,
+  `WakeNeighbours()` wakes every Rigidbody within 5cm of the prop's bounds (one
+  `OverlapBoxNonAlloc`, shared 16-slot buffer): switching collisions off doesn't wake
+  sleeping bodies as removing a collider would, so props stacked on the one taken hung in
+  the air (found in the headset 2026-10-07).
+  Either
+  way it is **still on the PlayerHands layer** until
+  `RestoreLayers()`, which the holder calls once the prop is clear of the hand (2026-10-04:
+  restored at once, the hand's own collision pushed the hand visual off the prop it was
+  still wrapped round, flashing the ghost hand). `IsHeld`, `WorldCentre`. **Finger pose:** the profile's `pose`, as for
+  climbables - `BottleHold` (added 2026-10-04: enum value, `Hand_L_BottleHold` clip, Snap
+  Pose layer state and the `BottleHold` profile) for cylinders; a prop with no profile
+  shows `LedgeGrip` (value 0). Other prop shapes (cube, crate) have no hold pose yet.
 
 ## Climbables
 
@@ -190,8 +233,9 @@ values are for targets that snap differently by where the player is or faces: a 
 model-agnostic grip frame; a shared `HandSnapProfile` ScriptableObject (Create > TeaLeaf > Hand
 Snap Profile) applies per-hand position/rotation offsets in that frame, so all targets of one
 kind are tuned in one asset. Profiles live in `Assets/Data/` (`LedgeGrip`, `LadderRung`,
-`RopeGrip`), each with its own finger-pose clip, all tuned in the headset (rung and rope on
-2026-09-30). The profile's `pose` field
-picks the finger pose: `LedgeGrip`, `RungGrip` (ladder rungs) or `RopeGrip` (ropes); a target
+`RopeGrip`, `BottleHold`), each with its own finger-pose clip, all tuned in the headset
+(rung and rope on 2026-09-30; `BottleHold` made 2026-10-04, confirmed 2026-10-07). The
+profile's `pose` field picks the finger pose: `LedgeGrip`, `RungGrip` (ladder rungs),
+`RopeGrip` (ropes) or `BottleHold` (cylinder props: bottles, mugs); a target
 with no profile falls back to its own pose. **Append new `HandPose` values at the end, never
 with explicit numbers** - profiles serialize the pose as its number.

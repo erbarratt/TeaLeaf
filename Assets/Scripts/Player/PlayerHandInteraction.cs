@@ -26,6 +26,12 @@ namespace Player
         // leftHandRayLength/rightHandRayLength.
         [SerializeField] private float rayLength = 0.5f;
 
+        // How far each hand's ray reaches for targets with a long reach
+        // (IHandTarget.HasLongReach - props to pick up), in metres. Longer
+        // than rayLength: the hand goes out to a prop and brings it back,
+        // so it needn't be within arm's reach as a ledge must.
+        [SerializeField] private float pickUpRayLength = 1f;
+
         // Layers hand rays can hit. Defaults to everything so behaviour is
         // unchanged until this is narrowed in the Inspector - restricting
         // it to just an "Interactable"-style layer avoids an unrelated
@@ -114,6 +120,10 @@ namespace Player
         /// Configured length of each hand's ray, in metres - exposed so
         /// HandRayDebug can draw the ray at its true length.
         public float RayLength => rayLength;
+
+        /// Configured length of each hand's ray for long-reach targets
+        /// (props), in metres.
+        public float PickUpRayLength => pickUpRayLength;
 
         private void Awake()
         {
@@ -261,6 +271,10 @@ namespace Player
         /// from origin (IHandTarget.CanBeTargetedFrom) - point is undefined
         /// in the first two cases.
         ///
+        /// The ray is cast at the longer of the two reaches, and a target
+        /// hit beyond rayLength only counts if it has a long reach
+        /// (IHandTarget.HasLongReach - a prop).
+        ///
         /// Looks the hit Collider up in HandTargetRegistry rather than
         /// calling hit.collider.GetComponent<IHandTarget>() - GetComponent
         /// with an interface type has to walk every component on the hit
@@ -271,20 +285,46 @@ namespace Player
         /// </summary>
         private IHandTarget RaycastForTarget(Vector3 origin, Vector3 direction, out Vector3 point)
         {
+            float reach = Mathf.Max(rayLength, pickUpRayLength);
+
             bool rayHit = Physics.Raycast(
                 origin,
                 direction,
                 out RaycastHit hit,
-                rayLength,
+                reach,
                 interactableLayers,
                 QueryTriggerInteraction.Collide);
+
+            // A grab volume (a trigger, and invisible) hit beyond the short
+            // reach can't be gripped from here - and mustn't hide a prop
+            // standing in or behind it, such as a bottle on a wall top
+            // inside the wall's ledge volume. Look again at solid things
+            // only. Rare, so most frames there's no second ray.
+            if (rayHit && hit.distance > rayLength && hit.collider.isTrigger) {
+                rayHit = Physics.Raycast(
+                    origin,
+                    direction,
+                    out hit,
+                    reach,
+                    interactableLayers,
+                    QueryTriggerInteraction.Ignore);
+            }
 
             point = rayHit ? hit.point : default;
             IHandTarget target = rayHit ? HandTargetRegistry.Find(hit.collider) : null;
 
+            if (target is null) {
+                return null;
+            }
+
+            // Too far for anything but a long-reach target.
+            if (hit.distance > rayLength && !target.HasLongReach) {
+                return null;
+            }
+
             // The target may refuse rays from where this hand is (e.g. from
             // behind a ladder) - then it's as if nothing was hit.
-            return target is not null && target.CanBeTargetedFrom(origin) ? target : null;
+            return target.CanBeTargetedFrom(origin) ? target : null;
         }
     }
 }

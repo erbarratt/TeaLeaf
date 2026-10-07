@@ -35,6 +35,11 @@ namespace Player
         [SerializeField] private PlayerInputXR playerInput;
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
+        // Read to keep a carried prop's finger pose on while it's in the
+        // hand. Optional: found in Awake() if not wired (it's on this same
+        // object).
+        [SerializeField] private PlayerHandHolding playerHandHolding;
+
         [Header("Left Hand")]
         [SerializeField] private Animator leftHandAnimator;
 
@@ -57,6 +62,9 @@ namespace Player
         // -1 if the layer is missing.
         private int _snapPoseLayer;
 
+        // Whether the rig has a PlayerHandHolding, checked once in Awake().
+        private bool _hasHandHolding;
+
         // The layer weight and pose each hand's Animator was last given, so
         // SetLayerWeight()/Play() only run when something actually changes -
         // not every frame a hand sits fully snapped or fully at rest.
@@ -78,6 +86,12 @@ namespace Player
         private void Awake()
         {
             _snapPoseLayer = leftHandAnimator.GetLayerIndex(SnapPoseLayerName);
+
+            if (playerHandHolding == null) {
+                playerHandHolding = GetComponent<PlayerHandHolding>();
+            }
+
+            _hasHandHolding = playerHandHolding != null;
 
             // If a controller object (hand visual and Animator included) is
             // ever deactivated - XRI's Input Modality Manager used to do this
@@ -125,6 +139,7 @@ namespace Player
             UpdateHand(
                 leftHandAnimator,
                 playerHandVisuals.LeftVisualSnap,
+                _hasHandHolding ? playerHandHolding.LeftPoseWeight : 0f,
                 playerInput.LeftGrip,
                 playerInput.LeftTrigger,
                 ref _leftAppliedGrip,
@@ -135,6 +150,7 @@ namespace Player
             UpdateHand(
                 rightHandAnimator,
                 playerHandVisuals.RightVisualSnap,
+                _hasHandHolding ? playerHandHolding.RightPoseWeight : 0f,
                 playerInput.RightGrip,
                 playerInput.RightTrigger,
                 ref _rightAppliedGrip,
@@ -152,6 +168,7 @@ namespace Player
         private void UpdateHand(
             Animator handAnimator,
             HandVisualSnap visualSnap,
+            float holdPoseWeight,
             float gripValue,
             float triggerValue,
             ref float appliedGrip,
@@ -176,7 +193,10 @@ namespace Player
                 return;
             }
 
-            float weight = visualSnap.Weight;
+            // A carried prop keeps its pose on after the snap that reached
+            // for it has let go (the snap's weight falls as the hand comes
+            // back) - so whichever asks for more wins.
+            float weight = Mathf.Max(visualSnap.Weight, holdPoseWeight);
 
             // Switch the layer to the target's pose when it changes - e.g. the
             // first grab, or later a ledge followed by a ladder rung. Played

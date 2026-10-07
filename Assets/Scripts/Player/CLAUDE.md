@@ -169,20 +169,60 @@ therefore reads the project's own interaction-free `Player/Turn` action.
 - **`PlayerHandHolding`** (on `Hands`) — picks up, carries and drops `Interaction.Grabbable`s.
   `Tick()` (tick step 4a): a hand whose grip is held, that isn't gripping a climbable, picks
   up the `Grabbable` its hand ray is on ("held" grabbing, like climbing); letting go of grip
-  drops it (from rest - aimed throwing comes later). **A hand does one thing**: this class
+  drops it from rest, or throws it if the hand was moving (below; aimed throwing comes
+  later). **Physical throw** (written 2026-10-07, not yet tried in the headset):
+  `TickThrowSamples()` (in `TickHeld()`) records, per hand, the carried prop's middle
+  (`centreInVisual`, a point in the hand visual's space, set in `FinishReach()` - so a wrist
+  flick counts, and the mirrored right hand is handled), the visual's rotation and the time,
+  **relative to the rig** (a snap turn would otherwise read as a huge throw), in a 32-slot
+  ring made once per hand. No samples while reaching or while the snap's `Weight` is above 0
+  - the trip back from where the prop lay isn't the player's movement. On letting go,
+  `TryGetThrow()` takes the newest sample and the oldest within `throwSampleWindow` (0.1s):
+  velocity = distance / time, spin from the turn between the two rotations. Slower than
+  `throwMinSpeed` (1 m/s, relative to the body) is a drop from rest. Otherwise the prop
+  leaves with that velocity x `throwStrength` (1) turned into the world, plus
+  `CharacterController.velocity` (a throw while running goes faster; a hand held on a wall
+  while walking cancels to nothing), capped at `throwMaxSpeed` (12 m/s). `Drop(hold,
+  canThrow)`: only a grip release can throw - `OnDisable` and a destroyed prop drop from
+  rest. All four values are untuned. **A hand does one thing**: this class
   reads `PlayerClimbing.IsLeft/RightHandGripping`, and `PlayerClimbing.Tick()` treats a
   carrying hand's grip as not held (`IsLeftHolding`/`IsRightHolding`, last frame's);
   `PlayerHandInteraction.TickReticles()` hides a carrying hand's reticle. `LeftHeld`/
-  `RightHeld` expose the prop. **Pick-up** inverts the prop's snap pose: the prop's pose
-  measured from `GetSnapPose()` (rotation and position only) is stored as its pose relative
-  to the hand visual, and the prop blends there from where it lay over `pickUpBlendDuration`
-  (0.1s) - the hand stays put, the prop comes to it. **The prop follows the hand visual, not
-  the controller** (maintainer's decision 2026-10-04), placed in `TickHeld()` (tick step 8a,
-  straight after `PlayerHandVisuals.Tick()`, on every path through `Update()`) **and again
-  in `RenderPipelineManager.beginContextRendering`**, because the Tracked Pose Drivers move
-  the hands once more before rendering; it isn't parented to the visual, since the right
-  visual is mirrored. Carried props are on the PlayerHands layer (`Grabbable.BeginHold`).
-  `OnDisable` drops both hands. Optional everywhere: `PlayerController`, `PlayerClimbing` and
+  `RightHeld` expose the prop. **Pick-up: the hand goes to the prop, then both come back**
+  (maintainer's change 2026-10-04, replacing "the prop blends into a hand that stays put").
+  The prop goes kinematic at once and stays where it lies while that hand's `HandVisualSnap`
+  is snapped to the prop's `GetSnapPose()` over `reachDuration` (0.12s, `isReaching`). When
+  the snap's `Weight` reaches 1, `FinishReach()` (in `TickHeld()`) calls `Grabbable.BeginCarry()` (from here the prop is out
+  of physics and pushes nothing; props resting on it are woken and fall), parents the prop to the
+  visual and releases the snap over `returnDuration` (0.18s), so the prop rides the release
+  blend back to the controller. Letting go mid-reach drops the
+  prop where it lies and releases the snap. The return is the snap's blend, so it isn't
+  collision-swept (the physical follow, with the held shape, takes over once it ends), and
+  the Snap Pose finger layer plays during both blends (the profile's pose, e.g. `BottleHold`;
+  `LedgeGrip`, value 0, for a prop with no profile). **The prop follows the hand visual, not
+  the controller** (maintainer's decision 2026-10-04) - **as a child of the visual**
+  (2026-10-04, later the same day): `SetParent(visual, true)` when the reach ends, back to
+  its original parent and local scale on drop. Nothing places it per frame. It replaced
+  placing the prop in `TickHeld()` and again in
+  `RenderPipelineManager.beginContextRendering`, which left a slight wobble between hand and
+  prop. Parenting alone still left a slight lag; the cure was setting the hands' Tracked Pose
+  Drivers to "Update" (see the root `CLAUDE.md`), so notes below about the hands moving
+  before rendering describe how it was. **Finger pose while carrying:** the reach's snap
+  brings the profile's `HandPose` in, and `LeftPoseWeight`/`RightPoseWeight` (1 while a prop
+  is in the hand, easing to 0 over `poseReleaseDuration` 0.1s after a drop) keep it on -
+  `PlayerHandAnimation` uses the larger of that and the snap's `Weight`. A prop with no
+  profile shows `LedgeGrip` (value 0) while held. The right visual is mirrored (x scale -1): parenting with the world pose kept gives
+  the prop a mirrored local scale that cancels it, so it isn't drawn mirrored (the earlier
+  reason given for not parenting only applies to `worldPositionStays` false). `TickHeld()`
+  (tick step 8a, on every path through `Update()`) now only finishes reaches. Carried props
+  are on the PlayerHands layer (`Grabbable.BeginHold`). **A dropped prop stays on that layer
+  until it's clear of the hand** (`released`, `TickReleased()` in `TickHeld()`): its layers
+  go back (`Grabbable.RestoreLayers()`) once its centre is `HoldRadius + releaseClearance`
+  (0.12m) from the hand visual, after `releaseTimeout` (0.5s), or when that hand picks up
+  something else - until then the hand can't touch or target it, and the body doesn't
+  collide with it. Picking up passes `PlayerTracking.HeadPosition` to `GetSnapPose()` (a
+  cylinder prop is gripped on the player's side). `OnDisable` drops both hands, unless
+  the scene is unloading. Optional everywhere: `PlayerController`, `PlayerClimbing` and
   `PlayerHandInteraction` find it in `Awake()` and work without it.
 - **Held shape** — so a carried prop stops at surfaces with the hand:
   `PlayerHandVisuals.SetHeldShape(isLeftHand, centreFromVisual, radius)`/`ClearHeldShape()` →
@@ -193,14 +233,20 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   runs unchanged. `ShapeRadius(handRadius)` is the radius in use (the debug capsules draw
   it). `PlayerHandVisuals.LeftHandVisual`/`RightHandVisual` expose the visuals, read-only.
 - **`GrabbableTestProps`** (`Debug/Editor`, menu **TeaLeaf > Add Grabbable Test Props**) — a
-  table 1.2m ahead of the main camera with a cube, a bottle (capsule) and a crate, each a
-  Rigidbody + `Grabbable` on Interactable with no grip point or profile (held by the middle).
+  table 1.2m ahead of the main camera with a cube, a bottle and a crate, each a
+  Rigidbody + `Grabbable` on Interactable. The cube and crate have no grip point or profile
+  (held by the middle).
+  The bottle (`BuildBottle()`) is an unscaled root at the middle of the body with a `Body`
+  cylinder (8cm x 18cm, box collider so it stands) and a `Neck` cylinder (3cm x 8cm) as
+  children, and has a cylinder grip and the `BottleHold` profile (`Assets/Data/`, loaded by
+  path; a warning and no profile if it's missing).
 
 ## Climbing and mantling
 
 - **`PlayerClimbing`** — grab-and-pull climbing. A hand grabs the `IClimbable` (ledge, ladder or
   rope) its hand ray is on (`PlayerHandInteraction.LeftTarget`/`RightTarget`) while grip is
-  held, so what the reticle is on is what gets grabbed and the ray length is the grab reach;
+  held, so what the reticle is on is what gets grabbed and the ray length (`rayLength`, the
+  short one) is the grab reach;
   the most recent grab becomes the primary hand, which drives movement (hand-off to the other
   hand on release). Hand deltas are measured in `playerTransform` local space to avoid a
   feedback loop, and any movement the CharacterController didn't apply is retried via
@@ -349,7 +395,9 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   the eased blend as `Weight` (0 = following the controller, 1 = snapped), which
   `PlayerHandAnimation` uses as the finger pose layer weight so the two stay in step. While
   snapped the visual is **detached to the scene root** and re-attached when the release blend
-  ends: the hands' Tracked Pose Drivers use "Update And Before Render", so they move the
+  ends. `Snap(pose, blendDuration)`/`Release(blendDuration)` overloads give one blend its
+  own time (prop pick-up's reach and return); the plain calls use `snapBlendDuration`.
+  Detached because the hands' Tracked Pose Drivers use "Update And Before Render", so they move the
   controller again after all `Update()` code, and a child visual would wobble. Anything that
   must stay world-fixed can't be a child of a tracked transform. (Not parented to the ledge -
   ledges are non-uniformly scaled, which would shear a rotated child.)
@@ -361,7 +409,12 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   visuals tick) (configurable length, layer mask, and
   per-hand angle offset, pre-rotated into a cached local ray direction in `Awake()`/
   `OnValidate()`) and records whatever `IHandTarget` it hits, if the target accepts a ray from
-  that hand (`CanBeTargetedFrom(origin)`, e.g. not from behind a ladder). **Before the ray**,
+  that hand (`CanBeTargetedFrom(origin)`, e.g. not from behind a ladder). **Two reaches**
+  (2026-10-04): `rayLength` (0.5m) for climbables and `pickUpRayLength` (1m) for targets with
+  `IHandTarget.HasLongReach` (props). One ray at the longer length; a hit beyond `rayLength`
+  only counts for a long-reach target. If that far hit is a trigger (an out-of-reach grab
+  volume), the ray is cast once more ignoring triggers, so a prop standing in or behind a
+  ledge volume can still be picked up. **Before the ray**,
   `FindTargetContaining()` checks whether the ray origin is already *inside* a target's
   collider (a 1mm `OverlapSphereNonAlloc` into a shared buffer, triggers included, registry
   lookup): if so that target wins, targeted at the hand itself, and the ray is skipped - a ray
@@ -401,7 +454,7 @@ Avatar Masks are used — each clip only keys its own finger bones, and a Generi
 writes the properties its clips animate. New pose clips should likewise key only the bones they
 need. On top sits the `Snap Pose` layer (Override, default weight 0, driven from code): one
 state per `HandPose` value, **named exactly like the enum value** (`LedgeGrip`, `RungGrip`,
-`RopeGrip`), each
+`RopeGrip`, `BottleHold` - added 2026-10-04, clip `Hand_L_BottleHold`), each
 holding a single-keyframe clip. A snap clip must key **every joint (1, 2 and 3) of every finger
 it poses**: like the other layers it only writes the bones it keys (Write Defaults doesn't reset
 unkeyed bones here), so any unkeyed joint keeps the input layers' curl - and grip is held while
@@ -523,16 +576,24 @@ profiled under the
   Horizontally To Point" off, straight ahead of the player at that point's height and distance
   from the lip (`ClimbableEdge.GetMantleLanding()`, decided 2026-09-30 for long ledges). The
   mantle's rise-then-forward motion is the same either way.
-- **Throwing is aimed, not physical** (decided 2026-09-29, not built yet - Phase 3) — the
-  player doesn't release a held object with a throwing motion. Grip picks an object up; while
+- **Throwing is both aimed and physical** (Phase 3; physical written 2026-10-07 in
+  `PlayerHandHolding`, untested; aimed not built). Aimed throwing was
+  decided 2026-09-29, at first instead of a physical throw; on 2026-10-07 the maintainer
+  asked for both. **Physical:** moving the hand and letting go of grip sends the object off
+  with the hand's recent movement (averaged over a few frames); letting go with a still hand
+  (below a speed threshold) drops it from rest, as now. The velocity is measured from the
+  **visual hand, not the controller** (decided 2026-10-07): the prop follows the visual hand,
+  which stops at walls, so a hand held against a wall throws nothing however the controller
+  moves. **Aimed:** grip picks an object up; while
   holding it, that hand's trigger held shows a trajectory arc, and releasing the trigger plays
   a short hand visual launch animation and throws the object along the arc. Each hand throws
   what it holds with its own trigger, so either hand works and there's no clash with the
   sticks. Throw distance comes from the hand's pitch, like standard VR teleport arcs: a fixed
   launch speed, with the angle taken from where the hand points (range peaks around 45°).
-  This is for accuracy (thrown noisemakers/distractions need to land where intended) and to
-  avoid how awkward physical throwing feels in VR (no weight, release timing, hand-velocity
-  noise). Releasing grip without aiming just drops the object. **Cancel is aim-at-nothing**,
+  This is for accuracy (thrown noisemakers/distractions need to land where intended), which
+  a physical throw is poor at in VR (no weight, release timing, hand-velocity noise).
+  Releasing grip without aiming drops or physically throws the object, by how the hand is
+  moving. **Cancel is aim-at-nothing**,
   as with teleport arcs: pointing the hand steeply up or down, or anywhere the arc has no
   valid landing, turns the arc red/faded, and releasing the trigger then cancels instead of
   throwing. Chosen over a fast-release-throws / slow-release-cancels rule, which silently

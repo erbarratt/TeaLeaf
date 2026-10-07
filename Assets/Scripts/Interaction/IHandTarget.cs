@@ -33,5 +33,14 @@ namespace Interaction
         {
             return true;
         }
+
+        /// <summary>
+        /// Whether a hand ray can target this from further away than it can
+        /// a climbable (PlayerHandInteraction's pickUpRayLength rather than
+        /// its rayLength). False unless overridden: a ledge has to be within
+        /// arm's reach, since the hand grips it where it is, but a prop
+        /// comes back with the hand.
+        /// </summary>
+        bool HasLongReach => false;
     }
 }

@@ -28,9 +28,11 @@ Tools:        blackjack takedown, hand crossbow (either hand, physically
 Inventory:    wrist radial menu to select tools/bolt types; loot pickup and
               pocketing with a running loot total.
 Bodies:       grab and drag KO'd guards to hide them.
-Throwing:     aimed, not physical - hold an object, hold that hand's
-              trigger for a trajectory arc, release the trigger to throw
-              (short hand launch animation).
+Throwing:     two ways, both kept. Aimed (fine control) - hold an object,
+              hold that hand's trigger for a trajectory arc, release the
+              trigger to throw (short hand launch animation). Physical -
+              move the hand and let go of grip, and the object leaves with
+              the hand's movement.
 Hands:        physical hands - the visual hand model collides with the world
               and stops at walls/props instead of passing through, then
               catches back up to the real controller position (Half-Life:
@@ -580,19 +582,36 @@ Grabbing and props:
     IHandTarget pattern. Decided 2026-10-04: a carried prop follows the
     visual hand and stops at walls with it; props are held at an
     authored pose (grip point + HandSnapProfile).
-[ ] Grabbable physics props: pick up, hold, release (release without
-    aiming = drop). Written 2026-10-04 (Interaction.Grabbable,
+[ ] Grabbable physics props: pick up, hold, release (release with a
+    still hand = drop). Written 2026-10-04 (Interaction.Grabbable,
     Player.PlayerHandHolding, the hand sweep's held shape, test props) -
     NOT yet compiled or tested in the headset; tick once it is.
     [ ] Add PlayerHandHolding to the Hands object in Main.unity.
     [ ] Author a prop grip profile and grip points for the test props.
-[ ] Aimed throwing (decided 2026-09-29, replaces the physical throw that
-    averaged PlayerTracking hand velocity): grip holds the object; holding
-    that hand's trigger shows a trajectory arc (drawn as in-world UI with
-    OverlayMaterial); releasing the trigger plays a short hand visual
-    launch animation and throws the object along the arc. Either hand,
-    each with its own trigger. For accuracy, and to avoid the weirdness of
-    physical throwing in VR.
+[ ] Physical throwing (decided 2026-10-07: wanted as well as aimed
+    throwing, not instead of it): move the hand and let go of grip, and
+    the object leaves with the hand's movement. Letting go with a still
+    hand is still a plain drop. Either hand. The quick, natural throw;
+    aimed throwing below is the accurate one.
+    [ ] Hand velocity: track each hand's recent movement (averaged over
+        the last few frames, so one noisy frame doesn't decide the throw)
+        and its turning, for spin. Measured from the visual hand, not the
+        controller (decided 2026-10-07): the prop follows the visual
+        hand, which stops at walls, so a hand held against a wall throws
+        nothing however the controller moves.
+    [ ] Release: on letting go of grip, give the prop that velocity
+        instead of zero. Below a speed threshold it's a drop from rest,
+        as now.
+    [ ] Tune in the headset: averaging window, a throw strength scale,
+        and the drop threshold. The prop already stays on the PlayerHands
+        layer until it's clear of the hand, so it shouldn't catch on it.
+[ ] Aimed throwing (decided 2026-09-29; first meant to replace the
+    physical throw, now alongside it - see above): grip holds the object;
+    holding that hand's trigger shows a trajectory arc (drawn as in-world
+    UI with OverlayMaterial); releasing the trigger plays a short hand
+    visual launch animation and throws the object along the arc. Either
+    hand, each with its own trigger. For accuracy: a thrown distraction
+    has to land where it was meant to.
     [x] Decide the throw input and distance (2026-09-29): trigger hold =
         aim, trigger release = throw; distance from hand pitch with a fixed
         launch speed, teleport-arc style.
@@ -728,6 +747,42 @@ Body dragging:
 Audio feedback:
 [ ] Placeholder barks per state transition (suspicious, searching, gave up,
     spotted, found body) - these are how the player reads AI state.
+[ ] Voice lines that don't repeat (added 2026-10-07). Guards draw from
+    very large pools of lines - big enough that a usual playthrough of a
+    level never hears the same line twice - and a line isn't played again
+    until every other line in its pool has been used. Barks above use
+    this too, and so does idle chatter: now and then a guard on a normal
+    patrol says something to himself.
+    [ ] Voice line pool (Core, beside SoundCue, which picks a clip at
+        random and so can repeat): one pool per kind of line (idle
+        mutter, suspicious, searching, gave up, spotted, found body),
+        each a long list of clips. Lightweight: a shuffled order of clip
+        numbers and a place in it - take the next one each time; when
+        the list runs out, shuffle again, making sure the new first line
+        isn't the one just played. Built once, nothing allocated per
+        line.
+    [ ] Shared and lasting: one record per pool for all guards with that
+        voice, so two guards don't say the same line, and kept for the whole play
+        session - a level restart (being caught) must not start the
+        lines over. So it lives outside the scene, and isn't saved to
+        disk.
+    [ ] Played through SoundPlayer like any other sound (rooms and
+        portals, muffling), from the guard's head. One line at a time
+        per guard; a state bark cuts off an idle mutter.
+    [ ] Idle chatter: on patrol only, at a random interval with a long
+        minimum gap, and not while another guard nearby is talking.
+    [x] Decided 2026-10-07: several guard voices. Each voice has its own
+        set of pools (one per kind of line), each guard is given a voice
+        and keeps it, and "used" is tracked per voice's pool - so guards
+        sharing a voice still don't repeat each other.
+    [x] Decided 2026-10-07: other guards don't react to idle chatter -
+        a spoken line is sound only, not a noise event.
+    [ ] Later, maybe: conversations between two guards (a set of lines
+        played in turn between two voices). Not planned for the slice,
+        but keep the pool usable for it: a conversation would be one
+        entry that isn't repeated, the same as a single line.
+    [ ] Placeholder lines to prove the system; the large pools are a
+        recording job - list the lines wanted per pool, and how many.
 Debug (Scripts/AI/Debug):
 [ ] Gizmos: vision cones, hearing radius, patrol routes, last-known
     position, current state label and detection meter above each guard.

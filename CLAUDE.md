@@ -168,9 +168,10 @@ behaviour. The current order is:
 8. `playerHandVisuals.Tick()` — after turning/`Move()`: hand visuals are children of the rig,
    so a world-space snap pose placed earlier would be dragged off by them, and the physical
    hand sweep needs the controller's final position.
-   8a. `playerHandHolding.TickHeld()` — places carried props at the hand visuals, so straight
-   after them (skipped if the rig has no `PlayerHandHolding`; props are placed once more just
-   before rendering, by the component itself).
+   8a. `playerHandHolding.TickHeld()` — once a hand visual has reached the prop it's picking
+   up, makes the prop a child of it; so straight after the visuals are placed (skipped if the
+   rig has no `PlayerHandHolding`). A carried prop is a child of the hand visual, so nothing
+   places it per frame.
    8b. `playerHandInteraction.TickReticles()` — after grabs and hand visuals, so a hand that
    grabbed this frame already hides its reticle.
 9. `playerHandAnimation.Tick()` — last, so it reads this frame's snap weight from step 8
@@ -211,10 +212,14 @@ Body/movement systems sit on the root, hand systems on `Hands`. `Hands` must sta
 `Camera Offset` with an identity transform: the tracked hands' poses are relative to it, and
 crouch lowers the tracked hierarchy by moving `Camera Offset`.
 
-**Tracked transforms move again before rendering.** The hands' Tracked Pose Drivers use
-"Update And Before Render", so the controllers move once more after all `Update()` code.
-Anything that must stay world-fixed (a snapped hand, a hand held off a wall) can't be a child
-of a tracked transform - it's detached while that applies.
+**The head moves again before rendering; the hands don't** (2026-10-04). The Main Camera's
+Tracked Pose Driver uses "Update And Before Render"; the two hands' use **"Update"** only.
+The hand models are skinned meshes, which were drawn at their `Update()` pose anyway, while
+a plain mesh under the hand (a carried prop) got the later before-render pose - so a carried
+prop lagged the hand until the hands were switched to "Update" (found in the headset; the
+skinning explanation is the working theory, the fix is confirmed). Don't switch them back.
+World-fixed things (a snapped hand, a hand held off a wall) are still detached from the
+controller: it was needed when the hands moved before rendering, and is harmless now.
 
 **Tracking setup** (replaced XROrigin, InputActionManager and XRI's actions, 2026-09-30):
 `PlayerTracking.Start()` puts XR tracking in **Device** mode (head measured from where the
@@ -244,7 +249,8 @@ Environment with Environment/Player/PlayerHands/Interactable/Guard/Projectile;
 Player-Interactable; Player-Guard; PlayerHands-Interactable; Interactable with
 Interactable/Guard/Projectile; Guard-Projectile. Everything else is off (notably
 Player-PlayerHands, and Climbable with everything - it's a grab volume, not geometry). **A
-prop being carried is moved onto `PlayerHands`** (and back when dropped), so the body doesn't
+prop being carried is moved onto `PlayerHands`** (and back when dropped; it's also a child of
+the hand visual while carried), so the body doesn't
 collide with it and hand rays, the hand sweep and light rays ignore it. The
 matrix doesn't affect raycasts/overlaps: queries must pass their own `LayerMask` (hand rays use
 Environment + Interactable + Climbable, so walls block them; physical hand sweeps use
@@ -274,16 +280,24 @@ fails and restarts. Agreed mechanics:
   a room; per-room reverb is planned. Detail in `Assets/Scripts/Core/CLAUDE.md`.
 - **Guard AI:** patrol → suspicion → search → chase → catch (no combat). Knockout state;
   guards react to finding bodies. Placeholder humanoid + Mixamo animations, NavMesh.
+  **Voice lines don't repeat** (decided 2026-10-07, not built): guards draw barks and idle
+  patrol mutterings from very large pools, and a lightweight shared record of the lines used
+  this play session (kept across level restarts) stops one repeating until its whole pool
+  has been heard. Several guard voices, each with its own pools. Other guards don't react to
+  idle chatter (sound only, no noise event); two-guard conversations may come later.
 - **Tools:** blackjack (from-behind takedown on unaware guards), hand crossbow usable in either
   hand, physically cocked, with water / noisemaker / rope bolts; rotate-wrist sweet-spot
   lockpicking with haptics.
 - **Inventory:** wrist radial menu to pick tools/bolt types (equip into the other hand); loot
   pocketed at the hip for a running total.
-- **Throwing is aimed, not physical:** grip picks an object up; holding that hand's trigger
-  shows a trajectory arc (distance from hand pitch, teleport-arc style), and releasing the
-  trigger plays a short hand launch animation and throws along the arc; aiming at nothing
-  (arc red/faded) and releasing cancels. It's for accuracy, and
-  to avoid how awkward physical throwing feels in VR. Detail in `Assets/Scripts/Player/CLAUDE.md`.
+- **Throwing is both aimed and physical** (physical written 2026-10-07, untested; aimed not
+  built yet).
+  Grip picks an object up. Aimed, for accuracy: holding that hand's trigger shows a
+  trajectory arc (distance from hand pitch, teleport-arc style), and releasing the trigger
+  plays a short hand launch animation and throws along the arc; aiming at nothing (arc
+  red/faded) and releasing cancels. Physical, for a quick natural throw: moving the hand and
+  letting go of grip sends the object off with the hand's movement; a still hand just drops
+  it. Detail in `Assets/Scripts/Player/CLAUDE.md`.
 - **Traversal:** sprint, jump, mantling, ladders, rope climbing, drag/hide KO'd bodies.
 - **Physical hands:** the visual hand collides with the world, stops at surfaces, and
   elastic-bands back to the controller once clear (Alyx / Thief VR style). A core concept, part
