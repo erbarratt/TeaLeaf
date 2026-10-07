@@ -6,6 +6,138 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-07 (bottle hold pose, physical throwing)
+------------------------------------------------
+- Bottle hold pose finished and confirmed in the headset. Everything was
+  in place from the 4th (enum value, clip, Snap Pose state, the
+  BottleHold profile) except the last link: the bottle in the scene had
+  no Snap Profile. Most likely it was assigned during Play Mode -
+  changes to an asset made in Play Mode are kept, changes to the scene
+  are not. The test props builder now assigns the profile itself, so a
+  rebuild doesn't lose it. The cube and crate still have no grip point,
+  profile or hold pose.
+- Design change: throwing is BOTH aimed and physical. Aimed throwing
+  (trigger, arc) was first decided as a replacement for the physical
+  throw; the maintainer wants the natural one as well. Decided the same
+  day: the throw is measured from the visual hand, not the controller,
+  so a hand held against a wall throws nothing.
+- Physical throwing built (PlayerHandHolding), tested, works. Each
+  frame a prop is carried, the hand notes where the prop's middle is,
+  which way the hand is turned, and the time, in a ring of 32 slots per
+  hand made once (nothing allocated per frame). On letting go: velocity
+  = the distance between the newest note and the oldest one within the
+  last 0.1s, over the time between them; spin from the turn between the
+  two. Below 1 m/s it's a drop from rest, as before. Details that
+  mattered:
+  - Measured at the prop's middle, not the wrist, so a wrist flick
+    counts.
+  - Measured relative to the rig, with the body's own velocity added
+    back at the throw: in the world, a snap turn swings the hand
+    sideways in one frame and would read as a huge throw. Adding the
+    body back means a throw while running goes further, and a hand
+    stopped on a wall while walking cancels to nothing.
+  - Nothing is noted until the hand is back at the controller after a
+    pick-up, or letting go at once would throw the prop at the player
+    with the return's speed.
+  - Capped at 12 m/s against tracking glitches. A thrown prop switches
+    to continuous collision detection so it can't pass through a thin
+    wall between physics steps; its own setting comes back at the next
+    pick-up (a kinematic body doesn't support it).
+  The four tuning values (window, minimum speed, strength, cap) are
+  still the first guesses - they felt right.
+- Bug: thrown and dropped props looked like a low frame rate, though the
+  movement was right. Physics moves bodies 50 times a second (Fixed
+  Timestep 0.02) and the headset draws 72-120 frames, so a prop sat
+  still for a frame or two, then jumped. Fix: Rigidbody interpolation,
+  set from code - Interpolate when let go, None while held (it's placed
+  through its parent then, and interpolation would pull it back towards
+  where physics last had it). Lesson: it's a setting on each Rigidbody,
+  not the project; lowering the Fixed Timestep instead would make all
+  physics cost more and only match one refresh rate.
+- Change (maintainer's request): a carried prop pushes nothing, like the
+  hand visual. It was a kinematic body, and a kinematic body still
+  shoves any physics body it's moved into. Fix: Rigidbody
+  .detectCollisions off while carried. It still stops at things, because
+  that was never its collider - the hand's sweep covers the prop.
+- Bug that fix caused: take the bottom prop from a stack and the others
+  hung in the air. A body at rest is asleep - not simulated at all,
+  gravity included - until something touches it, and switching
+  collisions off isn't a touch. Fix: Grabbable.WakeNeighbours() wakes
+  every body within 5cm of the prop as it leaves.
+- Then moved to the right moment (maintainer's request): the prop goes
+  out of physics when the hand reaches it (Grabbable.BeginCarry(),
+  called from FinishReach()), not at the start of the reach, so a stack
+  falls as the prop is lifted rather than 0.12s early. During the reach
+  it's kinematic but still solid.
+- Roadmap: physical throwing added to Phase 3 and ticked, with grabbable
+  props. New in Phase 6: guard voice lines that don't repeat - very
+  large pools of barks and idle patrol chatter, a lightweight shared
+  record of the lines used this play session (kept across restarts),
+  several guard voices each with its own pools, other guards don't
+  react to chatter, two-guard conversations maybe later. Not built.
+- Scene tidied by the maintainer: the Locomotion Test Course, Town Test
+  Area, Sound Test Area (rooms A-C) and Noise Test Listeners were
+  removed from Main.unity. The Sound Test House and Grabbable Test
+  Props stay. All of them can be rebuilt from the TeaLeaf menu.
+- Committed part-way through (994eb1a) at the maintainer's request,
+  before this entry was written.
+
+
+2026-10-04 (evening - carrying props in the headset)
+----------------------------------------------------
+- Written up on the 7th. The carrying code from earlier in the day was
+  run for the first time and reworked in the headset; picking up,
+  carrying and dropping all work.
+- Pick-up changed (maintainer's decision): the hand goes out to the
+  prop, then both come back. It was "the prop blends into a hand that
+  stays put". The hand visual is snapped to the prop's pose over 0.12s,
+  as climbing snaps a hand to a ledge; when it arrives the prop is
+  attached and the snap released over 0.18s, so the prop rides the
+  hand back to the controller. Letting go mid-reach leaves the prop
+  where it lies. HandVisualSnap gained Snap/Release overloads that take
+  their own blend time.
+- The carried prop is now a child of the hand visual. Placing it from
+  code each frame, and again just before rendering, left a slight
+  wobble between hand and prop. The earlier reason for not parenting
+  (the right hand is mirrored, so a child would be drawn mirrored) only
+  holds if the world pose isn't kept: SetParent(visual, true) gives the
+  prop a mirrored local scale that cancels the parent's.
+- Bug: parented, the prop still lagged the hand slightly. Fix: the two
+  hands' Tracked Pose Drivers set to "Update" only (the head stays on
+  "Update And Before Render"). Working theory: the hand models are
+  skinned meshes, drawn at their Update pose anyway, while a plain mesh
+  under the hand got the later before-render pose - so the two were a
+  fraction of a frame apart. The fix is confirmed, the explanation
+  isn't. Don't switch them back.
+- Bug: a fixed grip point on the far side of the bottle made the hand
+  or the bottle flip round. Fix: Grabbable.gripShape - Point (one fixed
+  grip, for things with a handle) or Cylinder, which grips like a rope:
+  on the surface, level with where the hand aimed, up along the axis.
+  The side was first taken from where the ray hit, then changed
+  (maintainer's request) to the player's side, from the head, turned
+  20 degrees towards that hand's shoulder - exactly as a hanging rope
+  does it, so the grip looks the same every time.
+- Two reaches for the hand ray: 0.5m for climbables, 1m for props
+  (IHandTarget.HasLongReach). One ray at the longer length; a hit past
+  0.5m only counts for a long-reach target. If that far hit is a
+  climbable's grab volume, the ray is cast once more ignoring triggers,
+  so a prop standing in or behind a ledge volume can still be picked
+  up.
+- Bug: on dropping a prop the ghost hand flashed. The prop went back to
+  its own layer at once, and the hand's collision pushed the hand
+  visual off the prop it was still wrapped round. Fix: a dropped prop
+  stays on the PlayerHands layer until its middle is clear of the hand
+  (hold radius + 0.12m), or 0.5s has passed, or that hand picks up
+  something else.
+- Finger pose while carrying: the reach's snap brings the profile's
+  pose in, and a per-hand pose weight (1 while a prop is in the hand,
+  easing off over 0.1s after a drop) keeps it on after the snap lets
+  go. PlayerHandAnimation takes the larger of the two.
+- Test bottle rebuilt as a body and a neck (box collider on the body so
+  it stands), with a cylinder grip. BottleHold hand pose started: enum
+  value, clip, Snap Pose state and profile made - finished on the 7th.
+
+
 2026-10-04 (third part - carrying props)
 ----------------------------------------
 - Start of Phase 3: picking up, carrying and dropping props. WRITTEN BUT

@@ -582,29 +582,41 @@ Grabbing and props:
     IHandTarget pattern. Decided 2026-10-04: a carried prop follows the
     visual hand and stops at walls with it; props are held at an
     authored pose (grip point + HandSnapProfile).
-[ ] Grabbable physics props: pick up, hold, release (release with a
+[x] Grabbable physics props: pick up, hold, release (release with a
     still hand = drop). Written 2026-10-04 (Interaction.Grabbable,
-    Player.PlayerHandHolding, the hand sweep's held shape, test props) -
-    NOT yet compiled or tested in the headset; tick once it is.
-    [ ] Add PlayerHandHolding to the Hands object in Main.unity.
-    [ ] Author a prop grip profile and grip points for the test props.
-[ ] Physical throwing (decided 2026-10-07: wanted as well as aimed
+    Player.PlayerHandHolding, the hand sweep's held shape, test props),
+    reworked in the headset that evening (the hand reaches out to the
+    prop and both come back; the prop is a child of the hand visual;
+    cylinder grip; two ray reaches) and finished 2026-10-07 (a carried
+    prop is out of physics and pushes nothing; interpolated once let
+    go). Tested in the headset.
+    [x] Add PlayerHandHolding to the Hands object in Main.unity.
+    [x] Author a prop grip profile for the bottle (BottleHold: profile +
+        finger pose, 2026-10-07; a cylinder grip needs no grip point).
+    [ ] Grip points, profiles and hold poses for other prop shapes (the
+        test cube and crate are held by the middle with the ledge
+        fingers) - as real props need them.
+[x] Physical throwing (decided 2026-10-07: wanted as well as aimed
     throwing, not instead of it): move the hand and let go of grip, and
     the object leaves with the hand's movement. Letting go with a still
     hand is still a plain drop. Either hand. The quick, natural throw;
-    aimed throwing below is the accurate one.
-    [ ] Hand velocity: track each hand's recent movement (averaged over
+    aimed throwing below is the accurate one. Built and tested
+    2026-10-07 (PlayerHandHolding).
+    [x] Hand velocity: track each hand's recent movement (averaged over
         the last few frames, so one noisy frame doesn't decide the throw)
         and its turning, for spin. Measured from the visual hand, not the
         controller (decided 2026-10-07): the prop follows the visual
         hand, which stops at walls, so a hand held against a wall throws
-        nothing however the controller moves.
-    [ ] Release: on letting go of grip, give the prop that velocity
-        instead of zero. Below a speed threshold it's a drop from rest,
-        as now.
-    [ ] Tune in the headset: averaging window, a throw strength scale,
-        and the drop threshold. The prop already stays on the PlayerHands
-        layer until it's clear of the hand, so it shouldn't catch on it.
+        nothing however the controller moves. Built: the prop's middle
+        over the last 0.1s, measured in the rig (so a snap turn isn't a
+        throw) with the body's velocity added back.
+    [x] Release: on letting go of grip, give the prop that velocity
+        instead of zero. Below a speed threshold (1 m/s) it's a drop
+        from rest, as before. Capped at 12 m/s; a thrown prop uses
+        continuous collision detection.
+    [x] Tune in the headset: averaging window, a throw strength scale,
+        and the drop threshold. The first values (0.1s, strength 1,
+        1 m/s) felt right and were kept; revisit if playtests say so.
 [ ] Aimed throwing (decided 2026-09-29; first meant to replace the
     physical throw, now alongside it - see above): grip holds the object;
     holding that hand's trigger shows a trajectory arc (drawn as in-world
@@ -633,9 +645,14 @@ Grabbing and props:
 [ ] Grab hand poses: hold-object pose per hand, as a new HandPose value +
     Snap Pose layer state. Grabbables, door handles and tools supply their
     hold position/rotation/pose through the same hand snap pose interface
-    as climbables.
+    as climbables. Done for props (2026-10-07): Grabbable is an
+    IHandSnapTarget, and BottleHold is the first hold pose (one clip,
+    mirrored for the right hand like the others). Door handles and
+    tools to come.
 [ ] Targeting: grabbables/doors/locks implement IHandTarget so the
-    existing hand ray + reticle system works for them unchanged.
+    existing hand ray + reticle system works for them unchanged. Done
+    for grabbables (2026-10-04), with a longer reach than climbables
+    (IHandTarget.HasLongReach); doors and locks to come.
 
 
 Phase 4 - Inventory and wrist radial menu (Inventory + UI namespaces)

@@ -290,7 +290,7 @@ fails and restarts. Agreed mechanics:
   lockpicking with haptics.
 - **Inventory:** wrist radial menu to pick tools/bolt types (equip into the other hand); loot
   pocketed at the hip for a running total.
-- **Throwing is both aimed and physical** (physical written 2026-10-07, untested; aimed not
+- **Throwing is both aimed and physical** (physical built and tested 2026-10-07; aimed not
   built yet).
   Grip picks an object up. Aimed, for accuracy: holding that hand's trigger shows a
   trajectory arc (distance from hand pitch, teleport-arc style), and releasing the trigger
@@ -318,4 +318,8 @@ fades out or reloads the scene itself.
 ### Scenes
 
 `Assets/Scenes/Main.unity` is the sole scene currently in the project, and the only (first)
-scene in the build list.
+scene in the build list. Its test areas are built from the **TeaLeaf** menu (editor scripts
+in each system's `Debug/Editor`) and can be rebuilt at any time. As of 2026-10-07 the scene
+holds only the Sound Test House and the Grabbable Test Props: the maintainer removed the
+Locomotion Test Course, Town Test Area, Sound Test Area and Noise Test Listeners that day
+(the Physical Hands Test Area was already gone), so don't assume those are there.

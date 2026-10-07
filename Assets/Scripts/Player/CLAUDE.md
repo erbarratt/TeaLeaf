@@ -170,7 +170,7 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   `Tick()` (tick step 4a): a hand whose grip is held, that isn't gripping a climbable, picks
   up the `Grabbable` its hand ray is on ("held" grabbing, like climbing); letting go of grip
   drops it from rest, or throws it if the hand was moving (below; aimed throwing comes
-  later). **Physical throw** (written 2026-10-07, not yet tried in the headset):
+  later). **Physical throw** (built and tested in the headset 2026-10-07):
   `TickThrowSamples()` (in `TickHeld()`) records, per hand, the carried prop's middle
   (`centreInVisual`, a point in the hand visual's space, set in `FinishReach()` - so a wrist
   flick counts, and the mirrored right hand is handled), the visual's rotation and the time,
@@ -184,7 +184,8 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   `CharacterController.velocity` (a throw while running goes faster; a hand held on a wall
   while walking cancels to nothing), capped at `throwMaxSpeed` (12 m/s). `Drop(hold,
   canThrow)`: only a grip release can throw - `OnDisable` and a destroyed prop drop from
-  rest. All four values are untuned. **A hand does one thing**: this class
+  rest. The four values are the first guesses, kept because they felt right in the headset.
+  **A hand does one thing**: this class
   reads `PlayerClimbing.IsLeft/RightHandGripping`, and `PlayerClimbing.Tick()` treats a
   carrying hand's grip as not held (`IsLeftHolding`/`IsRightHolding`, last frame's);
   `PlayerHandInteraction.TickReticles()` hides a carrying hand's reticle. `LeftHeld`/
@@ -577,7 +578,7 @@ profiled under the
   from the lip (`ClimbableEdge.GetMantleLanding()`, decided 2026-09-30 for long ledges). The
   mantle's rise-then-forward motion is the same either way.
 - **Throwing is both aimed and physical** (Phase 3; physical written 2026-10-07 in
-  `PlayerHandHolding`, untested; aimed not built). Aimed throwing was
+  `PlayerHandHolding`, tested; aimed not built). Aimed throwing was
   decided 2026-09-29, at first instead of a physical throw; on 2026-10-07 the maintainer
   asked for both. **Physical:** moving the hand and letting go of grip sends the object off
   with the hand's recent movement (averaged over a few frames); letting go with a still hand
