@@ -132,11 +132,13 @@ and wiring only, with no gameplay logic: decisions belong in the system that own
 behaviour. The current order is:
 
 1. `playerInput.Tick()` — cache this frame's input (must be first); then
-   `playerTracking.Tick()` — if the headset was recentred since last frame, put the view
+   `playerTracking.Tick()` — smooth the hands' tracked poses (below), then, if the headset
+   was recentred since last frame, put the view
    upright and at standing height again, before anything reads the head or hands.
    **Once the level has ended** (`LevelManager.StateChanged` → not `Playing`; caught or won,
    during the end fade) **the frame stops here**: the body is frozen - only
    `playerHandInteraction.Tick()`, `playerHandVisuals.Tick()`, `playerHandHolding.TickHeld()`,
+   `playerHandThrowing.Tick(false)`,
    `TickReticles()` and `playerHandAnimation.Tick()` run, so the hands (and anything they
    carry) still follow the controllers.
 2. `playerLocomotion.TickBody()` — re-centre the capsule under the headset and apply crouch
@@ -150,6 +152,7 @@ behaviour. The current order is:
    advances the one in progress. **While `IsMantling`, the frame stops here**: the mantle has
    already positioned the rig directly (CharacterController disabled), so only `TickState()`,
    `playerVisibility.Tick()`, `playerHandVisuals.Tick()`, `playerHandHolding.TickHeld()`,
+   `playerHandThrowing.Tick(false)`,
    `TickReticles()` and `playerHandAnimation.Tick()` run - no locomotion, turning or `Move()`.
 5. `_frameMovement` = `playerLocomotion.TickMovement(isClimbing)` (thumbstick + gravity;
    zero while climbing) + `playerClimbing.FrameMovement` while climbing; then
@@ -171,7 +174,10 @@ behaviour. The current order is:
    8a. `playerHandHolding.TickHeld()` — once a hand visual has reached the prop it's picking
    up, makes the prop a child of it; so straight after the visuals are placed (skipped if the
    rig has no `PlayerHandHolding`). A carried prop is a child of the hand visual, so nothing
-   places it per frame.
+   places it per frame. Then `playerHandThrowing.Tick(canAim)` — aimed throwing: the arc
+   starts from where the prop now is (skipped if the rig has no `PlayerHandThrowing`;
+   `canAim` is false during a mantle and once the level has ended, when nothing new is aimed
+   but a launch already under way still finishes).
    8b. `playerHandInteraction.TickReticles()` — after grabs and hand visuals, so a hand that
    grabbed this frame already hides its reticle.
 9. `playerHandAnimation.Tick()` — last, so it reads this frame's snap weight from step 8
@@ -200,8 +206,9 @@ Player                 [Player layer] CharacterController, PlayerTracking, Playe
     Main Camera        Tracked Pose Driver (Tracking/Head* actions)
       Mantle Indicator (MantleIndicator - head-locked, placed a little below centre ~0.5m ahead)
       Screen Fade      (Core.ScreenFade - at the camera's local origin; fade to/from black)
-    Hands              PlayerHandInteraction, PlayerHandHolding, PlayerHandVisuals,
-                       PlayerHandAnimation (identity transform)
+    Hands              PlayerHandInteraction, PlayerHandHolding, PlayerHandThrowing,
+                       PlayerHandVisuals, PlayerHandAnimation (identity transform)
+      Left/Right Throw Arc   (made at runtime by PlayerHandThrowing)
       Left Hand        [PlayerHands] tracked controller - Tracked Pose Driver (Tracking/LeftHand*)
         Left Hand Visual   (hand.fbx instance, Animator)
         Left Hand Reticle
@@ -220,6 +227,13 @@ prop lagged the hand until the hands were switched to "Update" (found in the hea
 skinning explanation is the working theory, the fix is confirmed). Don't switch them back.
 World-fixed things (a snapped hand, a hand held off a wall) are still detached from the
 controller: it was needed when the hands moved before rendering, and is harmless now.
+
+**The controller objects hold a smoothed pose, not the raw tracking** (2026-10-07, tested).
+`PlayerTracking.Tick()` overwrites the pose the hands' Tracked Pose Drivers wrote with a
+smoothed one (a One Euro filter, tuned per device: PCVR and Quest standalone), so everything
+under or reading `Left Hand`/`Right Hand` is steadied. It relies on the hands' drivers being
+"Update" only. Climbing uses the smoothed pose as well; nothing reads the raw tracking.
+Detail in `Assets/Scripts/Player/CLAUDE.md`.
 
 **Tracking setup** (replaced XROrigin, InputActionManager and XRI's actions, 2026-09-30):
 `PlayerTracking.Start()` puts XR tracking in **Device** mode (head measured from where the
@@ -290,8 +304,9 @@ fails and restarts. Agreed mechanics:
   lockpicking with haptics.
 - **Inventory:** wrist radial menu to pick tools/bolt types (equip into the other hand); loot
   pocketed at the hip for a running total.
-- **Throwing is both aimed and physical** (physical built and tested 2026-10-07; aimed not
-  built yet).
+- **Throwing is both aimed and physical** (physical built and tested 2026-10-07; aimed
+  built the same day in `PlayerHandThrowing`, tested - its launch is a short forward move
+  of the hand visual, not an animation clip; the arc can be drawn as a line or as dots).
   Grip picks an object up. Aimed, for accuracy: holding that hand's trigger shows a
   trajectory arc (distance from hand pitch, teleport-arc style), and releasing the trigger
   plays a short hand launch animation and throws along the arc; aiming at nothing (arc

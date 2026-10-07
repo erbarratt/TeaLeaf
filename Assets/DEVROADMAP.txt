@@ -617,13 +617,15 @@ Grabbing and props:
     [x] Tune in the headset: averaging window, a throw strength scale,
         and the drop threshold. The first values (0.1s, strength 1,
         1 m/s) felt right and were kept; revisit if playtests say so.
-[ ] Aimed throwing (decided 2026-09-29; first meant to replace the
+[x] Aimed throwing (decided 2026-09-29; first meant to replace the
     physical throw, now alongside it - see above): grip holds the object;
     holding that hand's trigger shows a trajectory arc (drawn as in-world
     UI with OverlayMaterial); releasing the trigger plays a short hand
     visual launch animation and throws the object along the arc. Either
     hand, each with its own trigger. For accuracy: a thrown distraction
-    has to land where it was meant to.
+    has to land where it was meant to. Built and tested 2026-10-07
+    (Player.PlayerHandThrowing, Player.ThrowArc). The aim is straight
+    out of the controller, not along the hand ray.
     [x] Decide the throw input and distance (2026-09-29): trigger hold =
         aim, trigger release = throw; distance from hand pitch with a fixed
         launch speed, teleport-arc style.
@@ -632,11 +634,21 @@ Grabbing and props:
         arc red/faded, and releasing the trigger then cancels. (Rejected
         fast-release-throws / slow-release-cancels as unreliable under
         stress and invisible; could be a later secondary cancel.)
-    [ ] Trajectory arc: sampled ballistic curve from the hand, stopping at
+    [x] Trajectory arc: sampled ballistic curve from the hand, stopping at
         the first hit, with a landing marker; red/faded when invalid
-        (cancel state).
-    [ ] Launch animation on the hand visual, releasing the object at the
-        right moment with the velocity that matches the arc.
+        (cancel state). Drawn as a line or as dots (a toggle); the
+        landing is found with at most 25 rays a frame, the drawing uses
+        none.
+    [x] Launch animation on the hand visual, releasing the object at the
+        right moment with the velocity that matches the arc. Done as a
+        short forward move of the hand visual (a snap), not an animation
+        clip; a clip could replace it later if it looks too plain.
+[x] Hand smoothing (added and built 2026-10-07): a One Euro filter on the
+    controllers' tracked poses (PlayerTracking, HandPoseFilter), so the
+    real shake of a hand doesn't show, without lag; tuned separately for
+    PCVR and Quest standalone. Climbing uses the smoothed hands too.
+    [ ] Tune the Quest standalone numbers on the device (first guesses
+        so far; only the PCVR set has been tried).
 [ ] Impact noise: ImpactNoise component emits a noise event on collision
     above a speed threshold, loudness scaled by impact speed + surface.
 [ ] Doors: hinged door, grabbed by handle and swung by the hand (or push to

@@ -74,6 +74,15 @@ namespace Player
             public Grabbable released;
             public float releasedTime;
 
+            // True while the hand is making an aimed throw's launch move:
+            // the prop is still in the hand, and grip is ignored until
+            // PlayerHandThrowing lets it go - see BeginLaunch().
+            public bool isLaunching;
+
+            // True from an aimed throw until grip is next let go - see
+            // TickHand().
+            public bool isWaitingForGripRelease;
+
             // The middle of the carried prop, as a point in the hand
             // visual's own space - set when the prop is attached. The
             // throw's speed is measured there, not at the wrist: a flick
@@ -161,11 +170,13 @@ namespace Player
         // The rig root (the transform the CharacterController is on).
         private Transform _rig;
 
-        /// True while the left hand is carrying a prop.
-        public bool IsLeftHolding => _left.grabbable is not null;
+        /// True while the left hand is carrying a prop - and, after an
+        /// aimed throw, until grip has been let go: the hand is still busy
+        /// as far as climbing and the reticle are concerned.
+        public bool IsLeftHolding => _left.grabbable is not null || _left.isWaitingForGripRelease;
 
-        /// True while the right hand is carrying a prop.
-        public bool IsRightHolding => _right.grabbable is not null;
+        /// True while the right hand is carrying a prop (as IsLeftHolding).
+        public bool IsRightHolding => _right.grabbable is not null || _right.isWaitingForGripRelease;
 
         /// What the left hand is carrying, or null - for throwing, and for
         /// anything that cares what the player has in hand.
@@ -266,10 +277,20 @@ namespace Player
         private void TickHand(HandHold hold, bool isGrabbing, bool isClimbing, IHandTarget rayTarget, Vector3 rayTargetPoint)
         {
             if (hold.grabbable is not null) {
-                if (!isGrabbing) {
+                // A hand part-way through an aimed throw keeps hold until
+                // PlayerHandThrowing lets the prop go, whatever grip does.
+                if (!isGrabbing && !hold.isLaunching) {
                     Drop(hold, true);
                 }
 
+                return;
+            }
+
+            // After an aimed throw grip is still held (the trigger threw
+            // it), and a held grip picks up whatever the hand ray is on.
+            // So the hand stays busy until grip has been let go once.
+            if (hold.isWaitingForGripRelease) {
+                hold.isWaitingForGripRelease = isGrabbing;
                 return;
             }
 
@@ -350,6 +371,32 @@ namespace Player
                 return;
             }
 
+            // From rest unless this is a throw. (The out values are only
+            // used when TryGetThrow() returns true - "&&" doesn't call it
+            // at all when canThrow is false.)
+            Vector3 velocity = Vector3.zero;
+            Vector3 angularVelocity = Vector3.zero;
+
+            if (canThrow && TryGetThrow(hold, out Vector3 throwVelocity, out Vector3 throwSpin)) {
+                velocity = throwVelocity;
+                angularVelocity = throwSpin;
+            }
+
+            LetGo(hold, velocity, angularVelocity);
+        }
+
+        /// <summary>
+        /// The letting go itself, shared by a drop, a physical throw and an
+        /// aimed throw: the prop comes off the hand and goes back under
+        /// physics with the velocity and spin given (both zero = from
+        /// rest), and the hand's collision goes back to just the hand.
+        /// </summary>
+        private void LetGo(HandHold hold, Vector3 velocity, Vector3 angularVelocity)
+        {
+            if (hold == null || hold.grabbable is null) {
+                return;
+            }
+
             // Unity's == null is true for a prop destroyed while carried.
             if (hold.grabbable != null) {
                 // Off the hand first (if it ever got there), keeping its
@@ -359,17 +406,6 @@ namespace Player
                     Transform prop = hold.grabbable.transform;
                     prop.SetParent(hold.originalParent, true);
                     prop.localScale = hold.originalScale;
-                }
-
-                // From rest unless this is a throw. (The out values are
-                // only used when TryGetThrow() returns true - "&&" doesn't
-                // call it at all when canThrow is false.)
-                Vector3 velocity = Vector3.zero;
-                Vector3 angularVelocity = Vector3.zero;
-
-                if (canThrow && TryGetThrow(hold, out Vector3 throwVelocity, out Vector3 throwSpin)) {
-                    velocity = throwVelocity;
-                    angularVelocity = throwSpin;
                 }
 
                 hold.grabbable.EndHold(velocity, angularVelocity);
@@ -384,6 +420,7 @@ namespace Player
             hold.originalParent = null;
 
             hold.grabbable = null;
+            hold.isLaunching = false;
             hold.sampleCount = 0;
             playerHandVisuals.ClearHeldShape(hold.isLeftHand);
 
@@ -391,6 +428,67 @@ namespace Player
                 hold.isReaching = false;
                 SnapFor(hold).Release(returnDuration);
             }
+        }
+
+        /// <summary>
+        /// For PlayerHandThrowing: whether this hand has a prop fully in
+        /// hand - picked up, and the hand back at the controller - and so
+        /// can aim a throw; and if so, where the prop's middle is in the
+        /// world, which is where the throw starts from.
+        /// </summary>
+        public bool TryGetCarriedCentre(bool isLeftHand, out Vector3 centre)
+        {
+            HandHold hold = isLeftHand ? _left : _right;
+            centre = default;
+
+            // != null (Unity's) rather than "is not null": also false for a
+            // prop destroyed while carried.
+            if (hold.grabbable == null || hold.isReaching || hold.isLaunching || SnapFor(hold).Weight > 0f) {
+                return false;
+            }
+
+            centre = hold.visual.TransformPoint(hold.centreInVisual);
+            return true;
+        }
+
+        /// True from BeginLaunch() until the prop leaves this hand, however
+        /// it leaves (thrown, or the prop was destroyed).
+        public bool IsLaunching(bool isLeftHand)
+        {
+            return (isLeftHand ? _left : _right).isLaunching;
+        }
+
+        /// <summary>
+        /// Called by PlayerHandThrowing as an aimed throw's launch move
+        /// starts: from now until ReleaseLaunched() the prop stays in this
+        /// hand even if grip is let go, so the throw can't be cut short
+        /// into a drop.
+        /// </summary>
+        public void BeginLaunch(bool isLeftHand)
+        {
+            HandHold hold = isLeftHand ? _left : _right;
+
+            if (hold.grabbable is not null) {
+                hold.isLaunching = true;
+            }
+        }
+
+        /// <summary>
+        /// Called by PlayerHandThrowing at the end of the launch move: the
+        /// prop leaves this hand with exactly the velocity and spin given
+        /// (the ones its aiming arc was drawn for). The hand then stays
+        /// busy until grip is let go - see TickHand().
+        /// </summary>
+        public void ReleaseLaunched(bool isLeftHand, Vector3 velocity, Vector3 angularVelocity)
+        {
+            HandHold hold = isLeftHand ? _left : _right;
+
+            if (hold.grabbable is null) {
+                return;
+            }
+
+            LetGo(hold, velocity, angularVelocity);
+            hold.isWaitingForGripRelease = true;
         }
 
         /// <summary>

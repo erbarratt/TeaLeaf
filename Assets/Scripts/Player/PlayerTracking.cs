@@ -44,6 +44,34 @@ namespace Player
         // meanwhile (e.g. the headset is off the player's head).
         [SerializeField] private float trackingTimeout = 3f;
 
+        /// Which device's smoothing settings to use.
+        public enum SmoothingTarget
+        {
+            // Quest standalone in an Android build, PCVR otherwise (the
+            // editor and Windows builds, including a Quest streamed to
+            // the PC).
+            Auto,
+            Pcvr,
+            Quest
+        }
+
+        [Header("Hand Smoothing")]
+
+        // Auto picks by what the game is running on. Pcvr and Quest force
+        // one set - e.g. to try the Quest's numbers in the editor.
+        [SerializeField] private SmoothingTarget smoothingTarget = SmoothingTarget.Auto;
+
+        // Smoothing of the controllers' tracking, per device - see
+        // HandSmoothingSettings and SmoothHands(). Read every frame, so
+        // they can be tuned while playing. PCVR starts a little stronger:
+        // streaming adds shake of its own.
+        [SerializeField] private HandSmoothingSettings pcvrSmoothing = new();
+
+        [SerializeField] private HandSmoothingSettings questSmoothing = new() {
+            positionMinCutoff = 5f,
+            rotationMinCutoff = 5f
+        };
+
         // A head moving faster than this between two frames, in metres or
         // degrees per second, didn't really move: the tracking origin did
         // (the headset was recentred). Far beyond anything a neck can do -
@@ -72,8 +100,17 @@ namespace Player
         private Vector3 _lastHeadLocalPosition;
         private Quaternion _lastHeadLocalRotation;
 
+        // One smoothing filter per hand - see SmoothHands().
+        private readonly HandPoseFilter _leftHandFilter = new();
+        private readonly HandPoseFilter _rightHandFilter = new();
+
+        // Whether smoothing ran last frame, so the filters are reset once
+        // when it's switched off rather than every frame it stays off.
+        private bool _wasSmoothing;
+
         private void Awake()
         {
+
             _characterController = GetComponent<CharacterController>();
             _standingControllerHeight = _characterController.height;
             _standingEyeHeight = head.parent.localPosition.y;
@@ -170,6 +207,77 @@ namespace Player
         }
 
         /// <summary>
+        /// Takes the small shake out of both controllers' poses, by
+        /// replacing each controller object's tracked pose with a smoothed
+        /// one (HandPoseFilter) for the rest of the frame.
+        ///
+        /// Each frame, before any script's Update(), the Tracked Pose
+        /// Drivers put the controllers exactly where the tracking says.
+        /// This runs first thing in the player's frame and writes the
+        /// smoothed pose over that - so everything that follows the
+        /// controller objects (the hand models, hand rays, the throw arc, a
+        /// carried prop) is steadied at once, with no changes of their own.
+        /// The hands' drivers don't move them again before rendering, so
+        /// the smoothed pose is also the one that's drawn.
+        ///
+        /// Smoothed relative to the controllers' parent - the tracking
+        /// space - not in the world: walking or turning the body then isn't
+        /// hand movement, so it neither weakens the smoothing nor leaves
+        /// the hands trailing behind the body.
+        ///
+        /// Climbing uses the smoothed pose too: it moves the body by the
+        /// hand's movement, so a shaking hand on a ledge shook the whole
+        /// view.
+        /// </summary>
+        private void SmoothHands()
+        {
+            leftHand.GetLocalPositionAndRotation(out Vector3 leftPosition, out Quaternion leftRotation);
+            rightHand.GetLocalPositionAndRotation(out Vector3 rightPosition, out Quaternion rightRotation);
+
+            HandSmoothingSettings settings = CurrentSmoothing();
+
+            if (!settings.enabled) {
+                if (_wasSmoothing) {
+                    _wasSmoothing = false;
+                    _leftHandFilter.Reset();
+                    _rightHandFilter.Reset();
+                }
+
+                return;
+            }
+
+            _wasSmoothing = true;
+
+            // Real time, not game time: the hands are the player's own, and
+            // must keep up even if the game is ever slowed or paused.
+            float deltaTime = Time.unscaledDeltaTime;
+
+            _leftHandFilter.Filter(ref leftPosition, ref leftRotation, settings, deltaTime);
+            _rightHandFilter.Filter(ref rightPosition, ref rightRotation, settings, deltaTime);
+
+            leftHand.SetLocalPositionAndRotation(leftPosition, leftRotation);
+            rightHand.SetLocalPositionAndRotation(rightPosition, rightRotation);
+        }
+
+        /// <summary>
+        /// The smoothing settings for the device the game is running on (or
+        /// the one smoothingTarget forces).
+        /// </summary>
+        private HandSmoothingSettings CurrentSmoothing()
+        {
+            switch (smoothingTarget) {
+                case SmoothingTarget.Pcvr:
+                    return pcvrSmoothing;
+                case SmoothingTarget.Quest:
+                    return questSmoothing;
+                default:
+                    // A Quest standalone build is an Android build; the
+                    // editor and Windows builds are PCVR.
+                    return Application.platform == RuntimePlatform.Android ? questSmoothing : pcvrSmoothing;
+            }
+        }
+
+        /// <summary>
         /// Watches for the headset being recentred mid-game (the Quest's own
         /// recentre, or the runtime sorting its tracking out), and calibrates
         /// again when it happens. A recentre shows up as the head's raw
@@ -181,10 +289,13 @@ namespace Player
         /// it has to be undone the moment the jump is seen.
         ///
         /// Called by PlayerController each frame, before the systems that
-        /// read the head. Costs a distance and an angle check.
+        /// read the head. Costs a distance and an angle check. Also smooths
+        /// the hands' tracking first - see SmoothHands().
         /// </summary>
         public void Tick()
         {
+            SmoothHands();
+
             if (!_isCalibrated) {
                 return;
             }

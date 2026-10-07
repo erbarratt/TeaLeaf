@@ -48,7 +48,7 @@ named by function where gameplay uses it and by button as a placeholder where it
 | `Move` | `{LeftHand}/{Primary2DAxis}` | movement |
 | `Turn` | `{RightHand}/{Primary2DAxis}` | turning, mantle (stick up) |
 | `LeftGrip` / `RightGrip` | `{LeftHand}`/`{RightHand}/{Grip}` | grabbing, finger curl |
-| `LeftTrigger` / `RightTrigger` | `{LeftHand}`/`{RightHand}/{Trigger}` | index curl (planned: aim/throw a held object) |
+| `LeftTrigger` / `RightTrigger` | `{LeftHand}`/`{RightHand}/{Trigger}` | index curl; aim/throw a held prop (`PlayerHandThrowing`) |
 | `Sprint` | `{LeftHand}/{Primary2DAxisClick}` | sprint toggle |
 | `Crouch` | `{RightHand}/{PrimaryButton}` (A) | crouch toggle |
 | `Jump` | `{RightHand}/{SecondaryButton}` (B) | jump |
@@ -74,7 +74,27 @@ therefore reads the project's own interaction-free `Player/Turn` action.
 
 - **`PlayerTracking`** — the single source of truth for tracked XR transforms (head, left hand,
   right hand), exposing position/rotation accessors. Other systems should query this class
-  instead of walking the XR Rig hierarchy. Its `Start()` also sets XR tracking to Device mode
+  instead of walking the XR Rig hierarchy. **Hand smoothing** (built and tested in the headset
+  2026-10-07; the maintainer found real hand shake showing in game):
+  `SmoothHands()`, first thing in `Tick()` (tick step 1, every frame, calibrated or not),
+  overwrites each controller object's tracked local pose with a smoothed one - so the hand
+  visuals, hand rays, throw arc and carried props are all steadied with no changes of their
+  own. It works because the hands' Tracked Pose Drivers write the tracked pose once per
+  frame before `Update()` and not again before rendering. **`HandPoseFilter`** (plain class,
+  one per hand) is a One Euro filter: simple smoothing whose cutoff frequency rises with the
+  hand's speed, so a still hand is steadied and a moving one isn't lagged; position and
+  rotation each have their own pair of numbers. Filtered in the controllers' parent space
+  (tracking space), so the body walking or turning isn't hand movement, with
+  `Time.unscaledDeltaTime`. **Per device** (`HandSmoothingSettings`, a serializable class:
+  `enabled`, `positionMinCutoff`/`positionSpeedCoefficient`, `rotationMinCutoff`/
+  `rotationSpeedCoefficient`): `pcvrSmoothing` (3 Hz, 40, 3 Hz, 15) and `questSmoothing`
+  (5 Hz, 40, 5 Hz, 15) - first guesses - chosen by `smoothingTarget`: `Auto` (Android build
+  = Quest, anything else = PCVR) or forced to either, to try the Quest's numbers in the
+  editor. Read every frame, so tunable in Play Mode. **Climbing uses the
+  smoothed pose too** (maintainer's decision 2026-10-07; first built with climbing on the raw
+  tracked position, through `LeftHandRawPosition`/`RightHandRawPosition`, since removed):
+  climbing moves the body by the hand's movement, so a shaking hand on a ledge shook the
+  whole view. Nothing reads the raw tracking any more. Its `Start()` also sets XR tracking to Device mode
   (what XROrigin did; see "Tracking setup" in the root `CLAUDE.md`), then - with
   `calibrateView` (default on) and XR running - starts the one-off `CalibrateWhenTracked()`
   coroutine: `ScreenFade.Instance.Hold()`, wait until the head reports a tracked position and
@@ -233,6 +253,58 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   One round shape for hand and prop together is approximate, but the whole collide-and-slide
   runs unchanged. `ShapeRadius(handRadius)` is the radius in use (the debug capsules draw
   it). `PlayerHandVisuals.LeftHandVisual`/`RightHandVisual` expose the visuals, read-only.
+- **`PlayerHandThrowing`** (on `Hands`; built and tested in the headset 2026-10-07) — aimed
+  throwing. `Tick(canAim)` runs straight after
+  `PlayerHandHolding.TickHeld()` (tick step 8a) on every path through `Update()`; `canAim` is
+  false during a mantle and once the level has ended (nothing new is aimed, a launch under
+  way still finishes). Optional: `PlayerController` finds it itself and skips it if absent or
+  if there's no `PlayerHandHolding`. **Aiming:** a hand with a prop fully in hand
+  (`PlayerHandHolding.TryGetCarriedCentre()` - picked up, snap weight 0, not launching)
+  starts aiming when its trigger passes `aimStartTrigger` (0.6) and throws or cancels when it
+  falls to `aimEndTrigger` (0.3) - two values so a hovering finger can't flicker. Direction
+  = **straight out of the controller** (its forward axis, from
+  `PlayerHandVisuals.GetLeft/RightHandPose()`), like a menu pointer - not the hand rays'
+  direction, which is angled out from the palm for grabbing (maintainer's change 2026-10-07,
+  after trying the ray direction first), speed fixed (`launchSpeed`, 9 m/s). **The arc**
+  (`ComputeArc()`, every frame of aiming): starts `launchReach` (0.15m) along the throw from
+  the prop's middle - where the launch move will let go. **Finding the landing and drawing
+  the line are separate** (2026-10-07; first one ray per drawn piece, up to 150 a frame):
+  the landing is found with one `Physics.Linecast` per `arcCastTimeStep` (0.1s) of flight -
+  at most 25 - up to `arcMaxTime` (2.5s), on `arcLayers` (Default, Environment,
+  Interactable, Guard; triggers ignored), stopping at the first hit; a straight piece cuts
+  the curve's corner by only g x step² / 8, about 1cm. The line is then drawn from the
+  formula alone, in `arcSegmentLength` (0.1m) pieces up to the landing time, ending exactly
+  on the hit point. Points (`ArcPoint()`) use
+  **Unity's stepped gravity, not the textbook formula**: `0.5 * g * t * (t + fixedDeltaTime)`,
+  since physics adds gravity to velocity before each move (about 10cm lower a second into the
+  flight). **Invalid (cancel)** when the hand's pitch is past `maxAimPitch` (75°) or
+  `minAimPitch` (-60°), the arc hits nothing in time, or the launch move's path is blocked
+  (drawn as a stub). Letting go of grip while aiming is just `PlayerHandHolding`'s drop or
+  physical throw; aiming ends because nothing is carried. **Launch** (`BeginLaunch()`): a
+  procedural move, not a clip - the hand's `HandVisualSnap` is snapped `launchReach` forward
+  along the throw over `launchDuration` (0.08s) with its current rotation and finger pose,
+  `PlayerHandHolding.BeginLaunch()` makes the hand ignore grip, and when the snap's `Weight`
+  reaches 1 `ReleaseLaunched(velocity, spin)` lets the prop go with exactly the arc's
+  velocity (no body velocity added - it must land where shown) and `launchSpin` (5 rad/s,
+  end over end); the snap is released over `launchReturnDuration` (0.2s). **After an aimed
+  throw the hand stays busy until grip is let go** (`isWaitingForGripRelease`;
+  `IsLeftHolding`/`IsRightHolding` stay true), or the still-held grip would pick up or climb
+  whatever the ray was on. The arc is cast with rays, not the prop's shape, so a wide prop
+  can clip something the line clears.
+- **`ThrowArc`** — the arc's display, one per hand, made at runtime by
+  `PlayerHandThrowing.Awake()` (`ThrowArc.Create()`, children of `Hands`): the arc and a
+  landing disc laid on the hit normal, all `OverlayMaterial`. White when valid; red, faded
+  and no disc when not. `Show()`/`Hide()` only touch renderers and the material colour when
+  something changes. **Two styles** (`ThrowArc.Style`, `PlayerHandThrowing.arcStyle`, added
+  2026-10-07 at the maintainer's request; passed to `Show()` every frame, so it can be
+  switched in the Inspector while aiming): `Line`, a world-space `LineRenderer`; `Dots`, one
+  dynamic mesh of up to 256 octagons (`MaxDots`), `dotRadius` 0.012m, one every `dotSpacing`
+  0.12m of distance along the path (the points are evenly spaced in time, so the dots are
+  placed by walking the path), each turned to face the head. The dots' object is at the
+  scene root at the origin, so mesh vertices are world positions; its triangles are set
+  once, its vertex array is made once and rewritten each frame of aiming (unused dots
+  collapsed to a point), and its bounds are huge so they never need recalculating.
+  `OnDestroy()` removes the root object, the mesh and the materials.
 - **`GrabbableTestProps`** (`Debug/Editor`, menu **TeaLeaf > Add Grabbable Test Props**) — a
   table 1.2m ahead of the main camera with a cube, a bottle and a crate, each a
   Rigidbody + `Grabbable` on Interactable. The cube and crate have no grip point or profile
@@ -578,7 +650,8 @@ profiled under the
   from the lip (`ClimbableEdge.GetMantleLanding()`, decided 2026-09-30 for long ledges). The
   mantle's rise-then-forward motion is the same either way.
 - **Throwing is both aimed and physical** (Phase 3; physical written 2026-10-07 in
-  `PlayerHandHolding`, tested; aimed not built). Aimed throwing was
+  `PlayerHandHolding`, tested; aimed built the same day in `PlayerHandThrowing`, tested -
+  see "Carrying props" above for how both work). Aimed throwing was
   decided 2026-09-29, at first instead of a physical throw; on 2026-10-07 the maintainer
   asked for both. **Physical:** moving the hand and letting go of grip sends the object off
   with the hand's recent movement (averaged over a few frames); letting go with a still hand

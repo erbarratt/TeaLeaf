@@ -6,6 +6,88 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-07 (continued - aimed throwing, hand smoothing)
+-------------------------------------------------------
+- Aimed throwing built (Player.PlayerHandThrowing, on Hands), tested,
+  works. With a prop fully in hand, pulling that hand's trigger past 0.6
+  shows the arc the prop will fly along and a disc where it lands;
+  letting the trigger out to 0.3 throws it along exactly that arc. Two
+  trigger values with a gap, so a hovering finger can't flicker between
+  aiming and throwing. Every throw leaves at 9 m/s, so the hand's tilt
+  sets the distance. Runs at tick step 8a, after carried props, so the
+  arc starts from where the prop is this frame.
+- Cancel is aiming at nothing, as designed: tilted above 75 or below -60
+  degrees, no landing within 2.5s of flight, or something right in
+  front of the hand - the arc goes red and faded with no disc, and
+  letting go of the trigger keeps the prop. Letting go of grip while
+  aiming is still the ordinary drop or physical throw.
+- The launch is a short move of the hand, not an animation clip (the
+  roadmap said animation): the hand visual is snapped 15cm forward
+  along the throw over 0.08s with HandVisualSnap - the same thing that
+  snaps a hand onto a ledge - lets the prop go at the end, and comes
+  back over 0.2s. The arc is drawn from where that move ends, so the
+  prop leaves from the start of the line the player saw. The body's
+  velocity is not added (unlike the physical throw): it has to land
+  where shown.
+- The arc uses Unity's gravity, not the textbook's. Physics moves in
+  steps and adds gravity to the speed before each move, so a body falls
+  t x (t + step) where the formula says t squared - about 10cm lower a
+  second into the flight. Drawing with the same sum puts the line where
+  the prop really goes.
+- After an aimed throw the hand stays busy until grip is let go. Grip
+  is still held then (the trigger threw it), and a held grip picks up
+  or climbs whatever the hand ray is on - so the hand would have
+  grabbed the next thing at once.
+- Change (maintainer): the aim points straight out of the front of the
+  controller, like a menu pointer. First built on the hand rays'
+  direction, which is angled out from the palm for grabbing (12 degrees
+  down, 70 sideways) - wrong for pointing at a distance.
+- The arc looked too coarse (one piece per 0.05s of flight), and making
+  it finer meant up to 150 rays a frame, one per piece. The maintainer
+  asked whether there was a cheaper way. There was: finding where it
+  lands and drawing it are two jobs. The landing is now found with a
+  few long pieces (0.1s each, at most 25 rays) - a straight piece cuts
+  the curve's corner by only gravity x step squared / 8, about 1cm -
+  and the line is drawn from the formula alone, as finely as wanted,
+  for almost nothing. Lesson: the rays were never for drawing.
+- Arc style toggle (maintainer's request): a line (LineRenderer) or
+  dots. The dots are one mesh of up to 256 octagons, one every so many
+  centimetres of distance along the path, each turned to face the head;
+  its vertex array is made once and rewritten each frame of aiming, so
+  no objects per dot and nothing allocated. Player.ThrowArc draws
+  either, with the landing disc; one per hand, made at runtime. The
+  maintainer's settings: dots, 24cm apart, a 2cm landing disc.
+- Hand smoothing built, tested, works. The tracking is accurate enough
+  that the real shake of a hand showed in game. Fix: a One Euro filter
+  (Player.HandPoseFilter) - simple smoothing whose strength falls as
+  the hand speeds up, so a still hand is steadied and a moving one
+  isn't lagged. Two numbers each for position and rotation: how much a
+  still hand is smoothed, and how fast that's given up with speed.
+  (Named for being cheap: a 2012 paper, "1 euro filter".)
+- Where it goes: PlayerTracking.Tick(), first thing each frame, writes
+  the smoothed pose over the one the Tracked Pose Drivers put on the
+  controller objects. Everything that follows those objects - hand
+  models, rays, throw arc, carried props, ghost hands - is steadied
+  with no changes of its own. It only works because the hands' drivers
+  were set to "Update" on the 4th; if they moved again before
+  rendering, the raw pose would come back. Smoothed in tracking space,
+  not the world, so the body walking or turning isn't hand movement.
+- Tuned per device: a set of numbers for PCVR and one for Quest
+  standalone (HandSmoothingSettings), chosen by what the game is
+  running on, or forced to try the Quest's numbers in the editor. On
+  the PlayerTracking component - no scene setup. Still the first
+  guesses (PCVR 3 Hz / 40 / 3 Hz / 15, Quest 5 Hz / 40 / 5 Hz / 15).
+- Climbing uses the smoothed hands too (maintainer's decision). First
+  built with climbing on the raw tracked position, on the reasoning
+  that it moves the body by exactly how far the hand moved; but that
+  is also why a shaking hand on a ledge shakes the whole view. The raw
+  position accessors were removed again. This last change is not yet
+  tried in the headset.
+- A working rule from the maintainer: when a prompt ends with a
+  question, answer it and build nothing.
+- Roadmap: aimed throwing ticked in Phase 3.
+
+
 2026-10-07 (bottle hold pose, physical throwing)
 ------------------------------------------------
 - Bottle hold pose finished and confirmed in the headset. Everything was

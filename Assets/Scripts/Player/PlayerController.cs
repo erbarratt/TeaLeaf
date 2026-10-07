@@ -36,6 +36,7 @@ namespace Player
         [SerializeField] private PlayerFootsteps playerFootsteps;
         [SerializeField] private PlayerVisibility playerVisibility;
         [SerializeField] private PlayerHandHolding playerHandHolding;
+        [SerializeField] private PlayerHandThrowing playerHandThrowing;
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
         [SerializeField] private PlayerHandAnimation playerHandAnimation;
         [SerializeField] private CharacterController characterController;
@@ -58,8 +59,10 @@ namespace Player
         // where it is while the view fades out - see Update().
         private bool _isLevelOver;
 
-        // Whether the rig has a PlayerHandHolding - see Awake().
+        // Whether the rig has a PlayerHandHolding, and a PlayerHandThrowing
+        // (which needs the holding) - see Awake().
         private bool _hasHandHolding;
+        private bool _hasHandThrowing;
 
         /// <summary>
         /// Editor-only convenience: Unity calls Reset() when the component is
@@ -83,6 +86,7 @@ namespace Player
 
             playerHandInteraction = GetComponentInChildren<PlayerHandInteraction>();
             playerHandHolding = GetComponentInChildren<PlayerHandHolding>();
+            playerHandThrowing = GetComponentInChildren<PlayerHandThrowing>();
             playerHandVisuals = GetComponentInChildren<PlayerHandVisuals>();
             playerHandAnimation = GetComponentInChildren<PlayerHandAnimation>();
         }
@@ -117,6 +121,14 @@ namespace Player
             // asking Unity whether the component exists several times a
             // frame. Carrying is optional, like footsteps.
             _hasHandHolding = playerHandHolding != null;
+
+            if (playerHandThrowing == null) {
+                playerHandThrowing = GetComponentInChildren<PlayerHandThrowing>();
+            }
+
+            // Aimed throwing is optional too, and is nothing without a
+            // prop to throw.
+            _hasHandThrowing = _hasHandHolding && playerHandThrowing != null;
         }
 
         /// <summary>
@@ -172,7 +184,7 @@ namespace Player
             if (_isLevelOver) {
                 playerHandInteraction.Tick();
                 playerHandVisuals.Tick();
-                TickHeldProps();
+                TickHeldProps(false);
                 playerHandInteraction.TickReticles();
                 playerHandAnimation.Tick();
                 return;
@@ -219,7 +231,7 @@ namespace Player
                 }
 
                 playerHandVisuals.Tick();
-                TickHeldProps();
+                TickHeldProps(false);
                 playerHandInteraction.TickReticles();
                 playerHandAnimation.Tick();
                 return;
@@ -285,9 +297,10 @@ namespace Player
             // be dragged along by this frame's movement until next frame.
             playerHandVisuals.Tick();
 
-            // 8a. Carried props - placed at the hand visuals, so straight
-            // after them.
-            TickHeldProps();
+            // 8a. Carried props - attached once the hand visual has reached
+            // them, so straight after the visuals; then aiming a throw,
+            // which starts its arc from where the prop now is.
+            TickHeldProps(true);
 
             // 8b. Reticles - after grabs (step 4) and hand visuals, so a hand
             // that grabbed something this frame already hides its reticle.
@@ -300,14 +313,20 @@ namespace Player
         }
 
         /// <summary>
-        /// Places any carried props at the hand visuals. Called straight
-        /// after playerHandVisuals.Tick() on every path through Update() -
-        /// normal, mid-mantle and after the level has ended.
+        /// Carried props, then aimed throwing. Called straight after
+        /// playerHandVisuals.Tick() on every path through Update() -
+        /// normal, mid-mantle and after the level has ended. canAim is
+        /// false on the last two: no throw is aimed or started then, but
+        /// one already leaving the hand still finishes.
         /// </summary>
-        private void TickHeldProps()
+        private void TickHeldProps(bool canAim)
         {
             if (_hasHandHolding) {
                 playerHandHolding.TickHeld();
+            }
+
+            if (_hasHandThrowing) {
+                playerHandThrowing.Tick(canAim);
             }
         }
     }
