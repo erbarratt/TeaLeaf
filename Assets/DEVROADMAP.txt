@@ -687,18 +687,63 @@ Grabbing and props:
         placeholder cue for everything so far).
 [ ] Doors: hinged door, grabbed by handle and swung by the hand (or push to
     open), with Locked state, creak noise event while moving, and NavMesh
-    obstacle/link updates so guards can path through.
+    obstacle/link updates so guards can path through. Design given by
+    the maintainer 2026-10-08 and started that day (Interaction.Door,
+    DoorHandle, DoorLock; Player.PlayerHandDoors; TeaLeaf > Build Door
+    Test Area). The door's angle is set from code on a kinematic
+    Rigidbody - no hinge joint.
+    [x] Lock kinds: none, simple (can be picked), keyed (its own key).
+        Two separate states: locked/unlocked and latched/open.
+    [x] Handle: ray-targeted and grabbed at the ledge reach, the hand
+        snaps onto the lever (one handle serves both sides, chosen by
+        where the head is). Turning the hand 60 degrees frees the
+        latch; a locked door's lever stops at 10 and rattles.
+    [x] Swing: follows the hand round the hinge, either way, to 110
+        degrees; never into the player's body; the hand is let go if
+        the real hand gets 0.4m from the handle. Let go within 10
+        degrees of closed, it shuts itself and latches.
+    [x] An open door is pushed by the hand visuals touching it, and
+        swings on with momentum (also after a moving release). A door
+        swinging by itself latches when it reaches closed. Tried in
+        the headset: the hand stuttered while pushing; the fix (the
+        hand re-sweeps in the same frame once the door has moved) is
+        written but not yet confirmed.
+    [ ] Check the stutter fix in the headset. The contact haptic no
+        longer fires on a door being pushed - decide whether to add a
+        tap on first touch.
+    [ ] Door handle hand pose: Assets/Data/DoorHandle.asset is a copy of
+        BottleHold as a stand-in. Tune its offsets; give it a finger
+        pose of its own if the bottle's looks wrong.
+    [ ] Keyhole view on a simple-lock door: head close to the keyhole
+        brings up a larger view through it from the other side (as a
+        scope does when a gun is raised to the eye). Needs the scene
+        drawn a second time - against the pixel budget on Quest - so:
+        small, low resolution, short draw distance, only while the
+        head is at the keyhole.
+    [ ] Sliding bolt: optional on any door, worked only from the side
+        it's on, whatever the lock's state.
+    [ ] Keys (Door.keyId is stored, unused) - with the inventory,
+        Phase 4. Lockpicking calls Door.Unlock() - Phase 5.
+    [ ] Sounds: a creak cue (the door plays one every 25 degrees of
+        travel; none assigned), real latch and rattle sounds (both use
+        the placeholder impact cue), and a louder latch for a slam.
+    [ ] A sound portal on a real doorway (the Door has the field; the
+        test doors have none) - try it on the Sound Test House's Store.
+    [ ] Should the player's body push an open door? It blocks it now.
+    [ ] NavMesh obstacle/link updates - with the guards, Phase 6.
 [ ] Grab hand poses: hold-object pose per hand, as a new HandPose value +
     Snap Pose layer state. Grabbables, door handles and tools supply their
     hold position/rotation/pose through the same hand snap pose interface
     as climbables. Done for props (2026-10-07): Grabbable is an
     IHandSnapTarget, and BottleHold is the first hold pose (one clip,
-    mirrored for the right hand like the others). Door handles and
-    tools to come.
+    mirrored for the right hand like the others). Door handles
+    (2026-10-08): DoorHandle is an IHandSnapTarget, with a stand-in
+    profile and the bottle's finger pose. Tools to come.
 [ ] Targeting: grabbables/doors/locks implement IHandTarget so the
     existing hand ray + reticle system works for them unchanged. Done
     for grabbables (2026-10-04), with a longer reach than climbables
-    (IHandTarget.HasLongReach); doors and locks to come.
+    (IHandTarget.HasLongReach), and for door handles (2026-10-08, the
+    short reach); locks to come.
 
 
 Phase 4 - Inventory and wrist radial menu (Inventory + UI namespaces)
@@ -1031,6 +1076,14 @@ Phase 10 - Quest 3 performance pass
     [ ] Dynamic resolution as the safety net for heavy moments.
     [ ] Environment and prop materials are URP Lit (full PBR). Compare
         Simple Lit and Baked Lit on the device once lighting is baked.
+    [ ] The procedural surface shaders (TeaLeaf/Cobblestone and
+        TeaLeaf/BrickWall, added 2026-10-08) work their pattern out per
+        pixel, on surfaces that fill the view. Profile them on the
+        device, with and without Dirt and Parallax; the cobbles' 5x5
+        search is the heavy one. If they cost too much, bake each
+        pattern into textures at level load (as the moon's face is) and
+        keep the same material settings. Both also need a Meta pass
+        before a lightmap bake can see their colours (Phase 8).
     [ ] Main light shadows: distance 50m at 1024 with one cascade is
         both costly and blurry; with baked level shadows (Phase 8) it
         only has to cover moving things near the player - try 10-15m.

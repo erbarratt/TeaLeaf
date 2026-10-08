@@ -6,6 +6,156 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-08 (doors, a fog test, cobblestone and brick wall shaders)
+------------------------------------------------------------------
+- Doors, started (Phase 3). The maintainer's design: three kinds of
+  lock (none, simple = can be picked, keyed); any unlocked door opens
+  by its handle; the handle is ray-targeted and grabbed like a ledge
+  and the hand snaps onto it; turning the hand 60 degrees frees the
+  door; it swings either way; let go near closed, it shuts again;
+  an open door is moved by the hands touching it; a simple-lock door
+  shows a larger view through its keyhole when the head is close; any
+  door may have a sliding bolt worked only from its own side.
+  Built in steps:
+  - Step 1 - the door itself. Interaction.Door (on the hinge),
+    DoorHandle (a hand target and snap target), DoorLock, and
+    Player.PlayerHandDoors on the Hands object. Decisions made while
+    building, for the maintainer to overrule:
+    - The angle is set from code on a kinematic Rigidbody, with no
+      hinge joint or forces: exact under a snapped hand, cheap, and it
+      still shoves loose props aside.
+    - Locked and latched are two separate states. A locked door's
+      lever turns 10 degrees, stops and rattles (with a haptic knock).
+    - The twist is the controller's turn about the handle's spindle,
+      measured relative to the door, so a swinging door isn't a twist.
+    - The swing is the change in the hand's bearing round the hinge
+      each frame, so the door turns as far as the hand went round at
+      any distance from the hinge.
+    - The door never swings into the player's body (one box check
+      against the Player layer before each move), and the hand is let
+      go if the real hand gets 0.4m from the handle.
+    - One hand per door; one handle serves both sides, the side
+      chosen by where the head is, as a two-sided ledge does.
+    - The Door component disables itself whenever it's at rest, so a
+      door costs nothing until it moves.
+    - A hand does one thing: climbing and carrying skip a hand that's
+      on a door, and the door skips a hand that's climbing or carrying.
+    New tick slots: playerHandDoors.Tick() after carrying, and
+    TickHeld() straight before the hand visuals on every path.
+  - Step 2 - hands push an open door. The physical hands' sweep looks
+    up whatever stopped it in a new HandPushRegistry; an IHandPushable
+    (the door's leaf) is told where it was pressed and how far the
+    hand was still trying to go, and moves itself. The door keeps the
+    speed it was moved at and swings on, slowing down - also after
+    being let go of while moving. A door swinging by itself latches
+    when it reaches closed; it only goes through its frame while a
+    hand takes it through.
+  - Bug: Auto Sync Transforms is off in the project, so physics only
+    learns a collider has moved at its next step. The hands sweep
+    every frame, and would have kept pushing a door that had already
+    moved. The door now calls Physics.SyncTransforms() after each
+    move.
+  - Bug, found in the headset: the hand stuttered while pushing. It
+    was stopped at the door's surface each frame, which counts as
+    contact - rotation held, then the 0.1s ease back - so it flipped
+    between held and easing back every frame or two. Fix: Push()
+    returns whether the door moved, and if it did the hand's sweep is
+    tried again in the same frame, so a pushing hand stays on its
+    controller. Written, not yet confirmed in the headset. A side
+    effect: no contact haptic when a door is pushed.
+  - Left: the keyhole view, the sliding bolt, keys, a creak sound, a
+    hand pose for the handle (a copy of the bottle's for now), a sound
+    portal on a real doorway. In the roadmap.
+  - TeaLeaf > Build Door Test Area: a wall with one door of each lock
+    kind. Right-click a Door for Test Lock / Test Unlock.
+- Fog test (temporary). Core/Debug/FogTestDebug: a Play Mode toggle
+  for Silent Hill 2 style fog, so the maintainer can judge the look.
+  Unity's built-in fog (not a full-screen effect: each lit shader
+  blends itself towards the fog colour by distance). Then two extras
+  the maintainer asked about:
+  - A sky gradient: the stars stay, and a fog-coloured dome round the
+    head is drawn over them, solid at the horizon and thinning
+    overhead.
+  - Thinner fog indoors: a ray straight up from the head a few times
+    a second; a roof overhead eases the fog down to a tenth.
+  What was learned: built-in fog is one global setting. It can't tell
+  indoors from out - seen from inside, the street through a window
+  clears too - and it goes by distance, not height, so a tall distant
+  building is fogged to its top against a sky that has cleared. Doing
+  either properly needs the project's own lit shader for level
+  geometry (fog per surface, thinning with height). No verdict yet:
+  the maintainer is thinking about it. The component stays until then.
+- Cobblestone shader (TeaLeaf/Cobblestone), at the maintainer's
+  request: a cobbled floor with no textures. Each pixel works out
+  which stone it's on from its position in the world, so the cobbles
+  are the same size on any object, floor pieces join without a seam,
+  and nothing repeats. Rounded irregular stones (a Voronoi pattern,
+  with the borders blended by a smooth minimum to round the corners),
+  a colour per stone from a dark red / brown / grey range, a gap
+  colour, lighting from the height's change between pixels (no normal
+  map), optional one-shift parallax, and a fade to a flat colour in
+  the distance so it doesn't shimmer. Then, as the maintainer tuned
+  it:
+  - A dirt layer: grime patches, mottled stones, gritty gaps, ragged
+    edges, and a warp of the whole pattern.
+  - Size variation. A hexagon grid was suggested and wouldn't have
+    helped - still one stone per cell. Instead each stone gets a
+    random weight and heavier stones take ground from lighter ones (a
+    power diagram). The border distance stays exact, so the gaps keep
+    their width between stones of any size.
+  - The maintainer found a high Corner Roundness (0.5) gave the
+    shape wanted (a separate oval outline was discussed and not needed).
+    That opened large pockets where stones meet, so Gap Width can now
+    go negative, with a Minimum Gap line always kept between
+    neighbours so they don't fuse.
+  - Bug: the dirt only showed close to the camera. The fine noise
+    was faded out once sub-pixel, with fixed numbers and no slider,
+    and the maintainer's flecks were 5mm. Now the flecks double in
+    size with distance instead (as often as needed, blended), so
+    there's always some texture and still no shimmer. Later: fleck
+    size down to 0.5mm, and the pixel limit as a slider.
+  - Bug: thin straight lines across the stones up close, with
+    wrongly lit wedges beside them. I got this wrong twice. I assumed
+    a tiny step where a far stone drops out of the 3x3 cells searched,
+    and tried to fade far stones' influence out: first by distance,
+    which took the rounding off every stone (a stone's ordinary
+    neighbours are a cell away); then near the cell edge, which made
+    the lines worse. Both reverted. The maintainer's two tests (lines
+    stay with Dirt off, vanish at Lighting Strength 0) and a
+    screenshot showed the real cause: with size variation the stones
+    are well over a cell across, and 3x3 cells don't contain all of a
+    big stone's neighbours, so borders go missing. Fix: search 5x5 by
+    default, with a Narrow Search toggle back to 3x3. Confirmed gone.
+    Lesson: don't hide missing neighbours, search far enough to have
+    them - and get a screenshot before a second guess.
+- Brick wall shader (TeaLeaf/BrickWall): the same idea for brick and
+  coursed stone. Rows with every other one slid along, rectangular
+  bricks with rounded corners and a bevel, sizes in metres, optional
+  variation in length, row height and row offset (for stone), and each
+  brick's face leaning a slightly different way. A pixel's brick is
+  found directly, with no search, so it's far cheaper than the
+  cobbles. The courses run level along the wall whichever way it
+  faces. It shares its noise, lighting and extra passes with the
+  cobble shader by copying, not an include - a fix to one needs
+  making in both.
+- Performance, said at each step and still true: both shaders are
+  paid per pixel on surfaces that fill the view, which is the
+  tightest budget on Quest. The cobbles now search 25 cells a pixel
+  (50 with parallax). Fine for judging the look through PCVR; they
+  need profiling on the device, and probably baking to textures,
+  before they go on a real level. Neither has a pass for the
+  lightmapper yet. Both in the roadmap (Phase 10).
+- Not yet seen compiled or in the headset: the door stutter fix, the
+  fog's sky gradient and indoor thinning, the brick wall shader's
+  look (it has a material, BrickStoneWall), and the last fleck
+  changes.
+- Roadmap changes: Phase 3's Doors item broken into steps, with what's
+  done ticked and what's left listed; door handles noted under grab
+  poses and targeting; a Phase 10 item for the two surface shaders.
+- Committed part-way at the maintainer's request (06ad9ff), then this
+  write-up.
+
+
 2026-10-07 (fifth part - performance rules and a settings review)
 -----------------------------------------------------------------
 - Started as questions, no code: normal maps against parallax maps,
