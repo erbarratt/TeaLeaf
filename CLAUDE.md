@@ -32,7 +32,8 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
   rays and reticles, hand animation), hand art/animation, Debug scripts, and the locomotion and
   hands design decisions.
 - **`Assets/Scripts/Interaction/CLAUDE.md`** — hand targets (`IHandTarget`, registry),
-  climbables (`IClimbable`, `ClimbableEdge`, `Ladder`, `ClimbableRope`) and hand snap poses.
+  grabbable props, doors (`Door`, `DoorHandle`, `DoorLock`), climbables (`IClimbable`,
+  `ClimbableEdge`, `Ladder`, `ClimbableRope`) and hand snap poses.
 - **`Assets/Scripts/Core/CLAUDE.md`** — game state and level restart (`GameState`,
   `LevelManager`, `ExitZone`), the screen fade (`ScreenFade`), noise events and sound
   propagation (`NoiseSystem`, `SoundCue`, `SoundRoom`, `SoundPortal`, `SoundPropagation`, `SoundPlayer`;
@@ -170,7 +171,7 @@ behaviour. The current order is:
    upright and at standing height again, before anything reads the head or hands.
    **Once the level has ended** (`LevelManager.StateChanged` → not `Playing`; caught or won,
    during the end fade) **the frame stops here**: the body is frozen - only
-   `playerHandInteraction.Tick()`, `playerHandVisuals.Tick()`, `playerHandHolding.TickHeld()`,
+   `playerHandInteraction.Tick()`, `playerHandDoors.TickHeld()`, `playerHandVisuals.Tick()`, `playerHandHolding.TickHeld()`,
    `playerHandThrowing.Tick(false)`,
    `TickReticles()` and `playerHandAnimation.Tick()` run, so the hands (and anything they
    carry) still follow the controllers.
@@ -181,10 +182,12 @@ behaviour. The current order is:
    mantling); then
    4a. `playerHandHolding.Tick()` — pick up / drop props (also skipped while mantling; after
    climbing, since a hand either grips a climbable or carries a prop); then
-   `playerMantling.Tick()` — detects a possible mantle (arrow), starts one on a stick push, or
+   `playerHandDoors.Tick()` — take / let go of door handles (also skipped while mantling;
+   last of the three, a hand does one of them; skipped if the rig has no `PlayerHandDoors`);
+   then `playerMantling.Tick()` — detects a possible mantle (arrow), starts one on a stick push, or
    advances the one in progress. **While `IsMantling`, the frame stops here**: the mantle has
    already positioned the rig directly (CharacterController disabled), so only `TickState()`,
-   `playerVisibility.Tick()`, `playerHandVisuals.Tick()`, `playerHandHolding.TickHeld()`,
+   `playerVisibility.Tick()`, `playerHandDoors.TickHeld()`, `playerHandVisuals.Tick()`, `playerHandHolding.TickHeld()`,
    `playerHandThrowing.Tick(false)`,
    `TickReticles()` and `playerHandAnimation.Tick()` run - no locomotion, turning or `Move()`.
 5. `_frameMovement` = `playerLocomotion.TickMovement(isClimbing)` (thumbstick + gravity;
@@ -201,9 +204,12 @@ behaviour. The current order is:
    7c. `playerVisibility.Tick()` — after `TickState()` too: it samples the light where the
    body ended up and applies this frame's `MovementState` (skipped if the Player has no
    `PlayerVisibility`; also run during a mantle, not once the level has ended).
-8. `playerHandVisuals.Tick()` — after turning/`Move()`: hand visuals are children of the rig,
+8. `playerHandDoors.TickHeld()` — a hand on a door handle turns the lever and swings the
+   door, after `Move()` (the door follows where the hand ended up) and straight before the
+   visuals (the hand is then snapped onto the handle where the door now is). Then
+   `playerHandVisuals.Tick()` — after turning/`Move()`: hand visuals are children of the rig,
    so a world-space snap pose placed earlier would be dragged off by them, and the physical
-   hand sweep needs the controller's final position.
+   hand sweep needs the controller's final position. (`TickHandVisuals()` runs the pair.)
    8a. `playerHandHolding.TickHeld()` — once a hand visual has reached the prop it's picking
    up, makes the prop a child of it; so straight after the visuals are placed (skipped if the
    rig has no `PlayerHandHolding`). A carried prop is a child of the hand visual, so nothing
@@ -240,7 +246,8 @@ Player                 [Player layer] CharacterController, PlayerTracking, Playe
       Mantle Indicator (MantleIndicator - head-locked, placed a little below centre ~0.5m ahead)
       Screen Fade      (Core.ScreenFade - at the camera's local origin; fade to/from black)
     Hands              PlayerHandInteraction, PlayerHandHolding, PlayerHandThrowing,
-                       PlayerHandVisuals, PlayerHandAnimation (identity transform)
+                       PlayerHandDoors, PlayerHandVisuals, PlayerHandAnimation (identity
+                       transform)
       Left/Right Throw Arc   (made at runtime by PlayerHandThrowing)
       Left Hand        [PlayerHands] tracked controller - Tracked Pose Driver (Tracking/LeftHand*)
         Left Hand Visual   (hand.fbx instance, Animator)
@@ -298,7 +305,9 @@ Interactable/Guard/Projectile; Guard-Projectile. Everything else is off (notably
 Player-PlayerHands, and Climbable with everything - it's a grab volume, not geometry). **A
 prop being carried is moved onto `PlayerHands`** (and back when dropped; it's also a child of
 the hand visual while carried), so the body doesn't
-collide with it and hand rays, the hand sweep and light rays ignore it. The
+collide with it and hand rays, the hand sweep and light rays ignore it. **A door** is on
+`Interactable` (its leaf and its handle's trigger grab volume), on a kinematic Rigidbody
+turned from code; it checks the `Player` layer itself so it never swings into the body. The
 matrix doesn't affect raycasts/overlaps: queries must pass their own `LayerMask` (hand rays use
 Environment + Interactable + Climbable, so walls block them; physical hand sweeps use
 Environment + Interactable; light rays - `SceneLight` - use Environment + Interactable, so both block light).
@@ -373,6 +382,7 @@ fades out or reloads the scene itself.
 `Assets/Scenes/Main.unity` is the sole scene currently in the project, and the only (first)
 scene in the build list. Its test areas are built from the **TeaLeaf** menu (editor scripts
 in each system's `Debug/Editor`) and can be rebuilt at any time. As of 2026-10-07 the scene
-holds only the Sound Test House and the Grabbable Test Props: the maintainer removed the
+held only the Sound Test House and the Grabbable Test Props (a Door Test Area can be added
+from **TeaLeaf > Build Door Test Area**, written 2026-10-08): the maintainer removed the
 Locomotion Test Course, Town Test Area, Sound Test Area and Noise Test Listeners that day
 (the Physical Hands Test Area was already gone), so don't assume those are there.

@@ -1,3 +1,4 @@
+using Interaction;
 using UnityEngine;
 
 namespace Player
@@ -875,6 +876,9 @@ namespace Player
             // creases - see below.
             Vector3 previousNormal = Vector3.zero;
 
+            // True once this frame's sweep has pushed something - see below.
+            bool hasPushed = false;
+
             for (int i = 0; i < MaxSweeps; i++) {
                 float distance = remaining.magnitude;
 
@@ -940,6 +944,42 @@ namespace Player
                 // then straight back next frame - a jitter that grew with depth
                 // (found with PhysicalHandsTrace).
                 Vector3 toGoal = to - position;
+
+                // Something a hand can push (an open door): tell it how far
+                // the hand was still trying to go straight into it. The dot
+                // product is how much of the way to the goal points along the
+                // surface's normal; negative means into the surface. One
+                // dictionary lookup, only on a frame something was hit.
+                //
+                // If it moved out of the way, this hit doesn't count: the
+                // sweep is tried again from here, straight at the goal, and
+                // normally gets there - so a hand pushing a door stays on its
+                // controller and is never "in contact". Stopping at the
+                // surface instead (how it was first built) flipped the hand
+                // between held and easing back every frame or two: a stutter.
+                // Once per frame; i-- gives the try back, so the retry doesn't
+                // use up one of the slides.
+                if (!hasPushed) {
+                    IHandPushable pushable = HandPushRegistry.Find(hitInfo.collider);
+                    float into = -Vector3.Dot(toGoal, hitInfo.normal);
+
+                    if (pushable is not null && into > 0f) {
+                        hasPushed = true;
+
+                        // A skinWidth further than the hand needs, so the
+                        // retry isn't left grazing a surface that has turned
+                        // (a door's far end moves less than where it was hit).
+                        bool moved = pushable.Push(hitInfo.point, hitInfo.normal * -(into + skinWidth));
+                        _trace?.Append($" PUSH {into:F4} moved={(moved ? 1 : 0)}");
+
+                        if (moved) {
+                            remaining = toGoal;
+                            i--;
+                            continue;
+                        }
+                    }
+                }
+
                 remaining = Vector3.ProjectOnPlane(toGoal, hitInfo.normal);
 
                 // A crease: two surfaces meeting in a V, like the mouth of a

@@ -111,6 +111,10 @@ namespace Player
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
         [SerializeField] private PlayerClimbing playerClimbing;
 
+        // A hand on a door handle can't pick up either. Optional: found
+        // in Awake() (it's on this same object).
+        [SerializeField] private PlayerHandDoors playerHandDoors;
+
         // Seconds for the hand visual to reach out to a prop being picked
         // up, and seconds for hand and prop to come back to the controller.
         [SerializeField] private float reachDuration = 0.12f;
@@ -222,6 +226,10 @@ namespace Player
                 characterController = GetComponentInParent<CharacterController>();
             }
 
+            if (playerHandDoors == null) {
+                playerHandDoors = GetComponent<PlayerHandDoors>();
+            }
+
             _rig = characterController.transform;
 
             // The visuals are read here, while they're still children of
@@ -254,17 +262,23 @@ namespace Player
         /// </summary>
         public void Tick()
         {
+            // A hand on a door handle is as busy as one on a ledge. Last
+            // frame's (PlayerHandDoors ticks after this class), which is
+            // right: a handle taken this frame was this frame's ray target,
+            // so it wasn't a prop anyway.
+            bool hasDoors = playerHandDoors != null;
+
             TickHand(
                 _left,
                 playerInput.IsLeftGrabbing,
-                playerClimbing.IsLeftHandGripping,
+                playerClimbing.IsLeftHandGripping || (hasDoors && playerHandDoors.IsLeftOnDoor),
                 playerHandInteraction.LeftTarget,
                 playerHandInteraction.LeftTargetPoint);
 
             TickHand(
                 _right,
                 playerInput.IsRightGrabbing,
-                playerClimbing.IsRightHandGripping,
+                playerClimbing.IsRightHandGripping || (hasDoors && playerHandDoors.IsRightOnDoor),
                 playerHandInteraction.RightTarget,
                 playerHandInteraction.RightTargetPoint);
         }

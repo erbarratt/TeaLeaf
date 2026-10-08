@@ -100,6 +100,109 @@ lights the scene**; brightness is the Directional Light's and the ambient settin
   deleted 2026-10-07. The scene's default reflection was baked from the old sky and stays
   until lighting is regenerated.
 
+## Level surface shaders
+
+- **`TeaLeaf/Cobblestone`** (`Assets/Art/Shaders/Cobblestone.shader`, written 2026-10-08;
+  **not yet compiled or seen** - not in `Resources`, a material references it) — a cobbled
+  floor with no textures, at the maintainer's request: rounded irregular stones, each a
+  colour from a dark red / brown / grey range, a separate gap colour, no repeat, the same
+  cobble size on any object, everything tunable. **World-space**: the pattern is read from
+  the pixel's world position along whichever world axis the surface faces most (XZ for a
+  floor), divided by `_CobbleSize` (0.14m) - so object scale doesn't matter and adjoining
+  pieces join seamlessly, but the pattern slides across anything that moves (floors and
+  walls, not props). **Pattern**: Voronoi - a jittered point per grid cell (`_Irregularity`
+  0.7), the pixel belongs to the nearest - by "power", distance squared less a per-stone random
+  weight (`_SizeVariation`, 0 = off, up to half a cell squared; added 2026-10-08 for mixed
+  stone sizes, a power diagram: borders stay straight lines with an exact distance,
+  `0.5 x power difference / distance between the points`, so the gap width doesn't change
+  with stone size; a hex grid was considered and rejected - still one stone per cell, so
+  no size variation); the distance to each border with
+  the other 8 points is combined with a smooth minimum (`_CornerRoundness`), which rounds
+  the corners. **Search size** (2026-10-08): the cells searched round each pixel are
+  `SEARCH_RADIUS` 2 = 5x5 by default, or 3x3 with the `_NARROW_SEARCH` toggle ("Narrow
+  Search (cheaper)", off by default so existing materials get the wide one). The maintainer
+  saw thin dashed straight lines across the stones up close, on the cell grid, with
+  wrongly-lit wedges beside them; they stayed with Dirt off and vanished at Lighting
+  Strength 0, and a screenshot showed stones well over a cell across. Cause as read from
+  that (the 5x5 fix is written, **not yet confirmed in the editor**): 3x3 doesn't contain
+  every stone that borders a large one, so a border goes missing over part of the stone,
+  and where the searched set changes at a cell edge the height jumps - the derivative
+  normal draws the jump as a line. 3x3 is only right with Size Variation near 0 and modest
+  Corner Roundness. **Two earlier fixes were wrong and reverted**: fading a point's pull
+  on the smooth minimum by its distance from the pixel (removed all rounding - ordinary
+  neighbours are about a cell away), and fading it as the pixel neared the cell edge that
+  drops its row/column (made the lines worse - it removed more real borders). Don't try to
+  hide missing neighbours; search far enough to have them. **Gaps** (reworked 2026-10-08): the maintainer settled on
+  `_CornerRoundness` 0.5 for the stone shape, which pulls the rounded outline well inside
+  the true border near corners, so the pockets where stones meet were too big even at gap
+  0. `_GapWidth` may now be **negative** (range -1 to 0.4), growing the rounded outline
+  back out; `_MinGap` (0.02) is a line always kept along the true (unsmoothed) border, or
+  neighbours would fuse along their straight sides. `Cobbles()` returns how far inside the
+  stone the pixel is: `min(rounded - GapWidth/2, border - MinGap/2)`. Height = 0 at the
+  stone's edge and in the gap, rising over `_Bevel` to 1. Colour: a
+  per-cell random point along `_ColorA`-`_ColorB`-`_ColorC`, `_BrightnessVariation`,
+  `_EdgeDarkening` down the shoulder, `_GapColor`; `_Seed` changes the layout. **Normal**
+  from screen-space derivatives of the height (`_Depth` metres x `_NormalStrength`,
+  Mikkelsen's method) - no tangents, no normal map. **Lit** with URP's Blinn-Phong
+  (`UniversalFragmentBlinnPhong`, the Simple Lit model; lighting keywords copied from
+  Simple Lit), optional shine (`_SPECULAR_COLOR` toggle); SRP Batcher compatible, stereo
+  instanced, fog-aware; ShadowCaster, DepthOnly and DepthNormals passes; **no Meta pass**
+  (a lightmap bake won't see its colours - add one in Phase 8). **Distance fade**
+  (`_FadeStart`/`_FadeEnd`, cobbles per pixel): pattern and bump fade to a flat average
+  colour before the cobbles get sub-pixel, or they'd shimmer (no mipmaps on a procedural
+  pattern). **Parallax** (`_PARALLAX` toggle, off by default, `_ParallaxDepth`): one
+  offset-limited shift of the coordinates by the height, not parallax occlusion - it works
+  the pattern out twice. **Dirt layer** (`_DIRT` toggle, off by default; added the same
+  day, uncompiled, after the maintainer found the cobbles too uniform and clean): three
+  two-channel value noises (`Noise2()`, 4 hashes each). A slow one places grime patches
+  (`_GrimeAmount`, `_GrimeCoverage`, `_GrimeScale` metres; `_GrimeLowBias` puts dirt in
+  gaps and down shoulders everywhere), tinting to `_DirtColor` and dulling the shine;
+  applied after the distance fade, since patches are far bigger than a cobble. A second
+  warps the coordinates before the cobbles are found (`_WarpAmount`, `_WarpScale`), so
+  borders aren't straight. A fine one ("flecks", `_MottleScale`) mottles the stones (`_MottleAmount`), pits them for the lighting (`_MottleBump`),
+  varies the gap colour (`_GapNoiseAmount`) and chips the outline by moving the border
+  distance (`_EdgeRaggedness`). The parallax's first look-up ignores the chipping.
+  **Flecks grow with distance instead of fading** (fixed 2026-10-08): first built fading
+  the flecks out once sub-pixel, which - with the maintainer's 5mm flecks - left the dirt
+  visible only within about a metre, and no slider changed it. Now, whenever a fleck
+  would be under `_FleckPixels` (4; a slider since later that day, 1-8: lower = finer for
+  longer but more shimmer) pixels, the noise is read at double the size, as many times as
+  needed (`level = log2(metres per pixel x FleckPixels / fleck size)`), with
+  `_MottleScale` allowed down to 0.5mm (it only shows that small within a few tens of
+  centimetres). The flecks use `FleckNoise2()`, which wraps each grid corner into 0-1023
+  before hashing: sub-millimetre flecks reach grid coordinates in the tens of thousands a
+  few metres from the origin, where `Hash22()` runs out of float precision, blending the two nearest doublings
+  and stretching the blend back to full contrast - a fourth noise read, always some
+  texture, no shimmer. The material is `Assets/Materials/Cobblestone.mat`. The
+  maintainer tuned the material's other values in the editor on 2026-10-08: don't rename
+  existing properties (a material stores its values by property name). **Cost** is per pixel on a view-filling surface (about 25 hashes
+  and 24 border distances with the default 5x5 search - 9 and 8 with Narrow Search -
+  doubled with parallax, plus 16 hashes with dirt): against the "pixels are the tightest
+  budget" rule for Quest until profiled - the fallback is baking the pattern to textures.
+
+- **`TeaLeaf/BrickWall`** (`Assets/Art/Shaders/BrickWall.shader`, written 2026-10-08, **not
+  yet compiled or seen**) — the cobblestone shader's sister for brick and coursed-stone
+  walls, at the maintainer's request: rectangular, regular, every other row offset. Same
+  frame as Cobblestone (world-space, no textures, Blinn-Phong, derivative normal, distance
+  fade, optional one-shift parallax, the same Dirt layer with growing flecks, the same four
+  passes, no Meta pass) - **the shared code is duplicated, not in an include**, so a fix to
+  one (noise, lighting, passes) must be made in both. All sizes are in **metres**
+  (Cobblestone's are fractions of a cell). **Pattern, with no search**: rows `_BrickHeight`
+  high, bricks `_BrickWidth` long (each including its share of mortar); odd rows slid by
+  `_RowOffset` (0.5 = running bond) plus a per-row random `_RowOffsetVariation`; the lines
+  between rows and between bricks each nudged up to 0.45 of a brick (`_HeightVariation`,
+  `_WidthVariation` - both 0 for brick, raised for stone). `FindSpan()` finds a pixel's
+  brick from the nearest dividing line and the next one out: two hashes per axis, and
+  right because a line never strays half a brick from its number. Edge distance is a
+  rounded-rectangle distance (`_CornerRadius`) less half `_MortarWidth`; height rises over
+  `_Bevel`. **`_FaceTilt`** leans each brick's face a random way (a plane through its
+  middle, times the edge rise so there's no step) so faces catch the light unevenly.
+  Colours A-B-C per brick, `_MortarColor`. **Direction**: on a wall, u runs along the wall
+  and level (`cross(up, normal)`), v straight up, so a wall at any yaw gets true-length
+  bricks; a surface facing mostly up or down uses world X/Z. Bricks don't wrap round a
+  corner between two walls. About 6 hashes a pixel (doubled with parallax, +16 with dirt):
+  far cheaper than Cobblestone's 5x5 search.
+
 ## Gameplay light (added 2026-10-04)
 
 How much light falls on a point, for visibility. **Worked out from the level's geometry;
@@ -450,6 +553,32 @@ against `DebugLines`, and the same code feeds both the Scene view and the headse
   debug code - these objects have none of our components to register - done every
   `rescanInterval` (1s) rather than per frame, and it allocates, so it's debug-only. Disable
   the component to turn it off (`OnDrawGizmos` checks `isActiveAndEnabled`).
+- **`FogTestDebug`** (`Core/Debug`, added 2026-10-08; **temporary**, for judging the look of
+  Silent Hill 2 style fog - not a decision to use it, distance haze is still only a reserve)
+  — on the Debug object; while enabled in Play Mode it turns on Unity's built-in fog
+  (`RenderSettings`: `fogColor` pale grey, `mode` Linear 1-18m, or `density` for the
+  exponential modes), sets the main camera's clear colour to the fog colour and, with
+  `hideSky`, deactivates `Sky Stars`/`Sky Moon` (found by name, once). Disabling it puts
+  everything back; nothing is saved to the scene; values apply live from the Inspector.
+  Two extras, added the same day at the maintainer's request, both untested.
+  **`skyGradient`** (replaces the flat clear colour and `hideSky` while on): the sky stays,
+  and a 100m ball of vertices round the head (`Fog Test Sky Haze`, re-centred in
+  `LateUpdate()`) is drawn over it in the fog colour - solid from straight down to
+  `hazeFullAngle` (5°) above the horizon, thinning to `overheadFog` (0.35) at
+  `hazeClearAngle` (50°) and above. It borrows the `TeaLeaf/DebugLines` shader (vertex
+  colours, `_ZTest` LessEqual) with its render queue set to Transparent - 390, just after
+  the sky; the vertex colour is converted to linear by hand so it matches the fog.
+  **`clearIndoors`**: one ray straight up from the head every `roofCheckInterval` (0.2s) on
+  `roofLayers` (Environment) within `roofCheckHeight` (6m) = indoors; the fog then eases to
+  `indoorFogAmount` (0.1) of itself over `indoorBlendTime` (1.5s). A roof ray rather than
+  the sound rooms because it needs no setup and the test house's Yard is a room but
+  outdoors; a kept version would use authored volumes or per-surface fog. Known flaws,
+  accepted for a look test: fog is global, so from indoors the street through a window is
+  clear too; and fog on geometry ignores height, so a tall distant building is fogged to
+  its top against a cleared sky.
+  Not a full-screen effect (each fog-aware shader blends by distance), and the project's
+  own shaders (overlay, ghost, sky, debug lines) ignore fog. Remove it once the look has
+  been judged.
 - **Shader `TeaLeaf/DebugLines`** (`Assets/Art/Shaders/Resources/DebugLines.shader`) — like
   `TeaLeaf/Overlay` (unlit, Overlay queue, `ZWrite Off`, `Cull Off`, alpha blend, single-pass
   instanced stereo macros, `SRPDefaultUnlit` pass, in `Resources` for `Shader.Find()`) but

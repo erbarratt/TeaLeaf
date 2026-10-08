@@ -37,6 +37,7 @@ namespace Player
         [SerializeField] private PlayerVisibility playerVisibility;
         [SerializeField] private PlayerHandHolding playerHandHolding;
         [SerializeField] private PlayerHandThrowing playerHandThrowing;
+        [SerializeField] private PlayerHandDoors playerHandDoors;
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
         [SerializeField] private PlayerHandAnimation playerHandAnimation;
         [SerializeField] private CharacterController characterController;
@@ -64,6 +65,9 @@ namespace Player
         private bool _hasHandHolding;
         private bool _hasHandThrowing;
 
+        // Whether the rig has a PlayerHandDoors - see Awake().
+        private bool _hasHandDoors;
+
         /// <summary>
         /// Editor-only convenience: Unity calls Reset() when the component is
         /// first added (or via the Inspector's Reset menu item), so every
@@ -87,6 +91,7 @@ namespace Player
             playerHandInteraction = GetComponentInChildren<PlayerHandInteraction>();
             playerHandHolding = GetComponentInChildren<PlayerHandHolding>();
             playerHandThrowing = GetComponentInChildren<PlayerHandThrowing>();
+            playerHandDoors = GetComponentInChildren<PlayerHandDoors>();
             playerHandVisuals = GetComponentInChildren<PlayerHandVisuals>();
             playerHandAnimation = GetComponentInChildren<PlayerHandAnimation>();
         }
@@ -129,6 +134,13 @@ namespace Player
             // Aimed throwing is optional too, and is nothing without a
             // prop to throw.
             _hasHandThrowing = _hasHandHolding && playerHandThrowing != null;
+
+            if (playerHandDoors == null) {
+                playerHandDoors = GetComponentInChildren<PlayerHandDoors>();
+            }
+
+            // Opening doors is optional as well.
+            _hasHandDoors = playerHandDoors != null;
         }
 
         /// <summary>
@@ -183,7 +195,7 @@ namespace Player
             // to it, since nothing runs that could release it.
             if (_isLevelOver) {
                 playerHandInteraction.Tick();
-                playerHandVisuals.Tick();
+                TickHandVisuals();
                 TickHeldProps(false);
                 playerHandInteraction.TickReticles();
                 playerHandAnimation.Tick();
@@ -210,6 +222,13 @@ namespace Player
                 if (_hasHandHolding) {
                     playerHandHolding.Tick();
                 }
+
+                // 4a (continued). Taking and letting go of door handles -
+                // last of the three, so it sees this frame's climbing grips
+                // and carried props.
+                if (_hasHandDoors) {
+                    playerHandDoors.Tick();
+                }
             }
 
             // 4b. Mantling - after climbing, so it sees this frame's grips.
@@ -230,7 +249,7 @@ namespace Player
                     playerVisibility.Tick();
                 }
 
-                playerHandVisuals.Tick();
+                TickHandVisuals();
                 TickHeldProps(false);
                 playerHandInteraction.TickReticles();
                 playerHandAnimation.Tick();
@@ -295,7 +314,7 @@ namespace Player
             // 8. Hand visuals - after Move() and turning, since the visuals
             // are children of the rig: a snap pose placed any earlier would
             // be dragged along by this frame's movement until next frame.
-            playerHandVisuals.Tick();
+            TickHandVisuals();
 
             // 8a. Carried props - attached once the hand visual has reached
             // them, so straight after the visuals; then aiming a throw,
@@ -310,6 +329,22 @@ namespace Player
             // frame's snap weight from step 8. Animators evaluate after all
             // Update() calls anyway, so nothing is lost by running it here.
             playerHandAnimation.Tick();
+        }
+
+        /// <summary>
+        /// Held door handles, then the hand visuals. Called on every path
+        /// through Update() - normal, mid-mantle and after the level has
+        /// ended. The doors go first: a door follows the hand on its
+        /// handle, and the hand visual is then snapped onto the handle
+        /// where the door has ended up.
+        /// </summary>
+        private void TickHandVisuals()
+        {
+            if (_hasHandDoors) {
+                playerHandDoors.TickHeld();
+            }
+
+            playerHandVisuals.Tick();
         }
 
         /// <summary>

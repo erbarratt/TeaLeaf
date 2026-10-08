@@ -315,6 +315,33 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   children, and has a cylinder grip and the `BottleHold` profile (`Assets/Data/`, loaded by
   path; a warning and no profile if it's missing).
 
+## Opening doors (started 2026-10-08; written, not yet compiled or tried in the headset)
+
+- **`PlayerHandDoors`** (on `Hands`; optional - `PlayerController`, `PlayerClimbing` and
+  `PlayerHandHolding` find it in `Awake()` and work without it) — the player's half of
+  `Interaction.Door`/`DoorHandle` (see `Scripts/Interaction/CLAUDE.md`). `Tick()` (tick step
+  4a, after climbing and carrying): a free hand whose grip is held takes the `DoorHandle`
+  its ray is on, if no other hand is on that door - the hand visual snaps onto the lever on
+  the head's side; letting go of grip lets go. `TickHeld()` (tick step 8, after `Move()`,
+  straight before `PlayerHandVisuals.Tick()`, on every path through `Update()`), per held
+  handle: **twist** = how far the controller has turned about the spindle (door-local Z)
+  since it took hold, both rotations taken relative to the door so a swinging door isn't a
+  twist (`TwistAboutZ()`: twice the arctangent of the quaternion's z over w); the lever
+  shows it up to its stop - `Door.UnlatchTwist` (60°), or `LockedTwist` (10°) on a locked
+  door. At the stop an unlocked door is unlatched (haptic click); a locked one rattles once
+  (haptic knock), re-armed when the lever is turned half way back. **Swing** (once
+  unlatched, or at once on an already open door): each frame the change in the controller's
+  bearing round the hinge (`Door.TryGetBearing()`, `Mathf.DeltaAngle`) is added to
+  `swingAngle`, which is what the door is asked for - so the door turns as far as the hand
+  went round, at any distance from the hinge. The asked-for angle is kept when the door
+  can't follow (its limit, or the player's body), up to 45° past the limit: the hand has to
+  come back that far before the door moves again. Then the snapped pose is moved onto the
+  handle (`HandVisualSnap.SetSnapPose()`). **Break-away:** the real hand more than
+  `breakDistance` (0.4m) from the grip point lets go by force, and the hand needs a regrip.
+  `IsLeftOnDoor`/`IsRightOnDoor` (true through a needed regrip) are what `PlayerClimbing`
+  and `PlayerHandHolding` read to leave that hand alone; this class reads their grips and
+  carried props in turn. The reticle is hidden by the snap (`IsSnapped`), as for a ledge.
+
 ## Climbing and mantling
 
 - **`PlayerClimbing`** — grab-and-pull climbing. A hand grabs the `IClimbable` (ledge, ladder or
@@ -402,7 +429,17 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   jitter, diagnosed with `PhysicalHandsTrace`). **Creases:** if a slide would
   push back into the surface the previous sweep slid along (a V, e.g. the mouth of a gap
   narrower than the hand), the move is projected onto the line where the two surfaces meet
-  instead (their normals' cross product); parallel surfaces stop it. Triggers are ignored. **Before**
+  instead (their normals' cross product); parallel surfaces stop it. Triggers are ignored. **Pushing**
+  (2026-10-08, untested): each collider a sweep is stopped by is looked up in
+  `Interaction.HandPushRegistry`; an `IHandPushable` (an open door's leaf) is told the hit
+  point and how far the hand was still trying to go straight into the surface, and moves
+  itself (`Push()` returns whether it moved). **If it moved, the sweep is tried again in the
+  same frame**, straight at the goal, without using up a slide - once per frame - so a hand
+  pushing a door stays on its controller and is never "in contact". First built stopping
+  the hand at the surface like any other hit: found in the headset to stutter (the hand
+  flipped between held and easing back every frame or two), fixed the same day. A door that
+  can't keep up or can't move (`maxPushSpeed`, its limit, the player's body) still holds the
+  hand at its surface. The push asks for `skinWidth` more than the hand needs. **Before**
   the sweep, `Depenetrate()` pushes the capsule - at last frame's position, with this frame's
   rotation - out of anything it overlaps (`OverlapCapsuleNonAlloc` into a shared static buffer,
   then `ComputePenetration` per overlap, moved by distance + `skinWidth`, max 3 passes). It runs
@@ -471,6 +508,9 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   snapped the visual is **detached to the scene root** and re-attached when the release blend
   ends. `Snap(pose, blendDuration)`/`Release(blendDuration)` overloads give one blend its
   own time (prop pick-up's reach and return); the plain calls use `snapBlendDuration`.
+  `MoveSnapPose(movement)` shifts the snapped pose (a zip line grip) and
+  `SetSnapPose(position, rotation)` replaces it, keeping the finger pose (a door handle,
+  which moves and turns; added 2026-10-08).
   Detached because the hands' Tracked Pose Drivers use "Update And Before Render", so they move the
   controller again after all `Update()` code, and a child visual would wobble. Anything that
   must stay world-fixed can't be a child of a tracked transform. (Not parented to the ledge -

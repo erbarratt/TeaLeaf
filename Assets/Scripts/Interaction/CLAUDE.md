@@ -1,6 +1,6 @@
 # Interaction systems (`Assets/Scripts/Interaction/`, namespace `Interaction`)
 
-Detail for hand targets, climbables and hand snap poses. The root `CLAUDE.md` holds the project
+Detail for hand targets, grabbable props, doors, climbables and hand snap poses. The root `CLAUDE.md` holds the project
 rules, the tick order and the physics layers; this file is loaded when working in this folder.
 Keep it up to date with every change to these systems, like the root file.
 
@@ -97,6 +97,93 @@ Keep it up to date with every change to these systems, like the root file.
   the same physics step and within 0.3m. A kinematic prop (a hand reaching for it) is
   silent, and a carried one is out of physics, so it makes no impacts. The test props get
   one from `GrabbableTestProps` with the placeholder impact cue and surface sounds.
+
+## Doors (started 2026-10-08; written, not yet compiled or tried in the headset)
+
+The maintainer's design: three lock kinds (none, simple = pickable, keyed); any unlocked
+door opens by its handle; the handle is ray-targeted and grabbed at the ledge reach, and the
+hand snaps onto it; turning the hand 60° frees the door; it swings either way; let go
+within a few degrees of closed, it shuts again; an open door is moved by the hand visuals
+touching it (written 2026-10-08, second step, untested). **Still to build:** the keyhole view on a simple-lock door (head near the keyhole
+shows a larger view through it); an optional sliding bolt, worked only from its own side
+whatever the lock; keys and lockpicking (Phases 4-5).
+
+- **`DoorLock`** (enum) — `None`, `Simple` (can be picked), `Keyed` (its own key only).
+  Stored as its number: add values at the end.
+- **`Door`** — on the hinge: the door turns about its local Y, X runs along it to the handle
+  edge, Z is the way through. `[RequireComponent(Rigidbody)]`, made kinematic in `Awake()`.
+  **The angle is set from code - no hinge joint, no forces** (decided 2026-10-08): it's
+  predictable, cheap, and exact under a snapped hand; the Rigidbody is there so physics
+  moves the collider cheaply and the door shoves loose props aside. **Two states, kept
+  apart:** `IsLocked` (only ever true with a lock; `startsLocked`) and `IsLatched` (shut
+  and caught; `IsOpen` is its opposite, whatever the angle). `Angle` is degrees from closed
+  (positive towards local -Z), limited to `maxOpenAngle` (110) each way. `BeginHold()`/
+  `EndHold()` (`IsHeld`: one hand at a time), `Unlatch(soundPosition)` (nothing if locked),
+  `RattleLocked()`, `SetAngle()` (ignored while latched), `Lock()` (needs a lock and a shut
+  door)/`Unlock()` - also right-click "Test Lock"/"Test Unlock" in Play Mode.
+  `TryGetBearing(worldPoint, out degrees)` = which way round the hinge a point is, measured
+  like `Angle`; false within 0.1m of the hinge line. **Moving with no hand on the handle**
+  is the component's `Update()`, and **the component is disabled whenever the door is at
+  rest or held**, so a door at rest costs nothing (and so it registers with
+  `DebugDrawRegistry` and `HandPushRegistry` in `Awake()`/`OnDestroy()`, not
+  `OnEnable()`/`OnDisable()`). `Update()`, in order: pushed this frame or last = nothing;
+  still has speed = `TickSwing()`; stopped within `closeAngle` (10°) of closed = turns
+  itself shut at `closeSpeed` (60°/s) and latches; stopped further open = stays, and
+  disables itself. **Speed** (`_angularVelocity`, degrees a second): measured while a hand
+  moves it (`TrackVelocity()`, half old and half new each frame, in `SetAngle()` and
+  `Push()`), so it swings on when the hand lets go or stops pushing; `TickSwing()` turns it
+  by its speed, which falls by `Exp(-swingDrag x time)` (`swingDrag` 3) and counts as
+  stopped under `minSwingSpeed` (5°/s); it stops dead at a limit or against the player.
+  **A door swinging by itself that reaches closed latches** - it only goes through its
+  frame while a hand takes it through. **Pushed by hands** (`IHandPushable.Push(point,
+  displacement)`, from the hand sweep): an open, unheld door turns by the change in bearing
+  between the pressed point and that point moved by the push - so nearer the hinge turns it
+  further, and a push along the door does nothing - at most `maxPushSpeed` (360°/s), once a
+  frame. **`Physics.SyncTransforms()` after every move** (`MoveTo()`): Auto Sync Transforms
+  is off in the project, so physics would otherwise see the leaf where it was at the last
+  physics step and a hand would keep pushing a door that had already moved. **Never swings into the
+  player**: before each move, one `Physics.CheckBox` of the leaf at the new angle against
+  `blockingLayers` (Player) - worked out from the leaf's box measured in `Awake()`, nothing
+  is moved to find out; blocked only if it isn't already overlapping, so it can always
+  swing clear. A door shutting itself that meets the body stops and stays open. Optional
+  `soundPortal` (closed while latched, open otherwise, set in `Start()` after the portal's
+  own `Awake()`), `latchCue` (freeing and catching), `lockedCue`, `creakCue` (one-shot every
+  `creakInterval` 25° of travel - no looping sounds yet); all through `SoundPlayer`, so
+  guards hear them. `keyId` is stored but unused. Gizmo (selected / detailed): the swing arc
+  on the floor with the limits and the close angle, red locked, yellow latched, green open.
+- **`DoorHandle`** — `IHandTarget` + `IHandSnapTarget`; a trigger `BoxCollider` on
+  Interactable, a child of the door on the spindle, mid-thickness, with the door's axes.
+  **One handle serves both sides**: the grab volume goes through the door and out of both
+  faces (further than anything solid), and the hand takes the lever on the side the
+  **head** is on (`IsInFront()`), as a two-sided edge does. Grip frame: on the lever's
+  surface (`standOff` 0.075 out, `gripAlong` -0.07 along X, `gripRadius`), facing into the
+  door, up along the lever towards that hand's thumb (across the player's body, so opposite
+  ways for the two hands and the two sides) - a hand held flat to the door then closed
+  round the bar. `GetSnapPose(isLeftHand, isFront, leverAngle)` turns the whole pose about
+  the spindle by the lever's angle and is called every frame the handle is held (the
+  interface version uses the head's side and the current angle). `SetLeverAngle()` turns
+  the optional `lever` transform (both levers under one object) about local Z, only on
+  change; `GetGripPoint(isFront)`. The levers the player sees have no colliders. Setup
+  check: trigger, Interactable layer. Short reach (`HasLongReach` false), like a ledge.
+- **Hand pose:** the handle's profile is `Assets/Data/DoorHandle.asset`, made by the test
+  builder as a **copy of `BottleHold`** (same finger pose) - a stand-in; tune its offsets in
+  the headset, and give it a pose of its own if the bottle's looks wrong.
+- **`DoorTestArea`** (`Interaction/Debug/Editor`, menu **TeaLeaf > Build Door Test Area**) —
+  a 7m wall (Static, Environment) 2.5m ahead of the main camera with three 0.9 x 2.1m
+  doorways: no lock, simple lock (starts locked), keyed lock (starts locked). Each door is
+  an unscaled root on the hinge with a kinematic Rigidbody, a leaf, and a handle 1m up with
+  a lever each side. Placeholder impact cue for the latch and rattle, no creak. Adds
+  `PlayerHandDoors` to the Hands object if missing. No sound rooms or portal.
+
+- **`IHandPushable`** / **`HandPushRegistry`** (2026-10-08) — something solid a hand moves
+  by pressing on it: `bool Push(point, displacement)`, displacement being the part of the
+  hand's blocked movement that went straight into the surface; true = it moved, and the
+  hand then retries its move the same frame instead of stopping (the stutter fix). The registry is a static
+  `Collider → IHandPushable` dictionary, like `HandTargetRegistry`; `Door` registers its
+  leaf. `Player.HandPhysicalFollow` looks up every collider its sweep is stopped by (only
+  on frames it hits something).
+
+The player's half is `Player.PlayerHandDoors` (see `Scripts/Player/CLAUDE.md`).
 
 ## Climbables
 

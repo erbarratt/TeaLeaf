@@ -55,6 +55,10 @@ namespace Player
         // ledge its ray crossed. Optional: found in Awake() if not wired.
         [SerializeField] private PlayerHandHolding playerHandHolding;
 
+        // Opening doors. A hand on a door handle can't grab a climbable
+        // either, for the same reason. Optional: found in Awake().
+        [SerializeField] private PlayerHandDoors playerHandDoors;
+
         // Whatever each hand is holding - a ledge, a ladder, ... Typed as the
         // interface so this class never needs to know which.
         private IClimbable _leftGrabbed;
@@ -152,6 +156,10 @@ namespace Player
             if (playerHandHolding == null) {
                 playerHandHolding = GetComponentInChildren<PlayerHandHolding>();
             }
+
+            if (playerHandDoors == null) {
+                playerHandDoors = GetComponentInChildren<PlayerHandDoors>();
+            }
         }
 
         /// <summary>
@@ -164,9 +172,12 @@ namespace Player
             // Last frame's carrying state (PlayerHandHolding ticks after
             // this class) - which is right: a prop picked up this frame was
             // this frame's ray target, so it wasn't a climbable anyway.
+            // The same goes for a hand on a door handle (PlayerHandDoors
+            // ticks after this class too).
             bool hasHolding = playerHandHolding != null;
-            bool isLeftCarrying = hasHolding && playerHandHolding.IsLeftHolding;
-            bool isRightCarrying = hasHolding && playerHandHolding.IsRightHolding;
+            bool hasDoors = playerHandDoors != null;
+            bool isLeftCarrying = (hasHolding && playerHandHolding.IsLeftHolding) || (hasDoors && playerHandDoors.IsLeftOnDoor);
+            bool isRightCarrying = (hasHolding && playerHandHolding.IsRightHolding) || (hasDoors && playerHandDoors.IsRightOnDoor);
 
             UpdateHandGrab(
                 Hand.Left, Hand.Right,

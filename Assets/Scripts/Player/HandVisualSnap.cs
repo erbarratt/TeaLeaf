@@ -136,6 +136,16 @@ namespace Player
         }
 
         /// <summary>
+        /// Replaces where the hand is snapped to (world space), keeping its
+        /// finger pose - for a grip on something that moves and turns, like
+        /// a door handle. Tick() places the visual at the new pose as usual.
+        /// </summary>
+        public void SetSnapPose(Vector3 position, Quaternion rotation)
+        {
+            _snapPose = new HandSnapPose(position, rotation, _snapPose.Pose);
+        }
+
+        /// <summary>
         /// Starts blending the visual back to following the controller.
         /// </summary>
         public void Release()
