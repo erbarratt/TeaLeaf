@@ -50,18 +50,11 @@ namespace Player
         // always this frame's.
         [SerializeField] private PlayerHandInteraction playerHandInteraction;
 
-        // Carrying props. A hand with a prop in it can't grab a climbable -
+        // What each hand is busy with. A hand carrying a prop, on a door
+        // handle or using the lockpicks or keys can't grab a climbable -
         // grip is already held, so without this check it would grab any
-        // ledge its ray crossed. Optional: found in Awake() if not wired.
-        [SerializeField] private PlayerHandHolding playerHandHolding;
-
-        // Opening doors. A hand on a door handle can't grab a climbable
-        // either, for the same reason. Optional: found in Awake().
-        [SerializeField] private PlayerHandDoors playerHandDoors;
-
-        // Lockpicking. A hand carrying the picks or on a pick can't grab a
-        // climbable either. Optional: found in Awake().
-        [SerializeField] private PlayerLockpicking playerLockpicking;
+        // ledge its ray crossed. Found (or made) in Awake() if not wired.
+        [SerializeField] private PlayerHandState playerHandState;
 
         // Whatever each hand is holding - a ledge, a ladder, ... Typed as the
         // interface so this class never needs to know which.
@@ -154,19 +147,10 @@ namespace Player
             // instead of being silently eaten.
             characterController.minMoveDistance = 0f;
 
-            // The field was added after this component was set up in the
-            // scene. It's on the Hands object below this one; one lookup at
-            // startup. Stays null (nothing is ever carried) if there's none.
-            if (playerHandHolding == null) {
-                playerHandHolding = GetComponentInChildren<PlayerHandHolding>();
-            }
-
-            if (playerHandDoors == null) {
-                playerHandDoors = GetComponentInChildren<PlayerHandDoors>();
-            }
-
-            if (playerLockpicking == null) {
-                playerLockpicking = GetComponentInChildren<PlayerLockpicking>();
+            // On the Hands object below this one (where the hand visuals
+            // are), and added there if the scene hasn't got one.
+            if (playerHandState == null) {
+                playerHandState = PlayerHandState.GetOrAdd(playerHandVisuals);
             }
         }
 
@@ -182,18 +166,10 @@ namespace Player
             // this frame's ray target, so it wasn't a climbable anyway.
             // The same goes for a hand on a door handle (PlayerHandDoors
             // ticks after this class too). A hand busy with the lockpicks
-            // is this frame's: PlayerLockpicking ticks before this class.
-            bool hasHolding = playerHandHolding != null;
-            bool hasDoors = playerHandDoors != null;
-            bool hasLockpicking = playerLockpicking != null;
-
-            bool isLeftCarrying = (hasHolding && playerHandHolding.IsLeftHolding)
-                || (hasDoors && playerHandDoors.IsLeftOnDoor)
-                || (hasLockpicking && playerLockpicking.IsLeftBusy);
-
-            bool isRightCarrying = (hasHolding && playerHandHolding.IsRightHolding)
-                || (hasDoors && playerHandDoors.IsRightOnDoor)
-                || (hasLockpicking && playerLockpicking.IsRightBusy);
+            // or the keys is this frame's: those tick before this class.
+            // All asked through the hand state, which knows every system.
+            bool isLeftCarrying = playerHandState.IsBusyExcept(true, HandUse.Climbing);
+            bool isRightCarrying = playerHandState.IsBusyExcept(false, HandUse.Climbing);
 
             UpdateHandGrab(
                 Hand.Left, Hand.Right,

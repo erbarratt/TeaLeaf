@@ -11,7 +11,7 @@ namespace Player
     /// and whose bindings carry XRI-specific interactions (see turnAction).
     /// The Player map holds an action for every Quest controller input:
     /// function-named ones for inputs gameplay reads, and button-named
-    /// placeholders (ButtonX, ButtonY, Menu, RightStickClick) for unused
+    /// placeholders (ButtonY, Menu, RightStickClick) for unused
     /// buttons, to be renamed when they get a job.
     /// </summary>
     public class PlayerInputXR : MonoBehaviour
@@ -56,6 +56,16 @@ namespace Player
         // on landing.
         [SerializeField] private InputActionReference jumpAction;
 
+        [Header("Pack")]
+        // Reference to the pack button action (left X) - Player/Pack. A
+        // single press: it brings the pack out or puts it away. Optional:
+        // left empty, the action is found by name in the same action map
+        // as the others (see OnEnable()), so the scene needn't be rewired.
+        [SerializeField] private InputActionReference packAction;
+
+        // The pack action's name in the Player map.
+        private const string PackActionName = "Pack";
+
         // The InputActions behind the references above, resolved once in
         // OnEnable(). InputActionReference.action is a property that does a
         // lookup (and a null/validity check) on every access - reading
@@ -70,6 +80,10 @@ namespace Player
         private InputAction _crouch;
         private InputAction _sprint;
         private InputAction _jump;
+
+        // Null if the Player map has no Pack action: then PackPressed is
+        // simply never true.
+        private InputAction _pack;
 
         // Time.frameCount of the last Tick(), so a second call in the same
         // frame (PlayerController's explicit one plus this class' own
@@ -114,6 +128,9 @@ namespace Player
         // True for exactly one frame when the jump button is pressed.
         public bool JumpPressed { get; private set; }
 
+        // True for exactly one frame when the pack button is pressed.
+        public bool PackPressed { get; private set; }
+
         /// <summary>
         /// Makes sure every action this class reads is enabled. Unity enables
         /// the project-wide InputSystem_Actions at startup, but this class
@@ -142,6 +159,16 @@ namespace Player
             _crouch.Enable();
             _sprint.Enable();
             _jump.Enable();
+
+            // The pack action: the reference if one is wired, otherwise
+            // looked up by name in the map the other actions are in.
+            _pack = packAction != null ? packAction.action : _leftGrip.actionMap?.FindAction(PackActionName);
+
+            if (_pack != null) {
+                _pack.Enable();
+            } else {
+                Debug.LogWarning($"PlayerInputXR: no '{PackActionName}' action found, so the pack button does nothing.", this);
+            }
         }
 
         private void Update()
@@ -190,6 +217,7 @@ namespace Player
             CrouchPressed = _crouch.WasPressedThisFrame();
             SprintPressed = _sprint.WasPressedThisFrame();
             JumpPressed = _jump.WasPressedThisFrame();
+            PackPressed = _pack != null && _pack.WasPressedThisFrame();
         }
     }
 }

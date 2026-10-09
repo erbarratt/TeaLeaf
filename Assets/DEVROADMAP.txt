@@ -736,8 +736,9 @@ Grabbing and props:
         whatever the lock's state. Taken like a handle and slid by
         moving the hand along the door; it only shoots while the door
         is shut. Its hand pose is the door handle's, as a stand-in.
-    [ ] Keys (Door.keyId is stored, unused) - with the inventory,
-        Phase 4. (Lockpicking calls Door.Unlock(): done, Phase 5.)
+    [x] Keys (2026-10-09, tested): a keyed door's lock
+        (Interaction.KeyLock) is opened by the key with the door's
+        keyId, turned in it - see Phase 4.
     [x] A creak (2026-10-09, tested): a generated placeholder cue, one
         every 25 degrees of travel.
     [ ] Sounds left: real latch, rattle and creak sounds (all
@@ -766,28 +767,70 @@ Grabbing and props:
     short reach); locks to come.
 
 
-Phase 4 - Inventory and wrist radial menu (Inventory + UI namespaces)
----------------------------------------------------------------------
-[ ] Inventory data: owned tools (blackjack, crossbow, lockpick), bolt
-    counts per type, loot total, objective item held flag. The lockpicks
-    are worn on the back of the left hand rather than equipped from the
-    menu (decided 2026-10-09 - see Lockpicking, Phase 5).
-[ ] Wrist radial menu: hold a menu button on one hand; a world-space radial
-    appears on that wrist; select with the other hand's ray or the
-    thumbstick; release to equip into the OTHER hand (so either hand can
-    hold any tool).
-[ ] Equip/unequip: spawn or enable the tool model in the chosen hand,
-    snap that hand to the tool's hold pose, unequip back to
-    empty hand from the menu.
-[ ] Bolt type selection: a submenu (or a second ring) on the radial for
-    water / noisemaker / rope, greyed out at zero count.
-[ ] Wrist display: visibility gem + loot total + bolt counts on the
-    non-menu wrist (or the same wrist, when not in menu mode).
-[ ] Loot: Loot component (value, hand target, grabbable). Grab it and
-    release it inside a hip "pocket" trigger zone to collect it: plays a
-    sound, adds to the total, and destroys/pools the object. Objective item
-    uses the same flow with an extra flag.
-[ ] Performance: world-space canvases only enabled while visible; no
+Phase 4 - Inventory: the pack, loot and keys (Inventory namespace)
+------------------------------------------------------------------
+Redesigned by the maintainer 2026-10-09, replacing "loot pocketed at the
+hip for a running total" and (for loot and keys) the wrist radial menu: a
+backpack that only holds so much, so the player searches the level, keeps
+the most valuable things and leaves the rest. Built and tested in the
+headset the same day. A hip pocket was built first, to the old plan, and
+removed.
+[x] Inventory data (Inventory.PlayerInventory): the worth of what's in
+    the pack, the objective flag, tools owned, bolt counts per type. Data
+    only, with a Changed event. The lockpicks aren't a tool here: they're
+    worn on the back of the left hand.
+[x] The pack (Inventory.Pack, Player.PlayerPack): summoned and dismissed
+    with X on the left controller; rides on the left hand visual; collides
+    with nothing. A board with a space for the objective and one for the
+    keyring along the top, and under them a tunable grid (3 x 3 for now)
+    whose top left space is the gold space. Greybox.
+[x] Loot (Inventory.Loot): each piece takes exactly one space, chosen by
+    holding it over that space - a free space lights up, a taken one
+    doesn't - and let go of there it snaps in and shrinks to fit. Taken
+    out (right hand, hand ray and grip) it grows back first, then the hand
+    takes it as normal. Let go of over a taken space it's refused and
+    drops. (Loot taking more than one space was built and removed.)
+[x] Gold: small loot (coins, rings) put anywhere in the pack goes to the
+    gold space, adds to the gold there and is gone. Shown as a pile that
+    grows.
+[x] The objective: its own space, apart from the loot; putting it in is
+    what tells the level manager it's carried. It can't be taken out.
+[x] Worth coins (Player.LootWorthMarker): one to three coins hover over
+    loot a hand carries.
+[x] Keys (Inventory.Key, Keyring; Interaction.KeyLock; Player.PlayerKeys):
+    coloured key pickups, put into the pack like loot, go onto the keyring
+    and show there as coloured bars. The keyring is taken from the pack
+    (right hand) and held to a keyed door's lock: if the key is on it, it
+    snaps in, and either hand grips the key and turns it a quarter turn
+    with the wrist - anticlockwise if the lock is on the right of the
+    door leaf from the player's side, clockwise if on the left. The door
+    unlocks and the keyring returns to the pack. A lock the ring has no
+    key for buzzes the hand.
+[x] One owner for what each hand is busy with (Player.PlayerHandState):
+    the five hand systems (climbing, carrying, doors, lockpicks, keys)
+    ask it instead of checking each other. A new hand system is added
+    there once.
+[ ] Set what each coin level is worth (the maintainer's to decide), and
+    whether a loot item's coin level then follows from its value.
+[ ] A number for the gold (needs text drawing, which the project hasn't
+    got yet). Only the pile and the debug log show it now.
+[ ] Tune in the headset: where the pack rides on the left hand, where
+    the keyring sits in the right hand, and the hand pose on the key
+    (the door handle's, as a stand-in).
+[ ] The left hand wears the pack, so loot in the left hand can't reach
+    it, and the left hand's reticle can show on pack items it can't
+    take. Decide whether either needs changing.
+[ ] Real sounds for putting things in the pack (the placeholder
+    footstep) and for the keyed lock (the placeholder impact).
+[ ] Decide how tools and bolt types are chosen now there is a pack: in
+    the pack too, or still a wrist radial menu (the earlier plan: hold a
+    menu button, a radial on that wrist, select with the other hand,
+    equip into the other hand; a second ring for water / noisemaker /
+    rope bolts, greyed out at zero).
+[ ] Equip/unequip: enable the tool model in the chosen hand, snap that
+    hand to the tool's hold pose, unequip back to an empty hand.
+[ ] Wrist display: visibility gem + loot worth + bolt counts.
+[ ] Performance: any world-space canvases only enabled while visible; no
     layout rebuilds per frame; update text only when values change.
 
 

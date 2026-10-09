@@ -87,6 +87,9 @@ namespace Interaction
         private const float BoltInset = 0.09f;
         private const float BoltTravel = 0.05f;
 
+        // The key id the keyed door asks for and the red test key has.
+        private const string TestKeyId = "red";
+
         // The sound room each side of the wall.
         private const float SoundRoomHeight = 3f;
         private const float SoundRoomDepth = 6f;
@@ -160,6 +163,8 @@ namespace Interaction
             BuildBolt(plainDoor, false, profile, cue, interactable);
 
             BuildSound(parent, cue);
+            BuildKeys(parent, environment, interactable);
+            EnsurePlayerKeys(profile);
 
             EnsurePlayerHandDoors();
             EnsurePlayerKeyholes();
@@ -251,7 +256,102 @@ namespace Interaction
                 BuildKeyhole(door.transform, leaf, new Vector3(leafWidth - HandleInset, HandleHeight - KeyholeDrop, 0f), layer);
             }
 
+            // A lock that takes a key has a lock plate in the same place,
+            // and its key's id.
+            if (lockType == DoorLock.Keyed) {
+                BuildKeyLock(door.transform, new Vector3(leafWidth - HandleInset, HandleHeight - KeyholeDrop, 0f), cue, layer);
+            }
+
             return door.GetComponent<Door>();
+        }
+
+        /// <summary>
+        /// The keyed door's lock: an empty object in the middle of the
+        /// leaf's thickness, below the handle, with the door's axes, a
+        /// KeyLock on it and a lock plate through the door. The door is
+        /// given the key id the red test key has.
+        /// </summary>
+        private static void BuildKeyLock(Transform door, Vector3 localPosition, SoundCue cue, int layer)
+        {
+            GameObject keyLock = new("Key Lock") { layer = layer };
+            keyLock.transform.SetParent(door, false);
+            keyLock.transform.localPosition = localPosition;
+
+            BuildLockPlate(keyLock.transform, layer);
+
+            Door doorComponent = door.GetComponent<Door>();
+            SerializedObject doorSettings = new(doorComponent);
+            doorSettings.FindProperty("keyId").stringValue = TestKeyId;
+            doorSettings.ApplyModifiedPropertiesWithoutUndo();
+
+            SerializedObject settings = new(keyLock.AddComponent<KeyLock>());
+            settings.FindProperty("door").objectReferenceValue = doorComponent;
+            settings.FindProperty("faceOffset").floatValue = LeafThickness * 0.5f + LockPlateProud;
+            settings.FindProperty("unlockCue").objectReferenceValue = cue;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// The keys: a small stand on the camera's side of the wall,
+        /// between the simple-lock and keyed doors, with two key props on
+        /// it - a red one that opens the keyed door, and a blue one that
+        /// opens nothing here, to show two colours on the keyring. Each is
+        /// an ordinary prop (GrabbableTestProps.MakeGrabbable()) with a
+        /// Key.
+        /// </summary>
+        private static void BuildKeys(Transform parent, int environment, int interactable)
+        {
+            const float standHeight = 0.9f;
+            Vector3 standPosition = new(DoorwaySpacing * 0.5f, 0f, -0.6f);
+
+            TestGeometry.Box("Key Stand", parent, standPosition + Vector3.up * (standHeight * 0.5f), new Vector3(0.4f, standHeight, 0.3f), environment).isStatic = true;
+
+            BuildKey("Key (red - keyed door)", parent, standPosition + new Vector3(-0.08f, standHeight + 0.01f, 0f), TestKeyId, new Color(0.85f, 0.15f, 0.12f, 1f), interactable);
+            BuildKey("Key (blue - no door)", parent, standPosition + new Vector3(0.08f, standHeight + 0.01f, 0f), "blue", new Color(0.15f, 0.35f, 0.9f, 1f), interactable);
+        }
+
+        /// <summary>
+        /// One key prop: a small flat bar, with a Key saying which locks
+        /// it opens and its colour (the Key tints the prop itself when
+        /// the game starts). Key's settings are private serialized
+        /// fields, so they're set the way the Inspector would set them.
+        /// </summary>
+        private static void BuildKey(string name, Transform parent, Vector3 localPosition, string keyId, Color color, int layer)
+        {
+            GameObject key = TestGeometry.Box(name, parent, localPosition, new Vector3(0.03f, 0.015f, 0.09f), layer);
+            GrabbableTestProps.MakeGrabbable(key, 0.1f, 0.05f);
+
+            SerializedObject settings = new(key.AddComponent<Inventory.Key>());
+            settings.FindProperty("keyId").stringValue = keyId;
+            settings.FindProperty("color").colorValue = color;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// Makes sure the player can use keys: the pack and inventory
+        /// (the loot test props' own set-up, since the keyring lives in
+        /// the pack), then PlayerKeys next to PlayerPack on the Hands
+        /// object if it's missing. Its Reset() fills in its references;
+        /// its hand pose on the key is the door handle's, as a stand-in.
+        /// </summary>
+        private static void EnsurePlayerKeys(HandSnapProfile profile)
+        {
+            Inventory.LootTestProps.EnsurePlayerComponents();
+
+            PlayerPack playerPack = Object.FindFirstObjectByType<PlayerPack>();
+
+            if (playerPack == null) {
+                Debug.LogWarning("DoorTestArea: no PlayerPack in the scene, so PlayerKeys wasn't added - add it to the Hands object by hand.");
+                return;
+            }
+
+            if (playerPack.GetComponent<PlayerKeys>() == null) {
+                PlayerKeys keys = Undo.AddComponent<PlayerKeys>(playerPack.gameObject);
+
+                SerializedObject settings = new(keys);
+                settings.FindProperty("snapProfile").objectReferenceValue = profile;
+                settings.ApplyModifiedPropertiesWithoutUndo();
+            }
         }
 
         /// <summary>

@@ -109,15 +109,11 @@ namespace Player
         [SerializeField] private PlayerTracking playerTracking;
         [SerializeField] private PlayerHandInteraction playerHandInteraction;
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
-        [SerializeField] private PlayerClimbing playerClimbing;
 
-        // A hand on a door handle can't pick up either. Optional: found
-        // in Awake() (it's on this same object).
-        [SerializeField] private PlayerHandDoors playerHandDoors;
-
-        // Nor can a hand carrying the lockpicks or on a pick. Optional:
-        // found in Awake() (it's on this same object).
-        [SerializeField] private PlayerLockpicking playerLockpicking;
+        // What each hand is busy with: a hand climbing, on a door handle
+        // or using the lockpicks or keys can't pick up. Found (or made)
+        // in Awake() if not wired (it's on this same object).
+        [SerializeField] private PlayerHandState playerHandState;
 
         // Seconds for the hand visual to reach out to a prop being picked
         // up, and seconds for hand and prop to come back to the controller.
@@ -212,7 +208,6 @@ namespace Player
         {
             playerInput = GetComponentInParent<PlayerInputXR>();
             playerTracking = GetComponentInParent<PlayerTracking>();
-            playerClimbing = GetComponentInParent<PlayerClimbing>();
             characterController = GetComponentInParent<CharacterController>();
             playerHandInteraction = GetComponent<PlayerHandInteraction>();
             playerHandVisuals = GetComponent<PlayerHandVisuals>();
@@ -230,12 +225,8 @@ namespace Player
                 characterController = GetComponentInParent<CharacterController>();
             }
 
-            if (playerHandDoors == null) {
-                playerHandDoors = GetComponent<PlayerHandDoors>();
-            }
-
-            if (playerLockpicking == null) {
-                playerLockpicking = GetComponent<PlayerLockpicking>();
+            if (playerHandState == null) {
+                playerHandState = PlayerHandState.GetOrAdd(playerHandVisuals);
             }
 
             _rig = characterController.transform;
@@ -270,27 +261,23 @@ namespace Player
         /// </summary>
         public void Tick()
         {
-            // A hand on a door handle is as busy as one on a ledge. Last
-            // frame's (PlayerHandDoors ticks after this class), which is
-            // right: a handle taken this frame was this frame's ray target,
-            // so it wasn't a prop anyway.
-            bool hasDoors = playerHandDoors != null;
-
-            // A hand busy with the lockpicks is busy too (this frame's:
-            // PlayerLockpicking ticks before this class).
-            bool hasLockpicking = playerLockpicking != null;
-
+            // A hand another system has (the hand state knows them all)
+            // can't pick up. For a system that ticks after this class -
+            // doors - that's last frame's state, which is right: a handle
+            // taken this frame was this frame's ray target, so it wasn't a
+            // prop anyway. The lockpicks, keys and climbing tick before
+            // this class, so theirs is this frame's.
             TickHand(
                 _left,
                 playerInput.IsLeftGrabbing,
-                playerClimbing.IsLeftHandGripping || (hasDoors && playerHandDoors.IsLeftOnDoor) || (hasLockpicking && playerLockpicking.IsLeftBusy),
+                playerHandState.IsBusyExcept(true, HandUse.Carrying),
                 playerHandInteraction.LeftTarget,
                 playerHandInteraction.LeftTargetPoint);
 
             TickHand(
                 _right,
                 playerInput.IsRightGrabbing,
-                playerClimbing.IsRightHandGripping || (hasDoors && playerHandDoors.IsRightOnDoor) || (hasLockpicking && playerLockpicking.IsRightBusy),
+                playerHandState.IsBusyExcept(false, HandUse.Carrying),
                 playerHandInteraction.RightTarget,
                 playerHandInteraction.RightTargetPoint);
         }
@@ -333,6 +320,30 @@ namespace Player
             }
 
             PickUp(hold, grabbable, rayTargetPoint);
+        }
+
+        /// <summary>
+        /// Has a hand pick a prop up without its ray having to be on it -
+        /// for a prop handed to the hand by something else (an item
+        /// coming out of the pack). The hand visual reaches out to it and
+        /// brings it back exactly as for any pick-up. False, and nothing
+        /// happens, if the hand isn't free (carrying, climbing, on a door
+        /// or busy with the lockpicks) or the prop is already held.
+        /// </summary>
+        public bool TryPickUp(bool isLeftHand, Grabbable grabbable, Vector3 grabPoint)
+        {
+            HandHold hold = isLeftHand ? _left : _right;
+
+            if (hold.grabbable is not null || hold.isWaitingForGripRelease || grabbable.IsHeld) {
+                return false;
+            }
+
+            if (playerHandState.IsBusyExcept(isLeftHand, HandUse.Carrying)) {
+                return false;
+            }
+
+            PickUp(hold, grabbable, grabPoint);
+            return true;
         }
 
         /// <summary>

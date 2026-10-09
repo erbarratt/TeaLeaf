@@ -13,7 +13,10 @@ field comments use `///` without `<summary>` (newer fields use `//`).
 - **`PlayerInputXR`** — the single source of truth for controller input. Wraps Input System
   `InputActionReference`s (grip/trigger per hand, move/turn thumbsticks, crouch, sprint) and
   caches them once per frame in `Tick()` as typed properties (`MoveAxis`, `TurnAxis`,
-  `LeftGrip`, `IsLeftGrabbing`, `CrouchPressed`, `SprintPressed`, `JumpPressed`, etc.). Enables
+  `LeftGrip`, `IsLeftGrabbing`, `CrouchPressed`, `SprintPressed`, `JumpPressed`, `PackPressed`,
+  etc.). **`PackPressed`'s action needs no wiring in the scene** (2026-10-09): with the
+  `packAction` reference empty it's found by name (`Pack`) in the action map the other
+  actions are in; a warning, and never pressed, if there's none. Enables
   every action it reads in `OnEnable()` rather than relying on the asset being enabled, and
   caches the resolved `InputAction`s there (no `.action` lookups per frame). Also calls
   `Tick()` from its own `Update()` as a fallback so Debug scripts work without a full rig;
@@ -52,7 +55,7 @@ named by function where gameplay uses it and by button as a placeholder where it
 | `Sprint` | `{LeftHand}/{Primary2DAxisClick}` | sprint toggle |
 | `Crouch` | `{RightHand}/{PrimaryButton}` (A) | crouch toggle |
 | `Jump` | `{RightHand}/{SecondaryButton}` (B) | jump |
-| `ButtonX` | `{LeftHand}/{PrimaryButton}` | unassigned placeholder |
+| `Pack` | `{LeftHand}/{PrimaryButton}` (X) | bring the pack out / put it away (`PlayerPack`; renamed from the `ButtonX` placeholder 2026-10-09) |
 | `ButtonY` | `{LeftHand}/{SecondaryButton}` | unassigned placeholder |
 | `Menu` | `{LeftHand}/{MenuButton}` | unassigned placeholder |
 | `RightStickClick` | `{RightHand}/{Primary2DAxisClick}` | unassigned placeholder |
@@ -314,6 +317,111 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   cylinder (8cm x 18cm, box collider so it stands) and a `Neck` cylinder (3cm x 8cm) as
   children, and has a cylinder grip and the `BottleHold` profile (`Assets/Data/`, loaded by
   path; a warning and no profile if it's missing).
+
+## What each hand is busy with (written 2026-10-09; tried in the headset the same day: working)
+
+**A hand does one thing at a time**, and five systems can have a hand: climbing, carrying,
+doors (handles and bolts), the lockpicks and the keys. Until 2026-10-09 each held a
+reference to every other and checked them all itself - twenty checks kept in step by hand,
+and every new system meant editing all the others. Replaced, at the maintainer's request,
+by one owner:
+
+- **`PlayerHandState`** (on `Hands`) — the one place that knows what each hand is busy
+  with. **It keeps no state**: each system still owns what its hands are doing and says so
+  through its own flags (`PlayerClimbing.IsLeftHandGripping`,
+  `PlayerHandHolding.IsLeftHolding`, `PlayerHandDoors.IsLeftOnDoor`,
+  `PlayerLockpicking.IsLeftBusy`, `PlayerKeys.IsLeftBusy`, and the right-hand ones); this
+  class reads them when asked, so an answer is as fresh as the systems that have ticked so
+  far this frame - exactly as when they asked each other. `HandUse` (enum: `None`,
+  `Climbing`, `Carrying`, `Door`, `Lockpicks`, `Keys`); `GetUse(isLeftHand)` / `LeftUse` /
+  `RightUse`; **`IsBusyExcept(isLeftHand, asker)`** - whether any system *other than the
+  asker* has the hand, which is what every hand system asks before taking one (it leaves
+  itself out: it knows its own state, and often asks while part way through changing it).
+  Every system it reads is optional, found in `Awake()`. **No scene change was needed**:
+  each hand system gets it through `PlayerHandState.GetOrAdd(playerHandVisuals)` in its own
+  `Awake()`, which adds the component to the Hands object if the scene has none.
+  **Adding a hand system:** a `HandUse` value, a line each in `GetUse()` and
+  `IsBusyExcept()`, the system's own busy flags, and one `IsBusyExcept()` call in it -
+  nothing in the other systems. The older notes below that say one system "reads" another's
+  flags describe what the hand state now does for them.
+- **`HandStateDebug`** (`Player/Debug`, on `Hands`) — logs each change of either hand's
+  `HandUse` to the Console ("Left: None -> Climbing").
+
+## The pack (written 2026-10-09; tried in the headset the same day: working)
+
+- **`PlayerPack`** (on `Hands`; optional - `PlayerController` finds it in `Awake()` and
+  works without it; needs `PlayerHandHolding`) — the player's half of `Inventory.Pack` (the
+  design and the pack itself: `Scripts/Inventory/CLAUDE.md`). **Summoning:**
+  `PlayerInputXR.PackPressed` (X on the left controller) opens or closes the pack. In
+  `Start()` (not `Awake()`: the ghost hands copy the hand visuals in
+  `PlayerHandVisuals.Awake()`) the pack is made a child of `Left Hand Visual` at
+  `packPosition` / `packRotation` (defaults (0.14, -0.2, 0.08) and (90, 0, 0): the board in
+  front of a left hand held thumb up, facing back at the player - a first guess from the
+  hand's axes, to tune) and closed. **Putting loot in:** as the removed pocket did it - it
+  doesn't change how props are carried; `Tick()` (tick step 4a, straight after
+  `PlayerHandHolding.Tick()`) compares what each hand holds with last frame, and loot a hand
+  has just let go of within the pack's reach (`Pack.IsInReach()` of the loot's middle, not
+  the hand) is offered to `Pack.TryStore()`: a pulse and `storeCue` if it went in, a longer
+  rougher pulse for `NoRoom` - let go of over a space that's taken - (it then just drops).
+  **Choosing the space** (`TickHover()`): each frame a hand carries loot with the pack out,
+  `Pack.Hover()` lights the space the loot is over if it's free, with a light tap each time
+  a different space lights; one hand a frame (the right goes first), and `Pack.ClearHover()`
+  when neither lights one. Hover and store measure the same point, so the lit space is the
+  one it goes into. **Thrown loot never goes in**: after an
+  aimed throw `IsLeftHolding` stays true until grip is let go, and an empty hand that's
+  still "holding" is taken as a throw.
+  **Taking out** (`TickTaking()`, **right hand only** - the left wears the pack; its ray
+  may still show a reticle on a space): empty hand, grip held, ray on a `PackSlot` →
+  `Pack.BeginTake()`; when the pack hands the full-size item over (`TryPopTaken()`), the
+  hand picks it up through `PlayerHandHolding.TryPickUp()`; if grip was let go meanwhile or
+  the hand isn't free it goes back in (`PutBack()`, which drops it as a last resort so it
+  never hangs in the air). No busy flag for the other hand systems: while the item grows
+  the hand's ray target is a pack space, which none of them act on. `TickHeld()` (with the
+  carried props, tick step 8a, every path): `Pack.Tick()` while open, and the worth coins.
+  The carried loot's middle comes from `PlayerHandHolding.TryGetCarriedCentre()` (a prop
+  under the mirrored right hand can't be trusted for it).
+- **`LootWorthMarker`** — plain class, one per hand, made at load by `PlayerPack`: up to
+  three coin discs in a row, shown over loot a hand carries (`Loot.CoinLevel`),
+  `coinHeight` (0.05m) above its hold radius, facing the head. One shared disc mesh and one
+  `OverlayMaterial` (in-world UI: drawn on top). Renderers and positions are only touched
+  when the number of coins changes.
+- **`PlayerHandHolding.TryPickUp(isLeftHand, grabbable, grabPoint)`** (added for the pack)
+  — picks a prop up without the hand's ray being on it, as any pick-up; false if the hand
+  is carrying, climbing, on a door or busy with the lockpicks.
+
+## Keys (written 2026-10-09; tried in the headset the same day: working)
+
+- **`PlayerKeys`** (on `Hands`, needs `PlayerPack` there; optional - `PlayerController` and
+  the other hand systems find it in `Awake()` and work without it) — the player's half of
+  `Inventory.Keyring` and `Interaction.KeyLock`. The pack and keyring are found in
+  `Start()` (`PlayerPack.Pack`). The keyring is in one of three places (`RingPlace`):
+  **in the pack**; **in the right hand** - taken the usual way (free right hand, grip
+  held, ray on the pack's keyring `PackSlot`; `Pack.TakeKeyring()`), a child of
+  `Right Hand Visual` at `inHandPosition` / `inHandRotation` (first guesses) while grip is
+  held, back to the pack when it's let go; or **in a lock** - within `insertDistance`
+  (0.15m) of a `KeyLock.FindInRange()` lock whose `KeyId` the ring `Has()`, it snaps onto
+  the lock's face (`Insert()`; a child of the lock, the fitting key's colour shown going
+  into the door) and the right hand needs a regrip. **A lock the ring has no key for**
+  buzzes the right hand once (`_refusedBy`, re-armed away from every lock).
+  **Turning** (`TickHandAtKey()` in `Tick()`, tick step 3b after the lockpicks'): either
+  hand, free and holding grip within `keyReach` (0.1m) of the key's grip point (by
+  reaching, as for the lockpicks; a tap on coming into reach; one hand at a time) takes it
+  and its visual snaps on. `TickHeld()` (tick step 8, every path): the key's `_turn` is the
+  **wrist's twist** about the lock face's Z since it took hold (`TwistAboutZ()`, as a door
+  handle; the face's Z points away from the player, so positive is anticlockwise as they
+  see it), only in the unlocking direction (`KeyLock.TurnsAnticlockwise()`), clamped to
+  `unlockTurn` (90°); the keyring is shown turned by it and the snap pose turns with it
+  (`snapProfile`: the door handle's, a stand-in). At the full turn: a pulse,
+  `KeyLock.Unlock()`, and `ReturnRing()` - the keyring goes back to the pack. Let go of
+  sooner, the key springs back at `returnSpeed`; a controller over `breakDistance` (0.3m)
+  from the key lets go by force. The head more than `leaveDistance` (1.5m, level) from the
+  lock, or the lock opened another way, also returns the ring. `IsLeftBusy` /
+  `IsRightBusy` are what `PlayerHandState` reports as `HandUse.Keys`; this class asks it
+  whether another system has a hand (`IsFree()`).
+- **Keys in `PlayerPack`:** a carried prop that isn't loot is asked of `Inventory.Key.Find()`
+  too; a key held near the pack lights the keyring's space (`Pack.HoverKey()`) and let go
+  of there goes onto the keyring (`Pack.TryStoreKey()`), with the same pulse and sound as
+  loot.
 
 ## Lockpicking (written 2026-10-09; tried in the headset the same day: working)
 

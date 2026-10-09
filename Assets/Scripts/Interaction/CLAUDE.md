@@ -78,6 +78,11 @@ Keep it up to date with every change to these systems, like the root file.
   climbables - `BottleHold` (added 2026-10-04: enum value, `Hand_L_BottleHold` clip, Snap
   Pose layer state and the `BottleHold` profile) for cylinders; a prop with no profile
   shows `LedgeGrip` (value 0). Other prop shapes (cube, crate) have no hold pose yet.
+  **`Stow()` / `Unstow()`** (2026-10-09, for the player's pack - `Scripts/Inventory`):
+  `Stow()` takes a prop no hand holds out of the world - kinematic, no interpolation, every
+  collider disabled (so no hand ray hits it and it touches nothing) - so whatever stowed it
+  can move and scale it; `Unstow()` enables the colliders again, leaving it kinematic for
+  the caller to hand to a hand (`BeginHold()`) or drop (`EndHold()`). `IsStowed`.
 
 - **`ImpactNoise`** (built and tested in the headset 2026-10-07) — a prop's sound
   when it hits something, on its Rigidbody object (`[RequireComponent(Rigidbody)]`); separate
@@ -189,6 +194,20 @@ working). **Still to build:** keys (Phase 4). Lockpicking is below.
   facing into the door, thumb up; through `snapProfile` - the test bolt reuses
   `DoorHandle.asset`). `slideCue` at each end. Gizmo: the grab volume; selected, the travel
   (green drawn, red shot) and the knob. The player's half is in `PlayerHandDoors`.
+- **`KeyLock`** (written 2026-10-09, tried and working) — marks a keyed door's lock,
+  as `PickableLock` does a simple one: the middle of the keyway, mid-thickness, X across
+  the face, Y up, Z through. `door`, `faceOffset`, `unlockCue`. `KeyId` (the door's),
+  `IsLocked`, `HasKeyIn` (`BeginKey()` / `EndKey()`). `FindInRange(point, range)` = the
+  nearest locked one with no key in it (a static list, distance checks only).
+  `GetFace(viewerPosition, out facePoint, out facing)`: the face on the viewer's side and
+  **`facing`** - how something looking at the lock from there is turned (forward into the
+  door, up the lock's up, so its right is the viewer's right). **`TurnsAnticlockwise(facing)`**
+  - the maintainer's rule: the key turns anticlockwise if the lock is on the right of the
+  door leaf from the viewer's side, clockwise if on the left - worked out from where the
+  lock is relative to `Door.LeafCentre` along the viewer's right. `Unlock()` calls
+  `Door.Unlock()` and plays the cue. Workable from either side. Gizmo as `PickableLock`'s.
+  The keys themselves are `Inventory.Key` / `Keyring` (`Scripts/Inventory/CLAUDE.md`); the
+  player's half is `Player.PlayerKeys`.
 - **`DoorKeyhole`** (written 2026-10-09; the maintainer tried it the same day: "works
   great") — the keyhole view. **An opening in the door, not a second camera**
   (maintainer's decision 2026-10-09, over the roadmap's scope-style picture, which draws the
@@ -260,6 +279,12 @@ working). **Still to build:** keys (Phase 4). Lockpicking is below.
   (`BigLock` + `BigLockDebug`) is made at the scene root if the scene has none - outside
   the test area, so a rebuild keeps its tuning - with `Assets/Data/LockpickHold.asset` (a
   copy of `RopeGrip`, a stand-in) and the placeholder impact cue for picking and unlocking.
+  For keys (2026-10-09) the keyed door gets a `Key Lock` child (`KeyLock`, with a lock
+  plate) and the key id `red`; a `Key Stand` on the camera's side of the wall between the
+  simple-lock and keyed doors holds a red key (opens the keyed door) and a blue one (opens
+  nothing: a second colour for the keyring); and the pack, inventory (through
+  `Inventory.LootTestProps.EnsurePlayerComponents()`) and `PlayerKeys` are added to the
+  player if missing - `PlayerKeys`' hand pose on the key is `DoorHandle.asset`, a stand-in.
 
 ## Lockpicking (written 2026-10-09; tried in the headset the same day: working)
 

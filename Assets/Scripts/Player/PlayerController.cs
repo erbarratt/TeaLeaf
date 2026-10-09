@@ -38,8 +38,10 @@ namespace Player
         [SerializeField] private PlayerKeyholes playerKeyholes;
         [SerializeField] private PlayerHandHolding playerHandHolding;
         [SerializeField] private PlayerHandThrowing playerHandThrowing;
+        [SerializeField] private PlayerPack playerPack;
         [SerializeField] private PlayerHandDoors playerHandDoors;
         [SerializeField] private PlayerLockpicking playerLockpicking;
+        [SerializeField] private PlayerKeys playerKeys;
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
         [SerializeField] private PlayerHandAnimation playerHandAnimation;
         [SerializeField] private CharacterController characterController;
@@ -76,6 +78,13 @@ namespace Player
         // Whether the rig has a PlayerLockpicking - see Awake().
         private bool _hasLockpicking;
 
+        // Whether the rig has a PlayerKeys - see Awake().
+        private bool _hasKeys;
+
+        // Whether the rig has a PlayerPack (which needs the holding) -
+        // see Awake().
+        private bool _hasPack;
+
         /// <summary>
         /// Editor-only convenience: Unity calls Reset() when the component is
         /// first added (or via the Inspector's Reset menu item), so every
@@ -100,8 +109,10 @@ namespace Player
             playerHandInteraction = GetComponentInChildren<PlayerHandInteraction>();
             playerHandHolding = GetComponentInChildren<PlayerHandHolding>();
             playerHandThrowing = GetComponentInChildren<PlayerHandThrowing>();
+            playerPack = GetComponentInChildren<PlayerPack>();
             playerHandDoors = GetComponentInChildren<PlayerHandDoors>();
             playerLockpicking = GetComponentInChildren<PlayerLockpicking>();
+            playerKeys = GetComponentInChildren<PlayerKeys>();
             playerHandVisuals = GetComponentInChildren<PlayerHandVisuals>();
             playerHandAnimation = GetComponentInChildren<PlayerHandAnimation>();
         }
@@ -165,6 +176,20 @@ namespace Player
 
             // And picking locks.
             _hasLockpicking = playerLockpicking != null;
+
+            if (playerKeys == null) {
+                playerKeys = GetComponentInChildren<PlayerKeys>();
+            }
+
+            // And using keys.
+            _hasKeys = playerKeys != null;
+
+            if (playerPack == null) {
+                playerPack = GetComponentInChildren<PlayerPack>();
+            }
+
+            // And the pack, which is nothing without props to put in it.
+            _hasPack = _hasHandHolding && playerPack != null;
         }
 
         /// <summary>
@@ -247,6 +272,13 @@ namespace Player
                     playerLockpicking.Tick();
                 }
 
+                // 3b (continued). The keyring - taking it from the pack,
+                // putting it in a lock, taking hold of the key. Before
+                // the other grab systems for the same reason.
+                if (_hasKeys) {
+                    playerKeys.Tick();
+                }
+
                 playerClimbing.Tick();
 
                 // 4a. Picking up and dropping props - after climbing, so it
@@ -254,6 +286,13 @@ namespace Player
                 // other). A prop carried into a mantle just stays in hand.
                 if (_hasHandHolding) {
                     playerHandHolding.Tick();
+                }
+
+                // 4a (continued). The pack - straight after carrying, so
+                // loot let go of this frame goes into the pack before it
+                // has started to fall.
+                if (_hasPack) {
+                    playerPack.Tick();
                 }
 
                 // 4a (continued). Taking and letting go of door handles -
@@ -393,6 +432,10 @@ namespace Player
                 playerLockpicking.TickHeld();
             }
 
+            if (_hasKeys) {
+                playerKeys.TickHeld();
+            }
+
             playerHandVisuals.Tick();
         }
 
@@ -411,6 +454,13 @@ namespace Player
 
             if (_hasHandThrowing) {
                 playerHandThrowing.Tick(canAim);
+            }
+
+            // The pack's items shrinking and growing, and the coins over
+            // carried loot: after the visuals, so they sit where the
+            // hands are drawn.
+            if (_hasPack) {
+                playerPack.TickHeld();
             }
         }
     }

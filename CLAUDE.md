@@ -32,7 +32,7 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
   rays and reticles, hand animation), hand art/animation, Debug scripts, and the locomotion and
   hands design decisions.
 - **`Assets/Scripts/Interaction/CLAUDE.md`** — hand targets (`IHandTarget`, registry),
-  grabbable props, doors (`Door`, `DoorHandle`, `DoorLock`), lockpicking (`PickableLock`,
+  grabbable props, doors (`Door`, `DoorHandle`, `DoorLock`, `DoorBolt`, `KeyLock`), lockpicking (`PickableLock`,
   `BigLock`), climbables (`IClimbable`,
   `ClimbableEdge`, `Ladder`, `ClimbableRope`) and hand snap poses.
 - **`Assets/Scripts/Core/CLAUDE.md`** — game state and level restart (`GameState`,
@@ -44,7 +44,12 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
   drawing (`DebugLines`, `IDebugDrawable`, `InHeadsetGizmos` - gizmos that also show in the
   headset).
 
-New system folders (`AI`, `Inventory`, `UI`) get their own `CLAUDE.md` when their
+- **`Assets/Scripts/Inventory/CLAUDE.md`** — what the player owns and carries: the
+  pack (`Pack`, `PackSlot`), loot (`Loot`), keys (`Key`, `Keyring`) and the inventory data (`PlayerInventory`,
+  `ToolType`, `BoltType`), and the maintainer's design for the pack and keys. Started
+  2026-10-09.
+
+New system folders (`AI`, `UI`) get their own `CLAUDE.md` when their
 first system lands. Read the relevant one before changing a system you haven't read this
 session, even when working from another folder.
 
@@ -182,11 +187,15 @@ behaviour. The current order is:
    3b. `playerLockpicking.Tick()` — take the lockpicks, put them in a lock, take hold of a
    pick on the big lock (skipped while mantling, and if the rig has no `PlayerLockpicking`).
    Before the other grab systems: picks are taken by reaching, not by the hand rays, so a
-   hand that takes one must already be busy when climbing, carrying and doors run.
+   hand that takes one must already be busy when climbing, carrying and doors run. Then
+   `playerKeys.Tick()` — take the keyring from the pack, put it in a lock, take hold of
+   the key (skipped likewise, and if the rig has no `PlayerKeys`).
 4. `playerClimbing.Tick()` — grab/release, zip line slide, climb movement (skipped while
    mantling); then
    4a. `playerHandHolding.Tick()` — pick up / drop props (also skipped while mantling; after
    climbing, since a hand either grips a climbable or carries a prop); then
+   `playerPack.Tick()` — the pack button, loot let go of at the pack this frame going into
+   it, and items being taken out (skipped if the rig has no `PlayerPack`); then
    `playerHandDoors.Tick()` — take / let go of door handles (also skipped while mantling;
    last of the three, a hand does one of them; skipped if the rig has no `PlayerHandDoors`);
    then `playerMantling.Tick()` — detects a possible mantle (arrow), starts one on a stick push, or
@@ -218,7 +227,9 @@ behaviour. The current order is:
    visuals (the hand is then snapped onto the handle where the door now is). Then
    `playerLockpicking.TickHeld()` — a hand on a pick turns it, the big lock runs (pins,
    fade), and picking is given up if the player has moved away (wherever
-   `playerHandDoors.TickHeld()` runs, on every path). Then
+   `playerHandDoors.TickHeld()` runs, on every path). Then `playerKeys.TickHeld()` — a
+   hand on a key in a lock turns it with the wrist; the keyring goes back to the pack if
+   the player has moved away (every path too). Then
    `playerHandVisuals.Tick()` — after turning/`Move()`: hand visuals are children of the rig,
    so a world-space snap pose placed earlier would be dragged off by them, and the physical
    hand sweep needs the controller's final position. (`TickHandVisuals()` runs the pair.)
@@ -253,22 +264,30 @@ movement and VR tracking both want per-frame updates, for lower latency.
 Player                 [Player layer] CharacterController, PlayerTracking, PlayerInputXR,
                        PlayerHaptics, PlayerLocomotion, PlayerClimbing, PlayerMantling,
                        PlayerFootsteps, PlayerVisibility, PlayerKeyholes, PlayerBodyPushing,
-                       PlayerController
+                       PlayerInventory (Inventory namespace), PlayerController
   Camera Offset        (saved at y 1.6m = standing eye height; crouch shifts it)
     Main Camera        Tracked Pose Driver (Tracking/Head* actions)
       Mantle Indicator (MantleIndicator - head-locked, placed a little below centre ~0.5m ahead)
       Screen Fade      (Core.ScreenFade - at the camera's local origin; fade to/from black)
     Hands              PlayerHandInteraction, PlayerHandHolding, PlayerHandThrowing,
-                       PlayerHandDoors, PlayerLockpicking, PlayerHandVisuals,
+                       PlayerPack, PlayerKeys, PlayerHandDoors, PlayerLockpicking, PlayerHandVisuals,
+                       PlayerHandState (added at runtime if the scene has none),
                        PlayerHandAnimation (identity transform)
       Left/Right Throw Arc   (made at runtime by PlayerHandThrowing)
       Left Hand        [PlayerHands] tracked controller - Tracked Pose Driver (Tracking/LeftHand*)
         Left Hand Visual   (hand.fbx instance, Animator)
           Lockpicks        (made at runtime by PlayerLockpicking; moves to the right hand
                            visual or into a lock while in use)
+          Pack             (Inventory.Pack - a scene-root object moved here at runtime by
+                           PlayerPack; active only while summoned)
         Left Hand Reticle
       Right Hand       [PlayerHands] same, visual mirrored (scale.x -1)
 ```
+
+**A hand does one thing at a time** (climbing, carrying, a door, the lockpicks, the keys):
+before a hand system takes a hand it asks `PlayerHandState.IsBusyExcept()` whether another
+has it, rather than checking the other systems itself (2026-10-09). A new hand system is
+added there, once - see `Assets/Scripts/Player/CLAUDE.md`.
 
 Body/movement systems sit on the root, hand systems on `Hands`. `Hands` must stay under
 `Camera Offset` with an identity transform: the tracked hands' poses are relative to it, and
@@ -368,8 +387,17 @@ fails and restarts. Agreed mechanics:
   random pin by haptics; a hand turns a pick by moving round the lock, not by twisting the
   wrist. Full spec in `Assets/DEVROADMAP.txt`, Phase 5; detail in
   `Assets/Scripts/Interaction/CLAUDE.md` and `Assets/Scripts/Player/CLAUDE.md`.
-- **Inventory:** wrist radial menu to pick tools/bolt types (equip into the other hand); loot
-  pocketed at the hip for a running total.
+- **Inventory (the maintainer's design, 2026-10-09, replacing "loot pocketed at the hip
+  for a running total"):** a backpack that only holds so much, so the player keeps the most
+  valuable loot and leaves the rest. Summoned with X on the left controller, it rides on
+  the left hand and loot is put into it by hand: a grid of spaces (3 x 3 for now), one
+  per piece of loot, chosen by holding it over a free space; a gold space for small loot, and separate spaces for the objective
+  and the keyring. Carried loot shows one to three coins for its worth. Keys are coloured
+  and live on the keyring, which is taken from the pack and held to a lock. The pack, loot
+  and coins were written and tested 2026-10-09; keys, the keyring and turning a key in a
+  keyed door's lock were written and tested the same day. How tools and bolt types
+  are chosen (a wrist radial menu was the earlier plan) is still to be settled against the
+  pack. Detail in `Assets/Scripts/Inventory/CLAUDE.md`.
 - **Throwing is both aimed and physical** (physical built and tested 2026-10-07; aimed
   built the same day in `PlayerHandThrowing`, tested - its launch is a short forward move
   of the hand visual, not an animation clip; the arc can be drawn as a line or as dots).
@@ -394,7 +422,8 @@ fails and restarts. Agreed mechanics:
 
 ### Planned systems
 
-`Assets/Scripts/{AI,Inventory,UI}` are still empty placeholder folders, and `Core` only holds
+`Assets/Scripts/{AI,UI}` are still empty placeholder folders, `Inventory` holds only the
+inventory data and loot so far (started 2026-10-09), and `Core` only holds
 the game state/level manager, the screen fade, the noise and sound system, surfaces, gameplay light, the
 procedural night sky and the shared debug drawing so far — future systems land there following the same one-class,
 one-responsibility pattern (AI: guards; Inventory: items/loot; UI: wrist radial/display). Ending the level

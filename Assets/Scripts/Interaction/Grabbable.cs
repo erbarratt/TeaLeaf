@@ -106,6 +106,10 @@ namespace Interaction
         /// True while a hand is holding this.
         public bool IsHeld { get; private set; }
 
+        /// True while the prop is put away in the player's pack - see
+        /// Stow().
+        public bool IsStowed { get; private set; }
+
         public float HoldRadius => holdRadius;
 
         /// The middle of the prop's colliders in the world, right now.
@@ -433,6 +437,41 @@ namespace Interaction
 
             _rigidbody.linearVelocity = velocity;
             _rigidbody.angularVelocity = angularVelocity;
+        }
+
+        /// <summary>
+        /// Puts the prop away somewhere that isn't the world - into the
+        /// player's pack. Physics forgets it entirely: it doesn't move by
+        /// itself, touches nothing and can't be hit by a hand ray (its
+        /// colliders are switched off), so whatever stowed it can scale
+        /// and move it freely. Call it only on a prop no hand is holding.
+        /// </summary>
+        public void Stow()
+        {
+            IsStowed = true;
+
+            _rigidbody.collisionDetectionMode = _originalDetectionMode;
+            _rigidbody.isKinematic = true;
+            _rigidbody.interpolation = RigidbodyInterpolation.None;
+
+            for (int i = 0; i < _colliders.Length; i++) {
+                _colliders[i].enabled = false;
+            }
+        }
+
+        /// <summary>
+        /// Brings a stowed prop back into the world: its colliders work
+        /// again. It's still held in place (kinematic) - whatever took it
+        /// out hands it straight to a hand (BeginHold()), or drops it
+        /// (EndHold()).
+        /// </summary>
+        public void Unstow()
+        {
+            IsStowed = false;
+
+            for (int i = 0; i < _colliders.Length; i++) {
+                _colliders[i].enabled = true;
+            }
         }
 
         /// <summary>

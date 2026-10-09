@@ -6,6 +6,78 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-09, third part (the pack, loot, keys, the hand state)
+-------------------------------------------------------------
+- Phase 4 started. Everything below was tested in the headset by the
+  maintainer.
+- A false start: a hip pocket, built to the roadmap's old plan (loot let
+  go of at the waist is pocketed for a running total). The maintainer
+  then gave the real design, and the pocket was removed the same day.
+  Its way of noticing a release was kept: it never touched how props
+  are carried, only compared what each hand held with the frame before.
+- The maintainer's design: a backpack that only holds so much, so the
+  player keeps the most valuable things and leaves the rest. Phase 4 of
+  the roadmap is rewritten for it.
+  - Inventory.Pack: summoned with X on the left controller (the
+    ButtonX placeholder action renamed Pack), rides on the left hand,
+    collides with nothing. A board with a space for the objective and
+    one for the keyring, and a 3 x 3 grid whose top left space is for
+    gold.
+  - Inventory.Loot: a value, a coin level (1-3), and whether it's
+    gold or the objective. Gold put anywhere in the pack adds to the
+    gold space and is gone.
+  - Each piece of loot takes exactly one space, chosen by holding it
+    over that space: a free space lights up, a taken one doesn't.
+    First built with items taking more than one space, snapping to the
+    nearest free space; the maintainer changed both.
+  - In the pack an item shrinks to fit its space; taken out, it grows
+    back first and then the hand picks it up as normal
+    (PlayerHandHolding.TryPickUp, new).
+  - Player.LootWorthMarker: one to three coins hover over loot a hand
+    carries. Drawn on top, like the reticles.
+  - Inventory.PlayerInventory holds the totals, tools owned and bolt
+    counts. Data only.
+- Bug, found in the headset: an item taken out of the pack sometimes
+  stayed small in the hand, fell through everything when dropped, and
+  could then be pulled out of its old space from anywhere in the level.
+  One cause. The pack switched the item's colliders back on a frame
+  before handing it to the hand. For that frame it was an ordinary prop
+  under the hand's ray with grip held, so the normal pick-up took it
+  first; the pack then saw its own hand-over fail and "put back" an item
+  that was in the hand. Fix: the item stays out of physics until the
+  moment of the hand-over, which runs after the normal pick-up each
+  frame.
+  - Lesson: when one system hands an object to another, don't leave it
+    for even a frame in a state a third system will act on.
+- Keys, to the maintainer's design.
+  - Inventory.Key: a coloured pickup, put into the pack like loot. It
+    goes onto the keyring (Inventory.Keyring), shown as a coloured bar.
+  - Interaction.KeyLock marks a keyed door's lock. The keyring is
+    taken from the pack and held to it: with the right key on the ring
+    it snaps in, and either hand turns the key a quarter turn with the
+    wrist. Anticlockwise if the lock is on the right of the door leaf
+    from the player's side, clockwise if on the left.
+  - Player.PlayerKeys is the player's half. The Door Test Area's keyed
+    door now has a lock and a red key on a stand beside it.
+- The hand state. Five systems can have a hand (climbing, carrying,
+  doors, lockpicks, keys), and each held a reference to every other and
+  checked them all: twenty checks kept in step by hand. Replaced by
+  Player.PlayerHandState, which every system asks "does anyone else have
+  this hand?". It keeps no state - it reads the systems' own flags when
+  asked - so behaviour is unchanged, and a sixth system is one entry
+  there. It adds itself to the Hands object, so the scene needed no
+  change.
+- Small things: Grabbable.Stow() / Unstow() take a prop out of the
+  world and bring it back (for the pack). The pack and keyring reuse the
+  lockpicking mesh builder and shader. sed in place sometimes fails on
+  this Dropbox folder ("Device or resource busy") part way through a
+  batch: check what was applied.
+- Still to settle: what each coin level is worth; a number for the
+  gold; whether tools and bolts go in the pack or keep a wrist menu.
+- Next: those decisions, then the tools (blackjack, crossbow) in Phase
+  5, or the guards in Phase 6.
+
+
 2026-10-09, second part (lockpicking built, door leftovers)
 -----------------------------------------------------------
 - Reported by the maintainer at the start: the smithy looks and climbs

@@ -72,12 +72,13 @@ namespace Player
         [SerializeField] private PlayerInputXR playerInput;
         [SerializeField] private PlayerTracking playerTracking;
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
-        [SerializeField] private PlayerClimbing playerClimbing;
 
-        // Optional: a rig with no carrying, doors or haptics still picks
-        // locks.
-        [SerializeField] private PlayerHandHolding playerHandHolding;
-        [SerializeField] private PlayerHandDoors playerHandDoors;
+        // What each hand is busy with: a hand climbing, carrying a prop,
+        // on a door handle or using the keys can't take a pick. Found
+        // (or made) in Awake() if not wired (it's on this same object).
+        [SerializeField] private PlayerHandState playerHandState;
+
+        // Optional: a rig with no haptics still picks locks.
         [SerializeField] private PlayerHaptics playerHaptics;
 
         // The big lock in the scene. Optional: found in Awake() if not
@@ -169,8 +170,6 @@ namespace Player
         private PickHand _left;
         private PickHand _right;
 
-        private bool _hasHolding;
-        private bool _hasDoors;
         private bool _hasHaptics;
 
         // The picks: one object with a mesh of two thin boxes.
@@ -213,21 +212,14 @@ namespace Player
         {
             playerInput = GetComponentInParent<PlayerInputXR>();
             playerTracking = GetComponentInParent<PlayerTracking>();
-            playerClimbing = GetComponentInParent<PlayerClimbing>();
             playerHaptics = GetComponentInParent<PlayerHaptics>();
             playerHandVisuals = GetComponent<PlayerHandVisuals>();
-            playerHandHolding = GetComponent<PlayerHandHolding>();
-            playerHandDoors = GetComponent<PlayerHandDoors>();
         }
 
         private void Awake()
         {
-            if (playerHandHolding == null) {
-                playerHandHolding = GetComponent<PlayerHandHolding>();
-            }
-
-            if (playerHandDoors == null) {
-                playerHandDoors = GetComponent<PlayerHandDoors>();
+            if (playerHandState == null) {
+                playerHandState = PlayerHandState.GetOrAdd(playerHandVisuals);
             }
 
             if (playerHaptics == null) {
@@ -235,8 +227,6 @@ namespace Player
             }
 
             // Looked up once, so the per-frame code tests a plain bool.
-            _hasHolding = playerHandHolding != null;
-            _hasDoors = playerHandDoors != null;
             _hasHaptics = playerHaptics != null;
 
             _left = new PickHand { isLeftHand = true };
@@ -667,22 +657,15 @@ namespace Player
         }
 
         /// <summary>
-        /// True if the hand isn't climbing, carrying a prop or on a door
-        /// handle. Last frame's, for climbing, carrying and doors tick
-        /// after this class - which is right: a hand that was doing one of
-        /// those is still doing it until its own system says otherwise.
+        /// True if no other hand system has the hand (PlayerHandState
+        /// knows them all). Last frame's, for climbing, carrying and doors
+        /// tick after this class - which is right: a hand that was doing
+        /// one of those is still doing it until its own system says
+        /// otherwise.
         /// </summary>
         private bool IsFree(PickHand hand)
         {
-            if (hand.isLeftHand) {
-                return !playerClimbing.IsLeftHandGripping
-                    && !(_hasHolding && playerHandHolding.IsLeftHolding)
-                    && !(_hasDoors && playerHandDoors.IsLeftOnDoor);
-            }
-
-            return !playerClimbing.IsRightHandGripping
-                && !(_hasHolding && playerHandHolding.IsRightHolding)
-                && !(_hasDoors && playerHandDoors.IsRightOnDoor);
+            return !playerHandState.IsBusyExcept(hand.isLeftHand, HandUse.Lockpicks);
         }
 
         /// <summary>

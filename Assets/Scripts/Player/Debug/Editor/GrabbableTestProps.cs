@@ -140,9 +140,10 @@ namespace Player
         /// would set them. isCylinder gives it a cylinder grip (gripped
         /// from the hand's side) with the Grabbable's default cylinder
         /// size, which suits the bottle. profile is the prop's hand snap
-        /// profile (null = none: the hand sits on the grip frame).
+        /// profile (null = none: the hand sits on the grip frame). Also
+        /// used by the loot test props.
         /// </summary>
-        private static void MakeGrabbable(GameObject prop, float mass, float holdRadius, bool isCylinder = false, HandSnapProfile profile = null)
+        internal static void MakeGrabbable(GameObject prop, float mass, float holdRadius, bool isCylinder = false, HandSnapProfile profile = null)
         {
             Rigidbody body = prop.AddComponent<Rigidbody>();
             body.mass = mass;
