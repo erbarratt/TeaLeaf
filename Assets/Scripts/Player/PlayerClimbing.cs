@@ -59,6 +59,10 @@ namespace Player
         // either, for the same reason. Optional: found in Awake().
         [SerializeField] private PlayerHandDoors playerHandDoors;
 
+        // Lockpicking. A hand carrying the picks or on a pick can't grab a
+        // climbable either. Optional: found in Awake().
+        [SerializeField] private PlayerLockpicking playerLockpicking;
+
         // Whatever each hand is holding - a ledge, a ladder, ... Typed as the
         // interface so this class never needs to know which.
         private IClimbable _leftGrabbed;
@@ -160,6 +164,10 @@ namespace Player
             if (playerHandDoors == null) {
                 playerHandDoors = GetComponentInChildren<PlayerHandDoors>();
             }
+
+            if (playerLockpicking == null) {
+                playerLockpicking = GetComponentInChildren<PlayerLockpicking>();
+            }
         }
 
         /// <summary>
@@ -173,11 +181,19 @@ namespace Player
             // this class) - which is right: a prop picked up this frame was
             // this frame's ray target, so it wasn't a climbable anyway.
             // The same goes for a hand on a door handle (PlayerHandDoors
-            // ticks after this class too).
+            // ticks after this class too). A hand busy with the lockpicks
+            // is this frame's: PlayerLockpicking ticks before this class.
             bool hasHolding = playerHandHolding != null;
             bool hasDoors = playerHandDoors != null;
-            bool isLeftCarrying = (hasHolding && playerHandHolding.IsLeftHolding) || (hasDoors && playerHandDoors.IsLeftOnDoor);
-            bool isRightCarrying = (hasHolding && playerHandHolding.IsRightHolding) || (hasDoors && playerHandDoors.IsRightOnDoor);
+            bool hasLockpicking = playerLockpicking != null;
+
+            bool isLeftCarrying = (hasHolding && playerHandHolding.IsLeftHolding)
+                || (hasDoors && playerHandDoors.IsLeftOnDoor)
+                || (hasLockpicking && playerLockpicking.IsLeftBusy);
+
+            bool isRightCarrying = (hasHolding && playerHandHolding.IsRightHolding)
+                || (hasDoors && playerHandDoors.IsRightOnDoor)
+                || (hasLockpicking && playerLockpicking.IsRightBusy);
 
             UpdateHandGrab(
                 Hand.Left, Hand.Right,

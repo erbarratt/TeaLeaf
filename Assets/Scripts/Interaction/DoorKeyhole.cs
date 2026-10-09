@@ -43,6 +43,12 @@ namespace Interaction
         // The door leaf's renderer, whose material uses TeaLeaf/DoorLeaf.
         [SerializeField] private MeshRenderer leafRenderer;
 
+        // Anything else on the door the opening has to go through as
+        // well - a lock plate standing on each face. Each must use a
+        // TeaLeaf/DoorLeaf material too (its own, in its own colour).
+        // Optional.
+        [SerializeField] private MeshRenderer[] plateRenderers;
+
         [Header("Size")]
 
         // The circle's radius in metres: at rest, and with the head right
@@ -114,6 +120,10 @@ namespace Interaction
         // (so the material itself is shared and never changed).
         private MaterialPropertyBlock _block;
 
+        // The same for each plate: the keyhole's place is different in
+        // each object's own space, so each needs its own.
+        private MaterialPropertyBlock[] _plateBlocks;
+
         private bool _hasDoor;
         private bool _hasRenderer;
 
@@ -152,29 +162,46 @@ namespace Interaction
                 return;
             }
 
-            // Where the keyhole is, as the shader needs it: in the leaf's
-            // own space, since that's what a pixel knows about itself. The
-            // keyhole and the leaf move together, so this is worked out
+            // Where the keyhole is, for the leaf and for each lock plate.
+            // The keyhole moves with all of them, so this is worked out
             // once.
             Transform leaf = leafRenderer.transform;
-            Quaternion toLeaf = Quaternion.Inverse(leaf.rotation);
-            Vector3 scale = leaf.lossyScale;
+            _block = BuildBlock(leaf);
 
-            _block = new MaterialPropertyBlock();
-            _block.SetVector(_keyholeCentreId, leaf.InverseTransformPoint(transform.position));
+            int plateCount = plateRenderers != null ? plateRenderers.Length : 0;
+            _plateBlocks = new MaterialPropertyBlock[plateCount];
 
-            // The two directions across the door's face. Turned into the
-            // leaf's space, then multiplied by its scale: the leaf is a
-            // stretched cube, so one unit of its own space is "scale"
-            // metres, and this makes the shader's distances come out in
-            // metres.
-            _block.SetVector(_keyholeRightId, Vector3.Scale(scale, toLeaf * transform.right));
-            _block.SetVector(_keyholeUpId, Vector3.Scale(scale, toLeaf * transform.up));
+            for (int i = 0; i < plateCount; i++) {
+                _plateBlocks[i] = BuildBlock(plateRenderers[i].transform);
+            }
 
-            _halfThickness = (thickness > 0f ? thickness : MeasureThickness(toLeaf, scale)) * 0.5f;
+            _halfThickness = (thickness > 0f ? thickness : MeasureThickness(Quaternion.Inverse(leaf.rotation), leaf.lossyScale)) * 0.5f;
             BuildWalls();
 
             Apply();
+        }
+
+        /// <summary>
+        /// The keyhole's place as the shader needs it for one object the
+        /// opening is cut in (the leaf, or a lock plate): in that object's
+        /// own space, since that's what a pixel knows about itself.
+        /// </summary>
+        private MaterialPropertyBlock BuildBlock(Transform target)
+        {
+            Quaternion toTarget = Quaternion.Inverse(target.rotation);
+            Vector3 scale = target.lossyScale;
+
+            MaterialPropertyBlock block = new();
+            block.SetVector(_keyholeCentreId, target.InverseTransformPoint(transform.position));
+
+            // The two directions across the door's face. Turned into the
+            // object's space, then multiplied by its scale: the leaf is a
+            // stretched cube, so one unit of its own space is "scale"
+            // metres, and this makes the shader's distances come out in
+            // metres.
+            block.SetVector(_keyholeRightId, Vector3.Scale(scale, toTarget * transform.right));
+            block.SetVector(_keyholeUpId, Vector3.Scale(scale, toTarget * transform.up));
+            return block;
         }
 
         private void OnEnable()
@@ -456,8 +483,15 @@ namespace Interaction
 
             float radius = Mathf.Lerp(restRadius, openRadius, _amount);
 
-            _block.SetVector(_keyholeSizeId, new Vector4(radius, 0f, 0f, 0f));
+            Vector4 size = new(radius, 0f, 0f, 0f);
+
+            _block.SetVector(_keyholeSizeId, size);
             leafRenderer.SetPropertyBlock(_block);
+
+            for (int i = 0; i < _plateBlocks.Length; i++) {
+                _plateBlocks[i].SetVector(_keyholeSizeId, size);
+                plateRenderers[i].SetPropertyBlock(_plateBlocks[i]);
+            }
 
             UpdateWalls(radius);
         }

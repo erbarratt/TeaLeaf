@@ -157,6 +157,14 @@ namespace Interaction
         /// it. Only ever true for a door with a lock.
         public bool IsLocked { get; private set; }
 
+        /// True while a sliding bolt (DoorBolt) holds the door shut,
+        /// whatever its lock is doing.
+        public bool IsBolted { get; private set; }
+
+        /// True while the lock or a bolt is holding the latch: the handle
+        /// stops short and the door stays shut.
+        public bool IsHeldShut => IsLocked || IsBolted;
+
         /// True while the door is shut and caught by its latch. It can't
         /// move until Unlatch().
         public bool IsLatched { get; private set; } = true;
@@ -450,12 +458,12 @@ namespace Interaction
 
         /// <summary>
         /// Frees the latch, so the door can swing: called when the handle
-        /// has been turned far enough. Does nothing to a locked door.
-        /// soundPosition is where the click comes from (the handle).
+        /// has been turned far enough. Does nothing to a locked or bolted
+        /// door. soundPosition is where the click comes from (the handle).
         /// </summary>
         public void Unlatch(Vector3 soundPosition)
         {
-            if (!IsLatched || IsLocked) {
+            if (!IsLatched || IsHeldShut) {
                 return;
             }
 
@@ -512,6 +520,16 @@ namespace Interaction
         public void Unlock()
         {
             IsLocked = false;
+        }
+
+        /// <summary>
+        /// Called by the door's DoorBolt when it's shot or drawn back. A
+        /// bolt can only be shot while the door is shut, which the bolt
+        /// itself sees to.
+        /// </summary>
+        public void SetBolted(bool bolted)
+        {
+            IsBolted = bolted;
         }
 
         [ContextMenu("Test Lock")]

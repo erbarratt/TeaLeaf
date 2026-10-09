@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project overview
 
-TeaLeaf is a Thief-style VR stealth game (Unity 6000.3.23f1, Universal Render Pipeline) built
+TeaLeaf is a Thief-style VR stealth game (Unity 6000.3.25f1, Universal Render Pipeline) built
 on OpenXR and the new Input System, with no XR Interaction Toolkit: the project started from
 XRI's XR Origin sample rig, and every XRI part has since been replaced by the project's own
 code or removed (the package itself on 2026-09-30). Keep it lean - add a package or third-party
@@ -32,7 +32,8 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
   rays and reticles, hand animation), hand art/animation, Debug scripts, and the locomotion and
   hands design decisions.
 - **`Assets/Scripts/Interaction/CLAUDE.md`** — hand targets (`IHandTarget`, registry),
-  grabbable props, doors (`Door`, `DoorHandle`, `DoorLock`), climbables (`IClimbable`,
+  grabbable props, doors (`Door`, `DoorHandle`, `DoorLock`), lockpicking (`PickableLock`,
+  `BigLock`), climbables (`IClimbable`,
   `ClimbableEdge`, `Ladder`, `ClimbableRope`) and hand snap poses.
 - **`Assets/Scripts/Core/CLAUDE.md`** — game state and level restart (`GameState`,
   `LevelManager`, `ExitZone`), the screen fade (`ScreenFade`), noise events and sound
@@ -178,6 +179,10 @@ behaviour. The current order is:
 2. `playerLocomotion.TickBody()` — re-centre the capsule under the headset and apply crouch
    height (before the hand systems, since crouch moves the tracked hierarchy).
 3. `playerHandInteraction.Tick()` — hand rays + targets (reticles are placed at 8b).
+   3b. `playerLockpicking.Tick()` — take the lockpicks, put them in a lock, take hold of a
+   pick on the big lock (skipped while mantling, and if the rig has no `PlayerLockpicking`).
+   Before the other grab systems: picks are taken by reaching, not by the hand rays, so a
+   hand that takes one must already be busy when climbing, carrying and doors run.
 4. `playerClimbing.Tick()` — grab/release, zip line slide, climb movement (skipped while
    mantling); then
    4a. `playerHandHolding.Tick()` — pick up / drop props (also skipped while mantling; after
@@ -193,7 +198,8 @@ behaviour. The current order is:
 5. `_frameMovement` = `playerLocomotion.TickMovement(isClimbing)` (thumbstick + gravity;
    zero while climbing) + `playerClimbing.FrameMovement` while climbing; then
    `playerLocomotion.TickTurning()`.
-6. One `characterController.Move(_frameMovement)`, then
+6. One `characterController.Move(_frameMovement)` (during which Unity calls
+   `PlayerBodyPushing.OnControllerColliderHit()`, so the body pushes open doors here), then
    `playerClimbing.ReportAppliedMovement()` while climbing.
 7. `playerLocomotion.TickState(isClimbing, appliedMovement, collisionFlags)` — after `Move()`,
    because it needs the real applied movement, the `CollisionFlags` `Move()` returned (to stop
@@ -210,6 +216,9 @@ behaviour. The current order is:
 8. `playerHandDoors.TickHeld()` — a hand on a door handle turns the lever and swings the
    door, after `Move()` (the door follows where the hand ended up) and straight before the
    visuals (the hand is then snapped onto the handle where the door now is). Then
+   `playerLockpicking.TickHeld()` — a hand on a pick turns it, the big lock runs (pins,
+   fade), and picking is given up if the player has moved away (wherever
+   `playerHandDoors.TickHeld()` runs, on every path). Then
    `playerHandVisuals.Tick()` — after turning/`Move()`: hand visuals are children of the rig,
    so a world-space snap pose placed earlier would be dragged off by them, and the physical
    hand sweep needs the controller's final position. (`TickHandVisuals()` runs the pair.)
@@ -243,17 +252,20 @@ movement and VR tracking both want per-frame updates, for lower latency.
 ```
 Player                 [Player layer] CharacterController, PlayerTracking, PlayerInputXR,
                        PlayerHaptics, PlayerLocomotion, PlayerClimbing, PlayerMantling,
-                       PlayerFootsteps, PlayerVisibility, PlayerKeyholes, PlayerController
+                       PlayerFootsteps, PlayerVisibility, PlayerKeyholes, PlayerBodyPushing,
+                       PlayerController
   Camera Offset        (saved at y 1.6m = standing eye height; crouch shifts it)
     Main Camera        Tracked Pose Driver (Tracking/Head* actions)
       Mantle Indicator (MantleIndicator - head-locked, placed a little below centre ~0.5m ahead)
       Screen Fade      (Core.ScreenFade - at the camera's local origin; fade to/from black)
     Hands              PlayerHandInteraction, PlayerHandHolding, PlayerHandThrowing,
-                       PlayerHandDoors, PlayerHandVisuals, PlayerHandAnimation (identity
-                       transform)
+                       PlayerHandDoors, PlayerLockpicking, PlayerHandVisuals,
+                       PlayerHandAnimation (identity transform)
       Left/Right Throw Arc   (made at runtime by PlayerHandThrowing)
       Left Hand        [PlayerHands] tracked controller - Tracked Pose Driver (Tracking/LeftHand*)
         Left Hand Visual   (hand.fbx instance, Animator)
+          Lockpicks        (made at runtime by PlayerLockpicking; moves to the right hand
+                           visual or into a lock while in use)
         Left Hand Reticle
       Right Hand       [PlayerHands] same, visual mirrored (scale.x -1)
 ```
@@ -310,7 +322,8 @@ prop being carried is moved onto `PlayerHands`** (and back when dropped; it's al
 the hand visual while carried), so the body doesn't
 collide with it and hand rays, the hand sweep and light rays ignore it. **A door** is on
 `Interactable` (its leaf and its handle's trigger grab volume), on a kinematic Rigidbody
-turned from code; it checks the `Player` layer itself so it never swings into the body. The
+turned from code; it checks the `Player` layer itself so it never swings into the body, and
+the body walking into an open door pushes it (`PlayerBodyPushing`, 2026-10-09). The
 matrix doesn't affect raycasts/overlaps: queries must pass their own `LayerMask` (hand rays use
 Environment + Interactable + Climbable, so walls block them; physical hand sweeps use
 Environment + Interactable; light rays - `SceneLight` - use Environment + Interactable, so both block light).
@@ -346,12 +359,15 @@ fails and restarts. Agreed mechanics:
   idle chatter (sound only, no noise event); two-guard conversations may come later.
 - **Tools:** blackjack (from-behind takedown on unaware guards), hand crossbow usable in either
   hand, physically cocked, with water / noisemaker / rope bolts; two-handed
-  lockpicking with haptics (decided 2026-10-09, not built, replacing the wrist-roll plan):
+  lockpicking with haptics (decided 2026-10-09, replacing the wrist-roll plan; written the
+  same day in `PlayerLockpicking`, `Interaction.BigLock` and `PickableLock`, tried and
+  working):
   two picks worn on the back of the left hand snap into a simple lock's keyhole, a large
   copy of the lock fades in front of the door, the right hand turns one pick clockwise
   through three stops and a last turn while the left sweeps the other to find each stop's
   random pin by haptics; a hand turns a pick by moving round the lock, not by twisting the
-  wrist. Full spec in `Assets/DEVROADMAP.txt`, Phase 5.
+  wrist. Full spec in `Assets/DEVROADMAP.txt`, Phase 5; detail in
+  `Assets/Scripts/Interaction/CLAUDE.md` and `Assets/Scripts/Player/CLAUDE.md`.
 - **Inventory:** wrist radial menu to pick tools/bolt types (equip into the other hand); loot
   pocketed at the hip for a running total.
 - **Throwing is both aimed and physical** (physical built and tested 2026-10-07; aimed
@@ -391,7 +407,8 @@ fades out or reloads the scene itself.
 scene in the build list. Its test areas are built from the **TeaLeaf** menu (editor scripts
 in each system's `Debug/Editor`) and can be rebuilt at any time. As of 2026-10-07 the scene
 held only the Sound Test House and the Grabbable Test Props (a Door Test Area can be added
-from **TeaLeaf > Build Door Test Area**, written 2026-10-08, and a textured, climbable
+from **TeaLeaf > Build Door Test Area**, written 2026-10-08 - since 2026-10-09 it also sets
+up lockpicking, including a `Big Lock` object at the scene root - and a textured, climbable
 blacksmith's house from **TeaLeaf > Build Smithy**, written 2026-10-09 - see
 `Assets/Scripts/Interaction/CLAUDE.md`): the maintainer removed the
 Locomotion Test Course, Town Test Area, Sound Test Area and Noise Test Listeners that day

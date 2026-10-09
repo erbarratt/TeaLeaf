@@ -19,7 +19,13 @@ namespace Interaction
     ///
     /// The simple-lock door also gets a keyhole to look through (a
     /// DoorKeyhole below the handle, and the door leaf material on its
-    /// leaf).
+    /// leaf), which is also the lock the lockpicks go into (a
+    /// PickableLock), with a round lock plate on each face.
+    ///
+    /// For lockpicking it also adds PlayerLockpicking to the player's
+    /// Hands object and makes the scene's Big Lock object (BigLock and
+    /// its debug view), if they aren't there, and the pick's hand snap
+    /// profile (Assets/Data/LockpickHold.asset) as a copy of the rope's.
     ///
     /// Also adds PlayerHandDoors to the player's Hands object and
     /// PlayerKeyholes to the Player root if they aren't there, and makes the door handle's hand snap profile
@@ -67,6 +73,30 @@ namespace Interaction
         private const string DoorLeafMaterialPath = "Assets/Art/Materials/DoorLeaf.mat";
         private const string DoorLeafShaderName = "TeaLeaf/DoorLeaf";
 
+        // The lock plate round the keyhole (simple lock only): a round
+        // disc on each face - really one short cylinder through the door -
+        // and how far it stands out of each face.
+        private const float LockPlateRadius = 0.035f;
+        private const float LockPlateProud = 0.006f;
+        private const string LockPlateMaterialPath = "Assets/Art/Materials/LockPlate.mat";
+
+        // The sliding bolt (on the door with no lock): how high it is,
+        // how far in from the leaf's free edge its knob starts, and how
+        // far it slides.
+        private const float BoltHeight = 1.35f;
+        private const float BoltInset = 0.09f;
+        private const float BoltTravel = 0.05f;
+
+        // The sound room each side of the wall.
+        private const float SoundRoomHeight = 3f;
+        private const float SoundRoomDepth = 6f;
+
+        // The hand snap profile for a hand on one of the big lock's picks,
+        // made as a copy of the rope's (the nearest grip: a hand closed
+        // round something thin).
+        private const string PickProfilePath = "Assets/Data/LockpickHold.asset";
+        private const string RopeProfilePath = "Assets/Data/RopeGrip.asset";
+
         [MenuItem("TeaLeaf/Build Door Test Area")]
         private static void Build()
         {
@@ -113,15 +143,28 @@ namespace Interaction
 
             BuildWall(parent, environment);
 
+            // Makes any placeholder sounds that don't exist yet (the creak
+            // is newer than the others).
+            PlaceholderSounds.Create();
+
             HandSnapProfile profile = EnsureHandleProfile();
             SoundCue cue = AssetDatabase.LoadAssetAtPath<SoundCue>(PlaceholderSounds.ImpactCuePath);
+            SoundCue creakCue = AssetDatabase.LoadAssetAtPath<SoundCue>(PlaceholderSounds.CreakCuePath);
 
-            BuildDoor("Door (No Lock)", parent, -DoorwaySpacing, DoorLock.None, false, profile, cue, interactable);
-            BuildDoor("Door (Simple Lock)", parent, 0f, DoorLock.Simple, true, profile, cue, interactable);
-            BuildDoor("Door (Keyed Lock)", parent, DoorwaySpacing, DoorLock.Keyed, true, profile, cue, interactable);
+            Door plainDoor = BuildDoor("Door (No Lock)", parent, -DoorwaySpacing, DoorLock.None, false, profile, cue, creakCue, interactable);
+            BuildDoor("Door (Simple Lock)", parent, 0f, DoorLock.Simple, true, profile, cue, creakCue, interactable);
+            BuildDoor("Door (Keyed Lock)", parent, DoorwaySpacing, DoorLock.Keyed, true, profile, cue, creakCue, interactable);
+
+            // A sliding bolt on the door with no lock, on the side the
+            // area is built facing (the door's back, -Z).
+            BuildBolt(plainDoor, false, profile, cue, interactable);
+
+            BuildSound(parent, cue);
 
             EnsurePlayerHandDoors();
             EnsurePlayerKeyholes();
+            EnsurePlayerBodyPushing();
+            EnsureLockpicking(cue);
             Selection.activeGameObject = root;
         }
 
@@ -161,7 +204,7 @@ namespace Interaction
         /// hinge (the doorway's -X edge, on the floor), its leaf, and its
         /// handle near the other edge.
         /// </summary>
-        private static void BuildDoor(string name, Transform parent, float doorwayX, DoorLock lockType, bool startsLocked, HandSnapProfile profile, SoundCue cue, int layer)
+        private static Door BuildDoor(string name, Transform parent, float doorwayX, DoorLock lockType, bool startsLocked, HandSnapProfile profile, SoundCue cue, SoundCue creakCue, int layer)
         {
             float leafWidth = DoorwayWidth - LeafGap * 2f;
             float leafHeight = DoorwayHeight - LeafGap * 2f;
@@ -187,10 +230,16 @@ namespace Interaction
             settings.FindProperty("leaf").objectReferenceValue = leaf.GetComponent<BoxCollider>();
             settings.FindProperty("blockingLayers").intValue = LayerMask.GetMask("Player");
 
-            // One placeholder sound for the latch and the locked rattle;
-            // the hinges are silent until there's a creak to give them.
+            // One placeholder sound for the latch and the locked rattle,
+            // and a placeholder creak for the hinges.
             settings.FindProperty("latchCue").objectReferenceValue = cue;
             settings.FindProperty("lockedCue").objectReferenceValue = cue;
+            settings.FindProperty("creakCue").objectReferenceValue = creakCue;
+
+            // The doorway's sound portal: in the wall, not on the door, so
+            // it stays put while the door swings. The door shuts and opens
+            // it, so a shut door muffles what's behind it.
+            settings.FindProperty("soundPortal").objectReferenceValue = BuildPortal(name, parent, doorwayX);
             settings.ApplyModifiedPropertiesWithoutUndo();
 
             SerializedObject handleSettings = new(handle);
@@ -201,6 +250,95 @@ namespace Interaction
             if (lockType == DoorLock.Simple) {
                 BuildKeyhole(door.transform, leaf, new Vector3(leafWidth - HandleInset, HandleHeight - KeyholeDrop, 0f), layer);
             }
+
+            return door.GetComponent<Door>();
+        }
+
+        /// <summary>
+        /// A sound portal filling the doorway centred at doorwayX, in the
+        /// middle of the wall's thickness. It starts closed; the door
+        /// opens it when it's unlatched.
+        /// </summary>
+        private static SoundPortal BuildPortal(string doorName, Transform parent, float doorwayX)
+        {
+            GameObject portal = new($"Sound Portal {doorName}");
+            portal.transform.SetParent(parent, false);
+            portal.transform.localPosition = new Vector3(doorwayX, DoorwayHeight * 0.5f, 0f);
+
+            SoundPortal component = portal.AddComponent<SoundPortal>();
+            SerializedObject settings = new(component);
+            settings.FindProperty("size").vector2Value = new Vector2(DoorwayWidth, DoorwayHeight);
+            settings.FindProperty("startsOpen").boolValue = false;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+            return component;
+        }
+
+        /// <summary>
+        /// The sound side of the test: a sound room each side of the wall
+        /// (they meet in the middle of it), so sound only gets from one to
+        /// the other through the doorways' portals, and a cube beyond the
+        /// wall that knocks every few seconds - muffled while the doors
+        /// are shut, clear through one that's open. Disable the cube to
+        /// test in silence.
+        /// </summary>
+        private static void BuildSound(Transform parent, SoundCue cue)
+        {
+            Vector3 roomSize = new(WallHalfLength * 2f, SoundRoomHeight, SoundRoomDepth);
+            float roomZ = SoundRoomDepth * 0.5f;
+
+            SoundTestArea.AddRoom("Sound Room Near", parent, new Vector3(0f, SoundRoomHeight * 0.5f, -roomZ), roomSize);
+            SoundTestArea.AddRoom("Sound Room Far", parent, new Vector3(0f, SoundRoomHeight * 0.5f, roomZ), roomSize);
+
+            if (cue != null) {
+                SoundTestArea.AddEmitter("Sound Emitter Behind Doors (impact)", parent, new Vector3(0f, 1f, 2.5f), cue, 3f);
+            }
+
+            SoundTestArea.EnsureSceneObjects();
+        }
+
+        /// <summary>
+        /// A sliding bolt on one face of door, above the handle: a plate
+        /// on the leaf, a bar with a knob that slides towards the door's
+        /// free edge (into the wall beside it), and a trigger grab volume
+        /// on that side of the door only. The parts are only to look at:
+        /// no colliders, no shadows. Its hand pose is the door handle's,
+        /// as a stand-in.
+        /// </summary>
+        private static void BuildBolt(Door door, bool onFront, HandSnapProfile profile, SoundCue cue, int layer)
+        {
+            float leafWidth = DoorwayWidth - LeafGap * 2f;
+            float side = onFront ? 1f : -1f;
+            float faceZ = side * LeafThickness * 0.5f;
+
+            // On the face, where the knob is with the bolt drawn back.
+            GameObject bolt = new("Bolt") { layer = layer };
+            bolt.transform.SetParent(door.transform, false);
+            bolt.transform.localPosition = new Vector3(leafWidth - BoltInset, BoltHeight, faceZ);
+
+            // Trigger first, so the DoorBolt's setup check never sees a
+            // solid box. Out from the face on the bolt's side only.
+            BoxCollider box = bolt.AddComponent<BoxCollider>();
+            box.isTrigger = true;
+            box.center = new Vector3(BoltTravel * 0.5f, 0f, side * 0.06f);
+            box.size = new Vector3(0.2f, 0.12f, 0.12f);
+
+            LeverPart("Plate", bolt.transform, new Vector3(0f, 0f, side * 0.004f), new Vector3(0.14f, 0.05f, 0.008f), layer);
+
+            // The part that slides: the bar along the door and a knob
+            // standing out of it.
+            GameObject bar = new("Bar") { layer = layer };
+            bar.transform.SetParent(bolt.transform, false);
+            LeverPart("Rod", bar.transform, new Vector3(0f, 0f, side * 0.016f), new Vector3(0.12f, 0.016f, 0.016f), layer);
+            LeverPart("Knob", bar.transform, new Vector3(0f, 0f, side * 0.034f), new Vector3(0.016f, 0.016f, 0.03f), layer);
+
+            SerializedObject settings = new(bolt.AddComponent<DoorBolt>());
+            settings.FindProperty("door").objectReferenceValue = door;
+            settings.FindProperty("onFront").boolValue = onFront;
+            settings.FindProperty("bar").objectReferenceValue = bar.transform;
+            settings.FindProperty("travel").floatValue = BoltTravel;
+            settings.FindProperty("snapProfile").objectReferenceValue = profile;
+            settings.FindProperty("slideCue").objectReferenceValue = cue;
+            settings.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>
@@ -222,10 +360,84 @@ namespace Interaction
             keyhole.transform.SetParent(door, false);
             keyhole.transform.localPosition = localPosition;
 
+            MeshRenderer plateRenderer = BuildLockPlate(keyhole.transform, layer);
+
             SerializedObject settings = new(keyhole.AddComponent<DoorKeyhole>());
             settings.FindProperty("door").objectReferenceValue = door.GetComponent<Door>();
             settings.FindProperty("leafRenderer").objectReferenceValue = leafRenderer;
+
+            // The opening goes through the lock plate too, and its walls
+            // run the plate's whole depth, not just the leaf's.
+            if (plateRenderer != null) {
+                SerializedProperty plates = settings.FindProperty("plateRenderers");
+                plates.arraySize = 1;
+                plates.GetArrayElementAtIndex(0).objectReferenceValue = plateRenderer;
+                settings.FindProperty("thickness").floatValue = LeafThickness + LockPlateProud * 2f;
+            }
+
             settings.ApplyModifiedPropertiesWithoutUndo();
+
+            // The same object is the lock the picks go into.
+            SerializedObject lockSettings = new(keyhole.AddComponent<PickableLock>());
+            lockSettings.FindProperty("door").objectReferenceValue = door.GetComponent<Door>();
+            lockSettings.FindProperty("faceOffset").floatValue = LeafThickness * 0.5f + LockPlateProud;
+            lockSettings.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// The lock plate: a short cylinder through the door at the
+        /// keyhole, standing a little out of each face, so it shows as a
+        /// round plate on both. Only to look at: no collider, no shadows.
+        /// It uses the door leaf shader (in its own dark material), so the
+        /// keyhole is cut through it as well. Null, with a warning, if
+        /// that shader can't be found.
+        /// </summary>
+        private static MeshRenderer BuildLockPlate(Transform keyhole, int layer)
+        {
+            Material material = GetLockPlateMaterial();
+
+            if (material == null) {
+                return null;
+            }
+
+            GameObject plate = TestGeometry.Primitive(PrimitiveType.Cylinder, "Lock Plate", keyhole, layer);
+            Object.DestroyImmediate(plate.GetComponent<Collider>());
+
+            // A primitive cylinder is 1m across and 2m long, along its Y:
+            // turned to lie through the door, and scaled to size.
+            plate.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            plate.transform.localScale = new Vector3(LockPlateRadius * 2f, LeafThickness * 0.5f + LockPlateProud, LockPlateRadius * 2f);
+
+            MeshRenderer renderer = plate.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            return renderer;
+        }
+
+        /// <summary>
+        /// The lock plate material asset (the TeaLeaf/DoorLeaf shader, in
+        /// dark iron), created the first time it's needed.
+        /// </summary>
+        private static Material GetLockPlateMaterial()
+        {
+            Material material = AssetDatabase.LoadAssetAtPath<Material>(LockPlateMaterialPath);
+
+            if (material != null) {
+                return material;
+            }
+
+            Shader shader = Shader.Find(DoorLeafShaderName);
+
+            if (shader == null) {
+                Debug.LogWarning($"DoorTestArea: shader '{DoorLeafShaderName}' not found, so the simple-lock door has no lock plate.");
+                return null;
+            }
+
+            material = new Material(shader) { name = "LockPlate" };
+            material.SetColor("_BaseColor", new Color(0.16f, 0.15f, 0.14f, 1f));
+            AssetDatabase.CreateAsset(material, LockPlateMaterialPath);
+            return material;
         }
 
         /// <summary>
@@ -379,6 +591,96 @@ namespace Interaction
             if (player.GetComponent<PlayerKeyholes>() == null) {
                 Undo.AddComponent<PlayerKeyholes>(player.gameObject);
             }
+        }
+
+        /// <summary>
+        /// Makes sure the player's body pushes open doors: adds
+        /// PlayerBodyPushing next to PlayerController (on the Player root,
+        /// where the CharacterController is) if it's missing.
+        /// </summary>
+        private static void EnsurePlayerBodyPushing()
+        {
+            PlayerController player = Object.FindFirstObjectByType<PlayerController>();
+
+            if (player == null) {
+                Debug.LogWarning("DoorTestArea: no PlayerController in the scene, so PlayerBodyPushing wasn't added - add it to the Player root by hand.");
+                return;
+            }
+
+            if (player.GetComponent<PlayerBodyPushing>() == null) {
+                Undo.AddComponent<PlayerBodyPushing>(player.gameObject);
+            }
+        }
+
+        /// <summary>
+        /// Makes sure the player can pick locks: adds PlayerLockpicking
+        /// next to PlayerHandVisuals (on the Hands object) if it's missing
+        /// - its Reset() fills in its references - and makes the scene's
+        /// one Big Lock object (BigLock, with its debug view) if there
+        /// isn't one. The big lock sits at the scene's root, not under the
+        /// test area, so rebuilding the area keeps any tuning done to it.
+        /// </summary>
+        private static void EnsureLockpicking(SoundCue cue)
+        {
+            PlayerHandVisuals hands = Object.FindFirstObjectByType<PlayerHandVisuals>();
+
+            if (hands == null) {
+                Debug.LogWarning("DoorTestArea: no PlayerHandVisuals in the scene, so PlayerLockpicking wasn't added - add it to the Hands object by hand.");
+                return;
+            }
+
+            PlayerLockpicking lockpicking = hands.GetComponent<PlayerLockpicking>();
+
+            if (lockpicking == null) {
+                lockpicking = Undo.AddComponent<PlayerLockpicking>(hands.gameObject);
+            }
+
+            BigLock bigLock = Object.FindFirstObjectByType<BigLock>();
+
+            if (bigLock == null) {
+                GameObject lockObject = new("Big Lock");
+                Undo.RegisterCreatedObjectUndo(lockObject, "Build Door Test Area");
+                bigLock = lockObject.AddComponent<BigLock>();
+                lockObject.AddComponent<BigLockDebug>();
+
+                // One placeholder sound for the picking and the unlock.
+                SerializedObject lockSettings = new(bigLock);
+                lockSettings.FindProperty("snapProfile").objectReferenceValue = EnsurePickProfile();
+                lockSettings.FindProperty("pickCue").objectReferenceValue = cue;
+                lockSettings.FindProperty("unlockCue").objectReferenceValue = cue;
+                lockSettings.ApplyModifiedPropertiesWithoutUndo();
+            }
+
+            SerializedObject settings = new(lockpicking);
+            settings.FindProperty("bigLock").objectReferenceValue = bigLock;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// The hand snap profile for a hand on a pick, made the first time
+        /// as a copy of the rope's, so it can be tuned without changing
+        /// how a rope is held. An empty profile if the rope's is missing.
+        /// </summary>
+        private static HandSnapProfile EnsurePickProfile()
+        {
+            HandSnapProfile profile = AssetDatabase.LoadAssetAtPath<HandSnapProfile>(PickProfilePath);
+
+            if (profile != null) {
+                return profile;
+            }
+
+            HandSnapProfile rope = AssetDatabase.LoadAssetAtPath<HandSnapProfile>(RopeProfilePath);
+
+            if (rope != null) {
+                profile = Object.Instantiate(rope);
+            } else {
+                Debug.LogWarning($"DoorTestArea: couldn't load {RopeProfilePath} to copy - the lockpick profile starts empty.");
+                profile = ScriptableObject.CreateInstance<HandSnapProfile>();
+            }
+
+            profile.name = "LockpickHold";
+            AssetDatabase.CreateAsset(profile, PickProfilePath);
+            return profile;
         }
     }
 }

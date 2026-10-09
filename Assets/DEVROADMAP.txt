@@ -707,11 +707,12 @@ Grabbing and props:
         swings on with momentum (also after a moving release). A door
         swinging by itself latches when it reaches closed. Tried in
         the headset: the hand stuttered while pushing; the fix (the
-        hand re-sweeps in the same frame once the door has moved) is
-        written but not yet confirmed.
-    [ ] Check the stutter fix in the headset. The contact haptic no
-        longer fires on a door being pushed - decide whether to add a
-        tap on first touch.
+        hand re-sweeps in the same frame once the door has moved) was
+        confirmed 2026-10-09.
+    [x] Check the stutter fix in the headset (confirmed 2026-10-09). A
+        tap on first touching a door being pushed: decided yes, built
+        and tested 2026-10-09 (a push counts as a new touch after half
+        a second without one).
     [ ] Door handle hand pose: Assets/Data/DoorHandle.asset is a copy of
         BottleHold as a stand-in. Tune its offsets; give it a finger
         pose of its own if the bottle's looks wrong.
@@ -725,19 +726,30 @@ Grabbing and props:
         (TeaLeaf/DoorLeaf); Interaction.DoorKeyhole sizes it and makes
         its walls through the door's thickness; Player.PlayerKeyholes
         finds the keyhole the head is near.
-    [ ] Door leaf shader: a texture (it's a flat colour), and the
-        circular lock plate round the keyway from the lockpicking
-        design (Phase 5).
-    [ ] Sliding bolt: optional on any door, worked only from the side
-        it's on, whatever the lock's state.
+    [x] The circular lock plate round the keyway, from the lockpicking
+        design (2026-10-09): a short cylinder through the door, cut by
+        the same keyhole opening (DoorKeyhole's plateRenderers). The
+        door leaf stays a flat colour - a texture was dropped from the
+        plan by the maintainer 2026-10-09.
+    [x] Sliding bolt (2026-10-09, tested): Interaction.DoorBolt,
+        optional on any door, worked only from the side it's on,
+        whatever the lock's state. Taken like a handle and slid by
+        moving the hand along the door; it only shoots while the door
+        is shut. Its hand pose is the door handle's, as a stand-in.
     [ ] Keys (Door.keyId is stored, unused) - with the inventory,
-        Phase 4. Lockpicking calls Door.Unlock() - Phase 5.
-    [ ] Sounds: a creak cue (the door plays one every 25 degrees of
-        travel; none assigned), real latch and rattle sounds (both use
-        the placeholder impact cue), and a louder latch for a slam.
-    [ ] A sound portal on a real doorway (the Door has the field; the
-        test doors have none) - try it on the Sound Test House's Store.
-    [ ] Should the player's body push an open door? It blocks it now.
+        Phase 4. (Lockpicking calls Door.Unlock(): done, Phase 5.)
+    [x] A creak (2026-10-09, tested): a generated placeholder cue, one
+        every 25 degrees of travel.
+    [ ] Sounds left: real latch, rattle and creak sounds (all
+        placeholders), and a louder latch for a slam.
+    [x] A sound portal on a real doorway (2026-10-09, tested): one in
+        each doorway of the Door Test Area, with a sound room each side
+        of the wall and a knocking cube behind it. The Sound Test
+        House's Store still has a plain closed portal and a slab.
+    [x] The player's body pushes an open door (decided yes and built
+        2026-10-09, tested): Player.PlayerBodyPushing, at a set 1.5m a
+        second. A door pulled towards the body by its handle, or
+        shutting itself, is still stopped by the body.
     [ ] NavMesh obstacle/link updates - with the guards, Phase 6.
 [ ] Grab hand poses: hold-object pose per hand, as a new HandPose value +
     Snap Pose layer state. Grabbables, door handles and tools supply their
@@ -813,48 +825,62 @@ Design given by the maintainer 2026-10-09, replacing the single-pick
 wrist-roll plan: two picks, worked with both hands on a large copy of the
 lock. Angles are clock positions on the lock's face, seen from the
 player's side. Every distance, angle and time below is a tunable field.
-[ ] The picks: two long, thin, small boxes on the back of the left hand
+Built and tested in the headset 2026-10-09 (Player.PlayerLockpicking,
+Interaction.BigLock, PickableLock, LockMeshBuilder, BigLockDebug; the
+TeaLeaf/LockFade shader; set up by TeaLeaf > Build Door Test Area). As
+built: picks are taken by reaching for them with grip, not by the hand
+rays (a light tap says a hand is in reach, no reticle); the big lock
+appears 0.2m out from the door, 0.3m below the head; the door's keyway
+is the keyhole shape of the keyhole view, cut through a round lock
+plate (the big lock's is the plain rectangle); a new pin is never
+within 20 degrees of where the left pick already is; stops are 28
+degrees apart.
+[ ] Left over: chests (the lock works without a door and raises an
+    event, but there is no chest or lid); the "lockpick hold" finger
+    pose (Phase 7 - the hand on a pick uses a copy of the rope grip);
+    real picking and unlock sounds (the placeholder impact cue).
+[x] The picks: two long, thin, small boxes on the back of the left hand
     (children of it). The right hand grabs them with grip, as ONE
     grabbable object.
-[ ] Locks (greybox): circular, with a plain rectangular keyway the picks
+[x] Locks (greybox): circular, with a plain rectangular keyway the picks
     stick out of - the same look on the door (simple lock kind only) and
     on the large copy. Chests get the same lock.
-[ ] Insert: bringing the held picks within a set distance of a locked
+[x] Insert: bringing the held picks within a set distance of a locked
     simple lock snaps them into its keyhole, and the right hand is freed.
-[ ] The big lock: once the picks are in, a large copy of the lock fades
+[x] The big lock: once the picks are in, a large copy of the lock fades
     in, floating in front of the door. Both picks stick out of its
     keyway, angled outward: the left at about 11 o'clock, the right at
     about 1 o'clock. A world object the hands reach into, so depth-
     tested, not drawn on top like UI. One copy, made at load and reused
     for every lock (nothing created during play).
-[ ] Turning a pick: grip it and carry the hand round the lock's centre,
+[x] Turning a pick: grip it and carry the hand round the lock's centre,
     like a clock hand - the angle comes from where the hand is, not from
     twisting the wrist. Right hand on the right pick, left on the left.
-[ ] Right pick (the turning pick): turns clockwise until it stops at
+[x] Right pick (the turning pick): turns clockwise until it stops at
     stage 1, 25-30 degrees from its start. Each pin found frees it to
     the next stop, a further 25-30 degrees: stage 2, stage 3, then one
     last turn that unlocks. Four stops in all. Letting go of it at any
     time before that swings it back to its start and resets the lock.
-[ ] Left pick (the searching pick): while the right pick is held at
+[x] Left pick (the searching pick): while the right pick is held at
     stage 1, 2 or 3, the left pick is swept between 11 o'clock and
     7 o'clock (down the left side, 120 degrees) to find that stage's
     pin - a random angle within the arc. Held within 5 degrees of it for
     one second, the pin is set and the right pick is freed to the next
     stage.
-[ ] Haptics: a pulse on the right hand each time the right pick reaches
+[x] Haptics: a pulse on the right hand each time the right pick reaches
     its next stop. On the left hand, a vibration that starts 10 degrees
     from the pin and rises to its maximum inside the 5 degrees.
-[ ] Unlocked: after the last turn the lock calls Door.Unlock() (chest:
+[x] Unlocked: after the last turn the lock calls Door.Unlock() (chest:
     the lid opens) and stays unlocked until the level restarts - a
     restart locks it again, like everything else. Nothing is kept across
     reloads.
-[ ] Leaving: moving the body a set distance from the lock fades the big
+[x] Leaving: moving the body a set distance from the lock fades the big
     lock out and puts the picks back on the left hand, lock reset.
-[ ] Fade in and out of the big lock: a see-through fade on a small object
+[x] Fade in and out of the big lock: a see-through fade on a small object
     for a fraction of a second (within the overdraw rule); opaque once
     fully in.
-[ ] Quiet picking noise events while working the lock.
-[ ] Debug (Scripts/Interaction/Debug): show the stage, each pick's angle,
+[x] Quiet picking noise events while working the lock.
+[x] Debug (Scripts/Interaction/Debug): show the stage, each pick's angle,
     the pin's angle and the hold timer.
 Also decided (confirmed by the maintainer 2026-10-09):
     - The stops are evenly spaced (the same 25-30 degrees each).
@@ -1002,8 +1028,10 @@ Phase 8 - Level: the docks warehouse
     mesh per material (six draw calls), textures painted by the script
     and saved as PNGs, Static with mesh colliders, hollow, and about 35
     ledges, window sills, ridges and ladders to climb.
-[ ] Try the smithy in the headset: how it looks, whether every ledge
-    is in reach of the next, and what it costs on Quest.
+[x] Try the smithy in the headset: how it looks and whether every ledge
+    is in reach of the next (2026-10-09: fine, the maintainer's word).
+[ ] What the smithy costs on Quest - with the first standalone build,
+    Phase 10.
 Design (on paper first):
 [ ] Layout sketch with a critical path and at least one alternate route per
     area. Each beat below should teach or test one mechanic, roughly in

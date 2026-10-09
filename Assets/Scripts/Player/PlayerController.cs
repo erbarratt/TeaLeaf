@@ -39,6 +39,7 @@ namespace Player
         [SerializeField] private PlayerHandHolding playerHandHolding;
         [SerializeField] private PlayerHandThrowing playerHandThrowing;
         [SerializeField] private PlayerHandDoors playerHandDoors;
+        [SerializeField] private PlayerLockpicking playerLockpicking;
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
         [SerializeField] private PlayerHandAnimation playerHandAnimation;
         [SerializeField] private CharacterController characterController;
@@ -72,6 +73,9 @@ namespace Player
         // Whether the Player has a PlayerKeyholes - see Awake().
         private bool _hasKeyholes;
 
+        // Whether the rig has a PlayerLockpicking - see Awake().
+        private bool _hasLockpicking;
+
         /// <summary>
         /// Editor-only convenience: Unity calls Reset() when the component is
         /// first added (or via the Inspector's Reset menu item), so every
@@ -97,6 +101,7 @@ namespace Player
             playerHandHolding = GetComponentInChildren<PlayerHandHolding>();
             playerHandThrowing = GetComponentInChildren<PlayerHandThrowing>();
             playerHandDoors = GetComponentInChildren<PlayerHandDoors>();
+            playerLockpicking = GetComponentInChildren<PlayerLockpicking>();
             playerHandVisuals = GetComponentInChildren<PlayerHandVisuals>();
             playerHandAnimation = GetComponentInChildren<PlayerHandAnimation>();
         }
@@ -153,6 +158,13 @@ namespace Player
 
             // And so is looking through keyholes.
             _hasKeyholes = playerKeyholes != null;
+
+            if (playerLockpicking == null) {
+                playerLockpicking = GetComponentInChildren<PlayerLockpicking>();
+            }
+
+            // And picking locks.
+            _hasLockpicking = playerLockpicking != null;
         }
 
         /// <summary>
@@ -226,6 +238,15 @@ namespace Player
             // mantling, since the mantle has already let go of the ledge and
             // nothing may grab or climb until it finishes.
             if (!playerMantling.IsMantling) {
+                // 3b. The lockpicks - taking them, putting them in a lock,
+                // taking hold of a pick. First of the grab systems: picks
+                // are taken by reaching for them, not by the hand rays, so
+                // a hand that takes one here must already be busy when
+                // climbing, carrying and doors look at what its ray is on.
+                if (_hasLockpicking) {
+                    playerLockpicking.Tick();
+                }
+
                 playerClimbing.Tick();
 
                 // 4a. Picking up and dropping props - after climbing, so it
@@ -356,16 +377,20 @@ namespace Player
         }
 
         /// <summary>
-        /// Held door handles, then the hand visuals. Called on every path
-        /// through Update() - normal, mid-mantle and after the level has
-        /// ended. The doors go first: a door follows the hand on its
-        /// handle, and the hand visual is then snapped onto the handle
-        /// where the door has ended up.
+        /// Held door handles and lockpicks, then the hand visuals. Called
+        /// on every path through Update() - normal, mid-mantle and after
+        /// the level has ended. The doors and picks go first: a door
+        /// follows the hand on its handle (and a pick the hand on it), and
+        /// the hand visual is then snapped onto it where it has ended up.
         /// </summary>
         private void TickHandVisuals()
         {
             if (_hasHandDoors) {
                 playerHandDoors.TickHeld();
+            }
+
+            if (_hasLockpicking) {
+                playerLockpicking.TickHeld();
             }
 
             playerHandVisuals.Tick();

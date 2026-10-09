@@ -68,6 +68,15 @@ namespace Player
             // True once a locked door's rattle has played, until the lever
             // is turned back - so it plays once per try, not every frame.
             public bool hasRattled;
+
+            // The sliding bolt this hand is on instead, or null. A hand is
+            // on a handle or a bolt, never both.
+            public DoorBolt bolt;
+
+            // The difference between the bolt's slide and where the hand
+            // was along it when it took hold, so the bolt moves as far as
+            // the hand does from there rather than jumping to the hand.
+            public float boltSlideOffset;
         }
 
         [SerializeField] private PlayerInputXR playerInput;
@@ -79,6 +88,10 @@ namespace Player
         // Optional: a rig with no carrying or no haptics still opens doors.
         [SerializeField] private PlayerHandHolding playerHandHolding;
         [SerializeField] private PlayerHaptics playerHaptics;
+
+        // A hand carrying the lockpicks or on a pick can't take a handle.
+        // Optional: found in Awake() (it's on this same object).
+        [SerializeField] private PlayerLockpicking playerLockpicking;
 
         // The hand is let go of the handle when the real hand is further
         // than this from it, in metres.
@@ -104,14 +117,15 @@ namespace Player
 
         private bool _hasHolding;
         private bool _hasHaptics;
+        private bool _hasLockpicking;
 
         /// True while the left hand is on a door handle - and, after being
         /// let go by force, until its grip is released: the hand is still
         /// busy as far as climbing and carrying are concerned.
-        public bool IsLeftOnDoor => _left.handle is not null || _left.needsRegrip;
+        public bool IsLeftOnDoor => _left.handle is not null || _left.bolt is not null || _left.needsRegrip;
 
         /// True while the right hand is on a door handle (as IsLeftOnDoor).
-        public bool IsRightOnDoor => _right.handle is not null || _right.needsRegrip;
+        public bool IsRightOnDoor => _right.handle is not null || _right.bolt is not null || _right.needsRegrip;
 
         /// <summary>
         /// Editor-only: fills in the references when the component is added
@@ -139,9 +153,14 @@ namespace Player
                 playerHaptics = GetComponentInParent<PlayerHaptics>();
             }
 
+            if (playerLockpicking == null) {
+                playerLockpicking = GetComponent<PlayerLockpicking>();
+            }
+
             // Looked up once, so the per-frame code tests a plain bool.
             _hasHolding = playerHandHolding != null;
             _hasHaptics = playerHaptics != null;
+            _hasLockpicking = playerLockpicking != null;
 
             _left = new HandOnDoor { isLeftHand = true };
             _right = new HandOnDoor { isLeftHand = false };
@@ -157,6 +176,8 @@ namespace Player
 
             LetGo(_left, false);
             LetGo(_right, false);
+            LetGoOfBolt(_left, false);
+            LetGoOfBolt(_right, false);
         }
 
         /// <summary>
@@ -170,13 +191,13 @@ namespace Player
             TickHand(
                 _left,
                 playerInput.IsLeftGrabbing,
-                playerClimbing.IsLeftHandGripping || (_hasHolding && playerHandHolding.IsLeftHolding),
+                playerClimbing.IsLeftHandGripping || (_hasHolding && playerHandHolding.IsLeftHolding) || (_hasLockpicking && playerLockpicking.IsLeftBusy),
                 playerHandInteraction.LeftTarget);
 
             TickHand(
                 _right,
                 playerInput.IsRightGrabbing,
-                playerClimbing.IsRightHandGripping || (_hasHolding && playerHandHolding.IsRightHolding),
+                playerClimbing.IsRightHandGripping || (_hasHolding && playerHandHolding.IsRightHolding) || (_hasLockpicking && playerLockpicking.IsRightBusy),
                 playerHandInteraction.RightTarget);
         }
 
@@ -195,6 +216,14 @@ namespace Player
                 return;
             }
 
+            if (hand.bolt is not null) {
+                if (!isGrabbing) {
+                    LetGoOfBolt(hand, false);
+                }
+
+                return;
+            }
+
             if (!isGrabbing) {
                 // Grip released - this hand may take a handle again.
                 hand.needsRegrip = false;
@@ -207,12 +236,93 @@ namespace Player
 
             // The ray target is only an IHandTarget; a type pattern checks
             // whether it's a door handle (as PlayerClimbing does for
-            // climbables). A door takes one hand at a time.
+            // climbables). A sliding bolt is taken the same way.
+            if (rayTarget is DoorBolt bolt) {
+                TakeBolt(hand, bolt);
+                return;
+            }
+
+            // A door takes one hand at a time.
             if (rayTarget is not DoorHandle handle || handle.Door == null || handle.Door.IsHeld) {
                 return;
             }
 
             TakeHold(hand, handle);
+        }
+
+        /// <summary>
+        /// Puts this hand on a sliding bolt: the hand visual snaps onto
+        /// its knob, and where the hand is along the bolt is noted so the
+        /// bolt moves with it from here. One hand at a time.
+        /// </summary>
+        private void TakeBolt(HandOnDoor hand, DoorBolt bolt)
+        {
+            HandOnDoor other = hand.isLeftHand ? _right : _left;
+
+            if (other.bolt == bolt) {
+                return;
+            }
+
+            Vector3 controllerPosition = hand.isLeftHand ? playerTracking.LeftHandPosition : playerTracking.RightHandPosition;
+
+            hand.bolt = bolt;
+            hand.boltSlideOffset = bolt.Slide - bolt.SlideAt(controllerPosition);
+            SnapFor(hand).Snap(bolt.GetSnapPose(hand.isLeftHand));
+        }
+
+        /// <summary>
+        /// Takes this hand off its bolt (nothing happens if it isn't on
+        /// one): a bolt left part way settles at the nearer end, and the
+        /// hand visual blends back to the controller. With byForce, the
+        /// hand can't take anything again until its grip has been released.
+        /// </summary>
+        private void LetGoOfBolt(HandOnDoor hand, bool byForce)
+        {
+            if (hand == null || hand.bolt is null) {
+                return;
+            }
+
+            // Unity's == null is true for a bolt destroyed while held.
+            if (hand.bolt != null) {
+                hand.bolt.Release();
+            }
+
+            hand.bolt = null;
+            hand.needsRegrip = byForce;
+            SnapFor(hand).Release();
+        }
+
+        /// <summary>
+        /// One hand on a bolt: the bolt slides as far as the real hand has
+        /// moved along it since it took hold, with a click in the hand as
+        /// it reaches either end, and the snapped hand moves with the
+        /// knob. The hand is let go by force if the real hand strays too
+        /// far.
+        /// </summary>
+        private void TickHeldBolt(HandOnDoor hand, Vector3 controllerPosition)
+        {
+            if (hand.bolt is null) {
+                return;
+            }
+
+            // Bolt destroyed while held (Unity's == null).
+            if (hand.bolt == null) {
+                LetGoOfBolt(hand, true);
+                return;
+            }
+
+            DoorBolt bolt = hand.bolt;
+
+            if (bolt.SetSlide(bolt.SlideAt(controllerPosition) + hand.boltSlideOffset)) {
+                Pulse(hand, unlatchAmplitude, unlatchDuration);
+            }
+
+            HandSnapPose pose = bolt.GetSnapPose(hand.isLeftHand);
+            SnapFor(hand).SetSnapPose(pose.Position, pose.Rotation);
+
+            if ((controllerPosition - bolt.GetGripPoint()).sqrMagnitude > breakDistance * breakDistance) {
+                LetGoOfBolt(hand, true);
+            }
         }
 
         /// <summary>
@@ -284,6 +394,8 @@ namespace Player
         {
             TickHeldHand(_left, playerTracking.LeftHandPosition, playerTracking.LeftHandRotation);
             TickHeldHand(_right, playerTracking.RightHandPosition, playerTracking.RightHandRotation);
+            TickHeldBolt(_left, playerTracking.LeftHandPosition);
+            TickHeldBolt(_right, playerTracking.RightHandPosition);
         }
 
         /// <summary>
@@ -314,14 +426,15 @@ namespace Player
             float twist = TwistAboutZ(relative * Quaternion.Inverse(hand.grabRotation));
 
             // The lever turns with the wrist as far as its stop: the full
-            // turn that frees the latch, or the short one a lock allows.
-            float stop = door.IsLocked ? door.LockedTwist : door.UnlatchTwist;
+            // turn that frees the latch, or the short one a lock or a shot
+            // bolt allows.
+            float stop = door.IsHeldShut ? door.LockedTwist : door.UnlatchTwist;
             handle.SetLeverAngle(Mathf.Clamp(twist, -stop, stop));
 
             bool isAtStop = Mathf.Abs(twist) >= stop;
 
             if (door.IsLatched) {
-                if (door.IsLocked) {
+                if (door.IsHeldShut) {
                     TickLocked(hand, door, handle, isAtStop, twist, stop);
                 } else if (isAtStop) {
                     door.Unlatch(handle.GetGripPoint(hand.isFront));

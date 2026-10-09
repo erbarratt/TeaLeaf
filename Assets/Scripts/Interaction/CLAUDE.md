@@ -1,6 +1,6 @@
 # Interaction systems (`Assets/Scripts/Interaction/`, namespace `Interaction`)
 
-Detail for hand targets, grabbable props, doors, climbables and hand snap poses. The root `CLAUDE.md` holds the project
+Detail for hand targets, grabbable props, doors, lockpicking, climbables and hand snap poses. The root `CLAUDE.md` holds the project
 rules, the tick order and the physics layers; this file is loaded when working in this folder.
 Keep it up to date with every change to these systems, like the root file.
 
@@ -98,16 +98,17 @@ Keep it up to date with every change to these systems, like the root file.
   silent, and a carried one is out of physics, so it makes no impacts. The test props get
   one from `GrabbableTestProps` with the placeholder impact cue and surface sounds.
 
-## Doors (started 2026-10-08; written, not yet compiled or tried in the headset)
+## Doors (started 2026-10-08; tried in the headset)
 
 The maintainer's design: three lock kinds (none, simple = pickable, keyed); any unlocked
 door opens by its handle; the handle is ray-targeted and grabbed at the ledge reach, and the
 hand snaps onto it; turning the hand 60° frees the door; it swings either way; let go
 within a few degrees of closed, it shuts again; an open door is moved by the hand visuals
-touching it (written 2026-10-08, second step, untested); a simple-lock door has a keyhole
-to look through (`DoorKeyhole`, written 2026-10-09, third step, tried and working). **Still to
-build:** an optional sliding bolt, worked only from its own side whatever the lock; keys
-and lockpicking (Phases 4-5).
+touching it (written 2026-10-08, second step, tried and working); a simple-lock door has a keyhole
+to look through (`DoorKeyhole`, written 2026-10-09, third step, tried and working); an
+optional sliding bolt, worked only from its own side whatever the lock (`DoorBolt`), and
+the body pushing an open door (both written 2026-10-09, fourth step, tried and
+working). **Still to build:** keys (Phase 4). Lockpicking is below.
 
 - **`DoorLock`** (enum) — `None`, `Simple` (can be picked), `Keyed` (its own key only).
   Stored as its number: add values at the end.
@@ -150,7 +151,13 @@ and lockpicking (Phases 4-5).
   `soundPortal` (closed while latched, open otherwise, set in `Start()` after the portal's
   own `Awake()`), `latchCue` (freeing and catching), `lockedCue`, `creakCue` (one-shot every
   `creakInterval` 25° of travel - no looping sounds yet); all through `SoundPlayer`, so
-  guards hear them. `keyId` is stored but unused. Gizmo (selected / detailed): the swing arc
+  guards hear them. `keyId` is stored but unused. **Bolted** (2026-10-09): `IsBolted`, set
+  by a `DoorBolt` through `SetBolted()`; `IsHeldShut` = locked or bolted, which is what
+  `Unlatch()` refuses and what the player's handle code reads for the short stop and the
+  rattle. **Pushed by the body** (maintainer's decision 2026-10-09: yes): the same `Push()`,
+  called by `Player.PlayerBodyPushing` when the body walks into the leaf - the door moves
+  away from the body, so the "never into the player" check doesn't stop it; a door pulled
+  towards the body by its handle, or shutting itself, is still stopped by it. Gizmo (selected / detailed): the swing arc
   on the floor with the limits and the close angle, red locked, yellow latched, green open.
 - **`DoorHandle`** — `IHandTarget` + `IHandSnapTarget`; a trigger `BoxCollider` on
   Interactable, a child of the door on the spindle, mid-thickness, with the door's axes.
@@ -166,6 +173,22 @@ and lockpicking (Phases 4-5).
   the optional `lever` transform (both levers under one object) about local Z, only on
   change; `GetGripPoint(isFront)`. The levers the player sees have no colliders. Setup
   check: trigger, Interactable layer. Short reach (`HasLongReach` false), like a ledge.
+- **`DoorBolt`** (written 2026-10-09, tried and working) — a sliding bolt on one
+  face of a door. `IHandTarget` + `IHandSnapTarget`; a trigger `BoxCollider` on
+  Interactable covering the bolt on its own side, a child of the door. The object is on
+  the door's face where the knob is when drawn back, **with the door's axes** (X towards
+  the free edge = the way it shoots, Y up, Z out of the front); `onFront` says which face.
+  **Worked only from its own side**: `CanBeTargetedFrom()` refuses a ray starting on the
+  other side (and the leaf blocks such a ray anyway). `Slide` 0 (drawn) to 1 (shot) over
+  `travel` (0.05m); `SlideAt(worldPoint)` = how far along the travel a point is (not
+  limited); `SetSlide()` (clamped; **held at 0 while the door is open** - nothing to shoot
+  into; true on the frame it reaches an end) moves the optional `bar` transform;
+  `Release()` settles a bolt left part way at the nearer end. `IsShot` (reached the shot
+  end, or settled there) is passed to `Door.SetBolted()`; `startsShot` (applied in
+  `Start()`). `GetGripPoint()`, `GetSnapPose(isLeftHand)` (on the knob, `standOff` out,
+  facing into the door, thumb up; through `snapProfile` - the test bolt reuses
+  `DoorHandle.asset`). `slideCue` at each end. Gizmo: the grab volume; selected, the travel
+  (green drawn, red shot) and the knob. The player's half is in `PlayerHandDoors`.
 - **`DoorKeyhole`** (written 2026-10-09; the maintainer tried it the same day: "works
   great") — the keyhole view. **An opening in the door, not a second camera**
   (maintainer's decision 2026-10-09, over the roadmap's scope-style picture, which draws the
@@ -204,7 +227,14 @@ and lockpicking (Phases 4-5).
   `Player.PlayerKeyholes` on that one only. Gizmo (selected / detailed): the rest (yellow)
   and open (green) outlines 3cm either side of the middle. The test builder puts one on
   the simple-lock door, 0.18m below the handle (0.82m up: crouch or bend to look).
-  The lockpicking design (Phase 5) wants a circular lock plate round this keyway: not built.
+  **Lock plates** (`plateRenderers`, added 2026-10-09 with lockpicking, tested): other
+  renderers the opening must go through as well - the round lock plate standing on each
+  face. Each uses a `TeaLeaf/DoorLeaf` material of its own and gets its own property block
+  (`BuildBlock(target)`: the keyhole's place in that object's space), sized with the leaf's
+  in `Apply()`. So at rest the plate has the small keyhole in it, and it's cut away with
+  the leaf as the opening grows. Set `thickness` to the plate's whole depth so the walls
+  reach its faces. The keyway on the door is therefore keyhole-shaped, not the plain
+  rectangle of the lockpicking design (the big lock's is a rectangle).
 - **Hand pose:** the handle's profile is `Assets/Data/DoorHandle.asset`, made by the test
   builder as a **copy of `BottleHold`** (same finger pose) - a stand-in; tune its offsets in
   the headset, and give it a pose of its own if the bottle's looks wrong.
@@ -212,13 +242,92 @@ and lockpicking (Phases 4-5).
   a 7m wall (Static, Environment) 2.5m ahead of the main camera with three 0.9 x 2.1m
   doorways: no lock, simple lock (starts locked), keyed lock (starts locked). Each door is
   an unscaled root on the hinge with a kinematic Rigidbody, a leaf, and a handle 1m up with
-  a lever each side. Placeholder impact cue for the latch and rattle, no creak. Adds
-  `PlayerHandDoors` to the Hands object if missing. No sound rooms or portal. The
+  a lever each side. Placeholder impact cue for the latch and rattle, and (2026-10-09) the
+  placeholder creak (`PlaceholderSounds.Create()` is run first). Adds
+  `PlayerHandDoors` to the Hands object and `PlayerBodyPushing` to the Player root if
+  missing. **Sound** (2026-10-09): a `SoundPortal` in each doorway (a child of the area,
+  not the door; wired to the door's `soundPortal`, so a shut door muffles), a 7 x 3 x 6m
+  `SoundRoom` each side of the wall, and a `Sound Emitter Behind Doors` cube 2.5m beyond
+  the wall knocking every 3s - disable it to test in silence. **A sliding bolt** on the
+  no-lock door, 1.35m up on the side the area faces (the door's back). The
   simple-lock door also gets a `Keyhole` child (`DoorKeyhole`) and its leaf the
   `Assets/Art/Materials/DoorLeaf.mat` material (made on first build, the test brown);
   `PlayerKeyholes` is added to the Player root if missing. **Rebuild the area to get them.**
+  For lockpicking (2026-10-09) the `Keyhole` object also gets a `PickableLock` and a `Lock
+  Plate` child (a primitive cylinder through the door, 3.5cm radius, 6mm proud of each
+  face, no collider, `Assets/Art/Materials/LockPlate.mat` = DoorLeaf shader in dark iron);
+  `PlayerLockpicking` is added to the Hands object if missing; and a **`Big Lock`** object
+  (`BigLock` + `BigLockDebug`) is made at the scene root if the scene has none - outside
+  the test area, so a rebuild keeps its tuning - with `Assets/Data/LockpickHold.asset` (a
+  copy of `RopeGrip`, a stand-in) and the placeholder impact cue for picking and unlocking.
 
-## Smithy building (written 2026-10-09; the maintainer ran the builder that day - assets generated, in the scene; how it looks and climbs not yet reported)
+## Lockpicking (written 2026-10-09; tried in the headset the same day: working)
+
+The maintainer's two-pick design (full spec: `Assets/DEVROADMAP.txt`, Phase 5). The player's
+half is `Player.PlayerLockpicking` (see `Scripts/Player/CLAUDE.md`). **Angles are clock
+positions on the lock's face seen from the player's side, in degrees clockwise from 12.**
+
+- **`PickableLock`** — marks a lock that can be picked: the middle of the keyway,
+  mid-thickness, X across the face, Y up, Z through (normally the `DoorKeyhole`'s object).
+  `door` (optional: with none - a chest, later - it keeps its own locked state and raises
+  `Unlocked`), `faceOffset` (from the object out to the lock's face, where the picks sit).
+  `IsLocked`, `IsBeingPicked` (`BeginPicking()`/`EndPicking()`), `CanBePicked`. Only a
+  `DoorLock.Simple` door's can be picked (warning otherwise). `GetFace(viewerPosition, out
+  facePoint, out outward)` gives the face on the viewer's side - **pickable from either
+  side**. `Unlock()` calls `Door.Unlock()` (the door stays shut; unlocked until the level
+  restarts). No `Update()`: a static list, `FindInRange(point, range)` = the nearest that
+  can be picked (distance checks only). Gizmo (selected / detailed): a ring on each face,
+  red locked, green open.
+- **`BigLock`** — the large copy of the lock that floats in front of the real one, **and
+  the puzzle itself**. One in the scene, built in `Awake()` from its own fields and reused
+  for every lock; `PlayerLockpicking` finds it (or makes one with defaults if the scene has
+  none). Own axes: X to the player's right, Y up, Z into the door; origin = the middle of
+  the body; unscaled. **Looks:** a round body (`faceRadius` 0.11, `bodyDepth` 0.05) with a
+  dark rectangular keyway, a mark on the rim at each of the right pick's four stops and
+  each end of the left pick's sweep, and two picks (`pickLength` 0.2) on child objects
+  that turn about the keyway, leaning `pickLift` (35°) out of the face. Meshes from
+  `LockMeshBuilder`, vertex-coloured, `TeaLeaf/LockFade` (see `Scripts/Core/CLAUDE.md`).
+  **No colliders**: hands reach into it. **Fade:** `Show(target, position, rotation)` /
+  `Hide()`; `Tick()` moves `_fade` over `fadeDuration` (0.25s); the three renderers share
+  two materials it made - see-through while fading (its `_Alpha` written directly: the
+  class owns it), solid once in - and are disabled when out; swapped only on a change
+  (`SetLook()`). **The puzzle:** `PinCount` 3. Right pick: `rightStartAngle` (30 = 1
+  o'clock), `CurrentStop` = start + `stopSpacing` (28°) x (`PinsSet` + 1) - four evenly
+  spaced stops, the last one unlocking. Left pick: `leftStartAngle` (-30 = 11 o'clock),
+  swept `LeftSweep` 0-`leftArc` (120°, to 7 o'clock) anticlockwise. `TurnPick(isLeftPick,
+  handPosition)`: the pick's angle is the hand's clock angle round the lock's middle
+  (`Atan2(x, y)` in the lock's space), measured from the middle of the pick's range with
+  `Mathf.DeltaAngle` and clamped to it - stateless, no wrap problems; a hand within
+  `deadRadius` (3cm) of the axis changes nothing. The right pick reaching its stop
+  (`stopTolerance` 1.5°, re-armed once turned 3x that back) raises `StopReached`, or with
+  every pin set unlocks: `Target.Unlock()`, `unlockCue`, `Unlocked`. `IsSearching` = right
+  pick held at its stop with a pin to find; then (`TickSearch()`) with the left pick in
+  hand, `PinNearness` = 0 at `pinFeelAngle` (10°) from the pin rising to 1 at `pinSetAngle`
+  (5°), and `HoldTimer` counts while within the set angle (back to 0 on leaving); at
+  `pinHoldTime` (1s) the pin is set (`PinSet`), and the next stage's pin chosen.
+  `ChoosePin()`: a random sweep, never within `minPinGap` (20°) of where the left pick is
+  (chosen from the sweep with that stretch cut out - no retry loop). **Reset:**
+  `ReleasePick(right)` before the unlock puts `PinsSet` back to 0 with a new pin
+  (`WasReset` if anything was lost), and `Tick()` swings the pick back at `returnSpeed`
+  (240°/s); the left pick stays where it's left. `HoldPick()`, `GetGripPoint()`,
+  `GetSnapPose(isLeftPick)` (a rope-style grip frame: up along the pick, facing away from
+  the player; through `snapProfile`, or `HandPose.RopeGrip` with none), `CanBeWorked`
+  (faded at least half in), `IsActive`. **Sound:** `pickCue` (quiet: `pickVolume` 0.4,
+  `pickNoiseScale` 0.3) at each stop, pin, reset and every `scrapeAngle` (25°) the left
+  pick sweeps; played **from the real lock**, not the floating copy, through `SoundPlayer`
+  (so guards hear it). No `Update()`.
+- **`LockMeshBuilder`** — collects boxes (`Box(centre, size, rotation, color)`) and a
+  cylinder along Z (`Cylinder(radius, depth, segments, faceColor, sideColor)`) into one
+  vertex-coloured mesh (`ToMesh()`); `CreateMaterial(seeThrough, minLight)` makes the two
+  kinds of `TeaLeaf/LockFade` material. Load time only.
+- **`BigLockDebug`** (`Interaction/Debug`, on the Big Lock object) — `IDebugDrawable`, in
+  the big lock's own space while it's in view: both picks' angles (white), the current
+  stop (yellow), the pin (red), a square per pin (green once set) and the hold timer as a
+  bar; logs stage changes to the Console.
+- **Not built / stand-ins:** the "lockpick hold" finger pose (Phase 7 - `LockpickHold` is a
+  copy of `RopeGrip`); chests; a left-handed setup; real sounds.
+
+## Smithy building (written 2026-10-09; in the scene, tried in the headset - looks and climbs as intended)
 
 Menu **TeaLeaf > Build Smithy**: a half-timbered blacksmith's house built from a reference
 picture the maintainer gave, 10m ahead of the main camera, front towards it. The first
@@ -269,7 +378,9 @@ building made as a game asset rather than greybox cubes. Three files in
   hand then retries its move the same frame instead of stopping (the stutter fix). The registry is a static
   `Collider → IHandPushable` dictionary, like `HandTargetRegistry`; `Door` registers its
   leaf. `Player.HandPhysicalFollow` looks up every collider its sweep is stopped by (only
-  on frames it hits something).
+  on frames it hits something). `Player.PlayerBodyPushing` uses the same registry for the
+  body (2026-10-09) - the interface's name says "hand", but anything of the player's that
+  presses on it may push.
 
 The player's half is `Player.PlayerHandDoors` (see `Scripts/Player/CLAUDE.md`).
 

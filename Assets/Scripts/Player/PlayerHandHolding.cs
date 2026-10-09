@@ -115,6 +115,10 @@ namespace Player
         // in Awake() (it's on this same object).
         [SerializeField] private PlayerHandDoors playerHandDoors;
 
+        // Nor can a hand carrying the lockpicks or on a pick. Optional:
+        // found in Awake() (it's on this same object).
+        [SerializeField] private PlayerLockpicking playerLockpicking;
+
         // Seconds for the hand visual to reach out to a prop being picked
         // up, and seconds for hand and prop to come back to the controller.
         [SerializeField] private float reachDuration = 0.12f;
@@ -230,6 +234,10 @@ namespace Player
                 playerHandDoors = GetComponent<PlayerHandDoors>();
             }
 
+            if (playerLockpicking == null) {
+                playerLockpicking = GetComponent<PlayerLockpicking>();
+            }
+
             _rig = characterController.transform;
 
             // The visuals are read here, while they're still children of
@@ -268,17 +276,21 @@ namespace Player
             // so it wasn't a prop anyway.
             bool hasDoors = playerHandDoors != null;
 
+            // A hand busy with the lockpicks is busy too (this frame's:
+            // PlayerLockpicking ticks before this class).
+            bool hasLockpicking = playerLockpicking != null;
+
             TickHand(
                 _left,
                 playerInput.IsLeftGrabbing,
-                playerClimbing.IsLeftHandGripping || (hasDoors && playerHandDoors.IsLeftOnDoor),
+                playerClimbing.IsLeftHandGripping || (hasDoors && playerHandDoors.IsLeftOnDoor) || (hasLockpicking && playerLockpicking.IsLeftBusy),
                 playerHandInteraction.LeftTarget,
                 playerHandInteraction.LeftTargetPoint);
 
             TickHand(
                 _right,
                 playerInput.IsRightGrabbing,
-                playerClimbing.IsRightHandGripping || (hasDoors && playerHandDoors.IsRightOnDoor),
+                playerClimbing.IsRightHandGripping || (hasDoors && playerHandDoors.IsRightOnDoor) || (hasLockpicking && playerLockpicking.IsRightBusy),
                 playerHandInteraction.RightTarget,
                 playerHandInteraction.RightTargetPoint);
         }

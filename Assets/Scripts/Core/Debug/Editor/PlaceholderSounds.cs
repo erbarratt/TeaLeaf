@@ -27,6 +27,7 @@ namespace Core
         public const string FootstepCuePath = CueFolder + "/FootstepPlaceholder.asset";
         public const string ImpactCuePath = CueFolder + "/ImpactPlaceholder.asset";
         public const string SurfaceSoundsPath = CueFolder + "/SurfaceSoundsPlaceholder.asset";
+        public const string CreakCuePath = CueFolder + "/CreakPlaceholder.asset";
 
         /// <summary>
         /// Makes any placeholder clips and cues that don't exist yet.
@@ -53,6 +54,16 @@ namespace Core
             // The original footstep doubles as stone, the default surface.
             SoundCue stone = EnsureCue(FootstepCuePath, footsteps, 0.8f, 25f, NoiseType.Footstep, 6f);
             EnsureCue(ImpactCuePath, impacts, 1f, 35f, NoiseType.Impact, 10f);
+
+            // A door's hinges: quieter than a knock, and it doesn't carry
+            // as far to guards.
+            AudioClip[] creaks = new AudioClip[3];
+
+            for (int i = 0; i < creaks.Length; i++) {
+                creaks[i] = EnsureClip($"{ClipFolder}/CreakPlaceholder{i + 1}.wav", Creak(i));
+            }
+
+            EnsureCue(CreakCuePath, creaks, 0.6f, 20f, NoiseType.Mechanism, 5f);
 
             // The other surfaces: the same recipe with different numbers
             // (see SurfaceStep()), so each can be told apart by ear. The
@@ -206,6 +217,48 @@ namespace Core
                 float click = hiss * Mathf.Exp(-time * 90f);
                 float ring = Mathf.Sin(2f * Mathf.PI * tone * time * (1f - time * 0.4f)) * Mathf.Exp(-time * 14f);
                 samples[i] = click * 0.6f + ring * 0.7f;
+            }
+
+            return samples;
+        }
+
+        /// <summary>
+        /// A creak: a hinge groaning for about half a second. A buzzy
+        /// tone (a sawtooth wave: it climbs steadily then drops, over and
+        /// over, which sounds harsh rather than pure) whose pitch rises
+        /// as it goes and wavers a little, fading in and out. Smoothed
+        /// slightly, to take the edge off.
+        /// </summary>
+        private static float[] Creak(int variant)
+        {
+            const float duration = 0.5f;
+            float[] samples = new float[(int)(SampleRate * duration)];
+            float startTone = 95f + variant * 25f;
+            float phase = 0f;
+            float smoothed = 0f;
+
+            for (int i = 0; i < samples.Length; i++) {
+                float time = i / (float)SampleRate;
+                float progress = time / duration;
+
+                // The pitch climbs by a half over the creak, with a slow
+                // waver on top.
+                float tone = startTone * (1f + 0.5f * progress) * (1f + 0.06f * Mathf.Sin(2f * Mathf.PI * 9f * time));
+
+                // The wave's place in its cycle (0-1) moves on by one
+                // sample's worth of the current pitch. Keeping a running
+                // place, instead of working it out from the time, is what
+                // lets the pitch change without clicks.
+                phase += tone / SampleRate;
+                phase -= Mathf.Floor(phase);
+
+                float saw = phase * 2f - 1f;
+                smoothed += (saw - smoothed) * 0.35f;
+
+                // Sin over half a turn: 0 at the start, 1 in the middle,
+                // 0 at the end.
+                float loudness = Mathf.Sin(Mathf.PI * progress);
+                samples[i] = smoothed * loudness * 0.6f;
             }
 
             return samples;

@@ -315,7 +315,51 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   children, and has a cylinder grip and the `BottleHold` profile (`Assets/Data/`, loaded by
   path; a warning and no profile if it's missing).
 
-## Opening doors (started 2026-10-08; written, not yet compiled or tried in the headset)
+## Lockpicking (written 2026-10-09; tried in the headset the same day: working)
+
+- **`PlayerLockpicking`** (on `Hands`; optional - `PlayerController`, `PlayerClimbing`,
+  `PlayerHandHolding` and `PlayerHandDoors` find it in `Awake()` and work without it) — the
+  player's half of `Interaction.BigLock`/`PickableLock` (see
+  `Scripts/Interaction/CLAUDE.md`): the picks and the hands; the puzzle is the big lock's.
+  **The picks** are one object (`Lockpicks`: two thin boxes in one mesh, tips at its
+  origin, handles along its Z, no collider), made in **`Start()`** - not `Awake()`,
+  because `PlayerHandVisuals.Awake()` copies each hand visual for its ghost and would copy
+  picks already on it. Always in one of three places (`PicksPlace`): **on the left hand**
+  (child of `Left Hand Visual` at `onHandPosition`/`onHandRotation`), **in the right hand**
+  (child of `Right Hand Visual` at `inHandPosition`/`inHandRotation`) or **in a lock**
+  (child of the `PickableLock`, tips `insertDepth` inside the face, handles straight out).
+  `PlacePicks()` always sets the local scale to one, since the right hand visual is
+  mirrored. **The hand visual's axes** (worked out from the scene and the snap profiles,
+  2026-10-09): fingers along -Y, back of the hand -X, thumb side +Z, origin near the
+  wrist - the two pick poses were first guesses from that; the maintainer found them fine.
+  **Taken by reaching, not by the hand rays** (they're on or just in front of the player's
+  body): no reticle; a light tap (`reachAmplitude`) says a hand has come within reach.
+  `Tick()` (tick step 3b, before climbing, so a hand that takes a pick is already busy for
+  the systems after it): on the left hand, the free right hand within `takeDistance`
+  (0.12m) takes them **on the frame grip is pressed**; carried, letting go of grip puts
+  them back, and within `insertDistance` (0.15m) of a lock that `CanBePicked`
+  (`PickableLock.FindInRange()`, each frame while carried) they go in (`Insert()`): the
+  right hand needs a regrip, and the big lock is shown `bigLockDistance` (0.2m) out from
+  the real lock's face on the head's side, `bigLockBelowHead` (0.3m) below the head but
+  never lower than the real lock, facing the same way as the door. In a lock, a free hand
+  holding grip within `pickReach` (0.1m) of its own pick's grip point takes it (left hand
+  the left pick, right the right) and its hand visual snaps onto it. `TickHeld()` (tick
+  step 8, with the doors', on every path through `Update()`): gives up if the lock has
+  gone or opened another way, or the head is more than `leaveDistance` (1.5m, measured
+  level) from it; else per held pick `BigLock.TurnPick(controller position)`, the snap
+  pose moved onto the pick (`SetSnapPose()`), and a hand whose controller is over
+  `breakDistance` (0.3m) from the grip point is let go by force (regrip needed; the right
+  hand's letting go resets the lock); then `BigLock.Tick()` (also while it fades out), and
+  the pin feel. `StopPicking()` (leaving, or the unlock): both hands off, `BigLock.Hide()`,
+  picks back on the left hand. **Haptics:** right hand on inserting and at each stop; left
+  hand as a run of pulses every `pinPulseInterval` (0.05s, each 1.5x that long - not one a
+  frame, since `Pulse()` allocates a little) from `pinMinAmplitude` to `pinMaxAmplitude`
+  by `BigLock.PinNearness`, and a strong one when a pin sets; both on the unlock.
+  `IsLeftBusy`/`IsRightBusy` (true through a needed regrip, and while the right hand
+  carries the picks) are what climbing, carrying and doors read; this class reads theirs
+  (`IsFree()`). The game doesn't pause.
+
+## Opening doors (started 2026-10-08; tried in the headset)
 
 - **`PlayerHandDoors`** (on `Hands`; optional - `PlayerController`, `PlayerClimbing` and
   `PlayerHandHolding` find it in `Awake()` and work without it) — the player's half of
@@ -341,6 +385,26 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   `IsLeftOnDoor`/`IsRightOnDoor` (true through a needed regrip) are what `PlayerClimbing`
   and `PlayerHandHolding` read to leave that hand alone; this class reads their grips and
   carried props in turn. The reticle is hidden by the snap (`IsSnapped`), as for a ledge.
+  A locked **or bolted** door (`Door.IsHeldShut`) gets the short stop and the rattle.
+  **Sliding bolts** (2026-10-09, tested): a free hand holding grip with its
+  ray on an `Interaction.DoorBolt` takes it the same way (`TakeBolt()`; one hand per bolt)
+  and its visual snaps onto the knob. In `TickHeld()` (`TickHeldBolt()`) the bolt's slide
+  is `bolt.SlideAt(controller position)` plus the offset noted at the grab - so it moves as
+  far as the hand does along the door, from where it was - with the unlatch haptic as it
+  reaches an end; the snap pose follows the knob; the same `breakDistance`. Letting go
+  (`LetGoOfBolt()`) lets the bolt settle. `IsLeftOnDoor`/`IsRightOnDoor` cover a hand on a
+  bolt too.
+
+- **`PlayerBodyPushing`** (on the Player root, with the `CharacterController`; written
+  2026-10-09, tested; the maintainer's decision that day that the body
+  should push doors) — `OnControllerColliderHit()`, which Unity calls from inside
+  `Move()` (so no `Tick()`: it happens at tick step 6): looks the collider up in
+  `Interaction.HandPushRegistry` and pushes it straight into the surface, level, by
+  `squareness x pushSpeed (1.5 m/s) x deltaTime`, where squareness is how directly the
+  body's move goes against the surface's normal (below `minSquareness` 0.2, or standing on
+  it: nothing). `ControllerColliderHit.moveLength` is the distance travelled *before* the
+  hit, not what was left, which is why a set speed is used. The body is stopped for the one
+  frame, then walks into the space. A hand and the body share the door's one push a frame.
 
 - **`PlayerKeyholes`** (on the Player root; written 2026-10-09, tried and working; optional -
   `PlayerController` finds it in `Awake()` and works without it) — the player's half of
@@ -422,7 +486,12 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   Hand Bones" context menu find the visuals and bones by name (`J_Left_Hand`,
   `J_Left_HandMiddle4` - the mirrored right hand shares the Left names). Exposes
   `IsLeftHandInContact`/`IsRightHandInContact`, and raises `HandContactStarted(isLeftHand)` on the tick a
-  hand goes from free to in contact (not on snapping; for `PlayerHaptics`). Debug capsules (`IDebugDrawable` - gizmos when
+  hand goes from free to in contact (not on snapping; for `PlayerHaptics`) - **and when it
+  starts pushing something** (maintainer's decision 2026-10-09: a tap on first touching a
+  door being pushed; tested): `HandPhysicalFollow.IsPushing` is true on a
+  frame the sweep's push moved something, and a push counts as started when that hand has
+  pushed nothing for `pushRestTime` (0.5s), since a pushed door swings ahead of the hand
+  and is caught up with again. Debug capsules (`IDebugDrawable` - gizmos when
   selected, and in the headset while `InHeadsetGizmos` is on, see `Scripts/Core/CLAUDE.md`): in
   Play Mode the target capsule (faint) and the visual's (green, red in contact); in Edit Mode
   the bone capsule, for checking `handRadius`.
@@ -439,14 +508,14 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   push back into the surface the previous sweep slid along (a V, e.g. the mouth of a gap
   narrower than the hand), the move is projected onto the line where the two surfaces meet
   instead (their normals' cross product); parallel surfaces stop it. Triggers are ignored. **Pushing**
-  (2026-10-08, untested): each collider a sweep is stopped by is looked up in
+  (2026-10-08, tested): each collider a sweep is stopped by is looked up in
   `Interaction.HandPushRegistry`; an `IHandPushable` (an open door's leaf) is told the hit
   point and how far the hand was still trying to go straight into the surface, and moves
   itself (`Push()` returns whether it moved). **If it moved, the sweep is tried again in the
   same frame**, straight at the goal, without using up a slide - once per frame - so a hand
   pushing a door stays on its controller and is never "in contact". First built stopping
   the hand at the surface like any other hit: found in the headset to stutter (the hand
-  flipped between held and easing back every frame or two), fixed the same day. A door that
+  flipped between held and easing back every frame or two), fixed the same day (fix confirmed in the headset). A door that
   can't keep up or can't move (`maxPushSpeed`, its limit, the player's body) still holds the
   hand at its surface. The push asks for `skinWidth` more than the hand needs. **Before**
   the sweep, `Depenetrate()` pushes the capsule - at last frame's position, with this frame's

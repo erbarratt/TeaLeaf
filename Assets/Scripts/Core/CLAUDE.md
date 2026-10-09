@@ -142,7 +142,7 @@ lights the scene**; brightness is the Directional Light's and the ambient settin
   stone's edge and in the gap, rising over `_Bevel` to 1. Colour: a
   per-cell random point along `_ColorA`-`_ColorB`-`_ColorC`, `_BrightnessVariation`,
   `_EdgeDarkening` down the shoulder, `_GapColor`; `_Seed` changes the layout. **Crevice
-  shadow** (added 2026-10-09, uncompiled; stands in for ambient occlusion, after the
+  shadow** (added 2026-10-09, tried and looks right; stands in for ambient occlusion, after the
   maintainer found the step from stone to gap hard): the final colour and the shine are
   multiplied by `1 - _OcclusionStrength * (1 - smoothstep(0, _OcclusionWidth, abs(edge)))`
   (defaults 0.6 and 0.12 of a cobble; strength 0 = off) - darkest on the line where stone
@@ -227,8 +227,22 @@ lights the scene**; brightness is the Directional Light's and the ambient settin
   of coverage sent out as alpha with `AlphaToMask On` (smoothed under MSAA, hard without).
   `_RimColor`/`_RimWidth` darken a band round the opening. Back faces are culled, so
   through the near face's opening the room shows; the opening's walls are a mesh
-  `DoorKeyhole` makes, drawn with this shader. **No texture yet**: flat colour only.
-  `clip` weakens early depth rejection: for door leaves, not walls.
+  `DoorKeyhole` makes, drawn with this shader. **No texture**: flat colour only (a texture isn't planned).
+  `clip` weakens early depth rejection: for door leaves, not walls. A lock plate on the
+  door uses it too (its own material), with its own block from `DoorKeyhole`.
+- **`TeaLeaf/LockFade`** (`Assets/Art/Shaders/Resources/LockFade.shader`, written
+  2026-10-09, seen working in the headset that day; in Resources so `Shader.Find()` works in builds)
+  — the lockpicking pieces: `Interaction.BigLock` and the picks. **Colour per vertex**
+  (set when the mesh is built, `Interaction.LockMeshBuilder`) times `_BaseColor`, so a piece
+  is one mesh and one material with no texture. **Lit per vertex**: `SampleSH` ambient plus
+  the main light's Lambert, no shadows, no extra lights, never below `_MinLight` (0.35 -
+  a lock in a dark room still has to be seen). No fog. **One shader, two materials**
+  (`LockMeshBuilder.CreateMaterial(seeThrough, minLight)`): solid = Geometry queue,
+  `Blend One Zero`; see-through = Transparent queue, `SrcAlpha OneMinusSrcAlpha`, faded by
+  `_Alpha` (`_SrcBlend`/`_DstBlend` are material properties). `ZWrite On` both ways. The
+  big lock wears the see-through one only while fading (a fraction of a second, a small
+  object - within the overdraw rule) and the solid one otherwise. ForwardLit and DepthOnly
+  passes; SRP Batcher compatible; stereo instancing macros.
 
 ## Gameplay light (added 2026-10-04)
 
@@ -448,6 +462,10 @@ playback exist; loops, reverb and the spatialiser are the remaining design below
   — generated stand-in audio: three footstep and two impact `.wav` files in
   `Assets/Audio/Placeholder` and the cues `Assets/Data/FootstepPlaceholder.asset` (range 25m,
   noise 6m) and `ImpactPlaceholder.asset` (range 35m, noise 10m; ranges raised 2026-10-03 from 12m/20m, where sounds faded in too abruptly when moving fast). Existing files are kept.
+  Added 2026-10-09: a door creak - three `CreakPlaceholder` clips (`Creak()`: a smoothed
+  sawtooth whose pitch rises by half over 0.5s with a slow waver, faded in and out) and
+  `CreakPlaceholder.asset` (`CreakCuePath`; volume 0.6, range 20m, `NoiseType.Mechanism`,
+  noise 5m), given to the test doors by `DoorTestArea`.
   Replace the clips in the cues with real recordings later. Added 2026-10-04: per-surface
   footsteps from one recipe (`SurfaceStep()`: a tone with an inharmonic overtone, plus dull and
   sharp hiss) - three clips and a cue each for wood (noise 7m), carpet (2.5m, range 15m), metal

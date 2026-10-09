@@ -65,6 +65,11 @@ namespace Player
         // well into or through something. 0 = never snap back.
         [SerializeField] private float maxSeparation = 0.4f;
 
+        // Seconds a hand must have gone without pushing anything (an open
+        // door) before its next push counts as a new touch - see
+        // HandContactStarted.
+        [SerializeField] private float pushRestTime = 0.5f;
+
         [Header("Ghost Hands")]
 
         // Whether a faint ghost hand shows at the real controller while a
@@ -112,6 +117,11 @@ namespace Player
         private HandGhost _rightGhost;
         private Material _ghostMaterial;
 
+        // Time.time each hand last pushed something. Start well in the
+        // past, so the first push counts.
+        private float _leftLastPushTime = -10f;
+        private float _rightLastPushTime = -10f;
+
         /// Blends the left hand visual onto a snap pose and back. Other
         /// systems call Snap()/Release() on it (e.g. PlayerClimbing on grab)
         /// and read its Weight/SnapPose (e.g. PlayerHandAnimation for the
@@ -154,7 +164,8 @@ namespace Player
         public bool IsRightHandInContact => _rightFollow.IsInContact;
 
         /// Raised on the frame a hand visual starts touching a surface (its
-        /// debug capsule turns red), with true for the left hand - e.g. for
+        /// debug capsule turns red) or starts pushing something out of its
+        /// way (an open door), with true for the left hand - e.g. for
         /// PlayerHaptics' contact tap. Not raised by snapping onto a grab
         /// target. A plain C# event, invoked from inside Tick().
         public event Action<bool> HandContactStarted;
@@ -324,6 +335,13 @@ namespace Player
             // clears contact without raising anything.
             bool wasInContact = follow.IsInContact;
 
+            // The same for pushing something out of the way (an open
+            // door): that hand never counts as in contact, but touching
+            // the door should be felt all the same. A pushed door swings
+            // ahead of the hand and is caught up with again, so "started"
+            // means no push for pushRestTime, not just none last frame.
+            float lastPushTime = isLeftHand ? _leftLastPushTime : _rightLastPushTime;
+
             // Timed under its own name in the Profiler (search for it in the
             // CPU module's Hierarchy view), so the physical hands' cost can
             // be read directly. Auto() returns a struct that ends the sample
@@ -333,7 +351,20 @@ namespace Player
                 follow.Tick(collisionLayers, handRadius, skinWidth, catchUpDuration, maxSeparation, Time.deltaTime);
             }
 
-            if (!wasInContact && follow.IsInContact) {
+            bool startedPushing = false;
+
+            if (follow.IsPushing) {
+                float now = Time.time;
+                startedPushing = now - lastPushTime > pushRestTime;
+
+                if (isLeftHand) {
+                    _leftLastPushTime = now;
+                } else {
+                    _rightLastPushTime = now;
+                }
+            }
+
+            if ((!wasInContact && follow.IsInContact) || startedPushing) {
                 HandContactStarted?.Invoke(isLeftHand);
             }
 

@@ -161,6 +161,15 @@ namespace Player
         /// stopping its position, or holding its rotation.
         public bool IsInContact { get; private set; }
 
+        /// True on a frame the hand moved something out of its way by
+        /// pressing on it (an open door). Such a hand isn't "in contact":
+        /// it stays on its controller.
+        public bool IsPushing { get; private set; }
+
+        // Set by SweepAndSlide() (which is static) when its push moved
+        // something; copied to IsPushing straight after the sweep.
+        private static bool _pushedThisSweep;
+
         /// True while the visual is placed by this class rather than simply
         /// following its controller: held by a surface, or easing back.
         private bool IsPlacedByCode => _isPositionHeld || _isRotationHeld || _isReturning || _isRotationReturning;
@@ -354,10 +363,14 @@ namespace Player
                 _trace = null;
             }
 
+            _pushedThisSweep = false;
+
             Vector3 position = SweepAndSlide(
                 start, goalPosition,
                 wristOffset, fingertipOffset,
                 collisionLayers, radius, skinWidth, startsClear);
+
+            IsPushing = _pushedThisSweep;
 
             // Only frames where something was hit - and, with a filter, only
             // hits on matching colliders - so the log stays readable.
@@ -593,6 +606,7 @@ namespace Player
         private void ClearContact()
         {
             IsInContact = false;
+            IsPushing = false;
             _isPositionHeld = false;
             _isRotationHeld = false;
             _isReturning = false;
@@ -973,6 +987,7 @@ namespace Player
                         _trace?.Append($" PUSH {into:F4} moved={(moved ? 1 : 0)}");
 
                         if (moved) {
+                            _pushedThisSweep = true;
                             remaining = toGoal;
                             i--;
                             continue;

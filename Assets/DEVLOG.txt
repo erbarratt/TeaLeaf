@@ -6,6 +6,85 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-09, second part (lockpicking built, door leftovers)
+-----------------------------------------------------------
+- Reported by the maintainer at the start: the smithy looks and climbs
+  as intended, the cobblestone crevice shadow looks right, and the door
+  push stutter fix works. A texture for the door leaf was dropped from
+  the roadmap.
+- Lockpicking, the two-pick design from earlier today. Built in one go
+  and working in the headset first time.
+  - Interaction.PickableLock: marks a lock that can be picked (the
+    same object as the door's keyhole). Pickable from either side.
+    Works without a door too, for chests later.
+  - Interaction.BigLock: the large copy of the lock, and the puzzle
+    itself - stops, pins, the hold timer. One in the scene, built at
+    load from its own settings. A pick's angle is simply the clock
+    angle of the hand round the lock's middle, measured from the
+    middle of the pick's range and limited to it, so there is nothing
+    to remember between frames and no trouble where angles wrap round.
+  - Player.PlayerLockpicking: the picks (one object: on the left
+    hand, in the right hand, or in a lock) and the hands. Runs before
+    climbing, carrying and doors each frame, and they leave a hand
+    alone while it's busy with the picks.
+  - Picks are taken by reaching for them with grip, not by the hand
+    rays: they are on or just in front of the player's own body. No
+    reticle; a light tap says a hand is in reach. Kept by the
+    maintainer after trying it.
+  - TeaLeaf/LockFade shader: colour per point of the mesh, lit per
+    point, never darker than a set floor so the lock can be seen in a
+    dark room. Two materials from one shader: see-through only for
+    the quarter second of the fade, solid the rest of the time.
+  - The round lock plate on the door is cut by the same keyhole
+    opening as the leaf (DoorKeyhole now takes extra renderers), so
+    the door's keyway is keyhole-shaped; the big lock's is the plain
+    rectangle.
+  - Choices not in the spec, all kept: the big lock appears 0.2m out
+    from the door and 0.3m below the head; a new pin is never within
+    20 degrees of where the left pick already sits; stops 28 degrees
+    apart.
+  - Left over: chests, the lockpick finger pose (a copy of the rope
+    grip for now), real sounds.
+  - Lesson: the picks are made in Start(), not Awake().
+    PlayerHandVisuals copies each hand model in its Awake() to make
+    the ghost hands, and anything already attached to the hand would
+    be copied onto the ghost.
+  - Lesson: the hand model's axes, worked out from the scene and the
+    snap profiles and now written down (Scripts/Player/CLAUDE.md):
+    fingers along -Y, back of the hand -X, thumb side +Z. The first
+    guesses at where the picks sit were right.
+  - The new scripts were checked outside the editor with Unity's own
+    compiler (Data/DotNetSdkRoslyn/csc.dll, run with the references
+    and file list from the generated .csproj files) before the
+    maintainer tested. Worth doing again for large changes.
+- Door leftovers, all tested.
+  - The body pushes an open door (the maintainer's decision).
+    Player.PlayerBodyPushing uses the message Unity sends from inside
+    CharacterController.Move() for each thing the body hits, and the
+    same Push() the hands use. Unity only reports how far the body got
+    before the hit, not how far it was trying to go, so the push is a
+    set 1.5m a second.
+  - A tap on the controller when a hand first touches a door it
+    pushes (the maintainer's decision). A pushed door swings ahead and
+    is caught up with again, so "first" means no push by that hand for
+    half a second.
+  - Sliding bolt (Interaction.DoorBolt): optional on any door, worked
+    only from its own side, holds the door shut whatever the lock.
+    Taken like a handle, slid by moving the hand along the door. Only
+    shoots while the door is shut. The player's half is in
+    PlayerHandDoors.
+  - A placeholder creak, made from maths like the other placeholder
+    sounds.
+  - Sound portals on the test doorways, with a sound room each side
+    of the wall and a knocking cube behind it: a shut door muffles,
+    an open one doesn't.
+  - Decided to leave for now: the door handle's hand pose.
+- CLAUDE.md: the editor version corrected to 6000.3.25f1.
+- Next: Phase 4 (loot, keys, inventory data, the wrist menu). Two
+  questions to settle first: how loot is pocketed, and where keys
+  live.
+
+
 2026-10-09 (keyhole view, lockpicking design, a smithy built from code)
 -----------------------------------------------------------------------
 - Keyhole view (doors, step 3; Phase 3). Tried by the maintainer and
