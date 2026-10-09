@@ -35,6 +35,7 @@ namespace Player
         [SerializeField] private PlayerMantling playerMantling;
         [SerializeField] private PlayerFootsteps playerFootsteps;
         [SerializeField] private PlayerVisibility playerVisibility;
+        [SerializeField] private PlayerKeyholes playerKeyholes;
         [SerializeField] private PlayerHandHolding playerHandHolding;
         [SerializeField] private PlayerHandThrowing playerHandThrowing;
         [SerializeField] private PlayerHandDoors playerHandDoors;
@@ -68,6 +69,9 @@ namespace Player
         // Whether the rig has a PlayerHandDoors - see Awake().
         private bool _hasHandDoors;
 
+        // Whether the Player has a PlayerKeyholes - see Awake().
+        private bool _hasKeyholes;
+
         /// <summary>
         /// Editor-only convenience: Unity calls Reset() when the component is
         /// first added (or via the Inspector's Reset menu item), so every
@@ -85,6 +89,7 @@ namespace Player
             playerMantling = GetComponent<PlayerMantling>();
             playerFootsteps = GetComponent<PlayerFootsteps>();
             playerVisibility = GetComponent<PlayerVisibility>();
+            playerKeyholes = GetComponent<PlayerKeyholes>();
             characterController = GetComponent<CharacterController>();
             playerTransform = transform;
 
@@ -141,6 +146,13 @@ namespace Player
 
             // Opening doors is optional as well.
             _hasHandDoors = playerHandDoors != null;
+
+            if (playerKeyholes == null) {
+                playerKeyholes = GetComponent<PlayerKeyholes>();
+            }
+
+            // And so is looking through keyholes.
+            _hasKeyholes = playerKeyholes != null;
         }
 
         /// <summary>
@@ -249,6 +261,12 @@ namespace Player
                     playerVisibility.Tick();
                 }
 
+                // The head moves with the mantle: a keyhole it was at
+                // shuts as it leaves.
+                if (_hasKeyholes) {
+                    playerKeyholes.Tick();
+                }
+
                 TickHandVisuals();
                 TickHeldProps(false);
                 playerHandInteraction.TickReticles();
@@ -309,6 +327,12 @@ namespace Player
             // footsteps.
             if (playerVisibility != null) {
                 playerVisibility.Tick();
+            }
+
+            // 7d. Keyholes - after Move(), so the keyhole the head is at
+            // opens by where the head has ended up. Optional as well.
+            if (_hasKeyholes) {
+                playerKeyholes.Tick();
             }
 
             // 8. Hand visuals - after Move() and turning, since the visuals

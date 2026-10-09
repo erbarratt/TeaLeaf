@@ -104,9 +104,10 @@ The maintainer's design: three lock kinds (none, simple = pickable, keyed); any 
 door opens by its handle; the handle is ray-targeted and grabbed at the ledge reach, and the
 hand snaps onto it; turning the hand 60° frees the door; it swings either way; let go
 within a few degrees of closed, it shuts again; an open door is moved by the hand visuals
-touching it (written 2026-10-08, second step, untested). **Still to build:** the keyhole view on a simple-lock door (head near the keyhole
-shows a larger view through it); an optional sliding bolt, worked only from its own side
-whatever the lock; keys and lockpicking (Phases 4-5).
+touching it (written 2026-10-08, second step, untested); a simple-lock door has a keyhole
+to look through (`DoorKeyhole`, written 2026-10-09, third step, tried and working). **Still to
+build:** an optional sliding bolt, worked only from its own side whatever the lock; keys
+and lockpicking (Phases 4-5).
 
 - **`DoorLock`** (enum) — `None`, `Simple` (can be picked), `Keyed` (its own key only).
   Stored as its number: add values at the end.
@@ -165,6 +166,45 @@ whatever the lock; keys and lockpicking (Phases 4-5).
   the optional `lever` transform (both levers under one object) about local Z, only on
   change; `GetGripPoint(isFront)`. The levers the player sees have no colliders. Setup
   check: trigger, Interactable layer. Short reach (`HasLongReach` false), like a ledge.
+- **`DoorKeyhole`** (written 2026-10-09; the maintainer tried it the same day: "works
+  great") — the keyhole view. **An opening in the door, not a second camera**
+  (maintainer's decision 2026-10-09, over the roadmap's scope-style picture, which draws the
+  far room again - against the Quest pixel rule): as the head nears, a keyhole-shaped
+  opening (**a circle with a slot down from it**, maintainer's shape 2026-10-09: the slot as
+  wide as the circle's radius and reaching a diameter below it, so the whole is 2 radii wide
+  and 4 tall, sized by the radius alone; first built as a rounded rectangle) grows in the leaf and the player looks through with their own eyes - true stereo
+  depth, the head looks round, nothing drawn twice, not magnified. An empty child of the
+  door marking the keyhole's middle (the bottom of the circle; mid-thickness; X across the
+  face, Y up). The cut is
+  made by the leaf's shader, **`TeaLeaf/DoorLeaf`** (see `Scripts/Core/CLAUDE.md`), which
+  the leaf's material must use; **picture only** - the leaf's collider is untouched, so
+  hands, props, light rays and sound are stopped as before. `Awake()` gives the shader the
+  keyhole's place in the leaf's own space through a `MaterialPropertyBlock` (centre, and
+  the face's two directions times the leaf's scale so distances are metres), once; `Apply()`
+  sends the size only when the amount changes. The radius goes from `restRadius` (5mm: a
+  real 1 x 2cm hole at rest) to `openRadius` (5cm: 10 x 20cm) as the head goes from `openStartDistance`
+  (0.6m) to `openFullDistance` (0.25m) from the keyhole, smoothstepped, then limited to
+  `openSpeed` (6 a second). **The opening has real depth**
+  (maintainer's request 2026-10-09; the shader's cut alone looked paper-thin): `BuildWalls()`
+  makes, once in `Awake()`, a `Keyhole Walls` child with a small dynamic mesh - the outline
+  on each face joined into a tube seen from inside, 46 triangles, normals inward, shadows
+  off. The outline (`BuildOutline()`, static, for radius 1, shared by every keyhole and by
+  the gizmo; **it must match `KeyholeDistance()` in the shader**) is four runs of points
+  that don't share points where they meet (hard edges): a 300° arc in 20 pieces from the
+  slot's right meeting point over the top to its left one (60° either side of straight
+  down), then the slot's left side, bottom and right side - drawn with the leaf's material and a
+  `wallColor` property block (no keyhole values, so nothing is cut in it).
+  `UpdateWalls()` moves its points (the unit outline times the radius) whenever the size changes (same array,
+  fixed bounds, no allocation). Depth = `thickness`, or 0 (default) = measured from the leaf
+  renderer's bounds along the keyhole's forward. Needs the keyhole and its parents unscaled.
+  **Only while the door is latched** - an
+  open door's keyhole goes back to rest. No `Update()`: self-registers in a static list;
+  `FindInRange(headPosition)` returns the nearest one in range, and `Tick(headPosition,
+  deltaTime)` (false once at rest and out of range) / `Close()` are called by
+  `Player.PlayerKeyholes` on that one only. Gizmo (selected / detailed): the rest (yellow)
+  and open (green) outlines 3cm either side of the middle. The test builder puts one on
+  the simple-lock door, 0.18m below the handle (0.82m up: crouch or bend to look).
+  The lockpicking design (Phase 5) wants a circular lock plate round this keyway: not built.
 - **Hand pose:** the handle's profile is `Assets/Data/DoorHandle.asset`, made by the test
   builder as a **copy of `BottleHold`** (same finger pose) - a stand-in; tune its offsets in
   the headset, and give it a pose of its own if the bottle's looks wrong.
@@ -173,7 +213,55 @@ whatever the lock; keys and lockpicking (Phases 4-5).
   doorways: no lock, simple lock (starts locked), keyed lock (starts locked). Each door is
   an unscaled root on the hinge with a kinematic Rigidbody, a leaf, and a handle 1m up with
   a lever each side. Placeholder impact cue for the latch and rattle, no creak. Adds
-  `PlayerHandDoors` to the Hands object if missing. No sound rooms or portal.
+  `PlayerHandDoors` to the Hands object if missing. No sound rooms or portal. The
+  simple-lock door also gets a `Keyhole` child (`DoorKeyhole`) and its leaf the
+  `Assets/Art/Materials/DoorLeaf.mat` material (made on first build, the test brown);
+  `PlayerKeyholes` is added to the Player root if missing. **Rebuild the area to get them.**
+
+## Smithy building (written 2026-10-09; the maintainer ran the builder that day - assets generated, in the scene; how it looks and climbs not yet reported)
+
+Menu **TeaLeaf > Build Smithy**: a half-timbered blacksmith's house built from a reference
+picture the maintainer gave, 10m ahead of the main camera, front towards it. The first
+building made as a game asset rather than greybox cubes. Three files in
+`Interaction/Debug/Editor`:
+
+- **`BuildingMesh`** — collects flat faces into one mesh per material. `Polygon(normal,
+  uAxis, vAxis, points)` is the base: UV = the point's distance along the two axes in
+  metres / `tileSize` (so textures are the same size on every piece and run on unbroken),
+  tangent = uAxis, and the triangle order is checked against the normal, so callers can't
+  get winding wrong. On top: `OrientedBox`, `Box(min, max)`, `Beam(from, to, width, depth,
+  depthAxis)` (grain along its length), `Prism` (a convex outline pushed through a
+  thickness), `Cylinder` (flat-sided, with an outline of heights and radii). `Matrix`
+  places everything added next (UVs are taken before it). Flat-shaded. `WriteTo(mesh)`.
+- **`SmithyTextures`** — paints five tiling 512 textures in code (wrapping value noise) and
+  saves them as PNGs in `Assets/Art/Textures/Smithy`: plaster (blotches, stains, hairline
+  cracks), timber (grain along u), stone (six courses of uneven blocks, moss), roof tiles
+  (8 rows of 10; **v runs down the roof**), planks (six across u). Stone, tiles and planks
+  also get a normal map from a painted height; plaster and timber don't (the biggest
+  surfaces, and the beams are geometry). Materials in `Assets/Art/Materials/Smithy`: URP
+  **Simple Lit**, highlights off; iron is a colour with a dull shine. **Assets are only
+  made if missing** - delete one to remake it; hand edits are kept. `…TileSize` constants
+  are the metres one repeat covers.
+- **`SmithyBuilding`** — the building. **Six materials, one mesh each** (saved in
+  `Assets/Art/Models/Smithy`, overwritten by a rebuild): six draw calls. Each part object
+  is Static, on Environment, with a non-convex `MeshCollider` of the same mesh and a
+  `SurfaceTag` (wood, tile, metal). Stone ground floor (6 x 5m, 0.4m walls, forge arch
+  with hearth, open doorway, barred window, buttress); upper floor jettied 0.3m at front
+  and sides, timber-framed plaster with a window in each wall; 48° tiled roof, ridge along
+  X, with a cross gable over the front left; ridge caps; chimney; a 12° lean-to awning over
+  the forge; barrels, anvil, workbench, tool rail. **Hollow**: ground room, an inside ladder
+  through a floor hatch, upper room with open windows; the attic is closed. Where roof
+  slopes cross, nothing is trimmed - the hidden parts overlap inside. Beams of different
+  kinds stand different distances proud so overlapping ones never share a face.
+  **Climbables** (under `Climbables`; edges through `TestGeometry.Edge()` with
+  `TightOverhang`): per upper wall the jetty beam, sill rail (split round the window) and
+  head rail (grab only) and the window's sill (two-sided, mantled into crouched); the
+  awning's front edge (mantled; its landing is lifted to the slope); each gable's rails;
+  the main ridge (two-sided along it, and end-on at each gable) and the front ridge's end
+  (all mantled - the caps are 0.34m wide to stand on); the eaves and the barred window's
+  sill (grab only); the outside ladder (leaning, not mantleable, ends under the side
+  window) and the inside ladder (mantles onto the floor beside the hatch). Roof slopes are
+  too steep to stand on. Props are part of the meshes: none can be picked up.
 
 - **`IHandPushable`** / **`HandPushRegistry`** (2026-10-08) — something solid a hand moves
   by pressing on it: `bool Push(point, displacement)`, displacement being the part of the

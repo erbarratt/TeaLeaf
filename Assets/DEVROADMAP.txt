@@ -25,8 +25,9 @@ Noise:        footsteps by surface type (scaled by sprint/walk/crouch),
 Guard AI:     patrol, suspicion, search, chase, catch (= fail + restart).
               Knockout state. Guards react to finding KO'd bodies.
 Tools:        blackjack takedown, hand crossbow (either hand, physically
-              cocked) with water / noisemaker / rope bolts, rotate-to-find-
-              sweet-spot lockpicking.
+              cocked) with water / noisemaker / rope bolts, two-handed
+              lockpicking on a large copy of the lock (one pick turns in
+              stages, the other searches for each pin by feel).
 Inventory:    wrist radial menu to select tools/bolt types; loot pickup and
               pocketing with a running loot total.
 Bodies:       grab and drag KO'd guards to hide them.
@@ -714,12 +715,19 @@ Grabbing and props:
     [ ] Door handle hand pose: Assets/Data/DoorHandle.asset is a copy of
         BottleHold as a stand-in. Tune its offsets; give it a finger
         pose of its own if the bottle's looks wrong.
-    [ ] Keyhole view on a simple-lock door: head close to the keyhole
-        brings up a larger view through it from the other side (as a
-        scope does when a gun is raised to the eye). Needs the scene
-        drawn a second time - against the pixel budget on Quest - so:
-        small, low resolution, short draw distance, only while the
-        head is at the keyhole.
+    [x] Keyhole view on a simple-lock door (2026-10-09, tried and
+        working): as the head nears the keyhole, a keyhole-shaped
+        opening (a circle with a slot below it) grows in the door and
+        the player looks through with their own eyes. Changed from the
+        first plan, a scope-style picture from a second camera, which
+        would have drawn the far room again - against the pixel budget
+        on Quest. The door's shader cuts the opening
+        (TeaLeaf/DoorLeaf); Interaction.DoorKeyhole sizes it and makes
+        its walls through the door's thickness; Player.PlayerKeyholes
+        finds the keyhole the head is near.
+    [ ] Door leaf shader: a texture (it's a flat colour), and the
+        circular lock plate round the keyway from the lockpicking
+        design (Phase 5).
     [ ] Sliding bolt: optional on any door, worked only from the side
         it's on, whatever the lock's state.
     [ ] Keys (Door.keyId is stored, unused) - with the inventory,
@@ -749,7 +757,9 @@ Grabbing and props:
 Phase 4 - Inventory and wrist radial menu (Inventory + UI namespaces)
 ---------------------------------------------------------------------
 [ ] Inventory data: owned tools (blackjack, crossbow, lockpick), bolt
-    counts per type, loot total, objective item held flag.
+    counts per type, loot total, objective item held flag. The lockpicks
+    are worn on the back of the left hand rather than equipped from the
+    menu (decided 2026-10-09 - see Lockpicking, Phase 5).
 [ ] Wrist radial menu: hold a menu button on one hand; a world-space radial
     appears on that wrist; select with the other hand's ray or the
     thumbstick; release to equip into the OTHER hand (so either hand can
@@ -799,18 +809,67 @@ Hand crossbow:
         off anything else.
 [ ] Bolt pickups in the level (placed ammo) that add to inventory counts.
 Lockpicking:
-[ ] Lock component on doors/chests: pin count (2-3), randomised sweet-spot
-    angle per pin, tolerance.
-[ ] Insert: equip the lockpick and bring its tip into the keyhole trigger.
-    The pick snaps to the keyhole visually, like climbing snaps hands.
-[ ] Rotate the wrist (roll angle relative to the insertion angle) to search.
-    Haptic intensity rises as you near the sweet spot; hold still in it
-    for ~0.5s to set that pin (click sound + strong pulse). Pulling out
-    resets the current pin (or all pins - tune).
+Design given by the maintainer 2026-10-09, replacing the single-pick
+wrist-roll plan: two picks, worked with both hands on a large copy of the
+lock. Angles are clock positions on the lock's face, seen from the
+player's side. Every distance, angle and time below is a tunable field.
+[ ] The picks: two long, thin, small boxes on the back of the left hand
+    (children of it). The right hand grabs them with grip, as ONE
+    grabbable object.
+[ ] Locks (greybox): circular, with a plain rectangular keyway the picks
+    stick out of - the same look on the door (simple lock kind only) and
+    on the large copy. Chests get the same lock.
+[ ] Insert: bringing the held picks within a set distance of a locked
+    simple lock snaps them into its keyhole, and the right hand is freed.
+[ ] The big lock: once the picks are in, a large copy of the lock fades
+    in, floating in front of the door. Both picks stick out of its
+    keyway, angled outward: the left at about 11 o'clock, the right at
+    about 1 o'clock. A world object the hands reach into, so depth-
+    tested, not drawn on top like UI. One copy, made at load and reused
+    for every lock (nothing created during play).
+[ ] Turning a pick: grip it and carry the hand round the lock's centre,
+    like a clock hand - the angle comes from where the hand is, not from
+    twisting the wrist. Right hand on the right pick, left on the left.
+[ ] Right pick (the turning pick): turns clockwise until it stops at
+    stage 1, 25-30 degrees from its start. Each pin found frees it to
+    the next stop, a further 25-30 degrees: stage 2, stage 3, then one
+    last turn that unlocks. Four stops in all. Letting go of it at any
+    time before that swings it back to its start and resets the lock.
+[ ] Left pick (the searching pick): while the right pick is held at
+    stage 1, 2 or 3, the left pick is swept between 11 o'clock and
+    7 o'clock (down the left side, 120 degrees) to find that stage's
+    pin - a random angle within the arc. Held within 5 degrees of it for
+    one second, the pin is set and the right pick is freed to the next
+    stage.
+[ ] Haptics: a pulse on the right hand each time the right pick reaches
+    its next stop. On the left hand, a vibration that starts 10 degrees
+    from the pin and rises to its maximum inside the 5 degrees.
+[ ] Unlocked: after the last turn the lock calls Door.Unlock() (chest:
+    the lid opens) and stays unlocked until the level restarts - a
+    restart locks it again, like everything else. Nothing is kept across
+    reloads.
+[ ] Leaving: moving the body a set distance from the lock fades the big
+    lock out and puts the picks back on the left hand, lock reset.
+[ ] Fade in and out of the big lock: a see-through fade on a small object
+    for a fraction of a second (within the overdraw rule); opaque once
+    fully in.
 [ ] Quiet picking noise events while working the lock.
-[ ] Unlock: door becomes openable / chest lid opens.
-[ ] Debug (Scripts/Interaction/Debug): show the current pin, the current
-    angle vs the sweet spot.
+[ ] Debug (Scripts/Interaction/Debug): show the stage, each pick's angle,
+    the pin's angle and the hold timer.
+Also decided (confirmed by the maintainer 2026-10-09):
+    - The stops are evenly spaced (the same 25-30 degrees each).
+    - Each stage has its own random pin, and a reset picks new ones.
+    - The one-second timer starts again if the left pick leaves the 5
+      degrees early. The left pick stays where it's left when let go;
+      only letting go of the right pick resets.
+    - Picks let go of away from a lock return to the left hand. After
+      the unlock, the big lock fades out and they return too.
+    - The picks are always on the left hand once owned - not equipped
+      from the wrist radial menu (Phase 4), which keeps the blackjack and
+      crossbow. No left-handed (mirrored) setup in the slice.
+    - A hand gripping a pick on the big lock snaps to it, through the
+      hand snap pose interface (the "lockpick hold" pose, Phase 7).
+    - The game doesn't pause: guards can still find the player picking.
 
 
 Phase 6 - Guard AI (AI namespace)
@@ -937,6 +996,14 @@ Tools:
 
 Phase 8 - Level: the docks warehouse
 ------------------------------------
+[x] A first building made the way level buildings could be (2026-10-09,
+    ahead of this phase, at the maintainer's request): TeaLeaf > Build
+    Smithy makes a half-timbered blacksmith's house from code - one
+    mesh per material (six draw calls), textures painted by the script
+    and saved as PNGs, Static with mesh colliders, hollow, and about 35
+    ledges, window sills, ridges and ladders to climb.
+[ ] Try the smithy in the headset: how it looks, whether every ledge
+    is in reach of the next, and what it costs on Quest.
 Design (on paper first):
 [ ] Layout sketch with a critical path and at least one alternate route per
     area. Each beat below should teach or test one mechanic, roughly in

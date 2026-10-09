@@ -141,7 +141,14 @@ lights the scene**; brightness is the Directional Light's and the ambient settin
   stone the pixel is: `min(rounded - GapWidth/2, border - MinGap/2)`. Height = 0 at the
   stone's edge and in the gap, rising over `_Bevel` to 1. Colour: a
   per-cell random point along `_ColorA`-`_ColorB`-`_ColorC`, `_BrightnessVariation`,
-  `_EdgeDarkening` down the shoulder, `_GapColor`; `_Seed` changes the layout. **Normal**
+  `_EdgeDarkening` down the shoulder, `_GapColor`; `_Seed` changes the layout. **Crevice
+  shadow** (added 2026-10-09, uncompiled; stands in for ambient occlusion, after the
+  maintainer found the step from stone to gap hard): the final colour and the shine are
+  multiplied by `1 - _OcclusionStrength * (1 - smoothstep(0, _OcclusionWidth, abs(edge)))`
+  (defaults 0.6 and 0.12 of a cobble; strength 0 = off) - darkest on the line where stone
+  meets gap, easing off on both sides, so narrow gaps stay dark and wide pockets lighten in
+  the middle. Applied after the dirt, faded out with the distance fade; it dims direct
+  light too (a colour multiply, not `surfaceData.occlusion`). Not in BrickWall. **Normal**
   from screen-space derivatives of the height (`_Depth` metres x `_NormalStrength`,
   Mikkelsen's method) - no tangents, no normal map. **Lit** with URP's Blinn-Phong
   (`UniversalFragmentBlinnPhong`, the Simple Lit model; lighting keywords copied from
@@ -202,6 +209,26 @@ lights the scene**; brightness is the Directional Light's and the ambient settin
   bricks; a surface facing mostly up or down uses world X/Z. Bricks don't wrap round a
   corner between two walls. About 6 hashes a pixel (doubled with parallax, +16 with dirt):
   far cheaper than Cobblestone's 5x5 search.
+
+- **`TeaLeaf/DoorLeaf`** (`Assets/Art/Shaders/DoorLeaf.shader`, written 2026-10-09, compiled
+  and seen working by the maintainer that day; a material references it) — a door leaf with a keyhole opening
+  cut out of it, for `Interaction.DoorKeyhole` (see `Scripts/Interaction/CLAUDE.md`). A flat
+  `_BaseColor`, Blinn-Phong, the same frame and passes as Cobblestone (lighting code copied
+  again, not shared). `KeyholeDistance()` (in the shared `HLSLINCLUDE`) is the signed
+  distance in metres to a keyhole outline - the smaller of a circle's and a slot's
+  (rectangle's) distances - measured across the face only, from
+  `_KeyholeCentre`/`_KeyholeRight`/`_KeyholeUp` (leaf object space) and `_KeyholeSize`
+  (x = the circle's radius; the circle's centre is one radius above the keyhole's middle,
+  the slot one radius wide down to two radii below it; `DoorKeyhole.BuildOutline()` must
+  match) - all set per renderer by `DoorKeyhole`'s
+  `MaterialPropertyBlock` (which takes that leaf out of the SRP Batcher); all zero = no
+  opening. Pixels inside are clipped, in ForwardLit, DepthOnly and DepthNormals; **the
+  ShadowCaster pass doesn't cut**, so the door casts a whole shadow. The edge is one pixel
+  of coverage sent out as alpha with `AlphaToMask On` (smoothed under MSAA, hard without).
+  `_RimColor`/`_RimWidth` darken a band round the opening. Back faces are culled, so
+  through the near face's opening the room shows; the opening's walls are a mesh
+  `DoorKeyhole` makes, drawn with this shader. **No texture yet**: flat colour only.
+  `clip` weakens early depth rejection: for door leaves, not walls.
 
 ## Gameplay light (added 2026-10-04)
 

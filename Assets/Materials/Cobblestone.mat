@@ -141,7 +141,8 @@ Material:
     - _MottleScale: 0.0016
     - _NarrowSearch: 0
     - _NormalStrength: 1.59
-    - _OcclusionStrength: 1
+    - _OcclusionStrength: 0.25
+    - _OcclusionWidth: 0.145
     - _Parallax: 1
     - _ParallaxDepth: 0
     - _QueueOffset: 0

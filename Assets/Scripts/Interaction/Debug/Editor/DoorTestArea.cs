@@ -17,8 +17,12 @@ namespace Interaction
     /// handle whose trigger grab volume sticks out of both faces, with a
     /// lever on each side that has no collider of its own.
     ///
-    /// Also adds PlayerHandDoors to the player's Hands object if it isn't
-    /// there, and makes the door handle's hand snap profile
+    /// The simple-lock door also gets a keyhole to look through (a
+    /// DoorKeyhole below the handle, and the door leaf material on its
+    /// leaf).
+    ///
+    /// Also adds PlayerHandDoors to the player's Hands object and
+    /// PlayerKeyholes to the Player root if they aren't there, and makes the door handle's hand snap profile
     /// (Assets/Data/DoorHandle.asset) as a copy of the bottle's the first
     /// time - a stand-in to be tuned in the headset.
     ///
@@ -55,6 +59,13 @@ namespace Interaction
         private const float LeverStandOff = 0.075f;
         private const float LeverLength = 0.14f;
         private const float LeverThickness = 0.022f;
+
+        // The keyhole (simple lock only): how far below the handle its
+        // middle is - far enough that, fully open, it's clear of the lever.
+        private const float KeyholeDrop = 0.18f;
+
+        private const string DoorLeafMaterialPath = "Assets/Art/Materials/DoorLeaf.mat";
+        private const string DoorLeafShaderName = "TeaLeaf/DoorLeaf";
 
         [MenuItem("TeaLeaf/Build Door Test Area")]
         private static void Build()
@@ -110,6 +121,7 @@ namespace Interaction
             BuildDoor("Door (Keyed Lock)", parent, DoorwaySpacing, DoorLock.Keyed, true, profile, cue, interactable);
 
             EnsurePlayerHandDoors();
+            EnsurePlayerKeyholes();
             Selection.activeGameObject = root;
         }
 
@@ -184,6 +196,62 @@ namespace Interaction
             SerializedObject handleSettings = new(handle);
             handleSettings.FindProperty("door").objectReferenceValue = door.GetComponent<Door>();
             handleSettings.ApplyModifiedPropertiesWithoutUndo();
+
+            // A lock that can be picked has a keyhole to look through.
+            if (lockType == DoorLock.Simple) {
+                BuildKeyhole(door.transform, leaf, new Vector3(leafWidth - HandleInset, HandleHeight - KeyholeDrop, 0f), layer);
+            }
+        }
+
+        /// <summary>
+        /// The keyhole: an empty object in the middle of the leaf's
+        /// thickness, below the handle, with the door's axes (X across the
+        /// face, Y up). The leaf is given the door leaf material, whose
+        /// shader is what cuts the opening.
+        /// </summary>
+        private static void BuildKeyhole(Transform door, GameObject leaf, Vector3 localPosition, int layer)
+        {
+            MeshRenderer leafRenderer = leaf.GetComponent<MeshRenderer>();
+            Material material = GetDoorLeafMaterial();
+
+            if (material != null) {
+                leafRenderer.sharedMaterial = material;
+            }
+
+            GameObject keyhole = new("Keyhole") { layer = layer };
+            keyhole.transform.SetParent(door, false);
+            keyhole.transform.localPosition = localPosition;
+
+            SerializedObject settings = new(keyhole.AddComponent<DoorKeyhole>());
+            settings.FindProperty("door").objectReferenceValue = door.GetComponent<Door>();
+            settings.FindProperty("leafRenderer").objectReferenceValue = leafRenderer;
+            settings.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// The door leaf material asset (the TeaLeaf/DoorLeaf shader),
+        /// created the first time it's needed in the test geometry's
+        /// brown. Null, with a warning, if the shader can't be found.
+        /// </summary>
+        private static Material GetDoorLeafMaterial()
+        {
+            Material material = AssetDatabase.LoadAssetAtPath<Material>(DoorLeafMaterialPath);
+
+            if (material != null) {
+                return material;
+            }
+
+            Shader shader = Shader.Find(DoorLeafShaderName);
+
+            if (shader == null) {
+                Debug.LogWarning($"DoorTestArea: shader '{DoorLeafShaderName}' not found, so the simple-lock door has no keyhole opening.");
+                return null;
+            }
+
+            material = new Material(shader) { name = "DoorLeaf" };
+            material.SetColor("_BaseColor", TestGeometry.GetMaterial().GetColor("_BaseColor"));
+            AssetDatabase.CreateAsset(material, DoorLeafMaterialPath);
+            return material;
         }
 
         /// <summary>
@@ -290,6 +358,26 @@ namespace Interaction
 
             if (hands.GetComponent<PlayerHandDoors>() == null) {
                 Undo.AddComponent<PlayerHandDoors>(hands.gameObject);
+            }
+        }
+
+        /// <summary>
+        /// Makes sure the player can look through keyholes: adds
+        /// PlayerKeyholes next to PlayerController (on the Player root) if
+        /// it's missing. Its Reset() fills in its reference, and
+        /// PlayerController finds it by itself in Awake().
+        /// </summary>
+        private static void EnsurePlayerKeyholes()
+        {
+            PlayerController player = Object.FindFirstObjectByType<PlayerController>();
+
+            if (player == null) {
+                Debug.LogWarning("DoorTestArea: no PlayerController in the scene, so PlayerKeyholes wasn't added - add it to the Player root by hand.");
+                return;
+            }
+
+            if (player.GetComponent<PlayerKeyholes>() == null) {
+                Undo.AddComponent<PlayerKeyholes>(player.gameObject);
             }
         }
     }

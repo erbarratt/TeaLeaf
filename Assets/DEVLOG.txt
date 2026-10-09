@@ -6,6 +6,98 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-09 (keyhole view, lockpicking design, a smithy built from code)
+-----------------------------------------------------------------------
+- Keyhole view (doors, step 3; Phase 3). Tried by the maintainer and
+  working.
+  - The roadmap's plan was a scope-style picture: a second camera at
+    the keyhole drawing the far room into a small texture. That draws
+    the room twice, against the Quest pixel rule. The maintainer chose
+    the cheaper route instead: an opening that grows in the door itself
+    as the head comes near, looked through with the player's own eyes.
+    True depth in both eyes, the head looks round the room, nothing is
+    drawn a second time. Not magnified.
+  - TeaLeaf/DoorLeaf shader (Assets/Art/Shaders): a plain lit colour
+    that throws away the pixels inside the keyhole's outline. The
+    outline is a signed distance worked out per pixel. The shadow pass
+    doesn't cut, so the door still casts a whole shadow. The edge is
+    smoothed by sending coverage out as alpha (AlphaToMask).
+  - Interaction.DoorKeyhole: an empty child of the door marking the
+    keyhole. Tells the shader where the opening is (once) and how big
+    (when it changes), through a MaterialPropertyBlock. Opens from
+    0.6m to 0.25m of head distance, only while the door is latched.
+    Only the picture changes: the door's collider is untouched.
+  - Player.PlayerKeyholes: looks for a keyhole near the head five
+    times a second and updates only that one each frame. New tick
+    slot 7d, after Move().
+  - Real depth, at the maintainer's request: the shader's cut is
+    paper-thin, so DoorKeyhole also builds the opening's walls - a
+    small tube mesh through the door's thickness, resized with the
+    opening (same vertex array each time, no allocation).
+  - Shape, at the maintainer's request: first a rounded rectangle, now
+    a classic keyhole - a circle with a slot below it, the slot as
+    wide as the circle's radius and a diameter long. One radius sizes
+    it (5mm at rest, 5cm open). The shape is defined twice, in the
+    shader (the cut) and in DoorKeyhole (the walls and gizmo), and the
+    two must be kept matching.
+  - Discussed, not built: a lock cylinder standing out from the door
+    works if it's part of the door's mesh; as a separate object
+    DoorKeyhole would need a list of renderers. The shader has no
+    texture yet.
+  - The Door Test Area builder gives the simple-lock door a keyhole
+    and the DoorLeaf material, and adds PlayerKeyholes to the Player.
+- Lockpicking redesigned by the maintainer (Phase 5 in the roadmap
+  rewritten; not built). Two picks worn on the back of the left hand,
+  grabbed as one by the right and snapped into a simple lock's
+  keyhole; a large copy of the lock then fades in front of the door
+  with a pick at 11 and 1 o'clock. The right hand turns its pick
+  clockwise through three stops and a last turn; at each stop the
+  left hand sweeps its pick between 11 and 7 o'clock to find a random
+  pin by haptics (rising from 10 degrees out, full within 5), holding
+  it for a second. Letting go of the right pick resets. A hand turns a
+  pick by moving round the lock, not twisting the wrist. Unlocked
+  until the level restarts. Walking away puts the picks back on the
+  hand. This replaces the single-pick wrist-roll plan; the picks are
+  no longer on the wrist radial menu (Phase 4 line changed).
+- Cobblestone shader: a crevice shadow, standing in for ambient
+  occlusion, after the maintainer found the step from stone to gap
+  hard and the gaps unlit-looking. Colour and shine are darkened most
+  on the line where stone meets gap, easing off both ways; narrow gaps
+  stay dark, wide pockets lighten in the middle. Two new settings
+  (Crevice Shadow, Crevice Shadow Width). Not added to the brick
+  shader. No word yet on how it looks.
+- Smithy (TeaLeaf > Build Smithy), from a reference picture the
+  maintainer gave: a half-timbered blacksmith's house built from code
+  as a game asset rather than greybox cubes. The maintainer ran it
+  (the assets are generated and it's in the scene); how it looks and
+  climbs hasn't been reported yet.
+  - BuildingMesh: collects faces into one mesh per material, with
+    texture coordinates from real distances, so textures are the same
+    size on every piece. Six materials, six draw calls.
+  - SmithyTextures: paints plaster, timber, stone, roof tile and
+    plank textures pixel by pixel from wrapping noise and saves them
+    as PNGs (normal maps for stone, tiles and planks). Simple Lit
+    materials. Assets are only made if missing, so hand edits are kept.
+  - SmithyBuilding: stone ground floor with a forge arch and hearth,
+    jettied timber-framed upper floor, 48 degree tiled roof with a
+    cross gable, chimney, lean-to awning, barrels, anvil, workbench.
+    Hollow, with an inside ladder through a hatch. About 35
+    climbables: rails on every upper wall, window sills to mantle
+    into, the awning, gable rails up to ridges that can be walked
+    along, eaves, and two ladders. Static, mesh colliders, surface
+    tags.
+- Answered, no change: on Quest a texture read is cheaper per pixel
+  than the procedural cobble and brick shaders; baking their output to
+  textures is the fallback if profiling asks.
+- Roadmap: keyhole view ticked and reworded; a door leaf texture and
+  lock plate added as an item; lockpicking rewritten; the smithy noted
+  at the head of Phase 8 with a headset check to do.
+- What was learned: before building something the roadmap already
+  flags as costly, look for a way to get the same result with no
+  second render - here the "view through the keyhole" needed no
+  camera at all, only a hole.
+
+
 2026-10-08 (doors, a fog test, cobblestone and brick wall shaders)
 ------------------------------------------------------------------
 - Doors, started (Phase 3). The maintainer's design: three kinds of

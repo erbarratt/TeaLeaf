@@ -85,6 +85,12 @@ Shader "TeaLeaf/Cobblestone"
         _BrightnessVariation ("Brightness Variation", Range(0, 1)) = 0.25
         // How much darker a stone is down its shoulder than on top.
         _EdgeDarkening ("Edge Darkening", Range(0, 1)) = 0.35
+        // A soft shadow in the crevices, darkest on the line where a stone
+        // meets the gap and easing off up the stone and out into the gap:
+        // how dark it gets (0 = off), and how far it reaches from that
+        // line, as a fraction of the cobble size.
+        _OcclusionStrength ("Crevice Shadow", Range(0, 1)) = 0.6
+        _OcclusionWidth ("Crevice Shadow Width", Range(0.01, 0.5)) = 0.12
 
         [Header(Shine)]
         [Toggle(_SPECULAR_COLOR)] _Specular ("Shine", Float) = 0
@@ -191,6 +197,8 @@ Shader "TeaLeaf/Cobblestone"
             float _SizeVariation;
             float _MinGap;
             float _FleckPixels;
+            half _OcclusionStrength;
+            float _OcclusionWidth;
         CBUFFER_END
         ENDHLSL
 
@@ -648,6 +656,23 @@ Shader "TeaLeaf/Cobblestone"
                     albedo = lerp(albedo, _DirtColor.rgb, dirt);
                 #endif
 
+                // Crevice shadow, standing in for ambient occlusion: less
+                // light finds its way to the foot of a stone and the floor
+                // of a narrow gap than to the stone's top. "openness" is how
+                // clear of the crevice a pixel is: 0 on the line where stone
+                // meets gap, rising to 1 over the shadow's width on BOTH
+                // sides of it - up the stone, and out towards the middle of
+                // the gap. A narrow gap never gets far from a stone, so it
+                // stays dark all the way across; the wide pockets where
+                // several stones meet lighten in the middle. smoothstep is
+                // level at each end, so the shade runs through that line
+                // with no crease, which is what softens the step from
+                // stone colour to gap colour. Last, so the dirt is shaded
+                // too; and faded out with the pattern in the distance.
+                half openness = smoothstep(0.0, max(_OcclusionWidth, 0.001), abs(edge));
+                half occlusion = 1.0 - _OcclusionStrength * (1.0 - openness) * (1.0 - fade);
+                albedo *= occlusion;
+
                 // Tilt the normal down the stones' shoulders. The slope is
                 // read from how the height (in metres) changes to the next
                 // pixel across and down, against how the world position
@@ -671,8 +696,9 @@ Shader "TeaLeaf/Cobblestone"
                 surfaceData.albedo = albedo;
                 surfaceData.alpha = 1.0;
                 surfaceData.occlusion = 1.0;
-                // Only the stones shine, and less where they're dirty.
-                surfaceData.specular = _SpecColor.rgb * stone * (1.0 - dirt);
+                // Only the stones shine, and less where they're dirty or in
+                // the crevice shadow.
+                surfaceData.specular = _SpecColor.rgb * stone * (1.0 - dirt) * occlusion;
                 surfaceData.smoothness = _Smoothness;
                 surfaceData.normalTS = half3(0.0, 0.0, 1.0);
 

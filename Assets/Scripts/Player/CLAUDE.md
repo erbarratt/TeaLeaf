@@ -342,6 +342,15 @@ therefore reads the project's own interaction-free `Player/Turn` action.
   and `PlayerHandHolding` read to leave that hand alone; this class reads their grips and
   carried props in turn. The reticle is hidden by the snap (`IsSnapped`), as for a ledge.
 
+- **`PlayerKeyholes`** (on the Player root; written 2026-10-09, tried and working; optional -
+  `PlayerController` finds it in `Awake()` and works without it) — the player's half of
+  `Interaction.DoorKeyhole`. `Tick()` (tick step 7d, and during a mantle): every
+  `searchInterval` (0.2s) asks `DoorKeyhole.FindInRange()` for the keyhole nearest the head
+  (`PlayerTracking.HeadPosition`; distance checks only, no physics); the one found is then
+  ticked every frame so its opening follows the head, until it reports it's back at rest.
+  Switching to a nearer keyhole shuts the old one at once. With none in range it only
+  counts down a timer.
+
 ## Climbing and mantling
 
 - **`PlayerClimbing`** — grab-and-pull climbing. A hand grabs the `IClimbable` (ledge, ladder or

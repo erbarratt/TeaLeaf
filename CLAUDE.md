@@ -187,7 +187,7 @@ behaviour. The current order is:
    then `playerMantling.Tick()` — detects a possible mantle (arrow), starts one on a stick push, or
    advances the one in progress. **While `IsMantling`, the frame stops here**: the mantle has
    already positioned the rig directly (CharacterController disabled), so only `TickState()`,
-   `playerVisibility.Tick()`, `playerHandDoors.TickHeld()`, `playerHandVisuals.Tick()`, `playerHandHolding.TickHeld()`,
+   `playerVisibility.Tick()`, `playerKeyholes.Tick()`, `playerHandDoors.TickHeld()`, `playerHandVisuals.Tick()`, `playerHandHolding.TickHeld()`,
    `playerHandThrowing.Tick(false)`,
    `TickReticles()` and `playerHandAnimation.Tick()` run - no locomotion, turning or `Move()`.
 5. `_frameMovement` = `playerLocomotion.TickMovement(isClimbing)` (thumbstick + gravity;
@@ -204,6 +204,9 @@ behaviour. The current order is:
    7c. `playerVisibility.Tick()` — after `TickState()` too: it samples the light where the
    body ended up and applies this frame's `MovementState` (skipped if the Player has no
    `PlayerVisibility`; also run during a mantle, not once the level has ended).
+   7d. `playerKeyholes.Tick()` — after `Move()`: the keyhole the head is near opens by
+   where the head ended up (skipped if the Player has no `PlayerKeyholes`; also run during
+   a mantle, not once the level has ended).
 8. `playerHandDoors.TickHeld()` — a hand on a door handle turns the lever and swings the
    door, after `Move()` (the door follows where the hand ended up) and straight before the
    visuals (the hand is then snapped onto the handle where the door now is). Then
@@ -240,7 +243,7 @@ movement and VR tracking both want per-frame updates, for lower latency.
 ```
 Player                 [Player layer] CharacterController, PlayerTracking, PlayerInputXR,
                        PlayerHaptics, PlayerLocomotion, PlayerClimbing, PlayerMantling,
-                       PlayerFootsteps, PlayerVisibility, PlayerController
+                       PlayerFootsteps, PlayerVisibility, PlayerKeyholes, PlayerController
   Camera Offset        (saved at y 1.6m = standing eye height; crouch shifts it)
     Main Camera        Tracked Pose Driver (Tracking/Head* actions)
       Mantle Indicator (MantleIndicator - head-locked, placed a little below centre ~0.5m ahead)
@@ -342,8 +345,13 @@ fails and restarts. Agreed mechanics:
   has been heard. Several guard voices, each with its own pools. Other guards don't react to
   idle chatter (sound only, no noise event); two-guard conversations may come later.
 - **Tools:** blackjack (from-behind takedown on unaware guards), hand crossbow usable in either
-  hand, physically cocked, with water / noisemaker / rope bolts; rotate-wrist sweet-spot
-  lockpicking with haptics.
+  hand, physically cocked, with water / noisemaker / rope bolts; two-handed
+  lockpicking with haptics (decided 2026-10-09, not built, replacing the wrist-roll plan):
+  two picks worn on the back of the left hand snap into a simple lock's keyhole, a large
+  copy of the lock fades in front of the door, the right hand turns one pick clockwise
+  through three stops and a last turn while the left sweeps the other to find each stop's
+  random pin by haptics; a hand turns a pick by moving round the lock, not by twisting the
+  wrist. Full spec in `Assets/DEVROADMAP.txt`, Phase 5.
 - **Inventory:** wrist radial menu to pick tools/bolt types (equip into the other hand); loot
   pocketed at the hip for a running total.
 - **Throwing is both aimed and physical** (physical built and tested 2026-10-07; aimed
@@ -383,6 +391,8 @@ fades out or reloads the scene itself.
 scene in the build list. Its test areas are built from the **TeaLeaf** menu (editor scripts
 in each system's `Debug/Editor`) and can be rebuilt at any time. As of 2026-10-07 the scene
 held only the Sound Test House and the Grabbable Test Props (a Door Test Area can be added
-from **TeaLeaf > Build Door Test Area**, written 2026-10-08): the maintainer removed the
+from **TeaLeaf > Build Door Test Area**, written 2026-10-08, and a textured, climbable
+blacksmith's house from **TeaLeaf > Build Smithy**, written 2026-10-09 - see
+`Assets/Scripts/Interaction/CLAUDE.md`): the maintainer removed the
 Locomotion Test Course, Town Test Area, Sound Test Area and Noise Test Listeners that day
 (the Physical Hands Test Area was already gone), so don't assume those are there.
