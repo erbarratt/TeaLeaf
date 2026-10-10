@@ -61,7 +61,10 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
   (`Pack`, `PackSlot`), loot (`Loot`), keys (`Key`, `Keyring`) and the inventory data
   (`PlayerInventory`, `ToolType`, `BoltType`).
 
-New system folders (`AI`, `UI`) get their own `CLAUDE.md` when their first system lands. Read
+- **`Assets/Scripts/AI/CLAUDE.md`** — the guards (`Guard`, `GuardState`, `PatrolRoute`),
+  the NavMesh and how it is baked, and the test guard's set-up.
+
+A new system folder (`UI`) gets its own `CLAUDE.md` when its first system lands. Read
 the relevant one before changing a system you haven't read this session, even when working
 from another folder.
 
@@ -424,7 +427,13 @@ fails and restarts. The mechanics:
   up/down cue). No third-party audio package is installed; Steam Audio is the fallback if
   up/down turns out to matter. Detail in `Assets/Scripts/Core/CLAUDE.md`.
 - **Guard AI:** patrol → suspicion → search → chase → catch (no combat). Knockout state;
-  guards react to finding bodies. Placeholder humanoid + Mixamo animations, NavMesh.
+  guards react to finding bodies. A first guard is built (`AI.Guard`, patrol and catch seen working, the rest untried): a
+  state machine driven by one detection meter that sight fills (by the player's
+  `Visibility`, distance and how much of them shows) and noises add to; it walks on a
+  baked NavMesh, looks a few times a second rather than every frame, and ends the level
+  through `LevelManager.Caught()`. Greybox shapes, tinted by state; a humanoid with
+  Mixamo animations comes later. Guards have their own `Update()`, outside the player's
+  tick order. Detail in `Assets/Scripts/AI/CLAUDE.md`.
   **Voice lines don't repeat** (not built): guards draw barks and idle patrol mutterings
   from very large pools, and a lightweight shared record of the lines used this play session
   (kept across level restarts) stops one repeating until its whole pool has been heard.
@@ -433,9 +442,10 @@ fails and restarts. The mechanics:
 - **Weapons:** the blackjack and the hand crossbow; there is no weapon menu. **The
   blackjack is drawn from the chest**: a hand that is empty, close to the chest and has its
   palm towards it draws the blackjack by pressing grip, and holds it while grip is held;
-  letting go puts it away (it is not dropped). Either hand. Drawing and putting away are
-  built (`PlayerBlackjack`); the from-behind takedown on unaware guards comes with the
-  guards.
+  letting go puts it away (it is not dropped). Either hand. **A swing that brings its head
+  against a guard's head knocks the guard out if the guard isn't chasing and the player is
+  behind it**; otherwise the guard turns on the player. Built (`PlayerBlackjack`,
+  `AI.Guard.TryKnockOut()`), not yet tried.
   **The crossbow is always mounted on the back of one hand**, as the lockpicks are on the
   other: the right hand for a right-handed player (`PlayerInputXR.IsLeftHanded` swaps the
   two). It becomes active when grip is pressed on that hand while it is empty, its ray is
@@ -517,8 +527,8 @@ fails and restarts. The mechanics:
 
 ### Planned systems
 
-`Assets/Scripts/{AI,UI}` are empty placeholder folders. Future systems land in their folder
-following the same one-class, one-responsibility pattern (AI: guards; UI: menus).
+`Assets/Scripts/UI` is an empty placeholder folder. Future systems land in their folder
+following the same one-class, one-responsibility pattern (UI: menus).
 Ending the level always goes through `LevelManager` (`Caught()`, `SetObjectiveCarried()`): no
 other system fades out or reloads the scene itself.
 
@@ -528,8 +538,10 @@ other system fades out or reloads the scene itself.
 list. Its test areas are built from the **TeaLeaf** menu (editor scripts in each system's
 `Debug/Editor`) and can be rebuilt at any time: the Sound Test House, the Grabbable Test
 Props, the Door Test Area (which also sets up lockpicking, including a `Big Lock` object at
-the scene root, and a keyed door) and the Smithy (a textured, climbable blacksmith's house).
+the scene root, and a keyed door), the Chest Test Area and the Smithy (a textured,
+climbable blacksmith's house). A `Test Guard` patrols the Sound Test House, on a NavMesh
+baked from the Environment layer (`NavMesh` object at the scene root; **TeaLeaf > Set Up
+Test Guard** rebuilds both, and must be run again after level geometry changes).
 The menu has builders for other test areas (locomotion course, town, sound test area, noise
-listeners, physical hands, the Chest Test Area) that are not in the scene: don't assume one
-is there. **TeaLeaf > Add Hand Tools To Player** adds the crossbow, blackjack and compass
+listeners, physical hands) that are not in the scene: don't assume one is there. **TeaLeaf > Add Hand Tools To Player** adds the crossbow, blackjack and compass
 components to the `Hands` object if they are missing.

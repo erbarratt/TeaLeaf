@@ -16,8 +16,9 @@ namespace Player
     /// blackjack is taken by reaching, not by the hand rays, so a hand
     /// feels a light tap when it's in the right place.
     ///
-    /// This is only the drawing and putting away. Knocking a guard out
-    /// with it comes with the guards.
+    /// In hand, a swing that brings its head against a guard's head is a
+    /// blow: the guard goes down if it was unaware and struck from
+    /// behind (AI.Guard decides).
     ///
     /// Lives on the Hands object. No Update(): PlayerController calls
     /// Tick() before the grab systems, so a hand that draws the blackjack
@@ -74,7 +75,30 @@ namespace Player
         // The least light it's ever shown in, 0-1.
         [SerializeField] private float minLight = 0.35f;
 
+        [Header("Hitting")]
+
+        // How fast the blackjack's head must be moving, in metres a
+        // second (measured against the player's body, so walking isn't a
+        // swing), for a touch on a guard's head to count as a blow.
+        [SerializeField] private float swingSpeed = 1.5f;
+
+        // How near the middle of the blackjack's head a guard's head must
+        // come, in metres.
+        [SerializeField] private float hitRadius = 0.07f;
+
+        // The layer guards' heads are on. Filled in from the layer name
+        // if left empty.
+        [SerializeField] private LayerMask guardHeadLayers;
+
+        // The thud of a blow. Optional. Its noise is what other guards
+        // hear.
+        [SerializeField] private SoundCue hitCue;
+
         [Header("Haptics")]
+
+        // A blow landing.
+        [SerializeField] private float hitAmplitude = 1f;
+        [SerializeField] private float hitDuration = 0.1f;
 
         // A hand arriving where it can draw, and the draw itself.
         [SerializeField] private float reachAmplitude = 0.15f;
@@ -104,6 +128,20 @@ namespace Player
         private bool _wasRightGrabbing;
         private bool _wasLeftInPlace;
         private bool _wasRightInPlace;
+
+        // Hitting. The middle of the blackjack's head in its own space;
+        // the player's root (speeds are measured in its space); where
+        // the head was last frame, in that space, and whether that is
+        // known yet; and whether the head is still against the guard it
+        // last hit - one touch is one blow.
+        private Vector3 _headLocal;
+        private Transform _playerRoot;
+        private Vector3 _lastHeadPoint;
+        private bool _hasLastHeadPoint;
+        private bool _isTouching;
+
+        // What the blow's overlap check finds. Made once and reused.
+        private static readonly Collider[] _hits = new Collider[2];
 
         /// True while the blackjack is in a hand.
         public bool IsOut => _isOut;
@@ -153,6 +191,11 @@ namespace Player
 
             // Looked up once, so the per-frame code tests a plain bool.
             _hasHaptics = playerHaptics != null;
+            _playerRoot = playerInput.transform;
+
+            if (guardHeadLayers.value == 0) {
+                guardHeadLayers = LayerMask.GetMask("GuardHead");
+            }
 
             BuildBlackjack();
         }
@@ -206,6 +249,7 @@ namespace Player
             builder.Box(new Vector3(0f, 0f, back + handleLength * 0.5f), new Vector3(handleThickness, handleThickness, handleLength), Quaternion.identity, handleColor);
             builder.Box(new Vector3(0f, 0f, back + handleLength + headLength * 0.5f), new Vector3(headThickness, headThickness, headLength), Quaternion.identity, headColor);
             _mesh = builder.ToMesh("Blackjack");
+            _headLocal = new Vector3(0f, 0f, back + handleLength + headLength * 0.5f);
             _material = LockMeshBuilder.CreateMaterial(false, minLight);
 
             GameObject blackjack = new("Blackjack");
@@ -234,6 +278,8 @@ namespace Player
                 // Held for as long as grip is.
                 if (!(_isInLeftHand ? isLeftGrabbing : isRightGrabbing)) {
                     PutAway();
+                } else {
+                    TickSwing();
                 }
             } else {
                 TickReach(true, isLeftGrabbing, _wasLeftGrabbing, ref _wasLeftInPlace);
@@ -278,8 +324,69 @@ namespace Player
 
             _isOut = true;
             _isInLeftHand = isLeftHand;
+            _hasLastHeadPoint = false;
+            _isTouching = false;
             wasInPlace = false;
             Pulse(isLeftHand, drawAmplitude, drawDuration);
+        }
+
+        /// <summary>
+        /// The blackjack in hand: is its head moving fast enough, and
+        /// against a guard's head? Then it's a blow, and the guard says
+        /// what comes of it (AI.Guard.TryKnockOut(): down if it was
+        /// unaware and struck from behind, otherwise it turns on the
+        /// player). One small overlap check a frame, on the guards' head
+        /// layer only.
+        /// </summary>
+        private void TickSwing()
+        {
+            Vector3 head = _blackjack.TransformPoint(_headLocal);
+
+            // Measured in the player root's space, so walking, turning
+            // and climbing aren't a swing: only the arm's movement is.
+            Vector3 headPoint = _playerRoot.InverseTransformPoint(head);
+            float speed = 0f;
+
+            if (_hasLastHeadPoint) {
+                speed = (headPoint - _lastHeadPoint).magnitude / Mathf.Max(Time.deltaTime, 0.0001f);
+            }
+
+            _lastHeadPoint = headPoint;
+            _hasLastHeadPoint = true;
+
+            int count = Physics.OverlapSphereNonAlloc(head, hitRadius, _hits, guardHeadLayers, QueryTriggerInteraction.Collide);
+
+            if (count == 0) {
+                _isTouching = false;
+                return;
+            }
+
+            // Still against the head it hit, or only resting on one.
+            if (_isTouching || speed < swingSpeed) {
+                return;
+            }
+
+            AI.Guard guard = AI.Guard.FindByHead(_hits[0]);
+
+            if (guard == null) {
+                return;
+            }
+
+            _isTouching = true;
+            guard.TryKnockOut(playerTracking.HeadPosition);
+            Pulse(_isInLeftHand, hitAmplitude, hitDuration);
+
+            if (hitCue == null) {
+                return;
+            }
+
+            SoundPlayer soundPlayer = SoundPlayer.Instance;
+
+            if (soundPlayer != null) {
+                soundPlayer.Play(hitCue, head, _playerRoot);
+            } else {
+                hitCue.EmitNoise(head, _playerRoot);
+            }
         }
 
         /// <summary>

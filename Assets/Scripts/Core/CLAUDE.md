@@ -479,8 +479,6 @@ the player truthfully where it is, on stereo headphones.
   Console entry: the listener's room, voices playing, the spatialiser, the room's reverb,
   every loop (room, path, muffle, loudness, voice) and each emitter's room, range, straight
   and path distance, muffle, heard-from point and played/not.
-- **`WaypointMoverDebug`** (`Core/Debug`) — walks a list of points there and back at
-  `speed`, no collision.
 - **`NoiseTestListeners`** (`Core/Debug/Editor`, menu **TeaLeaf > Add Noise Test
   Listeners**) adds three collider-less listener cubes under one root, 3m, 6m and 12m ahead
   of the main camera at ear height.
@@ -499,8 +497,8 @@ the player truthfully where it is, on stereo headphones.
   portal in the back wall); upper floor: Landing and Bedroom, no roof; a walled Yard in
   front with a gate. Seven `SoundRoom`s (the Yard is one) and eight `SoundPortal`s,
   including a **stairwell portal lying flat in the stair hole** (rotated 90° about X), the
-  only link between the floors. Nine listener cubes, a knock in the Store, and a stand-in
-  guard: a footstep emitter with `WaypointMoverDebug` going Bedroom → Landing → stairs →
+  only link between the floors. Nine listener cubes, a knock in the Store, and a `Guard Path`
+  (points only, for the test guard - see `Scripts/AI/CLAUDE.md`): Bedroom → Landing → stairs →
   Hall → Kitchen. A `SoundLoop` on the Hall and Kitchen torches and a `Flame` on all three
   lights (in a house built since `Flame` was written; add it by hand to older ones); a different reverb per room
   (Hall `StoneHall`, Kitchen `StoneRoom`, Store `Cellar`, Lounge `SmallRoom`, upper floor and
@@ -515,7 +513,9 @@ the player truthfully where it is, on stereo headphones.
   `NoiseType.Mechanism`, noise 5m, given to the test doors by `DoorTestArea`), per-surface
   footsteps from one recipe (`SurfaceStep()`) for wood (noise 7m), carpet (2.5m, range 15m),
   metal (10m, range 30m) and water (8m), and `SurfaceSoundsPlaceholder.asset`
-  (`SurfaceSoundsPath`) listing them. Three loops, each made seamless by `Seamless()` (the
+  (`SurfaceSoundsPath`) listing them. `BarkPlaceholder` (`BarkCuePath`; `Bark()`: a
+  two-part grunt; `NoiseType.Voice`, noise 0, range 25m, pitch variation 0.12) stands in
+  for every guard line. Three loops, each made seamless by `Seamless()` (the
   last half second blended into the first with square-root weights): `TorchLoopPlaceholder`
   (`Fire()`; volume 0.5, range 12m), `AmbienceOutsidePlaceholder` (`Wind()`, 0.3) and
   `AmbienceIndoorPlaceholder` (`RoomTone()`, 0.25), all noise radius 0 and no pitch

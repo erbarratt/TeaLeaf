@@ -187,6 +187,9 @@ the template's keyboard and gamepad bindings.
   `SoundPlayer`.
 - **`PlayerVisibility`** (on the Player root) — how easy the player is to see: `Visibility`
   0 (hidden) to 1 (plain sight), the one value guards' vision and the compass's light gem read.
+  `PlayerVisibility.Instance` (static, set in `Awake()`) with `HeadPosition`,
+  `BodyPosition` and `FeetPosition` is how `AI.Guard` reaches the player without a scene
+  search.
   `Tick()` (tick step 7c, and during a mantle) averages `Core.SceneLight.LevelAt()` at the
   head (Main Camera) and the capsule's centre (`LightLevel`, exposed for debug) - **sampled
   every `sampleInterval` (0.1s), not per frame**, since each sample is a few physics rays -
@@ -567,8 +570,8 @@ compass.
 
 ## The blackjack (not yet tried in the headset)
 
-- **`PlayerBlackjack`** (on `Hands`; optional) — drawing the blackjack and putting it
-  away; the takedown comes with the guards. `Tick()` (tick step 3b, before the grab
+- **`PlayerBlackjack`** (on `Hands`; optional) — drawing the blackjack, putting it
+  away, and hitting a guard with it. `Tick()` (tick step 3b, before the grab
   systems: it is taken by reaching, not by the hand rays). **Drawn at the chest**: a hand
   that is free (`IsBusyExcept(..., HandUse.Blackjack)`), within `chestRadius` (0.22m) of
   the chest point - `chestOffset` ((0, -0.3, 0.05): right, up, ahead) from the head with
@@ -580,7 +583,14 @@ compass.
   never dropped. Either hand, one at a time; the pack's shoulder reach is ticked first and
   wins where the two overlap. The model is two boxes in one mesh (`LockMeshBuilder`,
   `TeaLeaf/LockFade`), made in `Awake()` under `Hands` - not on a hand visual, so the
-  ghost hands never copy it; no collider. `IsOut`, `IsInLeftHand`;
+  ghost hands never copy it; no collider. **Hitting** (`TickSwing()`, each `Tick()` while
+  it is in hand): one `OverlapSphereNonAlloc` of `hitRadius` (0.07m) at the middle of the
+  blackjack's head on `guardHeadLayers` (GuardHead); a head found while the blackjack's
+  head is moving at `swingSpeed` (1.5 m/s) or more - measured in the Player root's space,
+  so walking and turning aren't a swing - is a blow: `AI.Guard.FindByHead()` then
+  `TryKnockOut(head position)` (the guard decides; see `Scripts/AI/CLAUDE.md`), a strong
+  pulse and the optional `hitCue`. One touch is one blow (`_isTouching`, cleared when the
+  head comes away). `IsOut`, `IsInLeftHand`;
   `IsLeftBusy`/`IsRightBusy` are `HandUse.Blackjack`. `IDebugDrawable`: the chest ball in
   the detailed view (yellow, green while drawn).
 

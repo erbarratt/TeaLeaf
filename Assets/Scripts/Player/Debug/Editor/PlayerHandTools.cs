@@ -16,7 +16,7 @@ namespace Player
     public static class PlayerHandTools
     {
         [MenuItem("TeaLeaf/Add Hand Tools To Player")]
-        private static void Add()
+        internal static void Add()
         {
             PlayerHandVisuals hands = Object.FindFirstObjectByType<PlayerHandVisuals>();
 

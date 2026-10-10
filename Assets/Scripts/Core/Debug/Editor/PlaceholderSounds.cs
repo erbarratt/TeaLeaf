@@ -28,6 +28,7 @@ namespace Core
         public const string ImpactCuePath = CueFolder + "/ImpactPlaceholder.asset";
         public const string SurfaceSoundsPath = CueFolder + "/SurfaceSoundsPlaceholder.asset";
         public const string CreakCuePath = CueFolder + "/CreakPlaceholder.asset";
+        public const string BarkCuePath = CueFolder + "/BarkPlaceholder.asset";
         public const string TorchLoopCuePath = CueFolder + "/TorchLoopPlaceholder.asset";
         public const string OutsideAmbienceCuePath = CueFolder + "/AmbienceOutsidePlaceholder.asset";
         public const string IndoorAmbienceCuePath = CueFolder + "/AmbienceIndoorPlaceholder.asset";
@@ -67,6 +68,18 @@ namespace Core
             }
 
             EnsureCue(CreakCuePath, creaks, 0.6f, 20f, NoiseType.Mechanism, 5f);
+
+            // A guard saying something: a two-part grunt. A voice, with
+            // no noise radius - other guards don't react to one talking -
+            // and plenty of pitch variation, since one cue stands in for
+            // every line.
+            AudioClip[] barks = new AudioClip[3];
+
+            for (int i = 0; i < barks.Length; i++) {
+                barks[i] = EnsureClip($"{ClipFolder}/BarkPlaceholder{i + 1}.wav", Bark(i));
+            }
+
+            EnsureCue(BarkCuePath, barks, 0.8f, 25f, NoiseType.Voice, 0f, 0.12f);
 
             // Loops: a torch's crackle for SoundLoop (heard from where the
             // torch is, within 12m), and two backgrounds for the rooms'
@@ -275,6 +288,46 @@ namespace Core
                 // 0 at the end.
                 float loudness = Mathf.Sin(Mathf.PI * progress);
                 samples[i] = smoothed * loudness * 0.6f;
+            }
+
+            return samples;
+        }
+
+        /// <summary>
+        /// A guard's grunt, "uh-huh": two short bursts of a low buzzy
+        /// tone (a saw wave, smoothed), the second a little higher, each
+        /// swelling and dying. Nothing like speech - only something that
+        /// is plainly a voice and not a footstep.
+        /// </summary>
+        private static float[] Bark(int variant)
+        {
+            const float duration = 0.45f;
+            float[] samples = new float[(int)(SampleRate * duration)];
+            float baseTone = 110f + variant * 18f;
+            float phase = 0f;
+            float smoothed = 0f;
+
+            for (int i = 0; i < samples.Length; i++) {
+                float time = i / (float)SampleRate;
+                float progress = time / duration;
+
+                // Two syllables: the first 45% of the sound and the last
+                // 45%, with a gap between. Each is half a sine turn: 0,
+                // up to 1, back to 0.
+                bool isSecond = progress > 0.55f;
+                float within = isSecond ? (progress - 0.55f) / 0.45f : progress / 0.45f;
+                float loudness = within <= 1f ? Mathf.Sin(Mathf.PI * within) : 0f;
+
+                // The second syllable is a third higher, and each falls
+                // a little in pitch as it goes.
+                float tone = baseTone * (isSecond ? 1.25f : 1f) * (1f - 0.15f * Mathf.Clamp01(within));
+
+                phase += tone / SampleRate;
+                phase -= Mathf.Floor(phase);
+
+                float saw = phase * 2f - 1f;
+                smoothed += (saw - smoothed) * 0.2f;
+                samples[i] = smoothed * loudness * 0.8f;
             }
 
             return samples;

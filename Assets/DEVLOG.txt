@@ -6,6 +6,104 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-10, sixth part (the first guard, the blackjack takedown)
+----------------------------------------------------------------
+- Seen working in the headset: the guard patrolling its route and
+  catching the player. Everything else here compiles and has been run
+  headless, but not tried in the headset. Every number is a first guess.
+- The guard (AI.Guard, with AI.GuardState and AI.PatrolRoute).
+  - One explicit state machine: Patrol, Suspicious, Search, Chase,
+    KnockedOut. It has its own Update(), outside the player's tick
+    order, and walks with Unity's NavMeshAgent.
+  - One detection meter (0-1) moves it between states. Seeing the
+    player fills it; a noise adds to it at once; it drains over 6s with
+    nothing to notice. At 0.3 a patrolling guard becomes Suspicious; at
+    1 it chases.
+  - Sight is not per frame: every 0.15s, each guard starting at a
+    random moment, and every 0.5s with no rays at all while the player
+    is further away than it could see. Two points on the player (head,
+    body), a 110 degree cone out to 14m, one Linecast each on
+    Environment + Interactable. The fill rate is the share of points
+    seen x PlayerVisibility.Visibility x a distance scale. Within 2.5m
+    the player counts as at least half lit; within 0.9m the cone is
+    ignored.
+  - Hearing is an INoiseListener on NoiseSystem, so it follows rooms
+    and portals. Loudness x 0.7 goes on the meter (x 1.5 for a
+    noisemaker). Another guard's noises are ignored, and everything
+    during a chase.
+  - Suspicious: stops, faces the stimulus, and after 3s searches if the
+    meter's peak reached 0.6, otherwise empties the meter and patrols.
+  - Search: walks to the place, looks about, tries three random places
+    within 4m put onto the NavMesh, then gives up; 30s at most, doubled
+    once any guard has found a body.
+  - Chase: runs at the player, its destination renewed at each look
+    while they are seen. Seen, within 1.1m and on the same floor is
+    caught: LevelManager.Caught(). Unseen for 4s it searches from where
+    it last saw them.
+  - Bodies: a knocked-out guard in view and lying in at least 0.15 of
+    light is found once; the finder searches there.
+  - Footsteps through SurfaceSounds on the floor under it and a bark on
+    each change of state, both sound only (no noise event), so both
+    show on the compass. All five barks are one placeholder grunt
+    (BarkPlaceholder).
+  - The head is tinted by state: grey, yellow, orange, red, dark.
+- The blackjack takedown (PlayerBlackjack.TickSwing, Guard.TryKnockOut):
+  the blackjack's head moving faster than 1.5 m/s in the player's own
+  space while it overlaps a GuardHead collider is a blow, one per
+  touch. The guard goes down if it isn't chasing and the player is
+  behind it; otherwise it turns on the player. Guard.FindByHead() is a
+  static dictionary, so no GetComponent.
+- PlayerVisibility has a static Instance and HeadPosition, BodyPosition
+  and FeetPosition, which is what guards look at.
+- Navigation. The NavMesh agent is guard-sized (radius 0.3m, height
+  1.8m, step 0.4m, in ProjectSettings/NavMeshAreas.asset): at Unity's
+  default 0.5m radius a 0.9m doorway is not walkable. A NavMeshSurface
+  on a NavMesh object at the scene root bakes every collider on the
+  Environment layer into Assets/Scenes/Main-NavMesh.asset. Doors are on
+  Interactable, so they are not in it and a guard walks through a shut
+  door.
+- Set-up (AI.GuardTestSetup): TeaLeaf > Set Up Test Guard builds the
+  Test Guard, copies the Sound Test House's Guard Path into a Test
+  Guard Route, adds the hand tools, gives the blackjack its thud and
+  bakes the NavMesh. TeaLeaf > Check Test Guard Route asks the NavMesh
+  for a path between each pair of route points. Both have entry points
+  for running Unity from the command line.
+- AI.GuardDebug (on the Test Guard) logs "[Guard]" lines: where it
+  starts and whether it is on the NavMesh, every change of state, and
+  each time it sets off or stops.
+- The Sound Test House has no moving footstep emitter: its
+  Guard Path is points only, for the test guard. WaypointMoverDebug is
+  deleted.
+- Bugs.
+  - A guard that kept hearing noise from one spot stood rooted there:
+    every noise restarted the search. A noise during a search now moves
+    the search only if it is more than 1.5m from the place being
+    searched.
+  - A suspicion that came to nothing left the meter part full, so the
+    next look made the guard suspicious again. The meter is emptied.
+- Learned.
+  - A guard standing still near a walking player is usually listening:
+    one footstep of about 0.45 loudness at its ears is enough to make
+    it suspicious.
+  - Unity runs editor code with the editor closed:
+    Unity.exe -batchmode -quit -projectPath ... -executeMethod Class.Method
+    compiles, runs the method and can save the scene. Without -quit, a
+    method that calls EditorApplication.EnterPlaymode() and an
+    [InitializeOnLoad] class that logs from EditorApplication.update
+    make a headless play test; on a copy of Assets, Packages and
+    ProjectSettings it runs while the real project is open.
+  - The editor log (%LOCALAPPDATA%\Unity\Editor\Editor.log) records a
+    play session's Console output; a second "Loaded scene" during play
+    is a level restart.
+  - NavMeshAgent.remainingDistance reads Infinity on a path with
+    several corners until the agent is near the end; hasPath and
+    pathPending are what say whether it has arrived.
+- Not built: dragging and hiding a knocked-out guard, voice lines that
+  don't repeat, idle chatter, a humanoid model and animations, doors on
+  the NavMesh, any reaction to a fire going out or a bolt hitting a
+  guard.
+
+
 2026-10-10, fifth part (bolts, fires, the blackjack, chests, the compass)
 ------------------------------------------------------------------------
 - The maintainer's designs, built the same day. All of it compiles; none

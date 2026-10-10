@@ -26,9 +26,9 @@ namespace Core
     /// roof, so the upper floor can be seen from above in the Scene view.
     /// Yard: in front of the house, walled, with a gate to outside.
     ///
-    /// A stand-in guard (footsteps on a moving cube) walks from the Bedroom
+    /// A route for a guard (points only, the Guard Path) runs from the Bedroom
     /// across the Landing, down the stairs, through the Hall into the
-    /// Kitchen and back; a knock repeats in the Store. A NoiseListenerDebug
+    /// Kitchen; a knock repeats in the Store. A NoiseListenerDebug
     /// cube stands in every room and outside for the N key report.
     ///
     /// Uses the player test areas' TestGeometry for the solid pieces
@@ -99,7 +99,6 @@ namespace Core
             }
 
             PlaceholderSounds.Create();
-            SoundCue footstepCue = AssetDatabase.LoadAssetAtPath<SoundCue>(PlaceholderSounds.FootstepCuePath);
             SoundCue impactCue = AssetDatabase.LoadAssetAtPath<SoundCue>(PlaceholderSounds.ImpactCuePath);
 
             SoundTestArea.EnsureSceneObjects();
@@ -112,7 +111,7 @@ namespace Core
             BuildGeometry(parent, environment);
             BuildRoomsAndPortals(parent);
             BuildListeners(parent);
-            BuildEmitters(parent, footstepCue, impactCue);
+            BuildEmitters(parent, impactCue);
 
             Selection.activeGameObject = root;
         }
@@ -283,9 +282,10 @@ namespace Core
         }
 
         /// <summary>
-        /// The stand-in guard walking its route, and the knock in the Store.
+        /// The route a guard walks through the house (points only: TeaLeaf >
+        /// Set Up Test Guard puts a guard on it), and the knock in the Store.
         /// </summary>
-        private static void BuildEmitters(Transform parent, SoundCue footstepCue, SoundCue impactCue)
+        private static void BuildEmitters(Transform parent, SoundCue impactCue)
         {
             // The guard's route, as points just above the floor: Bedroom,
             // out of its door, along the Landing to the top of the stairs,
@@ -307,35 +307,12 @@ namespace Core
 
             GameObject path = new("Guard Path");
             path.transform.SetParent(parent, false);
-            Transform[] waypoints = new Transform[route.Length];
 
             for (int i = 0; i < route.Length; i++) {
                 GameObject point = new($"Point {i + 1}");
                 point.transform.SetParent(path.transform, false);
                 point.transform.localPosition = route[i];
-                waypoints[i] = point.transform;
             }
-
-            GameObject guard = SoundTestArea.AddEmitter("Sound Emitter Guard (footsteps)", parent, route[0], footstepCue, 0.5f);
-
-            // The waypoint list is a private serialized array, so it's
-            // filled the way the Inspector would fill it.
-            SerializedObject serialized = new(guard.AddComponent<WaypointMoverDebug>());
-            SerializedProperty list = serialized.FindProperty("waypoints");
-            list.arraySize = waypoints.Length;
-
-            for (int i = 0; i < waypoints.Length; i++) {
-                list.GetArrayElementAtIndex(i).objectReferenceValue = waypoints[i];
-            }
-
-            serialized.ApplyModifiedPropertiesWithoutUndo();
-
-            // The guard's steps follow the floor it's walking on (wood
-            // upstairs and on the stairs, stone in the Hall, tile in the
-            // Kitchen) rather than always playing the one cue.
-            SerializedObject emitter = new(guard.GetComponent<SoundEmitterDebug>());
-            emitter.FindProperty("surfaceSounds").objectReferenceValue = AssetDatabase.LoadAssetAtPath<SurfaceSounds>(PlaceholderSounds.SurfaceSoundsPath);
-            emitter.ApplyModifiedPropertiesWithoutUndo();
 
             SoundTestArea.AddEmitter("Sound Emitter Store (impact)", parent, new Vector3(10.5f, 1f, 1f), impactCue, 2f);
         }

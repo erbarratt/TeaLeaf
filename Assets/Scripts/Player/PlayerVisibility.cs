@@ -5,7 +5,7 @@ namespace Player
 {
     /// <summary>
     /// How easy the player is to see, as one number from 0 (hidden) to 1
-    /// (in plain sight): the value guards' vision and the wrist gem read.
+    /// (in plain sight): the value guards' vision and the compass read.
     ///
     /// It's the light falling on the player, changed by what they're doing.
     /// The light comes from Core.SceneLight - moonlight unless something
@@ -63,6 +63,31 @@ namespace Player
         /// 0 = full shadow, 1 = fully lit. For debug readouts.
         /// </summary>
         public float LightLevel { get; private set; }
+
+        /// The scene's player, as guards see them: reachable without a
+        /// scene search. Null if the scene has none.
+        public static PlayerVisibility Instance { get; private set; }
+
+        /// Where the head is, in world space.
+        public Vector3 HeadPosition => head.position;
+
+        /// The middle of the body (the capsule), in world space.
+        public Vector3 BodyPosition => playerTransform.TransformPoint(characterController.center);
+
+        /// Where the feet are: the Player root, in world space.
+        public Vector3 FeetPosition => playerTransform.position;
+
+        private void Awake()
+        {
+            Instance = this;
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this) {
+                Instance = null;
+            }
+        }
 
         /// <summary>
         /// Editor-only: fills in the references when the component is added
