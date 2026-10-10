@@ -6,6 +6,58 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-10, second part (the target changes: PCVR on a 3060-class rig)
+----------------------------------------------------------------------
+- No code this part: a decision, and the documents brought into line.
+- The maintainer changed what the game is built for. It was "PCVR
+  first, then Quest 3 standalone as the real target". It is now PCVR:
+  90 fps with 25% headroom, at about 2000 x 2000 pixels per eye, on an
+  RTX 3060 12 GB, a Ryzen 5 5600X class processor and 16 GB of RAM.
+  That is a budget of 8.3 ms a frame for the CPU and for the GPU.
+  Quest 3 standalone is an option for the future, not a target.
+- How the rig was chosen. Valve's September 2026 Steam Hardware Survey
+  has the RTX 5070 as the single most common card (5.86% of systems),
+  32 GB as the most common memory (42.2%; 16 GB 37.8%, 8 GB 6.5%) and
+  8 cores as the most common processor (30.1%). The target was briefly
+  that rig, then dropped: the RTX 5060, 4060 and 3060 are each weaker
+  and together more common than the 5070, so a game that only just
+  fits on a 5070 misses on them. The maintainer settled on "3060
+  upwards", to cover most Steam players. The maintainer named the card;
+  the processor class and the 16 GB carry over from their first
+  assumption and are open to change.
+  - The survey covers all Steam users, not VR owners (under 2% of
+    them), and names no processor models, only core counts. Quest 3 is
+    the most used headset on Steam (26.9%), which is the dev setup.
+- The performance rules in the root CLAUDE.md were rewritten for it.
+  Loosened, because they only existed for mobile hardware: torches may
+  cast realtime shadows from moving things; the procedural cobblestone
+  and brick shaders are acceptable, subject to measuring; 4x MSAA is
+  wanted; an optional post-process effect that can be switched off is
+  allowed once measured. Kept, because they are cheap now and costly to
+  retrofit, and keep a Quest port possible: no per-frame allocations,
+  nothing created during play, costly CPU work sliced, static geometry
+  that batches and culls, batcher-friendly stereo shaders, and no
+  dependence on a full-screen effect.
+- Torch lighting, agreed but not built or tested: Mixed lights in
+  Shadowmask mode. The light itself stays realtime, so it can be put
+  out; the level's shadows are baked; only moving things are drawn
+  into a torch's shadow map. Indirect light at zero, because a torch's
+  baked bounce light can't be removed when it goes out. At most four
+  such lights overlap at one spot. The realtime shadows are to be a
+  quality setting that can be turned off.
+- Roadmap: the "Performance rules" block is rewritten; Phase 10 is now
+  "Performance pass (PCVR target rig)", starting with finding a way to
+  measure on a 3060-class machine, and its Quest-only tasks (standalone
+  build, foveated rendering, ASTC, spacewarp) moved to a "possible
+  later port" list at its end; Phase 8's lighting items are updated
+  for the torch plan; milestone M6 is renamed.
+- Open: nothing has been measured on a 3060-class machine, so every
+  cost is a judgement until one is found or a scaling from the dev
+  machine is worked out.
+- Next: as before - the open inventory decisions, then the tools
+  (Phase 5) or the guards (Phase 6).
+
+
 2026-10-10 (sound: loops, reverb, ambience, our own spatialiser)
 ----------------------------------------------------------------
 - Back to the sound system, to finish Phase 2's sound block. All four

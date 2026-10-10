@@ -8,10 +8,21 @@ TeaLeaf is a Thief-style VR stealth game (Unity 6000.3.25f1, Universal Render Pi
 on OpenXR and the new Input System, with no XR Interaction Toolkit: the project started from
 XRI's XR Origin sample rig, and every XRI part has since been replaced by the project's own
 code or removed (the package itself on 2026-09-30). Keep it lean - add a package or third-party
-component only when it's clearly needed. Target order: PCVR
-first (dev/test via Quest 3 streamed through Virtual Desktop; originally built against an HP
-Reverb G2 v2 with Oasis drivers through SteamVR), then Quest 3 standalone. Performance is a
-major, ongoing priority because the real target is Quest 3 standalone hardware.
+component only when it's clearly needed. **The target is PCVR
+on a rig most Steam players have or better** (the maintainer's decision, 2026-10-10, replacing
+"PCVR first, then Quest 3 standalone as the real target"): **90 fps with 25% headroom at about
+2000 x 2000 pixels per eye on an RTX 3060 12 GB, a 6-core processor of Ryzen 5 5600X class and
+16 GB of RAM** - a frame budget of 8.3 ms for the CPU and for the GPU, of 90 fps's 11.1 ms.
+That rig is the floor, "3060 upwards": the game must hit the target there, and faster machines
+get the spare. For scale, Valve's September 2026 Steam Hardware Survey has the RTX 5070 as the
+single most common card (5.86% of systems), then the RTX 5060 (4.20%), 5060 Ti (3.87%), 4060
+(3.72%) and 3060 (3.54%); 32 GB is the most common memory (42.2%), 16 GB next (37.8%), 8 GB
+6.5%; 8 cores 30.1%. The most common rig (5070, 8 cores, 32 GB) was briefly the target the
+same day and dropped: weaker cards are together more common than the 5070. Dev and test are on a Quest 3 streamed through
+Virtual Desktop (originally an HP Reverb G2 v2 with Oasis drivers through SteamVR). **Quest 3
+standalone is an option for the future, not a target**: nothing is built for it now, but
+nothing should make a later port impossible. Performance is still an ongoing priority - the
+budget is measured against that rig, not the dev machine.
 
 Unity's built-in locomotion system is deliberately not used — the XR Origin prefab was unpacked
 and its `Locomotion` object, with all its providers (Move, Turn, Snap Turn, Continuous Turn,
@@ -106,34 +117,49 @@ silently reformat) existing code that doesn't yet match:
   and draws through `DebugLines` (never `Gizmos` directly), so the same code draws the Scene
   view gizmos and the in-headset view (`InHeadsetGizmos`). Plain Gizmos only show in one eye
   in VR. See `Scripts/Core/CLAUDE.md`.
-- **Performance habits (Quest 3):** no per-frame allocations; cache `Animator.StringToHash`/
+- **Performance habits:** no per-frame allocations; cache `Animator.StringToHash`/
   `Shader.PropertyToID` results; use `MaterialPropertyBlock` rather than `.material` writes;
   only touch renderers/materials on state transitions, not every frame; prefer self-registering
   static lists/registries over scene searches or interface `GetComponent` calls.
 
-### Performance rules (Quest 3) — apply to everything built from 2026-10-07
+### Performance rules — apply to everything built from 2026-10-07
 
 The maintainer's rule: new systems, shaders, content and editor builders are designed against
-these from the start, not fixed up in Phase 10. Say so when a request would break one, and
-offer the cheaper route. The matching tasks are in `Assets/DEVROADMAP.txt` (the "Performance
-rules" block, and Phases 6, 8 and 10).
+these from the start, not fixed up in a late performance pass. Say so when a request would
+break one, and offer the cheaper route. **Rewritten 2026-10-10 for the PCVR target** (above):
+they were first written for Quest 3 standalone, and the ones that only existed for mobile
+hardware are loosened, while the ones that are cheap to follow now and costly to retrofit
+are kept, which also keeps a Quest port possible. The matching tasks are in
+`Assets/DEVROADMAP.txt` (the "Performance rules" block, and Phases 6, 8 and 10;
+reworded for this target the same day, with the Quest-only tasks kept at the end of Phase 10
+as a possible later port).
 
-- **Pixels are the tightest budget** (two eyes, high resolution). No full-screen or
-  post-process effects, and nothing that needs the camera depth or opaque texture, on Quest.
-  No parallax occlusion or other many-sample shaders on surfaces that fill the view. Keep
-  transparent overdraw small; UI and markers stay simple unlit shapes.
-- **Shaders:** unlit or the cheapest lit model that does the job; SRP Batcher compatible
+- **The budget is 8.3 ms a frame, CPU and GPU each, on the target rig** (RTX 3060,
+  5600X class, 16 GB, 2000 x 2000 per eye). Nothing has been measured on such a machine yet: until it has, a
+  cost is a judgement, and should be called one.
+- **Pixels are still the biggest cost** (8 million a frame, 90 times a second). The game
+  must not *depend* on a full-screen or post-process effect, or on the camera depth or
+  opaque texture: an optional one that can be switched off is allowed once measured. No
+  parallax occlusion on surfaces that fill the view. The procedural surface shaders
+  (cobblestone, brick) are acceptable on this target, subject to measuring. Keep
+  transparent overdraw small; UI and markers stay simple unlit shapes. 4x MSAA is
+  affordable and wanted (thin edges shimmer in a headset without it).
+- **Shaders:** the cheapest lit model that does the job; SRP Batcher compatible
   (properties in `CBUFFER_START(UnityPerMaterial)`); single-pass-instanced stereo macros;
   work per vertex rather than per pixel where it looks the same.
 - **Lighting:** baked where it can be, with light probes for things that move. Realtime
-  lights are few and short-ranged, with no realtime shadows of their own (point light shadows
-  are off on Quest). At most four lights besides the moon on any one object.
+  lights are few and short-ranged. **Torches may cast realtime shadows from moving things**
+  (guards, props, hands) with the level's shadows baked - Mixed lights in Shadowmask mode,
+  Indirect Multiplier 0 so a torch put out leaves no baked glow (the plan agreed
+  2026-10-10, untested) - but as a quality setting that can be turned off, and never the
+  whole level drawn into a torch's shadow map. At most four mixed lights overlap at any one
+  spot (the shadowmask's limit; the moon counts as one if it is Mixed).
 - **Static level geometry** is marked Static, on `Environment`, with a small number of shared
   materials, so it batches, bakes and occlusion-culls. Editor builders that make level or
   test geometry should set this. Runtime-made renderers turn shadow casting and receiving off
   unless they need them.
 - **Depth is modelled, detail is textured:** shapes the player gets close to are real
-  geometry (cheap on Quest, correct in stereo); normal maps are for fine surface detail only.
+  geometry (cheap, and correct in stereo); normal maps are for fine surface detail only.
 - **Layout culls:** break long sightlines with level shape and doors, backed by an occlusion
   bake. Distance haze, nearer cull distances for small props, impostors and application
   spacewarp are reserves, tried only when profiling asks.

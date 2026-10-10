@@ -47,16 +47,30 @@ Art:          greybox (ProBuilder/primitives) for environment and props.
 
 Performance rules for everything built from here (added 2026-10-07)
 -------------------------------------------------------------------
-Quest 3 standalone is the real target, and the cheap time to meet it is
-while each thing is built, not in Phase 10. Every phase below follows
-these; the short form is in the root CLAUDE.md ("Performance rules").
-The tasks they lead to are in Phases 6, 8 and 10.
-- Pixels are the tightest budget (two eyes, high resolution): no
-  full-screen effects, no parallax or other many-sample shaders on
-  surfaces that fill the view, as little see-through overdraw as
-  possible.
-- Light is baked where it can be; realtime lights are few, short-ranged
-  and cast no realtime shadows of their own.
+The target changed on 2026-10-10: PCVR, 90 fps with 25% headroom (8.3 ms
+a frame for the CPU and for the GPU) at about 2000 x 2000 pixels per eye
+on an RTX 3060 12 GB, a Ryzen 5 5600X class processor and 16 GB of RAM -
+"3060 upwards", so most Steam players are covered. Quest 3 standalone
+was the target before that and is now only a possible later port. The
+cheap time to meet the target is while each thing is built, not in
+Phase 10. Every phase below follows these; the fuller form is in the
+root CLAUDE.md ("Performance rules"). The tasks they lead to are in
+Phases 6, 8 and 10. The rules that only existed for mobile hardware
+were loosened that day; the ones that are cheap now and costly to
+retrofit were kept, which also keeps a Quest port possible.
+- Nothing has been measured on a 3060-class machine yet. Until it has,
+  a cost is a judgement.
+- Pixels are still the biggest cost (8 million a frame, 90 times a
+  second): the game must not depend on a full-screen effect or on the
+  camera depth or opaque texture (an optional one that can be switched
+  off is allowed once measured), no parallax occlusion on surfaces
+  that fill the view, as little see-through overdraw as possible. The
+  procedural cobblestone and brick shaders are acceptable, subject to
+  measuring. 4x MSAA is affordable and wanted.
+- Light is baked where it can be; realtime lights are few and
+  short-ranged. Torches may cast realtime shadows from moving things,
+  with the level's shadows baked, as a quality setting that can be
+  turned off.
 - Level geometry that never moves is marked Static and shares a small
   number of materials, so it batches, bakes and occlusion-culls.
 - Depth the player gets close to is modelled; normal maps are for fine
@@ -94,6 +108,8 @@ Phase 0 - Finish in-progress work
     PCVR-first for now; the first standalone build and frame-time baseline
     move to Phase 10. Quest 3 standalone is still the eventual target, so
     the performance habits in CLAUDE.md still apply to all new code.
+    (2026-10-10: no longer a target - PCVR on a 3060-class rig is. A
+    Quest port is only a possibility; see Phase 10.)
 
 
 Phase 1 - Locomotion and physical hands (Player)
@@ -574,7 +590,8 @@ where it is, on stereo headphones; see Scripts/Core/CLAUDE.md):
     platform-agnostic by licence).
     [ ] Tune its settings by ear (all first guesses), and match its
         volume to what sounds were before.
-    [ ] Profile it on Quest (C# on the audio thread) - Phase 10.
+    [ ] Profile it on the target rig (C# on the audio thread) -
+        Phase 10.
     [ ] If up/down turns out to matter in the level: Steam Audio,
         through SoundPlayer's Plugin mode.
 [ ] Sound direction indicator (UI) - an idea to experiment with; it can
@@ -1096,8 +1113,7 @@ Phase 8 - Level: the docks warehouse
     ledges, window sills, ridges and ladders to climb.
 [x] Try the smithy in the headset: how it looks and whether every ledge
     is in reach of the next (2026-10-09: fine, the maintainer's word).
-[ ] What the smithy costs on Quest - with the first standalone build,
-    Phase 10.
+[ ] What the smithy costs on the target rig - Phase 10.
 Design (on paper first):
 [ ] Layout sketch with a critical path and at least one alternate route per
     area. Each beat below should teach or test one mechanic, roughly in
@@ -1148,7 +1164,7 @@ Greybox build:
     can't path onto player-only routes (catwalks/roofs).
 [ ] Place guards + PatrolRoutes, loot, bolt pickups, objective, exit zone,
     player start.
-Lighting (Quest-conscious):
+Lighting:
 [ ] Baked lighting with light probes for the static environment; torches
     as a small number of realtime/mixed lights (baked lights can't be
     turned off by a water bolt). Keep realtime lights per view low and
@@ -1163,16 +1179,23 @@ Lighting (Quest-conscious):
     [ ] Decide how torches are lit (added 2026-10-07). The problem: a
         realtime point light with no shadows shines through walls,
         while the gameplay light (LightSource) is blocked by them - and
-        point light shadow maps cost six views each, off on Quest. To
-        try first: torches as Mixed lights in Shadowmask mode with
-        indirect light at zero - the light itself stays realtime, so a
-        water bolt can still put it out, but its shadows from the level
-        are baked, so walls block it for no shadow map. At most four
-        such lights may overlap at any one spot.
-    [ ] No more than four lights besides the moon reach any one object
-        on Quest (URP Forward's limit; extra ones are dropped and pop).
-        Keep torch ranges short and don't merge the level into a few
-        huge meshes - or test Forward+ on the device.
+        point light shadow maps cost six views each. To try first:
+        torches as Mixed lights in Shadowmask mode with indirect light
+        at zero - the light itself stays realtime, so a water bolt can
+        still put it out (and with no indirect light, no baked glow is
+        left behind), but its shadows from the level are baked, so
+        walls block it for no shadow map. At most four such lights may
+        overlap at any one spot (the moon counts as one if it is Mixed).
+        Wanted by the maintainer 2026-10-10, now the target is PC:
+        realtime shadows from moving things (guards, props, hands) on
+        top - only those are drawn into the torch's shadow map. Make it
+        a quality setting that can be turned off; if six views a torch
+        costs too much, try spot lights for wall torches (one view) or
+        shadows on the nearest one or two torches only. Untested.
+    [ ] Keep the lights reaching any one object few (URP Forward drops
+        the extra ones, and they pop; the limit is eight on PC, four on
+        mobile). Keep torch ranges short and don't merge the level into
+        a few huge meshes - or test Forward+.
     [ ] Light probes along every route the player, guards and props
         use; one baked reflection probe, or none.
 [ ] Make sure visible light matches the gameplay light (SceneLight) -
@@ -1203,7 +1226,7 @@ Phase 9 - Game loop, feedback and slice polish
     cock/fire, blackjack hit, loot pickup (none for footsteps).
 [ ] Comfort pass: vignette while sprinting/jumping/falling (optional), snap/smooth
     turn works everywhere including while climbing.
-[ ] Playtest checklist (in-headset, PCVR then Quest 3):
+[ ] Playtest checklist (in-headset, PCVR):
     [ ] Every beat 1-9 completable using its intended mechanic.
     [ ] Every beat completable via at least one alternate approach.
     [ ] Guards never get stuck; they always return to patrol.
@@ -1211,49 +1234,45 @@ Phase 9 - Game loop, feedback and slice polish
     [ ] Both hands can equip and use every tool.
 
 
-Phase 10 - Quest 3 performance pass
------------------------------------
-[ ] First standalone build (the baseline deferred from Phase 0); profile
-    with the Unity Profiler + OVR Metrics Tool. The OpenXR "Meta Quest
-    Support" feature is still off for Android (seen 2026-10-07) - turn
-    it on first.
-    Target a stable 72Hz minimum (90Hz stretch).
-[ ] Rendering: draw call/batch count, SRP Batcher compatibility, MSAA vs
-    cost, shadows (likely off for realtime lights), foveation, render
-    scale.
-    Found in the 2026-10-07 settings review (Mobile_RPAsset is what a
-    Quest build uses), to settle on the device:
-    [x] HDR was on with no post-processing to use it. Turned off in
-        Mobile_RPAsset 2026-10-07 (PC keeps it). Not yet seen on the
-        device.
-    [ ] MSAA is off and render scale is 0.8. On Quest's GPU 4x MSAA is
-        cheap and matters a lot in VR; try 4x at scale 1.0 and come
-        down only if the frame time says so.
-    [ ] Foveated rendering. Set up 2026-10-07, untested: the OpenXR
-        feature is enabled for Android with the SRP Foveation API, and
-        Core.FoveatedRendering asks for level 0.5 when a Quest build
-        starts. Left: check it on the device and tune the level (watch
-        the stars at the edges of the view).
+Phase 10 - Performance pass (PCVR target rig)
+---------------------------------------------
+Retitled 2026-10-10 from "Quest 3 performance pass", when the target
+became PCVR on a 3060-class rig. The Quest-only tasks are kept at the
+end of this phase, for a port that may never happen.
+[ ] Find a way to measure against the target rig (RTX 3060 12 GB, Ryzen
+    5 5600X class, 16 GB): a machine of that class, or a tested scaling
+    from the dev machine. Nothing has been measured on one yet.
+[ ] Baseline: frame times for the CPU and the GPU at about 2000 x 2000
+    per eye and 90Hz, with the Unity Profiler and SteamVR's frame
+    timing, streamed through Virtual Desktop as the dev headset is (the
+    video encode takes some of the GPU's time).
+    Target: 8.3 ms each - 90 fps with 25% headroom.
+[ ] Rendering: draw call/batch count, SRP Batcher compatibility, MSAA,
+    shadows, render scale. To settle on the target rig (PC_RPAsset is
+    what a PC build uses; check its settings as Mobile_RPAsset's were
+    on 2026-10-07):
+    [ ] 4x MSAA at render scale 1.0; come down only if the frame time
+        says so.
     [ ] Dynamic resolution as the safety net for heavy moments.
     [ ] Environment and prop materials are URP Lit (full PBR). Compare
-        Simple Lit and Baked Lit on the device once lighting is baked.
+        Simple Lit and Baked Lit once lighting is baked.
     [ ] The procedural surface shaders (TeaLeaf/Cobblestone and
         TeaLeaf/BrickWall, added 2026-10-08) work their pattern out per
-        pixel, on surfaces that fill the view. Profile them on the
-        device, with and without Dirt and Parallax; the cobbles' 5x5
-        search is the heavy one. If they cost too much, bake each
-        pattern into textures at level load (as the moon's face is) and
-        keep the same material settings. Both also need a Meta pass
-        before a lightmap bake can see their colours (Phase 8).
+        pixel, on surfaces that fill the view. Profile them, with and
+        without Dirt and Parallax; the cobbles' 5x5 search is the heavy
+        one. If they cost too much, bake each pattern into textures at
+        level load (as the moon's face is) and keep the same material
+        settings. Both also need a Meta pass before a lightmap bake can
+        see their colours (Phase 8).
     [ ] Main light shadows: distance 50m at 1024 with one cascade is
         both costly and blurry; with baked level shadows (Phase 8) it
         only has to cover moving things near the player - try 10-15m.
-    [ ] Keep off for Quest: post-processing, depth and opaque textures,
-        soft shadows, additional light shadows (all off today).
-    [ ] Textures: ASTC, sensible maximum sizes, mipmaps on anything in
-        the world.
-    [ ] Application spacewarp only as a last resort (it has artefacts
-        on fast hands and thin shapes).
+    [ ] Torch shadows from moving things (Phase 8): what each costs,
+        and how many can be on at once.
+    [ ] Quality settings for weaker and stronger machines: at least
+        torch shadows, MSAA and render scale.
+    [ ] Textures: sensible maximum sizes, mipmaps on anything in the
+        world.
 [ ] CPU: zero per-frame GC allocations in gameplay code, perception
     staggering verified, Animator culling, physics layer matrix trimmed,
     fixed timestep appropriate.
@@ -1270,6 +1289,30 @@ Phase 10 - Quest 3 performance pass
 [ ] Object pooling for bolts, impact/noise VFX and audio sources.
 [ ] Record final numbers in DEVLOG.txt as the post-slice baseline.
 
+Possible later port: Quest 3 standalone (not a target since 2026-10-10)
+Kept from the old Phase 10 so the work already done isn't lost. A port
+would also have to go back to the stricter rules: no realtime torch
+shadows, no post-processing, the procedural shaders baked to textures.
+[ ] First standalone build; profile with the Unity Profiler + OVR
+    Metrics Tool. The OpenXR "Meta Quest Support" feature is still off
+    for Android (seen 2026-10-07) - turn it on first. Target a stable
+    72Hz minimum (90Hz stretch).
+[x] HDR was on in Mobile_RPAsset with no post-processing to use it.
+    Turned off 2026-10-07 (PC keeps it). Not yet seen on the device.
+[ ] MSAA is off and render scale is 0.8 in Mobile_RPAsset. On Quest's
+    GPU 4x MSAA is cheap and matters a lot in VR; try 4x at scale 1.0.
+[ ] Foveated rendering. Set up 2026-10-07, untested: the OpenXR feature
+    is enabled for Android with the SRP Foveation API, and
+    Core.FoveatedRendering asks for level 0.5 when a Quest build
+    starts. Left: check it on the device and tune the level.
+[ ] Keep off for Quest: post-processing, depth and opaque textures,
+    soft shadows, additional light shadows.
+[ ] Textures as ASTC.
+[ ] Application spacewarp only as a last resort (it has artefacts on
+    fast hands and thin shapes).
+[ ] Tune the hand smoothing's Quest standalone numbers on the device
+    (Phase 3), and profile the spatialiser there.
+
 
 Milestones
 ----------
@@ -1278,7 +1321,8 @@ M2  Stealth core             Phase 2     (visibility, noise, fail/win state)
 M3  Hands on everything      Phases 3-5  (grab, inventory, all tools)
 M4  Guards alive             Phases 6-7  (full AI loop with animation)
 M5  Playable slice           Phases 8-9  (the level, start to finish)
-M6  Quest-ready slice        Phase 10    (standalone at target frame rate)
+M6  Slice at target          Phase 10    (90 fps with 25% headroom on the
+                                         target rig)
 
 Recommended: build a small test area per milestone from the TeaLeaf menu
 (like the Sound Test House) so each system is proven in isolation before
