@@ -25,13 +25,19 @@ notices bodies and can be knocked out. Every number is a first guess.
     `farLookInterval` (0.5s) with no rays at all while the player is more than `viewRange`
     + 2m away. Two points on the player (`Player.PlayerVisibility.Instance`:
     `HeadPosition`, `BodyPosition`), each seen if within `viewRange` (14m), inside the
-    cone (`viewAngle` 110° in all, by dot product against a cosine worked out once - or
-    within `senseRange` 0.9m whichever way the guard faces) and one `Physics.Linecast` on
+    cone (`viewAngle` 110° in all, by dot product against a cosine worked out once) and one `Physics.Linecast` on
     `sightLayers` (Environment + Interactable, triggers ignored) is clear
     (`CanSeePoint()`). The fill rate = share of points seen x `PlayerVisibility.Visibility`
     (light and stance; raised to `closeVisibility` 0.5 within `closeRange` 2.5m, so nobody
     is invisible at arm's length; under `minVisibility` 0.05 = unseen) x a distance scale
     (1 close up to `farDetectionScale` 0.25 at the view range) / `detectionTime` (1s).
+  - **A guard never senses a player behind it.** Outside the cone the player is given
+    away only by a noise, or by **bumping into it** (`HasBumped()`, in each look: the
+    player's feet within `bumpRange` 0.5m of the guard's, level, and on the same floor -
+    a little more than the two bodies' radii, so standing at arm's length to use the
+    blackjack is not a bump). A bump puts the meter up to `investigateThreshold`, makes
+    the player's position the stimulus and makes the guard Suspicious, so it turns to
+    look; seeing them is then up to its eyes. Not during a chase.
   - **Hearing** (`OnNoiseHeard()`, from `Core.NoiseSystem`, which has already routed the
     noise through rooms and portals): adds loudness x `hearingGain` (0.7; `distractionGain`
     1.5 for a noisemaker) to the meter, and the heard-from point becomes where to look.

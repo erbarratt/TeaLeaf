@@ -214,7 +214,7 @@ Phase 4 - Inventory: the pack, loot and keys (Inventory namespace)
 Phase 5 - Weapons and tools (Player / Interaction namespaces)
 -------------------------------------------------------------
 Blackjack:
-[x] Drawing it (PlayerBlackjack): a hand that is empty, close to the
+[x] Drawing it (PlayerBlackjack): a hand that is empty, in a box at the
     chest and palm towards it draws it by pressing grip and holds it
     while grip is held; letting go puts it away. Greybox model.
 [ ] Try and tune in the headset: the chest zone, the palm angle, where
@@ -296,8 +296,8 @@ Perception:
     on the player (head, body). The fill rate scales with how many are
     seen, the player's Visibility (PlayerVisibility, which already
     includes light and stance) and distance. Within 2.5m the player is
-    seen even in full shadow; within 0.9m, whichever way the guard
-    faces.
+    seen even in full shadow. Outside the cone the player is given away
+    only by a noise or by bumping into the guard (within 0.5m of it).
 [x] Detection meter per guard (0-1) that rises and decays; thresholds
     drive the state changes.
 [x] Hearing: an INoiseListener on NoiseSystem, which delivers only the

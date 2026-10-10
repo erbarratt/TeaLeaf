@@ -86,9 +86,12 @@ namespace AI
         [SerializeField] private float closeRange = 2.5f;
         [SerializeField] private float closeVisibility = 0.5f;
 
-        // Within this distance the player is noticed whichever way the
-        // guard faces: they are close enough to be felt.
-        [SerializeField] private float senseRange = 0.9f;
+        // A player whose body is within this of the guard's, level, has
+        // bumped into it: the guard turns on them whichever way it was
+        // facing. A little more than the two bodies' radii together.
+        // Behind a guard and further off than this, only a noise gives
+        // the player away.
+        [SerializeField] private float bumpRange = 0.5f;
 
         // Beyond the close range, a player less visible than this (0-1)
         // isn't seen at all.
@@ -483,6 +486,17 @@ namespace AI
                 Drain(elapsed);
             }
 
+            if (State != GuardState.Chase && HasBumped(player)) {
+                // Walked into: it knows something is there and where,
+                // and turns to look. Seeing them is then up to its eyes.
+                _stimulus = player.FeetPosition;
+                Detection = Mathf.Max(Detection, investigateThreshold);
+
+                if (State != GuardState.Suspicious) {
+                    EnterSuspicious();
+                }
+            }
+
             if (State == GuardState.Chase) {
                 // Running at where the player is while they're in view;
                 // asked for here, a few times a second, not every frame.
@@ -503,6 +517,20 @@ namespace AI
         }
 
         /// <summary>
+        /// Whether the player's body is against the guard's: within the
+        /// bump range of it, level, and on the same floor. Two numbers
+        /// compared, no physics.
+        /// </summary>
+        private bool HasBumped(PlayerVisibility player)
+        {
+            Vector3 toPlayer = player.FeetPosition - transform.position;
+            float height = Mathf.Abs(toPlayer.y);
+            toPlayer.y = 0f;
+
+            return toPlayer.sqrMagnitude <= bumpRange * bumpRange && height <= CatchHeight;
+        }
+
+        /// <summary>
         /// The meter draining with nothing to notice. Not while chasing:
         /// a chase ends by its own timer.
         /// </summary>
@@ -514,9 +542,8 @@ namespace AI
         }
 
         /// <summary>
-        /// Whether a point is in view: within range, inside the cone
-        /// (or close enough to be felt), with nothing solid in the way -
-        /// one physics ray.
+        /// Whether a point is in view: within range, inside the cone,
+        /// with nothing solid in the way - one physics ray.
         /// </summary>
         private bool CanSeePoint(Vector3 eyePosition, Vector3 point)
         {
@@ -530,7 +557,7 @@ namespace AI
             // The dot product of two unit vectors is the cosine of the
             // angle between them: at least the cosine of half the view
             // angle means inside the cone.
-            if (distance > senseRange && Vector3.Dot(toPoint / distance, eye.forward) < _viewCos) {
+            if (distance > 0.001f && Vector3.Dot(toPoint / distance, eye.forward) < _viewCos) {
                 return false;
             }
 

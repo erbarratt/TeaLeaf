@@ -11,8 +11,8 @@ namespace Player
     /// Letting go puts it away - it isn't dropped, it's simply gone until
     /// it's drawn again. Either hand can draw it; one at a time.
     ///
-    /// The chest is a ball a little below the head, measured with the
-    /// head's tilt ignored (so looking down doesn't move it). The
+    /// The chest is a box a little below the head, placed and turned
+    /// with the head's tilt ignored (so looking down doesn't move it). The
     /// blackjack is taken by reaching, not by the hand rays, so a hand
     /// feels a light tap when it's in the right place.
     ///
@@ -43,8 +43,11 @@ namespace Player
         // player's right, up, and ahead - with the head's tilt ignored.
         [SerializeField] private Vector3 chestOffset = new(0f, -0.3f, 0.05f);
 
-        // How close to that point a hand must be, in metres.
-        [SerializeField] private float chestRadius = 0.22f;
+        // The box round that point a hand must be in, in metres: its
+        // width (side to side), height and depth (front to back). It
+        // turns with the head, tilt ignored, so it stays square to the
+        // body.
+        [SerializeField] private Vector3 chestSize = new(0.4f, 0.35f, 0.4f);
 
         // How far the palm may be turned away from pointing straight at
         // the chest, in degrees, and still count as facing it.
@@ -400,11 +403,15 @@ namespace Player
             }
 
             Vector3 hand = isLeftHand ? playerTracking.LeftHandPosition : playerTracking.RightHandPosition;
+            Quaternion headYaw = HeadYaw();
             Vector3 toChest = ChestPoint() - hand;
 
-            // Squared distances: the same answer as comparing the
-            // distances, without a square root.
-            if (toChest.sqrMagnitude > chestRadius * chestRadius) {
+            // The same offset seen from the box: turned back by the
+            // head's yaw, its x is side to side, y up and z front to
+            // back, so each can be compared with half the box's size.
+            Vector3 inBox = Quaternion.Inverse(headYaw) * toChest;
+
+            if (Mathf.Abs(inBox.x) > chestSize.x * 0.5f || Mathf.Abs(inBox.y) > chestSize.y * 0.5f || Mathf.Abs(inBox.z) > chestSize.z * 0.5f) {
                 return false;
             }
 
@@ -420,7 +427,7 @@ namespace Player
             // in front of it has it straight behind the palm. A hand
             // right on the point has no direction to it: then it's the
             // way the player's back is.
-            Vector3 direction = toChest.sqrMagnitude > 0.0001f ? toChest.normalized : HeadYaw() * Vector3.back;
+            Vector3 direction = toChest.sqrMagnitude > 0.0001f ? toChest.normalized : headYaw * Vector3.back;
 
             return Vector3.Dot(palm, direction) >= Mathf.Cos(palmAngle * Mathf.Deg2Rad);
         }
@@ -463,7 +470,7 @@ namespace Player
         }
 
         /// <summary>
-        /// Editor-only: the chest ball while this object is selected.
+        /// Editor-only: the chest box while this object is selected.
         /// </summary>
         private void OnDrawGizmosSelected()
         {
@@ -472,7 +479,7 @@ namespace Player
 
         /// <summary>
         /// In the detailed view (selected, or in the headset with detail
-        /// on) while playing: the ball a hand must be in to draw - yellow,
+        /// on) while playing: the box a hand must be in to draw - yellow,
         /// green while the blackjack is out.
         /// </summary>
         public void DrawDebug(DebugLines lines, bool detailed)
@@ -482,7 +489,24 @@ namespace Player
             }
 
             lines.Color = _isOut ? Color.green : Color.yellow;
-            lines.WireSphere(ChestPoint(), chestRadius);
+
+            // The box's three half-edges in the world: with the centre,
+            // every corner is the centre plus or minus each of them.
+            Quaternion headYaw = HeadYaw();
+            Vector3 centre = ChestPoint();
+            Vector3 right = headYaw * Vector3.right * (chestSize.x * 0.5f);
+            Vector3 up = Vector3.up * (chestSize.y * 0.5f);
+            Vector3 ahead = headYaw * Vector3.forward * (chestSize.z * 0.5f);
+
+            // Twelve edges: for each pair of signs, one edge along each
+            // of the three directions.
+            for (int a = -1; a <= 1; a += 2) {
+                for (int b = -1; b <= 1; b += 2) {
+                    lines.Line(centre - right + up * a + ahead * b, centre + right + up * a + ahead * b);
+                    lines.Line(centre + right * a - up + ahead * b, centre + right * a + up + ahead * b);
+                    lines.Line(centre + right * a + up * b - ahead, centre + right * a + up * b + ahead);
+                }
+            }
         }
     }
 }

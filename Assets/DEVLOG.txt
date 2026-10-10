@@ -6,6 +6,34 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-10, seventh part (the blackjack's chest box, guards and what is behind them)
+-----------------------------------------------------------------------------------
+- The blackjack is drawn inside a box at the chest
+  (PlayerBlackjack.chestSize: 0.4m wide, 0.35m tall, 0.4m deep), centred
+  on a point below the head (tuned in the scene to 0.36m below and 0.12m
+  behind it; the crossbow's palm-down angle is tuned to 25 degrees and
+  the blackjack's angle in the hand set there too), placed and turned by the
+  head's yaw with its tilt ignored. Tried in the headset: the box is
+  easier to find than a ball. It follows the head, not an estimated
+  body direction - the project has no body direction, and the
+  maintainer chose to leave it so. The debug view draws the box.
+- A guard never senses a player behind it. Outside its view cone the
+  player is given away only by a noise, or by bumping into it: the
+  player's feet within bumpRange (0.5m) of the guard's, level, on the
+  same floor, checked in each look. A bump puts the meter up to the
+  investigate threshold and makes the guard Suspicious towards the
+  player, so it turns to look; seeing them is then up to its eyes.
+  0.5m is a little more than the two bodies' radii together (0.3m and
+  0.1m plus the controller's skin), so standing at arm's length behind
+  a guard to use the blackjack is not a bump. Compiles; not tried.
+- Still untried in the headset: the blackjack takedown, the bump, a
+  second guard finding a body.
+- Learned: a rule that notices the player at close range whichever way
+  the guard faces works against a takedown from behind - the player
+  has to stand that close to reach the head, and the meter fills while
+  they line up the swing.
+
+
 2026-10-10, sixth part (the first guard, the blackjack takedown)
 ----------------------------------------------------------------
 - Seen working in the headset: the guard patrolling its route and

@@ -573,9 +573,10 @@ compass.
 - **`PlayerBlackjack`** (on `Hands`; optional) — drawing the blackjack, putting it
   away, and hitting a guard with it. `Tick()` (tick step 3b, before the grab
   systems: it is taken by reaching, not by the hand rays). **Drawn at the chest**: a hand
-  that is free (`IsBusyExcept(..., HandUse.Blackjack)`), within `chestRadius` (0.22m) of
-  the chest point - `chestOffset` ((0, -0.3, 0.05): right, up, ahead) from the head with
-  the head's tilt ignored - and whose palm (the visual's +X through `TransformVector()`)
+  that is free (`IsBusyExcept(..., HandUse.Blackjack)`), inside the chest box - `chestSize`
+  ((0.4, 0.35, 0.4): width, height, depth) centred on the chest point, `chestOffset`
+  ((0, -0.3, 0.05): right, up, ahead) from the head, both placed and turned with the
+  head's tilt ignored - and whose palm (the visual's +X through `TransformVector()`)
   is within `palmAngle` (60°) of pointing at that point, feels a tap; on the frame its
   grip is pressed there the blackjack becomes a child of that hand's visual at
   `inHandPosition` / `inHandRotation` (untuned; lying along the thumb side). **Held while
@@ -591,7 +592,7 @@ compass.
   `TryKnockOut(head position)` (the guard decides; see `Scripts/AI/CLAUDE.md`), a strong
   pulse and the optional `hitCue`. One touch is one blow (`_isTouching`, cleared when the
   head comes away). `IsOut`, `IsInLeftHand`;
-  `IsLeftBusy`/`IsRightBusy` are `HandUse.Blackjack`. `IDebugDrawable`: the chest ball in
+  `IsLeftBusy`/`IsRightBusy` are `HandUse.Blackjack`. `IDebugDrawable`: the chest box in
   the detailed view (yellow, green while drawn).
 
 ## The compass (not yet tried in the headset)

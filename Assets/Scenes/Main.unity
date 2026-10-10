@@ -6256,7 +6256,7 @@ MonoBehaviour:
   stockColor: {r: 0.35, g: 0.25, b: 0.16, a: 1}
   metalColor: {r: 0.6, g: 0.62, b: 0.65, a: 1}
   minLight: 0.35
-  palmDownAngle: 50
+  palmDownAngle: 25
   range: 40
   fireTrigger: 0.6
   rearmTrigger: 0.3
@@ -6389,13 +6389,13 @@ MonoBehaviour:
   playerInput: {fileID: 37101389}
   playerTracking: {fileID: 37101388}
   playerHandVisuals: {fileID: 403779175}
-  playerHandState: {fileID: 0}
+  playerHandState: {fileID: 403779183}
   playerHaptics: {fileID: 6520291404544364423}
-  chestOffset: {x: 0, y: -0.3, z: 0.05}
-  chestRadius: 0.22
+  chestOffset: {x: 0, y: -0.36, z: -0.12}
+  chestSize: {x: 0.4, y: 0.35, z: 0.4}
   palmAngle: 60
   inHandPosition: {x: 0.03, y: -0.08, z: 0}
-  inHandRotation: {x: 0, y: 0, z: 0}
+  inHandRotation: {x: 30, y: -15, z: 45}
   length: 0.35
   handleThickness: 0.025
   headLength: 0.12
@@ -6407,7 +6407,7 @@ MonoBehaviour:
   hitRadius: 0.07
   guardHeadLayers:
     serializedVersion: 2
-    m_Bits: 0
+    m_Bits: 4096
   hitCue: {fileID: 11400000, guid: 6d9e230dda7560048a2cc410498ecee8, type: 2}
   hitAmplitude: 1
   hitDuration: 0.1
@@ -16031,7 +16031,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1156964677}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 7497838c5eb81854babc3b1f3315f587, type: 3}
   m_Name: 
@@ -21245,19 +21245,6 @@ MonoBehaviour:
   gaveUpBark: {fileID: 11400000, guid: 08ad9f55ced71244891e4ff29c856afd, type: 2}
   spottedBark: {fileID: 11400000, guid: 08ad9f55ced71244891e4ff29c856afd, type: 2}
   foundBodyBark: {fileID: 11400000, guid: 08ad9f55ced71244891e4ff29c856afd, type: 2}
---- !u!114 &1443370342
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1443370336}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5c1e7a94b2d34f08a6e3d1907f4b8c2a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::AI.GuardDebug
-  logMovement: 1
 --- !u!195 &1443370338
 NavMeshAgent:
   m_ObjectHideFlags: 0
@@ -21347,6 +21334,19 @@ Transform:
   - {fileID: 1206754392}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1443370342
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1443370336}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c1e7a94b2d34f08a6e3d1907f4b8c2a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AI.GuardDebug
+  logMovement: 1
 --- !u!1 &1444433875
 GameObject:
   m_ObjectHideFlags: 0
