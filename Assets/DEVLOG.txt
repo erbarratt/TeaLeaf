@@ -6,6 +6,91 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-10, fourth part (controls, the shoulder pack, the crossbow)
+------------------------------------------------------------------
+- The maintainer's designs, built the same day. Only the crossbow has
+  been tried in the headset; the rest compiles and is untried.
+- Controls.
+  - Left stick moves, and its click toggles sprint. Right stick turns,
+    up mantles, down toggles crouch (PlayerInputXR.ReadCrouchStick: past
+    0.7 and more down than sideways, then not again until back above
+    0.4). A jumps. B is a universal cancel. X, Y, Menu and the right
+    stick's click are unassigned.
+  - Handedness is one setting, PlayerInputXR.leftHanded: off, the
+    lockpicks are on the left hand and the crossbow on the right; on,
+    the other way round. The lock puzzle is never mirrored.
+- Aimed throwing: B cancels the aim, and the prop stays in the hand.
+  No pitch limits. An arc that lands on nothing is still red, and
+  letting go then throws nothing.
+- The pack has no button. Either hand reaching over a shoulder (a ball
+  beside and behind the head, measured with the head's tilt ignored)
+  and pressing grip brings it out on that hand. It stays out while the
+  grip is held. The other hand loads it and takes from it.
+  PlayerPack.TickSummon() runs before the grab systems, and holding
+  the pack is a hand use of its own (HandUse.Pack). The keyring is
+  carried by whichever hand isn't holding the pack.
+- Loot is worth its coin level: one, two or three gold. The pack shows
+  its gold as a number, drawn with TextMeshPro, written only when the
+  gold changes. TextMeshPro needs its font and shader imported once
+  from the editor (Window > TextMeshPro > Import TMP Essential
+  Resources); without them there is no number and a warning says why.
+- The crossbow, first version (Player.PlayerCrossbow), tried and
+  working.
+  - Always worn on the back of one hand, as the lockpicks are on the
+    other. It becomes active when grip is pressed with that hand empty,
+    pointing at nothing it could grab, and palm down; it stays active
+    until grip is let go. A grab always wins over it.
+  - Active, it shows an arc like an aimed throw's, flatter and longer.
+    A bolt's speed comes from a range set in the editor (how far it
+    carries over level ground at the best angle), worked out once at
+    load: speed = the square root of range x gravity.
+  - The trigger shoots on the press. It is clockwork: a second to
+    rewind.
+  - Bolts are a pool of eight, made at load. A bolt isn't a physics
+    object: it's moved along the same sum the arc was drawn from, so it
+    lands where the arc showed, with one physics ray a frame in case
+    something has moved into its way.
+  - Player.BallisticArc holds the arc maths, shared with aimed
+    throwing.
+  - To come: choosing the bolt type by gripping the wheel at the back
+    of the crossbow with the other hand and turning it; the water,
+    noisemaker and rope bolts and their models; ammunition.
+- No weapon menu. How the blackjack is brought out is undecided.
+- Bug: the crossbow came up with the palm facing up, not down. The
+  right hand model is the left one mirrored (x scale -1), and
+  Transform.TransformDirection() ignores scale, so on the right hand
+  it gave the back of the hand. TransformVector() takes the mirroring
+  into account. The same change was made to the direction the crossbow
+  shoots.
+  - Lesson: for a direction under a mirrored hand, TransformVector()
+    and normalise - never TransformDirection() or .forward.
+- Bug: "Action count in old and new state must be the same", logged by
+  the Input System when the controllers were next detected. The input
+  actions file had been edited with Unity open; the editor re-imported
+  it but its running input state still had the old number of actions.
+  The file was valid. Restarting Unity clears it.
+  - Lesson: after editing InputSystem_Actions.inputactions outside
+    the editor, restart Unity.
+- Bug: the crossbow didn't appear at all. Nothing adds PlayerCrossbow
+  to the Hands object; it has to be added by hand.
+- A warning seen in passing: three point lights in the scene have
+  shadows on, so Unity shrinks eighteen shadow maps to fit its 2048
+  atlas. Nothing breaks.
+- Lessons from the editing itself.
+  - A perl script in a shell heredoc lost the $" at the start of a C#
+    interpolated string, and "||" inside a "|"-delimited replacement
+    ends it early. Write the script to a file with "#" as the
+    delimiter.
+  - Compiling outside the editor (Unity's csc.dll on a copy of
+    Library/Bee's .rsp file) caught the first of those before Unity
+    saw it. New source files appended to the .rsp need a newline
+    first: the file doesn't end with one.
+- To try in the headset: the shoulder grab, and whether it gets in the
+  way of grabbing a ledge behind the head; the pack in the right hand;
+  crouch on the stick; B to cancel a throw; the gold number; haptics.
+- Next: the crossbow's wheel and bolt types, or the guards (Phase 6).
+
+
 2026-10-10, third part (docs cut down, a project review, a clean-up)
 -------------------------------------------------------------------
 - Two rules added to the root CLAUDE.md.

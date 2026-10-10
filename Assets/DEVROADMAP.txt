@@ -26,16 +26,20 @@ Sound:        rooms and portals, so a sound is heard from where it really
               and room ambience; the project's own spatialiser.
 Guard AI:     patrol, suspicion, search, chase, catch (= fail + restart).
               Knockout state. Guards react to finding KO'd bodies.
-Tools:        blackjack takedown, hand crossbow (either hand, physically
-              cocked) with water / noisemaker / rope bolts, two-handed
-              lockpicking on a large copy of the lock (one pick turns in
-              stages, the other searches for each pin by feel).
-Inventory:    a pack that only holds so much, summoned onto the left hand;
-              loot put in by hand, one space each; gold; the objective;
-              coloured keys on a keyring.
+Weapons:      blackjack takedown; a clockwork hand crossbow worn on the back
+              of one hand, with water / noisemaker / rope bolts.
+Tools:        two-handed lockpicking on a large copy of the lock (one pick
+              turns in stages, the other searches for each pin by feel).
+              The picks are worn on the back of the other hand.
+Inventory:    a pack that only holds so much, brought out by gripping over
+              a shoulder; loot put in by hand, one space each; gold, with
+              its number; the objective; coloured keys on a keyring.
+Controls:     left stick moves, its click toggles sprint; right stick
+              turns, up mantles, down toggles crouch; A jumps; B cancels;
+              one setting swaps the hands for a left-handed player.
 Bodies:       grab and drag KO'd guards to hide them.
-Throwing:     aimed (hold the trigger for an arc, release to throw) and
-              physical (move the hand and let go of grip).
+Throwing:     aimed (hold the trigger for an arc, release to throw, B to
+              cancel) and physical (move the hand and let go of grip).
 Hands:        physical hands - the visual hand model collides with the world
               and stops at walls/props instead of passing through, then
               catches back up to the real controller position.
@@ -111,6 +115,8 @@ Phase 1 - Locomotion and physical hands (Player)
 [ ] Revisit PlayerHands-Guard collision when guards exist.
 [ ] Confirm haptics in the headset (PlayerHaptics sends through the XR
     devices), then remove the unused LeftHaptic/RightHaptic actions.
+[ ] Try in the headset: crouch on the right stick's down push (and
+    whether it fires by accident while turning).
 
 
 Phase 2 - Core stealth framework (Core namespace)
@@ -145,7 +151,8 @@ Phase 3 - Interaction framework (Interaction namespace)
 -------------------------------------------------------
 [x] Grabbable props: reach, carry as a child of the hand visual, drop;
     cylinder grip; held shape; a carried prop pushes nothing.
-[x] Physical throwing and aimed throwing (arc as line or dots).
+[x] Physical throwing and aimed throwing (arc as line or dots; B
+    cancels an aim).
 [x] Hand smoothing (One Euro filter).
 [x] Impact noise.
 [x] Doors: lock kinds, handle, swing, self-closing latch, pushed by
@@ -170,37 +177,36 @@ Phase 4 - Inventory: the pack, loot and keys (Inventory namespace)
 ------------------------------------------------------------------
 [x] Inventory data (PlayerInventory): loot worth, objective, tools
     owned, bolt counts.
-[x] The pack: summoned with X, rides on the left hand, 3 x 3 grid, gold
-    space, objective and keyring spaces.
+[x] The pack: 3 x 3 grid, gold space, objective and keyring spaces.
+[x] Bringing the pack out: either hand gripping over a shoulder; it
+    rides on that hand while the grip is held, and the other hand loads
+    it and takes from it.
 [x] Loot: one space each, chosen by hovering; shrinks in, grows out.
+    Worth is the coin level: one, two or three gold.
 [x] Worth coins over carried loot.
-[x] Keys and the keyring; turning a key in a keyed door's lock.
+[x] The gold number (TextMeshPro).
+[x] Keys and the keyring, carried in either hand; turning a key in a
+    keyed door's lock.
 [x] PlayerHandState: one owner for what each hand is busy with.
-[ ] Set what each coin level is worth, and whether a loot item's coin
-    level then follows from its value.
-[ ] A number for the gold (needs text drawing, which the project hasn't
-    got). Only the pile and the debug log show it.
-[ ] Tune in the headset: where the pack rides on the left hand, where
-    the keyring sits in the right hand, and the hand pose on the key
-    (the door handle's, as a stand-in).
-[ ] The left hand wears the pack, so loot in the left hand can't reach
-    it, and the left hand's reticle can show on pack items it can't
-    take. Decide whether either needs changing.
+[x] Handedness: one setting swaps which hand wears the lockpicks and
+    which the crossbow. The lock puzzle is never mirrored.
+[ ] Try in the headset: the shoulder grab (and whether it gets in the
+    way of grabbing ledges behind the head), the pack in the right
+    hand, the gold number.
+[ ] Tune in the headset: the shoulder zone, where the pack rides on the
+    hand, the gold number's size and place, where the keyring sits in
+    the hand, and the hand pose on the key (the door handle's, as a
+    stand-in).
 [ ] Real sounds for putting things in the pack and for the keyed lock.
-[ ] Decide how tools and bolt types are chosen: in the pack, or a wrist
-    radial menu (hold a menu button, a radial on that wrist, select with
-    the other hand, equip into the other hand; a second ring for water /
-    noisemaker / rope bolts, greyed out at zero).
-[ ] Equip/unequip: enable the tool model in the chosen hand, snap that
-    hand to the tool's hold pose, unequip back to an empty hand.
-[ ] Wrist display: visibility gem + loot worth + bolt counts. Any
-    world-space canvases only enabled while visible; no layout rebuilds
-    per frame; update text only when values change.
+[ ] Wrist display: visibility gem + loot worth + bolt counts, drawn
+    with TextMeshPro. Enabled only while visible; text updated only
+    when values change.
 
 
-Phase 5 - Tools (Player / Interaction namespaces)
---------------------------------------------------
+Phase 5 - Weapons and tools (Player / Interaction namespaces)
+-------------------------------------------------------------
 Blackjack:
+[ ] Decide how the blackjack is brought out (there is no weapon menu).
 [ ] Greybox blackjack model and hold pose.
 [ ] Swing detection: blackjack tip velocity above a threshold on contact
     with a guard's GuardHead collider.
@@ -209,33 +215,39 @@ Blackjack:
     direction). Otherwise it makes a noise and the guard becomes alerted.
 [ ] Haptic pulse on hit; thud noise event.
 Hand crossbow:
-[ ] Greybox crossbow with separate moving parts (string/lever, bolt slot)
-    usable in either hand; mirrored hold pose per hand.
-[ ] Physical cocking: the other hand grabs the lever/string and pulls it
-    back past a threshold, then the crossbow is cocked. Auto-loads the
-    selected bolt type if that type has any left.
-[ ] Fire with the holding hand's trigger: a pooled bolt, simple
-    ballistic flight (manual integration or Rigidbody), fire sound,
-    haptics. Decide on a small aiming aid (e.g. a faint sight pin on the
-    crossbow).
-[ ] Bolt base class + subclasses:
-    [ ] Water bolt: hit a LightSource's flame collider to extinguish it
-        (what it lit goes dark). Small splash noise.
+[x] First version (PlayerCrossbow): greybox model on the back of the
+    hand; active while grip is held after pressing it with the hand
+    empty, pointing at nothing grabbable and palm down; an arc whose
+    reach comes from a range setting; the trigger shoots on the press;
+    clockwork rewind; pooled bolts that fly the arc and stop where they
+    land.
+[ ] Tune in the headset: where it sits on the hand, the palm-down
+    angle, the range, the rewind time; and whether a red arc for "lands
+    on nothing" reads as "can't shoot".
+[ ] The wheel at the back of the crossbow: the other hand grips it and
+    turns it to choose the bolt type.
+[ ] Bolt types, each with its own model so the loaded one can be told
+    at a glance:
+    [ ] Water bolt (a blue glowing tip): hit a LightSource's flame to
+        extinguish it (what it lit goes dark). Small splash noise.
     [ ] Noisemaker bolt: sticks where it lands and emits repeated loud
         noise events for N seconds - guards investigate.
-    [ ] Rope bolt: only sticks into surfaces tagged RopeTarget (wood); spawns
-        a ClimbableRope hanging down to the ground/max length
-        (ClimbableRope.SetLength()). Bounces off anything else.
-[ ] Bolt pickups in the level (placed ammo) that add to inventory counts.
+    [ ] Rope bolt (the shaft wrapped in rope): only sticks into surfaces
+        tagged RopeTarget (wood); spawns a ClimbableRope hanging down to
+        the ground/max length (ClimbableRope.SetLength()). Bounces off
+        anything else.
+[ ] Ammunition: shots use PlayerInventory's bolt counts; bolt pickups in
+    the level add to them.
+[ ] Shot and impact sounds, and the noise a bolt makes where it lands.
 Lockpicking:
-[x] Two-pick lockpicking on the big lock: picks on the back of the left
-    hand, insert, the right pick's four stops, the left pick's pin search
-    by haptics, reset, unlock, leaving, quiet noise, debug view.
+[x] Two-pick lockpicking on the big lock: picks on the back of a hand,
+    insert, the right pick's four stops, the left pick's pin search by
+    haptics, reset, unlock, leaving, quiet noise, debug view.
     The rules: stops evenly spaced; each stage has its own random pin and
     a reset picks new ones; the one-second timer starts again if the left
     pick leaves the pin early; only letting go of the right pick resets;
-    the picks are always on the left hand (not equipped); no left-handed
-    setup in the slice; the game doesn't pause.
+    the picks are always worn (not equipped); the lock is the same
+    whichever hand wears them; the game doesn't pause.
 [ ] Chests: the lock works without a door and raises an event, but there
     is no chest or lid.
 [ ] The "lockpick hold" finger pose (Phase 7 - the hand on a pick uses a
@@ -349,15 +361,15 @@ Guard (Mixamo):
 [ ] Head look-at towards stimulus while suspicious (Animator IK or simple
     head bone rotation in LateUpdate).
 Player hands:
-[ ] Pose clips: object hold, door handle, blackjack hold, crossbow hold,
-    crossbow cocking-hand grip, lockpick hold.
+[ ] Pose clips: object hold, door handle, blackjack hold, the hand on
+    the crossbow's wheel, lockpick hold.
 [ ] Add each as a HandPose value + same-named Snap Pose layer state (the
     blend on transitions already comes from HandVisualSnap.Weight).
 [ ] Thumb curl on the input layers - add if hold poses look wrong
     without it.
 Tools:
-[ ] Crossbow cock/fire motion via simple transform animation (the lever
-    follows the pulling hand, the string snaps forward on fire).
+[ ] Crossbow shot and rewind motion via simple transform animation
+    (the string snaps forward on a shot, the clockwork winds it back).
 [ ] Torch flame: simple emissive/particle, off state when extinguished.
 
 
@@ -478,7 +490,7 @@ Phase 9 - Game loop, feedback and slice polish
     [ ] Every beat completable via at least one alternate approach.
     [ ] Guards never get stuck; they always return to patrol.
     [ ] Caught -> restart and win -> restart both work repeatedly.
-    [ ] Both hands can equip and use every tool.
+    [ ] Everything works with the handedness setting either way.
 
 
 Phase 10 - Performance pass (PCVR target rig)
