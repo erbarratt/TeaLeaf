@@ -14,10 +14,16 @@ comment lines).
 - **`PlayerInputXR`** — the single source of truth for controller input. Wraps Input System
   `InputActionReference`s (grip/trigger per hand, move/turn thumbsticks, crouch, sprint) and
   caches them once per frame in `Tick()` as typed properties (`MoveAxis`, `TurnAxis`,
-  `LeftGrip`, `IsLeftGrabbing`, `CrouchPressed`, `SprintPressed`, `JumpPressed`, `PackPressed`,
-  etc.). `PackPressed`'s action needs no wiring in the scene: with the `packAction` reference
-  empty it's found by name (`Pack`) in the action map the other actions are in; a warning,
-  and never pressed, if there's none. Enables every action it reads in `OnEnable()` rather
+  `LeftGrip`, `IsLeftGrabbing`, `CrouchPressed`, `SprintPressed`, `JumpPressed`,
+  `CancelPressed`, etc.), and holds the **handedness** setting: `leftHanded`
+  (`IsLeftHanded`; off = lockpicks on the left hand and crossbow on the right, on = the
+  other way round; read at startup by `PlayerLockpicking` and `PlayerCrossbow`). **`CrouchPressed`
+  is the right stick pushed down** (`ReadCrouchStick()`: past `crouchStickThreshold` 0.7
+  and further down than to either side, then not again until it is back above
+  `crouchStickRearm` 0.4), or the keyboard's crouch key through the `Crouch` action.
+  The `Cancel` action
+  needs no wiring in the scene: it is found by name in the action map the other actions
+  are in (`FindByName()`); a warning, and never pressed, if it is missing. Enables every action it reads in `OnEnable()` rather
   than relying on the asset being enabled, and caches the resolved `InputAction`s there (no
   `.action` lookups per frame). Also calls `Tick()` from its own `Update()` as a fallback so
   Debug scripts work without a full rig; `Tick()` is guarded by `Time.frameCount`, so only
@@ -48,16 +54,17 @@ and by button as a placeholder where it doesn't yet:
 | Action | XR binding | Used by |
 |---|---|---|
 | `Move` | `{LeftHand}/{Primary2DAxis}` | movement |
-| `Turn` | `{RightHand}/{Primary2DAxis}` | turning, mantle (stick up) |
+| `Turn` | `{RightHand}/{Primary2DAxis}` | turning, mantle (stick up), crouch toggle (stick down) |
 | `LeftGrip` / `RightGrip` | `{LeftHand}`/`{RightHand}/{Grip}` | grabbing, finger curl |
-| `LeftTrigger` / `RightTrigger` | `{LeftHand}`/`{RightHand}/{Trigger}` | index curl; aim/throw a held prop (`PlayerHandThrowing`) |
+| `LeftTrigger` / `RightTrigger` | `{LeftHand}`/`{RightHand}/{Trigger}` | index curl; aim/throw a held prop (`PlayerHandThrowing`); shoot the crossbow (`PlayerCrossbow`) |
 | `Sprint` | `{LeftHand}/{Primary2DAxisClick}` | sprint toggle |
-| `Crouch` | `{RightHand}/{PrimaryButton}` (A) | crouch toggle |
-| `Jump` | `{RightHand}/{SecondaryButton}` (B) | jump |
-| `Pack` | `{LeftHand}/{PrimaryButton}` (X) | bring the pack out / put it away (`PlayerPack`) |
+| `Crouch` | none on a controller | crouch toggle from the keyboard; on a controller it is `Turn`'s stick down |
+| `Jump` | `{RightHand}/{PrimaryButton}` (A) | jump |
+| `Cancel` | `{RightHand}/{SecondaryButton}` (B) | the universal cancel: an aimed throw (`PlayerHandThrowing`) |
+| `RightStickClick` | `{RightHand}/{Primary2DAxisClick}` | unassigned placeholder |
+| `ButtonX` | `{LeftHand}/{PrimaryButton}` | unassigned placeholder |
 | `ButtonY` | `{LeftHand}/{SecondaryButton}` | unassigned placeholder |
 | `Menu` | `{LeftHand}/{MenuButton}` | unassigned placeholder |
-| `RightStickClick` | `{RightHand}/{Primary2DAxisClick}` | unassigned placeholder |
 | `LeftHaptic` / `RightHaptic` | `{LeftHand}`/`{RightHand}/haptic` | unused (output actions; `PlayerHaptics` sends through the XR devices instead) |
 
 Rename a placeholder to its function when it gets a job, and add it to `PlayerInputXR` then -
@@ -126,7 +133,7 @@ the template's keyboard and gamepad bindings.
   - **Momentum:** horizontal movement is one persistent `_horizontalVelocity`: set from the
     stick while grounded, kept as momentum while airborne (light air control/drag), and
     reduced to the actually-applied velocity when an airborne `Move()` hits a side.
-  - **Jump** (right B; `HandleJump()`, before gravity): `_verticalVelocity` is set from a
+  - **Jump** (right A; `HandleJump()`, before gravity): `_verticalVelocity` is set from a
     tunable jump *height* (`sqrt(2h·-g)`); coyote time, a jump buffer and a `_hasJumped`
     guard. Walls redirect the momentum and ceilings stop the rise (via `Move()`'s
     `CollisionFlags`, no pre-jump clearance check). **Jump while crouched only stands up**;
@@ -135,7 +142,7 @@ the template's keyboard and gamepad bindings.
     pushing the stick is tiring in VR. `sprintSpeed` replaces `moveSpeed`. The sprint ends
     when the stick returns to centre, on a second click, on crouch or on climb, and can't
     start while crouched.
-  - **Crouch is a button-driven toggle, not physical:** `HandleCrouch()` smoothly moves the
+  - **Crouch is a toggle (right stick down), not physical:** `HandleCrouch()` smoothly moves the
     CharacterController height between the standing height (captured in `Awake`) and
     `minimumHeight`, keeps `center.y` in sync, and shifts `cameraOffsetTransform` by the
     *relative* height delta (never an absolute value, which would discard `Camera Offset`'s
@@ -195,17 +202,18 @@ the template's keyboard and gamepad bindings.
 
 ## What each hand is busy with
 
-**A hand does one thing at a time**, and five systems can have a hand: climbing, carrying,
-doors (handles and bolts), the lockpicks and the keys.
+**A hand does one thing at a time**, and seven systems can have a hand: climbing, carrying,
+doors (handles and bolts), the lockpicks, the keys, holding the pack and the crossbow.
 
 - **`PlayerHandState`** (on `Hands`) — the one place that knows what each hand is busy
   with. **It keeps no state**: each system owns what its hands are doing and says so
   through its own flags (`PlayerClimbing.IsLeftHandGripping`,
   `PlayerHandHolding.IsLeftHolding`, `PlayerHandDoors.IsLeftOnDoor`,
-  `PlayerLockpicking.IsLeftBusy`, `PlayerKeys.IsLeftBusy`, and the right-hand ones); this
+  `PlayerLockpicking.IsLeftBusy`, `PlayerKeys.IsLeftBusy`, `PlayerPack.IsLeftBusy`,
+  `PlayerCrossbow.IsLeftBusy`, and the right-hand ones); this
   class reads them when asked, so an answer is as fresh as the systems that have ticked so
   far this frame. `HandUse` (enum: `None`, `Climbing`, `Carrying`, `Door`, `Lockpicks`,
-  `Keys`); `GetUse(isLeftHand)` / `LeftUse` / `RightUse`; **`IsBusyExcept(isLeftHand,
+  `Keys`, `Pack`, `Crossbow`); `GetUse(isLeftHand)` / `LeftUse` / `RightUse`; **`IsBusyExcept(isLeftHand,
   asker)`** - whether any system *other than the asker* has the hand, which is what every
   hand system asks before taking one. Every system it reads is optional, found in `Awake()`.
   Each hand system gets it through `PlayerHandState.GetOrAdd(playerHandVisuals)` in its own
@@ -289,18 +297,22 @@ doors (handles and bolts), the lockpicks and the keys.
     a menu pointer - not the hand rays' direction, which is angled out from the palm for
     grabbing. Speed fixed (`launchSpeed`, 9 m/s), so distance comes from the hand's pitch.
   - **The arc** (`ComputeArc()`, every frame of aiming): starts `launchReach` (0.15m) along
-    the throw from the prop's middle - where the launch move will let go. The landing is
+    the throw from the prop's middle - where the launch move will let go. The path itself
+    is the shared **`BallisticArc`** (static; also the crossbow's): `Compute()` finds the
+    landing and fills the points, `Point()` is one moment on the path. The landing is
     found with one `Physics.Linecast` per `arcCastTimeStep` (0.1s) of flight - at most 25 -
     up to `arcMaxTime` (2.5s), on `arcLayers` (Default, Environment, Interactable, Guard;
     triggers ignored), stopping at the first hit. The line is then drawn from the formula
     alone, in `arcSegmentLength` (0.1m) pieces up to the landing time, ending exactly on the
-    hit point. Points (`ArcPoint()`) use **Unity's stepped gravity, not the textbook
-    formula**: `0.5 * g * t * (t + fixedDeltaTime)`. The arc is cast with rays, not the
+    hit point. A throw's points use **Unity's stepped gravity, not the textbook
+    formula**: `0.5 * g * t * (t + fixedDeltaTime)` (`BallisticArc`'s `fixedStep`; the
+    crossbow passes 0, since its bolts aren't moved by physics). The arc is cast with rays, not the
     prop's shape, so a wide prop can clip something the line clears.
-  - **Cancel is aim-at-nothing:** the arc is invalid (red/faded; releasing the trigger
-    cancels) when the hand's pitch is past `maxAimPitch` (75°) or `minAimPitch` (-60°), the
-    arc hits nothing in time, or the launch move's path is blocked (drawn as a stub). No
-    release-speed, face-button or stick-click cancels. Letting go of grip while aiming is
+  - **Cancel is the cancel button** (`PlayerInputXR.CancelPressed`, right B): the aim ends,
+    the prop stays in the hand, and that hand can't aim again until its trigger is let out
+    (`isCancelled`). One button for both hands. No pitch limits. The arc is still invalid
+    (red/faded; releasing the trigger throws nothing) when it hits nothing in time or the
+    launch move's path is blocked (drawn as a stub). Letting go of grip while aiming is
     just `PlayerHandHolding`'s drop or physical throw.
   - **Launch** (`BeginLaunch()`): a procedural move, not a clip - the hand's
     `HandVisualSnap` is snapped `launchReach` forward along the throw over `launchDuration`
@@ -340,11 +352,22 @@ doors (handles and bolts), the lockpicks and the keys.
 - **`PlayerPack`** (on `Hands`; optional - `PlayerController` finds it in `Awake()` and
   works without it; needs `PlayerHandHolding`) — the player's half of `Inventory.Pack` (the
   design and the pack itself: `Scripts/Inventory/CLAUDE.md`).
-  - **Summoning:** `PlayerInputXR.PackPressed` (X on the left controller) opens or closes
-    the pack. In `Start()` (not `Awake()`: the ghost hands copy the hand visuals in
-    `PlayerHandVisuals.Awake()`) the pack is made a child of `Left Hand Visual` at
-    `packPosition` / `packRotation` (defaults (0.14, -0.2, 0.08) and (90, 0, 0): the board
-    in front of a left hand held thumb up, facing back at the player; untuned) and closed.
+  - **Bringing it out** (`TickSummon()`, tick step 3b, before the grab systems): **a hand
+    reaching over a shoulder and gripping**, either hand. The shoulder is a ball of
+    `shoulderRadius` (0.2m) at `shoulderOffset` ((0.2, -0.05, -0.12): right, up, ahead)
+    from the head, and its mirror image on the left, measured with the head's tilt ignored
+    (`HeadYaw()`); either hand may reach either one; the controller's position is what is
+    tested. A free hand (`PlayerHandState.IsBusyExcept(..., HandUse.Pack)`) arriving there
+    feels a tap, and on the frame its grip is pressed (pressed, not already held) the pack
+    comes out on it: `PlaceOnHand()` makes the pack a child of that hand's visual at
+    `packPosition` / `packRotation` ((0.14, -0.2, 0.08) and (90, 0, 0): the board in front
+    of a hand held thumb up, facing back at the player), with x scale -1 under the mirrored
+    right visual so the pack isn't drawn back to front. **It stays out while that grip is
+    held**; letting go puts it away (`ClosePack()`). `IsLeftBusy`/`IsRightBusy` are what
+    `PlayerHandState` reports as `HandUse.Pack`. The pack is first placed in `Start()`,
+    not `Awake()` (the ghost hands copy the hand visuals in `PlayerHandVisuals.Awake()`).
+    All of it untuned and not yet tried in the headset. `IDebugDrawable`: the two shoulder
+    balls, in the detailed view (yellow, green while the pack is out).
   - **Putting loot in:** it doesn't change how props are carried; `Tick()` (tick step 4a,
     straight after `PlayerHandHolding.Tick()`) compares what each hand holds with last
     frame, and loot a hand has just let go of within the pack's reach (`Pack.IsInReach()` of
@@ -354,10 +377,10 @@ doors (handles and bolts), the lockpicks and the keys.
     and an empty hand that's still "holding" is taken as a throw.
   - **Choosing the space** (`TickHover()`): each frame a hand carries loot with the pack
     out, `Pack.Hover()` lights the space the loot is over if it's free, with a light tap
-    each time a different space lights; one hand a frame (the right goes first), and
+    each time a different space lights; one hand a frame, and
     `Pack.ClearHover()` when neither lights one. Hover and store measure the same point, so
     the lit space is the one it goes into.
-  - **Taking out** (`TickTaking()`, **right hand only** - the left wears the pack): empty
+  - **Taking out** (`TickTaking()`, **the hand not holding the pack**): empty
     hand, grip held, ray on a `PackSlot` → `Pack.BeginTake()`; when the pack hands the
     full-size item over (`TryPopTaken()`), the hand picks it up through
     `PlayerHandHolding.TryPickUp()`; if grip was let go meanwhile or the hand isn't free it
@@ -382,14 +405,15 @@ doors (handles and bolts), the lockpicks and the keys.
 - **`PlayerKeys`** (on `Hands`, needs `PlayerPack` there; optional) — the player's half of
   `Inventory.Keyring` and `Interaction.KeyLock`. The pack and keyring are found in
   `Start()` (`PlayerPack.Pack`). The keyring is in one of three places (`RingPlace`):
-  **in the pack**; **in the right hand** - taken the usual way (free right hand, grip
-  held, ray on the pack's keyring `PackSlot`; `Pack.TakeKeyring()`), a child of
-  `Right Hand Visual` at `inHandPosition` / `inHandRotation` (untuned) while grip is
-  held, back to the pack when it's let go; or **in a lock** - within `insertDistance`
+  **in the pack**; **in a hand** (`RingPlace.InHand`, `_isCarrierLeft`) - taken the usual
+  way by either hand that is free, so not the one holding the pack (grip held, ray on the
+  pack's keyring `PackSlot`; `Pack.TakeKeyring()`), a child of that hand's visual at
+  `inHandPosition` / `inHandRotation` (untuned; the same numbers give the mirror-image
+  place in either hand) while grip is held, back to the pack when it's let go; or **in a lock** - within `insertDistance`
   (0.15m) of a `KeyLock.FindInRange()` lock whose `KeyId` the ring `Has()`, it snaps onto
   the lock's face (`Insert()`; a child of the lock, the fitting key's colour shown going
-  into the door) and the right hand needs a regrip. **A lock the ring has no key for**
-  buzzes the right hand once (`_refusedBy`, re-armed away from every lock).
+  into the door) and the carrying hand needs a regrip. **A lock the ring has no key for**
+  buzzes the carrying hand once (`_refusedBy`, re-armed away from every lock).
   **Turning** (`TickHandAtKey()` in `Tick()`, tick step 3b after the lockpicks'): either
   hand, free and holding grip within `keyReach` (0.1m) of the key's grip point (by
   reaching, as for the lockpicks; a tap on coming into reach; one hand at a time) takes it
@@ -413,25 +437,29 @@ doors (handles and bolts), the lockpicks and the keys.
   - **The picks** are one object (`Lockpicks`: two thin boxes in one mesh, tips at its
     origin, handles along its Z, no collider), made in **`Start()`** - not `Awake()`,
     because `PlayerHandVisuals.Awake()` copies each hand visual for its ghost and would copy
-    picks already on it. Always in one of three places (`PicksPlace`): **on the left hand**
-    (child of `Left Hand Visual` at `onHandPosition`/`onHandRotation`), **in the right
-    hand** (child of `Right Hand Visual` at `inHandPosition`/`inHandRotation`) or **in a
-    lock** (child of the `PickableLock`, tips `insertDepth` inside the face, handles
+    picks already on it. **Which hand wears them is the handedness setting**
+    (`PlayerInputXR.IsLeftHanded`: off, the left wears them and the right takes them; on,
+    the other way round; read at startup). `_taker` is the hand that takes and carries. Always in one of three
+    places (`PicksPlace`): **on the wearing hand** (child of its visual at
+    `onHandPosition`/`onHandRotation` - the same numbers give the back of either hand,
+    since the right visual is the left mirrored), **in the taker's hand** (child of its
+    visual at `inHandPosition`/`inHandRotation`) or **in a lock** (child of the `PickableLock`, tips `insertDepth` inside the face, handles
     straight out). `PlacePicks()` always sets the local scale to one, since the right hand
     visual is mirrored. **The hand visual's axes**: fingers along -Y, back of the hand -X,
     thumb side +Z, origin near the wrist.
   - **Taken by reaching, not by the hand rays** (they're on or just in front of the player's
     body): no reticle; a light tap (`reachAmplitude`) says a hand has come within reach.
     `Tick()` (tick step 3b, before climbing, so a hand that takes a pick is already busy for
-    the systems after it): on the left hand, the free right hand within `takeDistance`
+    the systems after it): on the wearing hand, the free taker within `takeDistance`
     (0.12m) takes them **on the frame grip is pressed**; carried, letting go of grip puts
     them back, and within `insertDistance` (0.15m) of a lock that `CanBePicked`
     (`PickableLock.FindInRange()`, each frame while carried) they go in (`Insert()`): the
-    right hand needs a regrip, and the big lock is shown `bigLockDistance` (0.2m) out from
+    taker needs a regrip, and the big lock is shown `bigLockDistance` (0.2m) out from
     the real lock's face on the head's side, `bigLockBelowHead` (0.3m) below the head but
     never lower than the real lock, facing the same way as the door. In a lock, a free hand
     holding grip within `pickReach` (0.1m) of its own pick's grip point takes it (left hand
-    the left pick, right the right) and its hand visual snaps onto it.
+    the left pick, right the right - **never mirrored**, whichever hand wears the picks)
+    and its hand visual snaps onto it.
   - `TickHeld()` (tick step 8, with the doors', on every path through `Update()`): gives up
     if the lock has gone or opened another way, or the head is more than `leaveDistance`
     (1.5m, measured level) from it; else per held pick `BigLock.TurnPick(controller
@@ -439,12 +467,56 @@ doors (handles and bolts), the lockpicks and the keys.
     controller is over `breakDistance` (0.3m) from the grip point is let go by force (regrip
     needed; the right hand's letting go resets the lock); then `BigLock.Tick()` (also while
     it fades out), and the pin feel. `StopPicking()` (leaving, or the unlock): both hands
-    off, `BigLock.Hide()`, picks back on the left hand.
+    off, `BigLock.Hide()`, picks back on the wearing hand.
   - **Haptics:** right hand on inserting and at each stop; left hand as a run of pulses
     every `pinPulseInterval` (0.05s, each 1.5x that long) from `pinMinAmplitude` to `pinMaxAmplitude` by
     `BigLock.PinNearness`, and a strong one when a pin sets; both on the unlock.
-  - `IsLeftBusy`/`IsRightBusy` (true through a needed regrip, and while the right hand
+  - `IsLeftBusy`/`IsRightBusy` (true through a needed regrip, and while the taker
     carries the picks) are what `PlayerHandState` reports as `HandUse.Lockpicks`.
+
+## The crossbow (first version; not yet tried in the headset)
+
+- **`PlayerCrossbow`** (on `Hands`; optional - `PlayerController` finds it in `Awake()` and
+  works without it; **it must be added to the `Hands` object by hand**) — the hand
+  crossbow, always worn on the back of one hand: the right for a right-handed player
+  (`PlayerInputXR.IsLeftHanded`), so never the hand the lockpicks are on.
+  - **The model** (`BuildCrossbow()`, in `Start()` - after the ghost hands have copied the
+    visuals): a stock, a bow across the front and a wheel at the back as boxes in one mesh
+    from `Interaction.LockMeshBuilder`, `TeaLeaf/LockFade` solid, no collider; its own Z is
+    the way it shoots. A child of the hand visual at `onHandPosition` ((-0.035, -0.05, 0)),
+    pointing along the fingers (the visual's -Y) with its top away from the back of the
+    hand (-X), then turned by `onHandTilt`. A `Loaded Bolt` child lies on the stock while
+    it is wound.
+  - **Becoming active** (`Tick()`, tick step 4a, after every grab system): on the frame
+    grip is pressed on the crossbow hand, if the hand is free
+    (`PlayerHandState.IsBusyExcept(..., HandUse.Crossbow)`), its ray target is null (**a
+    grab always wins**) and the palm faces the floor - the visual's +X, turned into the world with `TransformVector()`
+    so the mirrored right hand's palm comes out the right way (`TransformDirection()`
+    ignores the mirroring), within `palmDownAngle` (50°) of straight down. It stays active until grip is let go, however
+    the hand is turned. `IsLeftBusy`/`IsRightBusy` are what `PlayerHandState` reports as
+    `HandUse.Crossbow`, so nothing else takes the hand meanwhile.
+  - **The arc** (`TickHeld(canAim)`, tick step 8a): from `muzzleDistance` (0.1m) ahead of
+    the stock along the crossbow's own forward - what is shown is what is shot - through
+    `BallisticArc.Compute()` with no stepped-gravity allowance, drawn by a `ThrowArc`
+    (`Crossbow Arc`). **Speed comes from `range`** (40m: how far a bolt carries over level
+    ground at 45°): `speed = sqrt(range x gravity)`, worked out once in `Awake()`, with the
+    longest flight (1.5 x the time to reach the range) and the points array. Red with no
+    landing disc when it would come down on nothing; it can still be shot.
+  - **Shooting:** on the trigger's **press** (`fireTrigger` 0.6; it must fall to
+    `rearmTrigger` 0.3 before it counts again, and a trigger already held when the
+    crossbow comes up doesn't shoot). Clockwork: `reloadTime` (1s) after each shot before
+    the next; a pull while it winds is used up and does nothing. Optional `fireCue` and
+    `impactCue`, through `SoundPlayer`.
+  - **Bolts:** a pool of `boltCount` (8) made at load under a `Crossbow Bolts` object at
+    the scene root; the oldest is reused. **Not physics objects**: each is moved along
+    `BallisticArc.Point()` from where and how fast it left, so it lands where the arc
+    showed, with one `Physics.Linecast` a frame along its move in case something has come
+    into its way. It stops where it lands and is put away after `boltLifetime` (30s); one
+    that lands on nothing is put away at the end of its flight. Bolts tick on every path
+    through `Update()`.
+  - **Not built:** bolt types and their effects and models, ammunition (every shot is
+    free), choosing the type by turning the wheel with the other hand, any effect of a
+    bolt on what it hits.
 
 ## Opening doors
 

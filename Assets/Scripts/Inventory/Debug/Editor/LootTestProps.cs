@@ -94,34 +94,34 @@ namespace Inventory
             // their own.
             for (int i = 0; i < 4; i++) {
                 GameObject coin = TestGeometry.Box($"Loot Coin {i + 1}", parent, new Vector3(-0.7f + i * 0.08f, TableHeight + 0.01f, nearZ), new Vector3(0.045f, 0.02f, 0.045f), interactable);
-                MakeLoot(coin, gold, 0.1f, 0.035f, 5, 1, true, false);
+                MakeLoot(coin, gold, 0.1f, 0.035f, 1, true, false);
             }
 
             // Purses: worth a little.
             for (int i = 0; i < 4; i++) {
                 GameObject purse = TestGeometry.Box($"Loot Purse {i + 1}", parent, new Vector3(-0.3f + i * 0.14f, TableHeight + 0.035f, nearZ), new Vector3(0.09f, 0.07f, 0.07f), interactable);
-                MakeLoot(purse, gold, 0.3f, 0.06f, 20, 1, false, false);
+                MakeLoot(purse, gold, 0.3f, 0.06f, 1, false, false);
             }
 
             // Goblets: worth more. Cylinders, held like the bottle.
             for (int i = 0; i < 3; i++) {
                 GameObject goblet = Cylinder($"Loot Goblet {i + 1}", parent, new Vector3(0.35f + i * 0.14f, TableHeight + 0.07f, nearZ), 0.07f, 0.14f, interactable);
-                MakeLoot(goblet, gold, 0.5f, 0.09f, 50, 2, false, false, true, bottleProfile);
+                MakeLoot(goblet, gold, 0.5f, 0.09f, 2, false, false, true, bottleProfile);
             }
 
             // Candlesticks: tall, so they shrink a long way to fit a space.
             for (int i = 0; i < 2; i++) {
                 GameObject candlestick = Cylinder($"Loot Candlestick {i + 1}", parent, new Vector3(-0.6f + i * 0.16f, TableHeight + 0.15f, farZ), 0.05f, 0.3f, interactable);
-                MakeLoot(candlestick, gold, 0.8f, 0.16f, 80, 2, false, false, true, bottleProfile);
+                MakeLoot(candlestick, gold, 0.8f, 0.16f, 2, false, false, true, bottleProfile);
             }
 
             // A crown: the best of it.
             GameObject crown = Cylinder("Loot Crown", parent, new Vector3(0f, TableHeight + 0.04f, farZ), 0.16f, 0.08f, interactable);
-            MakeLoot(crown, gold, 0.6f, 0.1f, 150, 3, false, false);
+            MakeLoot(crown, gold, 0.6f, 0.1f, 3, false, false);
 
             // The objective: packing it is what lets the player leave.
             GameObject idol = TestGeometry.Box("Loot Idol (objective)", parent, new Vector3(0.5f, TableHeight + 0.09f, farZ), new Vector3(0.1f, 0.18f, 0.1f), interactable);
-            MakeLoot(idol, gold, 1f, 0.11f, 100, 3, false, true);
+            MakeLoot(idol, gold, 1f, 0.11f, 3, false, true);
 
             EnsurePlayerComponents();
             Selection.activeGameObject = root;
@@ -152,13 +152,12 @@ namespace Inventory
         /// serialized fields, so they're set the way the Inspector would
         /// set them.
         /// </summary>
-        private static void MakeLoot(GameObject prop, Material gold, float mass, float holdRadius, int value, int coinLevel, bool isGold, bool isObjective, bool isCylinder = false, HandSnapProfile profile = null)
+        private static void MakeLoot(GameObject prop, Material gold, float mass, float holdRadius, int coinLevel, bool isGold, bool isObjective, bool isCylinder = false, HandSnapProfile profile = null)
         {
             prop.GetComponent<MeshRenderer>().sharedMaterial = gold;
             GrabbableTestProps.MakeGrabbable(prop, mass, holdRadius, isCylinder, profile);
 
             SerializedObject serialized = new(prop.AddComponent<Loot>());
-            serialized.FindProperty("value").intValue = value;
             serialized.FindProperty("coinLevel").intValue = coinLevel;
             serialized.FindProperty("isGold").boolValue = isGold;
             serialized.FindProperty("isObjective").boolValue = isObjective;

@@ -9,21 +9,24 @@ namespace Player
     /// is the big lock's business (Interaction.BigLock).
     ///
     /// The two picks are one small object, always in one of three places:
-    /// - On the back of the left hand, where they live.
-    /// - In the right hand: gripped while the right hand was at them, and
+    /// - On the back of one hand, where they live: the left, or the right
+    ///   for a left-handed player (PlayerInputXR.IsLeftHanded).
+    /// - In the other hand: gripped while that hand was at them, and
     ///   carried for as long as grip is held. Let go of away from a lock,
-    ///   they go back to the left hand.
+    ///   they go back to the hand that wears them.
     /// - In a lock: brought close to a locked simple lock
     ///   (Interaction.PickableLock), they snap into its keyhole and the
-    ///   right hand is freed. The big lock then fades in in front of the
-    ///   door.
+    ///   carrying hand is freed. The big lock then fades in in front of
+    ///   the door.
     ///
     /// While the picks are in a lock, each hand can grip its own pick on
     /// the big lock (left hand the left pick, right hand the right) and
     /// turn it by carrying the hand round the lock's middle. The hand
     /// visual snaps onto the pick, as it does onto a door handle. Walking
     /// away, or the lock opening, fades the big lock out and puts the
-    /// picks back on the left hand.
+    /// picks back on the hand that wears them. The lock itself is never
+    /// mirrored: whichever hand wears the picks, the left hand works the
+    /// left pick and the right hand the right one.
     ///
     /// The picks and the big lock's picks are taken by reaching for them
     /// (a hand close enough, with grip), not by the hand rays: they're on
@@ -44,8 +47,8 @@ namespace Player
         /// Where the two picks are.
         private enum PicksPlace
         {
-            OnLeftHand,
-            InRightHand,
+            OnHand,
+            InHand,
             InLock
         }
 
@@ -97,19 +100,21 @@ namespace Player
         // The least light the picks are ever shown in, 0-1.
         [SerializeField] private float minLight = 0.35f;
 
-        // Where the picks sit on the back of the left hand, in the left
-        // hand visual's own space (its fingers point along -Y, the back of
-        // the hand is -X, the thumb side +Z). The picks' own Z runs from
-        // their tips to their handles.
+        // Where the picks sit on the back of the hand that wears them, in
+        // that hand visual's own space (its fingers point along -Y, the
+        // back of the hand is -X, the thumb side +Z). The right hand
+        // visual is the left one mirrored, so the same numbers put them
+        // on the back of either hand. The picks' own Z runs from their
+        // tips to their handles.
         [SerializeField] private Vector3 onHandPosition = new(-0.022f, -0.09f, 0f);
         [SerializeField] private Vector3 onHandRotation = new(-90f, 0f, 90f);
 
-        // Where they sit in the right hand while it carries them, in the
-        // right hand visual's own space (the same axes, mirrored).
+        // Where they sit in the other hand while it carries them, in that
+        // hand visual's own space (the same axes).
         [SerializeField] private Vector3 inHandPosition = new(0.02f, -0.17f, 0.02f);
         [SerializeField] private Vector3 inHandRotation = new(-90f, 0f, 90f);
 
-        // The right hand takes the picks from within this many metres of
+        // The other hand takes the picks from within this many metres of
         // them.
         [SerializeField] private float takeDistance = 0.12f;
 
@@ -144,7 +149,7 @@ namespace Player
         [SerializeField] private float reachAmplitude = 0.15f;
         [SerializeField] private float reachDuration = 0.03f;
 
-        // The picks going into a lock (right hand).
+        // The picks going into a lock (the hand that carried them).
         [SerializeField] private float insertAmplitude = 0.5f;
         [SerializeField] private float insertDuration = 0.06f;
 
@@ -177,15 +182,19 @@ namespace Player
         private Mesh _picksMesh;
         private Material _picksMaterial;
 
-        private PicksPlace _place = PicksPlace.OnLeftHand;
+        private PicksPlace _place = PicksPlace.OnHand;
+
+        // The hand that takes the picks off the other one and carries
+        // them: the right, unless the picks are worn on the right hand.
+        private PickHand _taker;
 
         // The lock the picks are in, while they're in one.
         private PickableLock _lock;
 
-        // Right grip as it was last frame: the picks are taken on the
-        // frame grip is pressed, not by a hand that arrives already
+        // The taking hand's grip as it was last frame: the picks are taken
+        // on the frame grip is pressed, not by a hand that arrives already
         // gripping.
-        private bool _wasRightGrabbing;
+        private bool _wasTakerGrabbing;
 
         // Set when the big lock says it has opened (from inside
         // TickHeld()), and acted on at the end of that TickHeld().
@@ -194,14 +203,21 @@ namespace Player
         // Counts down to the next pulse while the left hand feels the pin.
         private float _pinPulseTimer;
 
-        /// True while the left hand is on a pick - and, after being let go
-        /// by force, until its grip is released. Climbing, carrying and
-        /// doors leave the hand alone meanwhile.
-        public bool IsLeftBusy => _left.isOnPick || _left.needsRegrip;
+        /// True while the left hand carries the picks or is on a pick -
+        /// and, after being let go by force, until its grip is released.
+        /// The other hand systems leave the hand alone meanwhile.
+        public bool IsLeftBusy => IsCarrying(_left) || _left.isOnPick || _left.needsRegrip;
 
-        /// True while the right hand carries the picks or is on a pick (as
-        /// IsLeftBusy).
-        public bool IsRightBusy => _place == PicksPlace.InRightHand || _right.isOnPick || _right.needsRegrip;
+        /// The same for the right hand.
+        public bool IsRightBusy => IsCarrying(_right) || _right.isOnPick || _right.needsRegrip;
+
+        /// <summary>
+        /// Whether that hand is the one carrying the picks.
+        /// </summary>
+        private bool IsCarrying(PickHand hand)
+        {
+            return _place == PicksPlace.InHand && hand == _taker;
+        }
 
         /// <summary>
         /// Editor-only: fills in the references when the component is
@@ -231,6 +247,11 @@ namespace Player
 
             _left = new PickHand { isLeftHand = true };
             _right = new PickHand { isLeftHand = false };
+
+            // A right-handed player wears the picks on the left hand and
+            // takes them with the right; a left-handed one the other way
+            // round. The lock itself is the same either way.
+            _taker = playerInput.IsLeftHanded ? _left : _right;
 
             // One big lock for every lock in the level, made at load. A
             // search of the scene, but only once, at startup.
@@ -289,7 +310,7 @@ namespace Player
 
             if (_place == PicksPlace.InLock) {
                 StopPicking();
-            } else if (_place == PicksPlace.InRightHand) {
+            } else if (_place == PicksPlace.InHand) {
                 ReturnPicks();
             }
         }
@@ -297,7 +318,7 @@ namespace Player
         /// <summary>
         /// Makes the picks, once: two long thin boxes side by side in one
         /// mesh, running from the object's origin (their tips) along its Z
-        /// (to their handles), on the back of the left hand. No collider:
+        /// (to their handles), on the back of the hand that wears them. No collider:
         /// they're only to look at.
         /// </summary>
         private void BuildPicks()
@@ -338,12 +359,13 @@ namespace Player
         }
 
         /// <summary>
-        /// Puts the picks back on the back of the left hand.
+        /// Puts the picks back on the back of the hand that wears them -
+        /// the one that isn't the taker.
         /// </summary>
         private void ReturnPicks()
         {
-            _place = PicksPlace.OnLeftHand;
-            PlacePicks(playerHandVisuals.LeftHandVisual, onHandPosition, Quaternion.Euler(onHandRotation));
+            _place = PicksPlace.OnHand;
+            PlacePicks(VisualFor(_taker.isLeftHand ? _right : _left), onHandPosition, Quaternion.Euler(onHandRotation));
         }
 
         /// <summary>
@@ -366,13 +388,15 @@ namespace Player
                 _right.needsRegrip = false;
             }
 
+            bool isTakerGrabbing = _taker.isLeftHand ? isLeftGrabbing : isRightGrabbing;
+
             switch (_place) {
-                case PicksPlace.OnLeftHand:
-                    TickPicksOnHand(isRightGrabbing);
+                case PicksPlace.OnHand:
+                    TickPicksOnHand(isTakerGrabbing);
                     break;
 
-                case PicksPlace.InRightHand:
-                    TickPicksCarried(isRightGrabbing);
+                case PicksPlace.InHand:
+                    TickPicksCarried(isTakerGrabbing);
                     break;
 
                 case PicksPlace.InLock:
@@ -381,36 +405,36 @@ namespace Player
                     break;
             }
 
-            _wasRightGrabbing = isRightGrabbing;
+            _wasTakerGrabbing = isTakerGrabbing;
         }
 
         /// <summary>
-        /// The picks are on the left hand: the right hand takes them if
-        /// grip is pressed while it's free and within reach of them.
+        /// The picks are on the hand that wears them: the other hand takes
+        /// them if grip is pressed while it's free and within reach of them.
         /// </summary>
-        private void TickPicksOnHand(bool isRightGrabbing)
+        private void TickPicksOnHand(bool isTakerGrabbing)
         {
             // The middle of the picks, half way along them.
             Vector3 picksCentre = _picks.position + _picks.forward * (pickLength * 0.5f);
 
-            bool isInReach = IsFree(_right) && IsWithin(HandPoint(_right), picksCentre, takeDistance);
-            NoteReach(_right, isInReach);
+            bool isInReach = IsFree(_taker) && IsWithin(HandPoint(_taker), picksCentre, takeDistance);
+            NoteReach(_taker, isInReach);
 
-            if (isInReach && isRightGrabbing && !_wasRightGrabbing) {
-                _place = PicksPlace.InRightHand;
-                PlacePicks(playerHandVisuals.RightHandVisual, inHandPosition, Quaternion.Euler(inHandRotation));
+            if (isInReach && isTakerGrabbing && !_wasTakerGrabbing) {
+                _place = PicksPlace.InHand;
+                PlacePicks(VisualFor(_taker), inHandPosition, Quaternion.Euler(inHandRotation));
             }
         }
 
         /// <summary>
-        /// The right hand is carrying the picks: they go back to the left
-        /// hand if grip is let go, or into a lock they're brought close
+        /// A hand is carrying the picks: they go back to the hand that
+        /// wears them if grip is let go, or into a lock they're brought close
         /// to. A distance check per lock in the level, and only while the
         /// picks are in hand.
         /// </summary>
-        private void TickPicksCarried(bool isRightGrabbing)
+        private void TickPicksCarried(bool isTakerGrabbing)
         {
-            if (!isRightGrabbing) {
+            if (!isTakerGrabbing) {
                 ReturnPicks();
                 return;
             }
@@ -424,7 +448,7 @@ namespace Player
 
         /// <summary>
         /// Puts the picks into found: they snap into its keyhole on the
-        /// player's side, sticking straight out, the right hand is freed
+        /// player's side, sticking straight out, the carrying hand is freed
         /// (and has to let go of grip before it can take a pick), and the
         /// big lock appears in front of the door.
         /// </summary>
@@ -435,7 +459,7 @@ namespace Player
 
             _lock = found;
             _place = PicksPlace.InLock;
-            _right.needsRegrip = true;
+            _taker.needsRegrip = true;
             _left.wasInReach = false;
             _right.wasInReach = false;
             found.BeginPicking();
@@ -452,7 +476,15 @@ namespace Player
             position.y = Mathf.Max(facePoint.y, headPosition.y - bigLockBelowHead);
 
             bigLock.Show(found, position, Quaternion.LookRotation(-outward, lockTransform.up));
-            Pulse(false, insertAmplitude, insertDuration);
+            Pulse(_taker.isLeftHand, insertAmplitude, insertDuration);
+        }
+
+        /// <summary>
+        /// A hand's visual (the hand model).
+        /// </summary>
+        private Transform VisualFor(PickHand hand)
+        {
+            return hand.isLeftHand ? playerHandVisuals.LeftHandVisual : playerHandVisuals.RightHandVisual;
         }
 
         /// <summary>
@@ -508,7 +540,7 @@ namespace Player
 
         /// <summary>
         /// Ends the picking, opened or not: both hands come off, the big
-        /// lock fades out and the picks go back to the left hand.
+        /// lock fades out and the picks go back to the hand that wears them.
         /// </summary>
         private void StopPicking()
         {

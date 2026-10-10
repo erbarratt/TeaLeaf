@@ -16,7 +16,11 @@ namespace Player
         // Carrying the lockpicks, or on a pick (PlayerLockpicking).
         Lockpicks,
         // Carrying the keyring, or on a key in a lock (PlayerKeys).
-        Keys
+        Keys,
+        // Holding the pack out (PlayerPack).
+        Pack,
+        // The crossbow active on it (PlayerCrossbow).
+        Crossbow
     }
 
     /// <summary>
@@ -25,11 +29,9 @@ namespace Player
     /// a hand on a door handle can't take a lockpick - so before a hand
     /// system takes a hand it asks here whether any OTHER system has it.
     ///
-    /// It replaces every hand system holding a reference to every other
-    /// one and checking them all itself: with five systems that was
-    /// twenty checks kept in step by hand, and a sixth system would have
-    /// meant editing all five. Now a new system is added here, once: a
-    /// HandUse value, and a line each in GetUse() and IsBusyExcept().
+    /// The hand systems don't hold references to each other. A new one is
+    /// added here, once: a HandUse value, and a line each in GetUse() and
+    /// IsBusyExcept().
     ///
     /// It keeps no state of its own. Each system still owns what its
     /// hands are doing and says so through its own flags
@@ -50,6 +52,8 @@ namespace Player
         [SerializeField] private PlayerHandDoors playerHandDoors;
         [SerializeField] private PlayerLockpicking playerLockpicking;
         [SerializeField] private PlayerKeys playerKeys;
+        [SerializeField] private PlayerPack playerPack;
+        [SerializeField] private PlayerCrossbow playerCrossbow;
 
         // Looked up once, so the per-frame code tests plain bools.
         private bool _hasClimbing;
@@ -57,6 +61,8 @@ namespace Player
         private bool _hasDoors;
         private bool _hasLockpicking;
         private bool _hasKeys;
+        private bool _hasPack;
+        private bool _hasCrossbow;
 
         /// What the left hand is busy with right now.
         public HandUse LeftUse => GetUse(true);
@@ -99,6 +105,8 @@ namespace Player
             _hasDoors = playerHandDoors != null;
             _hasLockpicking = playerLockpicking != null;
             _hasKeys = playerKeys != null;
+            _hasPack = playerPack != null;
+            _hasCrossbow = playerCrossbow != null;
         }
 
         /// <summary>
@@ -126,6 +134,14 @@ namespace Player
 
             if (playerKeys == null) {
                 playerKeys = GetComponent<PlayerKeys>();
+            }
+
+            if (playerPack == null) {
+                playerPack = GetComponent<PlayerPack>();
+            }
+
+            if (playerCrossbow == null) {
+                playerCrossbow = GetComponent<PlayerCrossbow>();
             }
         }
 
@@ -156,6 +172,14 @@ namespace Player
                 return HandUse.Keys;
             }
 
+            if (IsOnPack(isLeftHand)) {
+                return HandUse.Pack;
+            }
+
+            if (IsOnCrossbow(isLeftHand)) {
+                return HandUse.Crossbow;
+            }
+
             return HandUse.None;
         }
 
@@ -171,7 +195,9 @@ namespace Player
                 || (asker != HandUse.Carrying && IsCarrying(isLeftHand))
                 || (asker != HandUse.Door && IsOnDoor(isLeftHand))
                 || (asker != HandUse.Lockpicks && IsOnLockpicks(isLeftHand))
-                || (asker != HandUse.Keys && IsOnKeys(isLeftHand));
+                || (asker != HandUse.Keys && IsOnKeys(isLeftHand))
+                || (asker != HandUse.Pack && IsOnPack(isLeftHand))
+                || (asker != HandUse.Crossbow && IsOnCrossbow(isLeftHand));
         }
 
         private bool IsClimbing(bool isLeftHand)
@@ -197,6 +223,16 @@ namespace Player
         private bool IsOnKeys(bool isLeftHand)
         {
             return _hasKeys && (isLeftHand ? playerKeys.IsLeftBusy : playerKeys.IsRightBusy);
+        }
+
+        private bool IsOnPack(bool isLeftHand)
+        {
+            return _hasPack && (isLeftHand ? playerPack.IsLeftBusy : playerPack.IsRightBusy);
+        }
+
+        private bool IsOnCrossbow(bool isLeftHand)
+        {
+            return _hasCrossbow && (isLeftHand ? playerCrossbow.IsLeftBusy : playerCrossbow.IsRightBusy);
         }
     }
 }

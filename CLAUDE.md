@@ -210,20 +210,26 @@ behaviour. The current order is:
 2. `playerLocomotion.TickBody()` — re-centre the capsule under the headset and apply crouch
    height (before the hand systems, since crouch moves the tracked hierarchy).
 3. `playerHandInteraction.Tick()` — hand rays + targets (reticles are placed at 8b).
-   3b. `playerLockpicking.Tick()` — take the lockpicks, put them in a lock, take hold of a
-   pick on the big lock (skipped while mantling, and if the rig has no `PlayerLockpicking`).
-   Before the other grab systems: picks are taken by reaching, not by the hand rays, so a
-   hand that takes one must already be busy when climbing, carrying and doors run. Then
+   3b. `playerPack.TickSummon()` — bring the pack out (a hand reaching over a shoulder and
+   gripping) or put it away (that grip let go); skipped while mantling, and if the rig has
+   no `PlayerPack`. Then `playerLockpicking.Tick()` — take the lockpicks, put them in a
+   lock, take hold of a pick on the big lock (skipped likewise, and if the rig has no
+   `PlayerLockpicking`). Both before the other grab systems: the pack and the picks are
+   taken by reaching, not by the hand rays, so a hand that takes one must already be busy
+   when climbing, carrying and doors run. Then
    `playerKeys.Tick()` — take the keyring from the pack, put it in a lock, take hold of
    the key (skipped likewise, and if the rig has no `PlayerKeys`).
 4. `playerClimbing.Tick()` — grab/release, zip line slide, climb movement (skipped while
    mantling); then
    4a. `playerHandHolding.Tick()` — pick up / drop props (also skipped while mantling; after
    climbing, since a hand either grips a climbable or carries a prop); then
-   `playerPack.Tick()` — the pack button, loot let go of at the pack this frame going into
+   `playerPack.Tick()` — loot let go of at the pack this frame going into
    it, and items being taken out (skipped if the rig has no `PlayerPack`); then
    `playerHandDoors.Tick()` — take / let go of door handles (also skipped while mantling;
    last of the three, a hand does one of them; skipped if the rig has no `PlayerHandDoors`);
+   then `playerCrossbow.Tick()` — the crossbow becoming active or stopping (also skipped
+   while mantling; after every grab system, so a grab always wins over it; skipped if the
+   rig has no `PlayerCrossbow`);
    then `playerMantling.Tick()` — detects a possible mantle (arrow), starts one on a stick push, or
    advances the one in progress. **While `IsMantling`, the frame stops here**: the mantle has
    already positioned the rig directly (CharacterController disabled), so only `TickState()`,
@@ -265,7 +271,9 @@ behaviour. The current order is:
    places it per frame. Then `playerHandThrowing.Tick(canAim)` — aimed throwing: the arc
    starts from where the prop now is (skipped if the rig has no `PlayerHandThrowing`;
    `canAim` is false during a mantle and once the level has ended, when nothing new is aimed
-   but a launch already under way still finishes).
+   but a launch already under way still finishes). Then `playerPack.TickHeld()`, then
+   `playerCrossbow.TickHeld(canAim)` — the crossbow's arc and shot and its bolts in flight
+   (bolts keep flying on every path; nothing is aimed or shot when `canAim` is false).
    8b. `playerHandInteraction.TickReticles()` — after grabs and hand visuals, so a hand that
    grabbed this frame already hides its reticle.
 9. `playerHandAnimation.Tick()` — last, so it reads this frame's snap weight from step 8
@@ -296,21 +304,27 @@ Player                 [Player layer] CharacterController, PlayerTracking, Playe
       Mantle Indicator (MantleIndicator - head-locked, placed a little below centre ~0.5m ahead)
       Screen Fade      (Core.ScreenFade - at the camera's local origin; fade to/from black)
     Hands              PlayerHandInteraction, PlayerHandHolding, PlayerHandThrowing,
-                       PlayerPack, PlayerKeys, PlayerHandDoors, PlayerLockpicking, PlayerHandVisuals,
+                       PlayerPack, PlayerKeys, PlayerHandDoors, PlayerLockpicking, PlayerCrossbow,
+                       PlayerHandVisuals,
                        PlayerHandState (added at runtime if the scene has none),
                        PlayerHandAnimation (identity transform)
       Left/Right Throw Arc   (made at runtime by PlayerHandThrowing)
+      Crossbow Arc           (made at runtime by PlayerCrossbow)
       Left Hand        [PlayerHands] tracked controller - Tracked Pose Driver (Tracking/LeftHand*)
         Left Hand Visual   (hand.fbx instance, Animator)
-          Lockpicks        (made at runtime by PlayerLockpicking; moves to the right hand
-                           visual or into a lock while in use)
-          Pack             (Inventory.Pack - a scene-root object moved here at runtime by
-                           PlayerPack; active only while summoned)
+          Lockpicks        (made at runtime by PlayerLockpicking, on the left hand visual
+                           for a right-handed player; moves to the other hand visual or
+                           into a lock while in use)
+          Crossbow         (made at runtime by PlayerCrossbow, on the hand visual the
+                           lockpicks are not on: the right for a right-handed player)
+          Pack             (Inventory.Pack - a scene-root object moved by PlayerPack onto
+                           whichever hand visual brings it out; active only while out)
         Left Hand Reticle
       Right Hand       [PlayerHands] same, visual mirrored (scale.x -1)
 ```
 
-**A hand does one thing at a time** (climbing, carrying, a door, the lockpicks, the keys):
+**A hand does one thing at a time** (climbing, carrying, a door, the lockpicks, the keys,
+holding the pack, the crossbow active):
 before a hand system takes a hand it asks `PlayerHandState.IsBusyExcept()` whether another
 has it, rather than checking the other systems itself. A new hand system is added there,
 once - see `Assets/Scripts/Player/CLAUDE.md`.
@@ -401,9 +415,30 @@ fails and restarts. The mechanics:
   (kept across level restarts) stops one repeating until its whole pool has been heard.
   Several guard voices, each with its own pools. Other guards don't react to idle chatter
   (sound only, no noise event); two-guard conversations may come later.
-- **Tools:** blackjack (from-behind takedown on unaware guards), hand crossbow usable in
-  either hand, physically cocked, with water / noisemaker / rope bolts (none built);
-  two-handed lockpicking with haptics (built, in `PlayerLockpicking`, `Interaction.BigLock`
+- **Weapons:** the blackjack (from-behind takedown on unaware guards; not built, and how
+  it is brought out is not decided - there is no weapon menu) and the hand crossbow.
+  **The crossbow is always mounted on the back of one hand**, as the lockpicks are on the
+  other: the right hand for a right-handed player (`PlayerInputXR.IsLeftHanded` swaps the
+  two). It becomes active when grip is pressed on that hand while it is empty, its ray is
+  on nothing it could grab (**a grab always wins**) and its palm faces the floor; it stays
+  active until grip is let go. Active, it shows a ballistic arc like an aimed throw's but
+  much flatter and longer: a bolt's speed comes from a **range** set in the editor (how
+  far it carries over level ground at the best angle), worked out once at load. **The
+  trigger shoots on the press** (a throw is on the release). It is clockwork: it winds
+  itself, ready again after a short wait. A first version is built (`PlayerCrossbow`):
+  greybox model, activation, arc, one plain pooled bolt. **Not built:** the bolt types
+  (water, noisemaker, rope) and their models (a blue glowing tip for water, the shaft
+  wrapped in rope for rope), ammunition counts, and **choosing the type by gripping the
+  wheel at the back of the crossbow with the other hand and turning it**.
+- **Text** is drawn with TextMeshPro (in the `com.unity.ugui` package). Its font and
+  shader must be in the project: Window > TextMeshPro > Import TMP Essential Resources.
+- **Controls:** left stick moves; right stick turns, up mantles, **down toggles crouch**;
+  grip grabs; trigger aims a throw; **A jumps**; **B is the universal cancel** (an aimed
+  throw, for now); grip with the palm down brings the crossbow up and the trigger then
+  shoots; **a click of the left stick toggles sprint**; X, Y, Menu and the right stick's
+  click are unassigned.
+- **Tools:** the lockpicks are the only tool; no others are planned. Two-handed
+  lockpicking with haptics (built, in `PlayerLockpicking`, `Interaction.BigLock`
   and `PickableLock`): two picks worn on the back of the left hand snap into a simple lock's
   keyhole, a large copy of the lock fades in front of the door, the right hand turns one
   pick clockwise through three stops and a last turn while the left sweeps the other to find
@@ -411,19 +446,23 @@ fails and restarts. The mechanics:
   twisting the wrist. Detail in `Assets/Scripts/Interaction/CLAUDE.md` and
   `Assets/Scripts/Player/CLAUDE.md`.
 - **Inventory:** a backpack that only holds so much, so the player keeps the most valuable
-  loot and leaves the rest. Summoned with X on the left controller, it rides on the left
-  hand and loot is put into it by hand: a grid of spaces (3 x 3), one per piece of loot,
+  loot and leaves the rest. **Brought out by reaching over a shoulder with either hand and
+  gripping**: it rides on that hand for as long as the grip is held, letting go puts it
+  away, and the other hand puts loot into it: a grid of spaces (3 x 3), one per piece of loot,
   chosen by holding it over a free space; a gold space for small loot, and separate spaces
   for the objective and the keyring. Carried loot shows one to three coins for its worth.
   Keys are coloured and live on the keyring, which is taken from the pack and held to a
-  lock. All built. **Not settled:** how tools and bolt types are chosen (in the pack, or a
-  wrist menu). Detail in `Assets/Scripts/Inventory/CLAUDE.md`.
+  lock. All built. **One coin level is worth one gold piece**: a piece of loot is worth
+  one, two or three gold, and the pack's gold is shown as a number (TextMeshPro).
+  **Handedness** is one setting, `PlayerInputXR.leftHanded`: off, the lockpicks are on
+  the left hand and the crossbow on the right; on, the other way round. The pack and
+  keyring work in either hand, and the lock puzzle itself is never mirrored. Detail in `Assets/Scripts/Inventory/CLAUDE.md`.
 - **Throwing is both aimed and physical** (both built, in `PlayerHandThrowing` and
   `PlayerHandHolding`). Grip picks an object up. Aimed, for accuracy: holding that hand's
   trigger shows a trajectory arc (distance from hand pitch, teleport-arc style), and
   releasing the trigger plays a short hand launch (a forward move of the hand visual, not an
-  animation clip) and throws along the arc; aiming at nothing (arc red/faded) and releasing
-  cancels. Physical, for a quick natural throw: moving the hand and letting go of grip sends
+  animation clip) and throws along the arc. **B cancels** the aim, the prop staying in the
+  hand; an arc that lands on nothing is drawn red and releasing then throws nothing. Physical, for a quick natural throw: moving the hand and letting go of grip sends
   the object off with the hand's movement; a still hand just drops it. Detail in
   `Assets/Scripts/Player/CLAUDE.md`.
 - **Traversal:** sprint, jump, mantling, ladders, rope climbing (built); drag/hide KO'd

@@ -15,7 +15,7 @@ namespace Inventory
     /// - Ordinary loot takes one space in the pack and can be taken out
     ///   again.
     /// - Gold (coins, rings - small things) takes no space of its own:
-    ///   put anywhere in the pack it goes to the gold space, its value is
+    ///   put anywhere in the pack it goes to the gold space, its worth is
     ///   added to the gold there and it's gone.
     /// - The level's objective has a space of its own, apart from the
     ///   rest: putting it in the pack is what lets the player leave.
@@ -26,11 +26,8 @@ namespace Inventory
     [RequireComponent(typeof(Grabbable))]
     public class Loot : MonoBehaviour
     {
-        // What it's worth.
-        [SerializeField] private int value = 10;
-
-        // How many coins are shown over it while it's carried, 1 to 3: a
-        // rough guide to its worth, so the player can choose what to keep.
+        // How many coins are shown over it while it's carried, 1 to 3 -
+        // and what it's worth: one coin is one gold piece.
         [SerializeField, Range(1, 3)] private int coinLevel = 1;
 
         // Small loot that just adds to the gold in the pack.
@@ -42,8 +39,8 @@ namespace Inventory
         // Every enabled piece of loot, by its Grabbable.
         private static readonly Dictionary<Grabbable, Loot> _byGrabbable = new();
 
-        /// What it's worth.
-        public int Value => value;
+        /// What it's worth, in gold pieces: one for each coin shown.
+        public int Value => coinLevel;
 
         /// How many coins show its worth, 1 to 3.
         public int CoinLevel => coinLevel;

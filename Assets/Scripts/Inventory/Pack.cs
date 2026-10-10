@@ -1,4 +1,5 @@
 using Interaction;
+using TMPro;
 using UnityEngine;
 
 namespace Inventory
@@ -106,7 +107,12 @@ namespace Inventory
 
         // The gold space shows a pile that grows with the gold in it:
         // this much gold is a full pile.
-        [SerializeField] private int goldForFullPile = 200;
+        [SerializeField] private int goldForFullPile = 20;
+
+        // The number of gold pieces, written over the gold space: how
+        // tall its figures are in metres, and its colour.
+        [SerializeField] private float goldNumberHeight = 0.03f;
+        [SerializeField] private Color goldNumberColor = Color.white;
 
         [Header("Colours")]
         [SerializeField] private Color boardColor = new(0.3f, 0.21f, 0.13f, 1f);
@@ -162,6 +168,10 @@ namespace Inventory
         // the space it's on now (NoSpace while hidden), and how wide the
         // objective's space is.
         private MeshRenderer _highlight;
+
+        // The gold number. Null if the project has no TextMeshPro
+        // resources to draw text with - see BuildGoldNumber().
+        private TextMeshPro _goldNumber;
         private int _highlightedSpace = NoSpace;
         private float _wideWidth;
 
@@ -291,6 +301,8 @@ namespace Inventory
             _goldPile = _goldPileRenderer.transform;
             Tint(_goldPileRenderer, goldColor);
 
+            BuildGoldNumber();
+
             // The highlight: one flat block, moved onto whichever space
             // is lit - see ShowHighlight().
             _highlight = AddPart("Highlight", _blockMesh, Vector3.zero);
@@ -419,6 +431,47 @@ namespace Inventory
         /// A child object drawing mesh at a place in the pack's own space,
         /// with no shadows.
         /// </summary>
+        /// <summary>
+        /// Makes the gold number: a line of text (TextMeshPro, Unity's
+        /// text drawing) in the top of the gold space, standing just
+        /// proud of the gold pile and facing the player. TextMeshPro needs
+        /// its font and shader, which are imported into the project once
+        /// from the editor's menu (Window > TextMeshPro > Import TMP
+        /// Essential Resources); without them there is no number, and a
+        /// warning says why.
+        /// </summary>
+        private void BuildGoldNumber()
+        {
+            if (Resources.Load<TMP_Settings>("TMP Settings") == null) {
+                Debug.LogWarning("Pack: no TextMeshPro resources in the project, so the gold has no number. Import them from Window > TextMeshPro > Import TMP Essential Resources.", this);
+                return;
+            }
+
+            GameObject number = new("Gold Number") { layer = gameObject.layer };
+            number.transform.SetParent(transform, false);
+
+            // In front of the pile (the player looks along the pack's +Z,
+            // so nearer the player is -Z), in the top third of the space.
+            number.transform.localPosition = _cellCentres[GoldCell] + new Vector3(0f, cellSize * 0.3f, -0.035f);
+
+            _goldNumber = number.AddComponent<TextMeshPro>();
+            _goldNumber.rectTransform.sizeDelta = new Vector2(cellSize, cellSize * 0.4f);
+            _goldNumber.alignment = TextAlignmentOptions.Center;
+            _goldNumber.textWrappingMode = TextWrappingModes.NoWrap;
+            _goldNumber.color = goldNumberColor;
+
+            // A font size of 1 draws figures about a tenth of a metre
+            // tall, so the size is ten times the height wanted.
+            _goldNumber.fontSize = goldNumberHeight * 10f;
+
+            MeshRenderer numberRenderer = _goldNumber.renderer as MeshRenderer;
+
+            if (numberRenderer != null) {
+                numberRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                numberRenderer.receiveShadows = false;
+            }
+        }
+
         private MeshRenderer AddPart(string partName, Mesh mesh, Vector3 localPosition)
         {
             GameObject part = new(partName) { layer = gameObject.layer };
@@ -825,11 +878,20 @@ namespace Inventory
 
         /// <summary>
         /// Shows the gold pile at the size the gold calls for: nothing
-        /// with no gold, then a block that gets taller up to a full pile.
+        /// with no gold, then a block that gets taller up to a full pile,
+        /// with the number of gold pieces written over it.
         /// </summary>
         private void UpdateGoldPile()
         {
             _goldPileRenderer.enabled = Gold > 0;
+
+            // The number: only written when the gold changes (this is
+            // the one place that happens). SetText() with the number as
+            // an argument builds the figures without making a string.
+            if (_goldNumber != null) {
+                _goldNumber.enabled = Gold > 0;
+                _goldNumber.SetText("{0}", Gold);
+            }
 
             if (Gold <= 0) {
                 return;

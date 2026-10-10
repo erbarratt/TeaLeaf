@@ -11,11 +11,20 @@ namespace Player
     /// and whose bindings carry XRI-specific interactions (see turnAction).
     /// The Player map holds an action for every Quest controller input:
     /// function-named ones for inputs gameplay reads, and button-named
-    /// placeholders (ButtonY, Menu, RightStickClick) for unused
+    /// placeholders (ButtonX, ButtonY, Menu, RightStickClick) for unused
     /// buttons, to be renamed when they get a job.
     /// </summary>
     public class PlayerInputXR : MonoBehaviour
     {
+        [Header("Handedness")]
+        // Which way round the things worn on the hands are. Off (a
+        // right-handed player): the lockpicks on the back of the left
+        // hand, the crossbow on the back of the right. On (left-handed):
+        // the other way round. Read once, at startup, by the systems that
+        // put things on the hands. A player setting, like
+        // PlayerLocomotion's useSmoothTurn.
+        [SerializeField] private bool leftHanded;
+
         [Header("Left Hand")]
         // Player/LeftGrip and Player/LeftTrigger - analogue 0-1.
         [SerializeField] private InputActionReference leftGrip;
@@ -42,29 +51,34 @@ namespace Player
         [SerializeField] private InputActionReference turnAction;
 
         [Header("Stance")]
-        // Reference to the crouch button action. Read as a single press rather
-        // than a held value, since crouch is a toggle - see PlayerLocomotion.
+        // Reference to the crouch action. No controller button is bound to
+        // it: on a controller, crouch is the right stick pushed down (see
+        // crouchStickThreshold). The action still gives the keyboard's
+        // crouch key. A single press either way, since crouch is a toggle
+        // - see PlayerLocomotion.
         [SerializeField] private InputActionReference crouchAction;
 
-        // Reference to the sprint button action (left stick click). Also read
-        // as a single press, since sprint is a click-to-toggle that ends by
-        // itself - see PlayerLocomotion.UpdateSprint().
+        // How far down the right stick must be pushed to toggle crouch
+        // (0-1), and how far it must come back up before another push
+        // counts. Two values with a gap between them, so a stick held
+        // near one point can't toggle over and over.
+        [SerializeField, Range(0.1f, 1f)] private float crouchStickThreshold = 0.7f;
+        [SerializeField, Range(0f, 1f)] private float crouchStickRearm = 0.4f;
+
+        // Reference to the sprint button action (left stick click). Read
+        // as a single press, since sprint is a click-to-toggle that ends
+        // by itself - see PlayerLocomotion.UpdateSprint().
         [SerializeField] private InputActionReference sprintAction;
 
-        // Reference to the jump button action (right B). A single press -
+        // Reference to the jump button action (right A). A single press -
         // PlayerLocomotion buffers it briefly so an early press still jumps
         // on landing.
         [SerializeField] private InputActionReference jumpAction;
 
-        [Header("Pack")]
-        // Reference to the pack button action (left X) - Player/Pack. A
-        // single press: it brings the pack out or puts it away. Optional:
-        // left empty, the action is found by name in the same action map
-        // as the others (see OnEnable()), so the scene needn't be rewired.
-        [SerializeField] private InputActionReference packAction;
-
-        // The pack action's name in the Player map.
-        private const string PackActionName = "Pack";
+        // An action found by name in the Player map (the map the actions
+        // above are in), so the scene needs no wiring for it: the
+        // universal cancel button (right B).
+        private const string CancelActionName = "Cancel";
 
         // The InputActions behind the references above, resolved once in
         // OnEnable(). InputActionReference.action is a property that does a
@@ -81,9 +95,13 @@ namespace Player
         private InputAction _sprint;
         private InputAction _jump;
 
-        // Null if the Player map has no Pack action: then PackPressed is
-        // simply never true.
-        private InputAction _pack;
+        // Null if the Player map has no action of that name: then its
+        // property is simply never true.
+        private InputAction _cancel;
+
+        // True from the right stick being pushed down far enough to toggle
+        // crouch until it has come back up past crouchStickRearm.
+        private bool _isCrouchStickDown;
 
         // Time.frameCount of the last Tick(), so a second call in the same
         // frame (PlayerController's explicit one plus this class' own
@@ -116,10 +134,12 @@ namespace Player
 
         // Right thumbstick turning vector.
         // X = horizontal turning.
-        // Y is unused for now.
+        // Y = up starts a mantle (PlayerMantling), down toggles crouch
+        // (CrouchPressed).
         public Vector2 TurnAxis { get; private set; }
 
-        // True for exactly one frame when the crouch button is pressed.
+        // True for exactly one frame when crouch is asked for: the right
+        // stick pushed down, or the keyboard's crouch key.
         public bool CrouchPressed { get; private set; }
 
         // True for exactly one frame when the sprint button is pressed.
@@ -128,8 +148,13 @@ namespace Player
         // True for exactly one frame when the jump button is pressed.
         public bool JumpPressed { get; private set; }
 
-        // True for exactly one frame when the pack button is pressed.
-        public bool PackPressed { get; private set; }
+        // True for exactly one frame when the cancel button (right B) is
+        // pressed: the one button that backs out of whatever is under way
+        // (an aimed throw, for now).
+        public bool CancelPressed { get; private set; }
+
+        // Whether the player is left-handed: see leftHanded.
+        public bool IsLeftHanded => leftHanded;
 
         /// <summary>
         /// Makes sure every action this class reads is enabled. Unity enables
@@ -160,15 +185,24 @@ namespace Player
             _sprint.Enable();
             _jump.Enable();
 
-            // The pack action: the reference if one is wired, otherwise
-            // looked up by name in the map the other actions are in.
-            _pack = packAction != null ? packAction.action : _leftGrip.actionMap?.FindAction(PackActionName);
+            _cancel = FindByName(CancelActionName);
+        }
 
-            if (_pack != null) {
-                _pack.Enable();
+        /// <summary>
+        /// Finds an action by name in the map the wired actions are in,
+        /// and enables it. Null, with a warning, if there is none.
+        /// </summary>
+        private InputAction FindByName(string actionName)
+        {
+            InputAction action = _leftGrip.actionMap?.FindAction(actionName);
+
+            if (action != null) {
+                action.Enable();
             } else {
-                Debug.LogWarning($"PlayerInputXR: no '{PackActionName}' action found, so the pack button does nothing.", this);
+                Debug.LogWarning($"PlayerInputXR: no '{actionName}' action found in the Player map, so that button does nothing.", this);
             }
+
+            return action;
         }
 
         private void Update()
@@ -214,10 +248,37 @@ namespace Player
             MoveAxis = _move.ReadValue<Vector2>();
             TurnAxis = _turn.ReadValue<Vector2>();
 
-            CrouchPressed = _crouch.WasPressedThisFrame();
+            CrouchPressed = _crouch.WasPressedThisFrame() || ReadCrouchStick();
             SprintPressed = _sprint.WasPressedThisFrame();
             JumpPressed = _jump.WasPressedThisFrame();
-            PackPressed = _pack != null && _pack.WasPressedThisFrame();
+
+            CancelPressed = _cancel != null && _cancel.WasPressedThisFrame();
+        }
+
+        /// <summary>
+        /// True on the frame the right stick is pushed down far enough to
+        /// toggle crouch. "Down" means mostly down: further down than it is
+        /// to either side, so a turn with the stick a little low doesn't
+        /// count. The stick has to come back up before it counts again.
+        /// </summary>
+        private bool ReadCrouchStick()
+        {
+            Vector2 stick = TurnAxis;
+
+            if (_isCrouchStickDown) {
+                if (stick.y > -crouchStickRearm) {
+                    _isCrouchStickDown = false;
+                }
+
+                return false;
+            }
+
+            if (stick.y < -crouchStickThreshold && -stick.y > Mathf.Abs(stick.x)) {
+                _isCrouchStickDown = true;
+                return true;
+            }
+
+            return false;
         }
     }
 }

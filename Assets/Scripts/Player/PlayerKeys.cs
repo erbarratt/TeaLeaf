@@ -13,11 +13,12 @@ namespace Player
     ///
     /// The keyring is always in one of three places:
     /// - In the pack, in its space, where it lives.
-    /// - In the right hand: taken the usual way (hand ray on it in the
-    ///   pack, grip) and carried for as long as grip is held. Let go of
-    ///   away from a lock, it goes back to the pack.
+    /// - In a hand: taken the usual way (hand ray on it in the pack,
+    ///   grip) by the hand that isn't holding the pack, and carried for
+    ///   as long as grip is held. Let go of away from a lock, it goes
+    ///   back to the pack.
     /// - In a lock: brought close to a locked keyed lock whose key is on
-    ///   the ring, it snaps in and the right hand is freed. A lock whose
+    ///   the ring, it snaps in and the carrying hand is freed. A lock whose
     ///   key isn't on the ring buzzes the hand instead.
     ///
     /// With the key in a lock, either hand can grip it (by reaching for
@@ -45,7 +46,7 @@ namespace Player
         private enum RingPlace
         {
             InPack,
-            InRightHand,
+            InHand,
             InLock
         }
 
@@ -89,10 +90,11 @@ namespace Player
 
         [Header("Carrying The Keyring")]
 
-        // Where the keyring sits in the right hand while it's carried,
-        // in the right hand visual's own space (its fingers point along
-        // -Y, its thumb side is +Z; mirrored from the left hand's), and
-        // which way it's turned.
+        // Where the keyring sits in the hand while it's carried, in that
+        // hand visual's own space (its fingers point along -Y, its thumb
+        // side is +Z), and which way it's turned. The right hand visual
+        // is the left one mirrored, so the same numbers put it at the
+        // mirror-image place in either hand.
         [SerializeField] private Vector3 inHandPosition = new(0.02f, -0.13f, 0.03f);
         [SerializeField] private Vector3 inHandRotation = new(90f, 0f, 0f);
 
@@ -132,11 +134,11 @@ namespace Player
         [SerializeField] private float reachAmplitude = 0.15f;
         [SerializeField] private float reachDuration = 0.03f;
 
-        // The key going into a lock (right hand).
+        // The key going into a lock (the carrying hand).
         [SerializeField] private float insertAmplitude = 0.5f;
         [SerializeField] private float insertDuration = 0.06f;
 
-        // A lock the ring has no key for (right hand): long and rough.
+        // A lock the ring has no key for (the carrying hand): long and rough.
         [SerializeField] private float refuseAmplitude = 0.9f;
         [SerializeField] private float refuseDuration = 0.25f;
 
@@ -153,6 +155,9 @@ namespace Player
         private Keyring _keyring;
 
         private RingPlace _place = RingPlace.InPack;
+
+        // Which hand carries the keyring, while it's in a hand.
+        private bool _isCarrierLeft;
 
         // The lock the key is in, while it's in one; how something
         // facing that lock from the player's side is turned (see
@@ -173,14 +178,21 @@ namespace Player
         // and acted on at the end of that TickHeld().
         private bool _hasJustUnlocked;
 
-        /// True while the left hand is on the key - and, after being let
-        /// go by force, until its grip is released. Climbing, carrying,
-        /// doors and the lockpicks leave the hand alone meanwhile.
-        public bool IsLeftBusy => _left.isOnKey || _left.needsRegrip;
+        /// True while the left hand carries the keyring or is on the key -
+        /// and, after being let go by force, until its grip is released.
+        /// The other hand systems leave the hand alone meanwhile.
+        public bool IsLeftBusy => IsCarrying(true) || _left.isOnKey || _left.needsRegrip;
 
-        /// True while the right hand carries the keyring or is on the key
-        /// (as IsLeftBusy).
-        public bool IsRightBusy => _place == RingPlace.InRightHand || _right.isOnKey || _right.needsRegrip;
+        /// The same for the right hand.
+        public bool IsRightBusy => IsCarrying(false) || _right.isOnKey || _right.needsRegrip;
+
+        /// <summary>
+        /// Whether that hand is the one carrying the keyring.
+        /// </summary>
+        private bool IsCarrying(bool isLeftHand)
+        {
+            return _place == RingPlace.InHand && _isCarrierLeft == isLeftHand;
+        }
 
         /// <summary>
         /// Editor-only: fills in the references when the component is
@@ -276,11 +288,16 @@ namespace Player
 
             switch (_place) {
                 case RingPlace.InPack:
-                    TickRingInPack(isRightGrabbing);
+                    TickRingInPack(_left, isLeftGrabbing, playerHandInteraction.LeftTarget);
+
+                    if (_place == RingPlace.InPack) {
+                        TickRingInPack(_right, isRightGrabbing, playerHandInteraction.RightTarget);
+                    }
+
                     break;
 
-                case RingPlace.InRightHand:
-                    TickRingCarried(isRightGrabbing);
+                case RingPlace.InHand:
+                    TickRingCarried(_isCarrierLeft ? isLeftGrabbing : isRightGrabbing);
                     break;
 
                 case RingPlace.InLock:
@@ -291,20 +308,20 @@ namespace Player
         }
 
         /// <summary>
-        /// The keyring is in the pack: the right hand takes it if grip is
-        /// held while it's free and its ray is on the keyring's space.
-        /// (The space can only be targeted while the keyring is there
-        /// with a key on it.)
+        /// The keyring is in the pack: a hand takes it if grip is held
+        /// while it's free and its ray is on the keyring's space. (The
+        /// space can only be targeted while the keyring is there with a
+        /// key on it; the hand holding the pack isn't free.)
         /// </summary>
-        private void TickRingInPack(bool isRightGrabbing)
+        private void TickRingInPack(KeyHand hand, bool isGrabbing, IHandTarget target)
         {
-            if (!isRightGrabbing || _right.needsRegrip || !IsFree(_right)) {
+            if (!isGrabbing || hand.needsRegrip || !IsFree(hand)) {
                 return;
             }
 
             // The ray target is only an IHandTarget; a type pattern
             // checks whether it's the pack's keyring space.
-            if (playerHandInteraction.RightTarget is not PackSlot slot || slot.Pack != _pack || slot.Index != Pack.KeyringSpace) {
+            if (target is not PackSlot slot || slot.Pack != _pack || slot.Index != Pack.KeyringSpace) {
                 return;
             }
 
@@ -312,26 +329,27 @@ namespace Player
                 return;
             }
 
-            _place = RingPlace.InRightHand;
+            _place = RingPlace.InHand;
+            _isCarrierLeft = hand.isLeftHand;
             _refusedBy = null;
 
-            // Into the hand. The scale is set too: the right hand visual
-            // is mirrored, and the ring would otherwise pick that up.
+            // Into the hand, at the same local place in either hand's
+            // visual (see inHandPosition).
             Transform ring = _keyring.transform;
-            ring.SetParent(playerHandVisuals.RightHandVisual, false);
+            ring.SetParent(hand.isLeftHand ? playerHandVisuals.LeftHandVisual : playerHandVisuals.RightHandVisual, false);
             ring.SetLocalPositionAndRotation(inHandPosition, Quaternion.Euler(inHandRotation));
             ring.localScale = Vector3.one;
         }
 
         /// <summary>
-        /// The right hand is carrying the keyring: it goes back to the
+        /// A hand is carrying the keyring: it goes back to the
         /// pack if grip is let go, or into a locked lock it's brought
         /// close to if the lock's key is on it. A distance check per lock
         /// in the level, and only while the ring is in hand.
         /// </summary>
-        private void TickRingCarried(bool isRightGrabbing)
+        private void TickRingCarried(bool isGrabbing)
         {
-            if (!isRightGrabbing) {
+            if (!isGrabbing) {
                 ReturnRing();
                 return;
             }
@@ -352,14 +370,14 @@ namespace Player
             // The wrong ring for this lock: say so, once.
             if (found != _refusedBy) {
                 _refusedBy = found;
-                Pulse(false, refuseAmplitude, refuseDuration);
+                Pulse(_isCarrierLeft, refuseAmplitude, refuseDuration);
             }
         }
 
         /// <summary>
         /// Puts the key into found: the keyring snaps onto the lock's
         /// face on the player's side, with the key that fits shown going
-        /// into the door, and the right hand is freed (it has to let go
+        /// into the door, and the carrying hand is freed (it has to let go
         /// of grip before it can take the key).
         /// </summary>
         private void Insert(KeyLock found)
@@ -371,7 +389,7 @@ namespace Player
             _turnsAnticlockwise = found.TurnsAnticlockwise(facing);
             _turn = 0f;
             _place = RingPlace.InLock;
-            _right.needsRegrip = true;
+            (_isCarrierLeft ? _left : _right).needsRegrip = true;
             _left.wasInReach = false;
             _right.wasInReach = false;
             found.BeginKey();
@@ -387,7 +405,7 @@ namespace Player
                 _keyring.ShowKeyInLock(true, color);
             }
 
-            Pulse(false, insertAmplitude, insertDuration);
+            Pulse(_isCarrierLeft, insertAmplitude, insertDuration);
         }
 
         /// <summary>

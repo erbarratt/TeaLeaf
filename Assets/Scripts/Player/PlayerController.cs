@@ -42,6 +42,7 @@ namespace Player
         [SerializeField] private PlayerHandDoors playerHandDoors;
         [SerializeField] private PlayerLockpicking playerLockpicking;
         [SerializeField] private PlayerKeys playerKeys;
+        [SerializeField] private PlayerCrossbow playerCrossbow;
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
         [SerializeField] private PlayerHandAnimation playerHandAnimation;
         [SerializeField] private CharacterController characterController;
@@ -85,6 +86,9 @@ namespace Player
         // see Awake().
         private bool _hasPack;
 
+        // Whether the rig has a PlayerCrossbow - see Awake().
+        private bool _hasCrossbow;
+
         /// <summary>
         /// Editor-only convenience: Unity calls Reset() when the component is
         /// first added (or via the Inspector's Reset menu item), so every
@@ -113,6 +117,7 @@ namespace Player
             playerHandDoors = GetComponentInChildren<PlayerHandDoors>();
             playerLockpicking = GetComponentInChildren<PlayerLockpicking>();
             playerKeys = GetComponentInChildren<PlayerKeys>();
+            playerCrossbow = GetComponentInChildren<PlayerCrossbow>();
             playerHandVisuals = GetComponentInChildren<PlayerHandVisuals>();
             playerHandAnimation = GetComponentInChildren<PlayerHandAnimation>();
         }
@@ -190,6 +195,13 @@ namespace Player
 
             // And the pack, which is nothing without props to put in it.
             _hasPack = _hasHandHolding && playerPack != null;
+
+            if (playerCrossbow == null) {
+                playerCrossbow = GetComponentInChildren<PlayerCrossbow>();
+            }
+
+            // And the crossbow.
+            _hasCrossbow = playerCrossbow != null;
         }
 
         /// <summary>
@@ -263,11 +275,18 @@ namespace Player
             // mantling, since the mantle has already let go of the ledge and
             // nothing may grab or climb until it finishes.
             if (!playerMantling.IsMantling) {
-                // 3b. The lockpicks - taking them, putting them in a lock,
-                // taking hold of a pick. First of the grab systems: picks
-                // are taken by reaching for them, not by the hand rays, so
-                // a hand that takes one here must already be busy when
+                // 3b. The pack - brought out by reaching over a shoulder
+                // and gripping, put away by letting go. First of the grab
+                // systems: it's taken by reaching, not by the hand rays,
+                // so a hand that takes it here must already be busy when
                 // climbing, carrying and doors look at what its ray is on.
+                if (_hasPack) {
+                    playerPack.TickSummon();
+                }
+
+                // 3b (continued). The lockpicks - taking them, putting
+                // them in a lock, taking hold of a pick. Before the other
+                // grab systems for the same reason.
                 if (_hasLockpicking) {
                     playerLockpicking.Tick();
                 }
@@ -300,6 +319,13 @@ namespace Player
                 // and carried props.
                 if (_hasHandDoors) {
                     playerHandDoors.Tick();
+                }
+
+                // 4a (continued). The crossbow becoming active - last of
+                // all, so a hand that grabbed anything this frame is
+                // already busy: a grab always wins over the crossbow.
+                if (_hasCrossbow) {
+                    playerCrossbow.Tick();
                 }
             }
 
@@ -461,6 +487,12 @@ namespace Player
             // hands are drawn.
             if (_hasPack) {
                 playerPack.TickHeld();
+            }
+
+            // The crossbow's arc and shot, from where the hand visual
+            // (which carries it) now is, and its bolts in flight.
+            if (_hasCrossbow) {
+                playerCrossbow.TickHeld(canAim);
             }
         }
     }

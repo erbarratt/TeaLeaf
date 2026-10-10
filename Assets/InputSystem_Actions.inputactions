@@ -87,7 +87,7 @@
                     "initialStateCheck": true
                 },
                 {
-                    "name": "Pack",
+                    "name": "ButtonX",
                     "type": "Button",
                     "id": "db244721-b067-4cd7-ac24-8e56798cfeab",
                     "expectedControlType": "Button",
@@ -117,6 +117,15 @@
                     "name": "RightStickClick",
                     "type": "Button",
                     "id": "49bd6cdf-5657-4ab0-9530-b95a64ab21c9",
+                    "expectedControlType": "Button",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "Cancel",
+                    "type": "Button",
+                    "id": "9c8be70a-e3b2-4326-b20d-1d55b1298bde",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
@@ -336,7 +345,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "XR",
-                    "action": "Jump",
+                    "action": "Cancel",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -369,7 +378,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "XR",
-                    "action": "Crouch",
+                    "action": "Jump",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },
@@ -435,7 +444,7 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "XR",
-                    "action": "Pack",
+                    "action": "ButtonX",
                     "isComposite": false,
                     "isPartOfComposite": false
                 },

@@ -681,7 +681,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e8b6c214d3ba0c4294e63b1bc37d67c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Inventory.Loot
-  value: 5
   coinLevel: 1
   isGold: 1
   isObjective: 0
@@ -870,6 +869,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0073be052f987be4286ecdd35ecdefa9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player.PlayerInputXR
+  leftHanded: 0
   leftGrip: {fileID: 4311910775591650875, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   leftTrigger: {fileID: 1008940013452059561, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   rightGrip: {fileID: -7325207646472597729, guid: 052faaac586de48259a63d0c4782560b, type: 3}
@@ -877,9 +877,10 @@ MonoBehaviour:
   moveAction: {fileID: -1680190386980627800, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   turnAction: {fileID: 3398789533272882296, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   crouchAction: {fileID: 7040659881675835329, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+  crouchStickThreshold: 0.9
+  crouchStickRearm: 0.4
   sprintAction: {fileID: -7471211009204490832, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   jumpAction: {fileID: -2099379676528639254, guid: 052faaac586de48259a63d0c4782560b, type: 3}
-  packAction: {fileID: 0}
 --- !u!114 &37101390
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -950,20 +951,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player.PlayerController
   playerInput: {fileID: 37101389}
-  playerTracking: {fileID: 0}
+  playerTracking: {fileID: 37101388}
   playerLocomotion: {fileID: 37101390}
   playerHandInteraction: {fileID: 403779174}
   playerClimbing: {fileID: 37101395}
   playerMantling: {fileID: 6520291404544364422}
-  playerFootsteps: {fileID: 0}
-  playerVisibility: {fileID: 0}
-  playerKeyholes: {fileID: 0}
-  playerHandHolding: {fileID: 0}
-  playerHandThrowing: {fileID: 0}
-  playerPack: {fileID: 0}
-  playerHandDoors: {fileID: 0}
-  playerLockpicking: {fileID: 0}
-  playerKeys: {fileID: 0}
+  playerFootsteps: {fileID: 6520291404544364424}
+  playerVisibility: {fileID: 6520291404544364425}
+  playerKeyholes: {fileID: 6520291404544364426}
+  playerHandHolding: {fileID: 403779176}
+  playerHandThrowing: {fileID: 403779177}
+  playerPack: {fileID: 403779180}
+  playerHandDoors: {fileID: 403779178}
+  playerLockpicking: {fileID: 403779179}
+  playerKeys: {fileID: 403779181}
+  playerCrossbow: {fileID: 403779182}
   playerHandVisuals: {fileID: 403779175}
   playerHandAnimation: {fileID: 403779173}
   characterController: {fileID: 6232745471023633040}
@@ -1419,6 +1421,8 @@ MonoBehaviour:
   shrinkDuration: 0.12
   storeRadius: 0.24
   goldForFullPile: 200
+  goldNumberHeight: 0.03
+  goldNumberColor: {r: 1, g: 1, b: 1, a: 1}
   boardColor: {r: 0.3, g: 0.21, b: 0.13, a: 1}
   spaceColor: {r: 0.17, g: 0.12, b: 0.08, a: 1}
   goldSpaceColor: {r: 0.45, g: 0.36, b: 0.12, a: 1}
@@ -1492,7 +1496,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e8b6c214d3ba0c4294e63b1bc37d67c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Inventory.Loot
-  value: 20
   coinLevel: 1
   isGold: 0
   isObjective: 0
@@ -3274,7 +3277,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e8b6c214d3ba0c4294e63b1bc37d67c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Inventory.Loot
-  value: 100
   coinLevel: 3
   isGold: 0
   isObjective: 1
@@ -5877,6 +5879,8 @@ GameObject:
   - component: {fileID: 403779179}
   - component: {fileID: 403779180}
   - component: {fileID: 403779181}
+  - component: {fileID: 403779182}
+  - component: {fileID: 403779183}
   m_Layer: 0
   m_Name: Hands
   m_TagString: Untagged
@@ -6017,8 +6021,6 @@ MonoBehaviour:
   playerHandVisuals: {fileID: 403779175}
   aimStartTrigger: 0.6
   aimEndTrigger: 0.3
-  maxAimPitch: 75
-  minAimPitch: -60
   launchSpeed: 9
   launchSpin: 5
   launchReach: 0.15
@@ -6125,8 +6127,11 @@ MonoBehaviour:
   playerHandHolding: {fileID: 403779176}
   playerHandInteraction: {fileID: 403779174}
   playerHandVisuals: {fileID: 403779175}
+  playerHandState: {fileID: 0}
   playerHaptics: {fileID: 6520291404544364423}
   pack: {fileID: 74914559}
+  shoulderOffset: {x: 0.2, y: -0.05, z: -0.12}
+  shoulderRadius: 0.2
   packPosition: {x: 0.14, y: -0.2, z: 0.08}
   packRotation: {x: 90, y: 0, z: 0}
   coinRadius: 0.012
@@ -6136,6 +6141,10 @@ MonoBehaviour:
   storeCue: {fileID: 11400000, guid: 2cd9fdfaf5b816141bd8548028b8477a, type: 2}
   storeVolume: 0.5
   storeNoiseScale: 0.2
+  reachAmplitude: 0.15
+  reachDuration: 0.03
+  summonAmplitude: 0.5
+  summonDuration: 0.06
   hoverAmplitude: 0.15
   hoverDuration: 0.03
   storeAmplitude: 0.6
@@ -6179,6 +6188,80 @@ MonoBehaviour:
   refuseDuration: 0.25
   unlockAmplitude: 1
   unlockDuration: 0.15
+--- !u!114 &403779182
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 403779171}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f41c9c2910d054e458012d0eeea7958f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Player.PlayerCrossbow
+  playerInput: {fileID: 37101389}
+  playerTracking: {fileID: 37101388}
+  playerHandInteraction: {fileID: 403779174}
+  playerHandVisuals: {fileID: 403779175}
+  playerHandState: {fileID: 403779183}
+  playerHaptics: {fileID: 6520291404544364423}
+  onHandPosition: {x: -0.035, y: -0.05, z: 0}
+  onHandTilt: {x: 0, y: 0, z: 0}
+  stockSize: {x: 0.025, y: 0.018, z: 0.16}
+  bowWidth: 0.16
+  bowThickness: 0.012
+  wheelSize: 0.035
+  stockColor: {r: 0.35, g: 0.25, b: 0.16, a: 1}
+  metalColor: {r: 0.6, g: 0.62, b: 0.65, a: 1}
+  minLight: 0.35
+  palmDownAngle: 50
+  range: 40
+  fireTrigger: 0.6
+  rearmTrigger: 0.3
+  reloadTime: 1
+  muzzleDistance: 0.1
+  fireCue: {fileID: 0}
+  impactCue: {fileID: 0}
+  arcLayers:
+    serializedVersion: 2
+    m_Bits: 2625
+  arcCastTimeStep: 0.1
+  arcSegmentLength: 0.3
+  arcStyle: 1
+  arcWidth: 0.008
+  dotRadius: 0.012
+  dotSpacing: 0.4
+  landingMarkerRadius: 0.01
+  validColor: {r: 1, g: 1, b: 1, a: 1}
+  invalidColor: {r: 1, g: 0.2, b: 0.2, a: 0.5}
+  boltCount: 8
+  boltLength: 0.2
+  boltThickness: 0.008
+  boltLifetime: 30
+  activateAmplitude: 0.3
+  activateDuration: 0.04
+  fireAmplitude: 0.8
+  fireDuration: 0.08
+--- !u!114 &403779183
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 403779171}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: faba2c819301d224abbb4a662ea95ef1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Player.PlayerHandState
+  playerClimbing: {fileID: 37101395}
+  playerHandHolding: {fileID: 403779176}
+  playerHandDoors: {fileID: 403779178}
+  playerLockpicking: {fileID: 403779179}
+  playerKeys: {fileID: 403779181}
+  playerPack: {fileID: 403779180}
+  playerCrossbow: {fileID: 403779182}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0
@@ -8400,7 +8483,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e8b6c214d3ba0c4294e63b1bc37d67c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Inventory.Loot
-  value: 150
   coinLevel: 3
   isGold: 0
   isObjective: 0
@@ -8846,7 +8928,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e8b6c214d3ba0c4294e63b1bc37d67c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Inventory.Loot
-  value: 50
   coinLevel: 2
   isGold: 0
   isObjective: 0
@@ -9228,7 +9309,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e8b6c214d3ba0c4294e63b1bc37d67c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Inventory.Loot
-  value: 5
   coinLevel: 1
   isGold: 1
   isObjective: 0
@@ -9475,7 +9555,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e8b6c214d3ba0c4294e63b1bc37d67c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Inventory.Loot
-  value: 50
   coinLevel: 2
   isGold: 0
   isObjective: 0
@@ -11494,7 +11573,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e8b6c214d3ba0c4294e63b1bc37d67c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Inventory.Loot
-  value: 50
   coinLevel: 2
   isGold: 0
   isObjective: 0
@@ -17348,7 +17426,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e8b6c214d3ba0c4294e63b1bc37d67c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Inventory.Loot
-  value: 20
   coinLevel: 1
   isGold: 0
   isObjective: 0
@@ -18027,7 +18104,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e8b6c214d3ba0c4294e63b1bc37d67c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Inventory.Loot
-  value: 20
   coinLevel: 1
   isGold: 0
   isObjective: 0
@@ -18808,7 +18884,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e8b6c214d3ba0c4294e63b1bc37d67c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Inventory.Loot
-  value: 20
   coinLevel: 1
   isGold: 0
   isObjective: 0
@@ -21028,7 +21103,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e8b6c214d3ba0c4294e63b1bc37d67c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Inventory.Loot
-  value: 5
   coinLevel: 1
   isGold: 1
   isObjective: 0
@@ -21764,7 +21838,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e8b6c214d3ba0c4294e63b1bc37d67c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Inventory.Loot
-  value: 80
   coinLevel: 2
   isGold: 0
   isObjective: 0
@@ -25411,7 +25484,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e8b6c214d3ba0c4294e63b1bc37d67c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Inventory.Loot
-  value: 5
   coinLevel: 1
   isGold: 1
   isObjective: 0
@@ -27702,7 +27774,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e8b6c214d3ba0c4294e63b1bc37d67c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Inventory.Loot
-  value: 80
   coinLevel: 2
   isGold: 0
   isObjective: 0
@@ -29580,8 +29651,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 36b2adc8c18e5164aae7d193c8d89e33, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player.PlayerHaptics
-  leftHapticAction: {fileID: -835412888943659484, guid: 052faaac586de48259a63d0c4782560b, type: 3}
-  rightHapticAction: {fileID: 2733243454578109729, guid: 052faaac586de48259a63d0c4782560b, type: 3}
   hapticsEnabled: 1
   playerHandVisuals: {fileID: 403779175}
   contactAmplitude: 0.15

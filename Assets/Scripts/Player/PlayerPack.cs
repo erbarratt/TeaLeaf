@@ -11,18 +11,19 @@ namespace Player
     /// What the pack holds, and where things go in it, is the pack's own
     /// business.
     ///
-    /// - The pack button (X on the left controller) brings the pack out or
-    ///   puts it away. Out, it rides on the left hand visual like something
-    ///   carried, at a set place relative to the hand. It collides with
-    ///   nothing.
+    /// - Reaching over the shoulder - a hand beside and behind the head -
+    ///   and gripping brings the pack out, with either hand. It rides on
+    ///   that hand's visual like something carried, at a set place
+    ///   relative to the hand, for as long as the grip is held; letting
+    ///   go puts it away. It collides with nothing.
     /// - Loot (Inventory.Loot) held over one of the pack's spaces lights
     ///   that space up if it's free, and let go of there goes into it;
     ///   anything else, or anywhere else, just drops. What's tested is
     ///   where the loot is, not where the hand is.
-    /// - The right hand takes an item out the usual way - hand ray on it,
+    /// - The other hand takes an item out the usual way - hand ray on it,
     ///   grip. The item first grows back to full size in the pack, then
-    ///   the hand reaches for it as for any prop. (The left hand is the
-    ///   one wearing the pack, so it doesn't take from it.)
+    ///   the hand reaches for it as for any prop. (The hand holding the
+    ///   pack doesn't take from it.)
     /// - While a hand carries loot, coins hover over it showing roughly
     ///   what it's worth (LootWorthMarker).
     ///
@@ -31,11 +32,12 @@ namespace Player
     /// frame holds nothing now, that loot has just been let go of.
     ///
     /// Lives on the Hands object. No Update(): PlayerController calls
-    /// Tick() straight after PlayerHandHolding.Tick(), and TickHeld()
-    /// (the pack's own movement, and the coins) after the hand visuals
-    /// are placed.
+    /// TickSummon() (bringing the pack out and putting it away) before
+    /// the grab systems, Tick() straight after PlayerHandHolding.Tick(),
+    /// and TickHeld() (the pack's own movement, and the coins) after the
+    /// hand visuals are placed.
     /// </summary>
-    public class PlayerPack : MonoBehaviour
+    public class PlayerPack : MonoBehaviour, IDebugDrawable
     {
         /// One hand's state. A class, made once per hand in Awake(), so
         /// the methods below can change it without ref parameters.
@@ -57,6 +59,12 @@ namespace Player
 
             // The coins shown over loot this hand carries.
             public LootWorthMarker marker;
+
+            // Whether grip was held last frame, and whether the hand was
+            // at a shoulder and free: the pack comes out on the frame grip
+            // is pressed there, and a tap is felt once on reaching it.
+            public bool wasGrabbing;
+            public bool wasAtShoulder;
         }
 
         [SerializeField] private PlayerInputXR playerInput;
@@ -65,6 +73,11 @@ namespace Player
         [SerializeField] private PlayerHandInteraction playerHandInteraction;
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
+        // What each hand is busy with: a hand climbing, carrying or on a
+        // door can't bring the pack out. Found (or made) in Awake() if not
+        // wired (it's on this same object).
+        [SerializeField] private PlayerHandState playerHandState;
+
         // Optional: a rig with no haptics still uses the pack.
         [SerializeField] private PlayerHaptics playerHaptics;
 
@@ -72,13 +85,25 @@ namespace Player
         // and made with its default settings if there is none.
         [SerializeField] private Pack pack;
 
+        [Header("Bringing The Pack Out")]
+
+        // Where the pack is reached for: the middle of a ball beside and
+        // behind the head, over the right shoulder, measured from the
+        // head in metres - x to the right, y up, z ahead (so a negative z
+        // is behind), with the head's tilt ignored. The left shoulder's
+        // is the mirror image. Either hand may reach either one.
+        [SerializeField] private Vector3 shoulderOffset = new(0.2f, -0.05f, -0.12f);
+
+        // The ball's radius, in metres.
+        [SerializeField] private float shoulderRadius = 0.2f;
+
         [Header("Where The Pack Rides")]
 
         // The middle of the pack's board in the left hand visual's own
         // space (its fingers point along -Y, its palm faces +X, its thumb
         // side is +Z), and which way it's turned. The defaults put the
         // board in front of a left hand held thumb up, facing back at the
-        // player.
+        // player. In the right hand it sits at the mirror image of this.
         [SerializeField] private Vector3 packPosition = new(0.14f, -0.2f, 0.08f);
         [SerializeField] private Vector3 packRotation = new(90f, 0f, 0f);
 
@@ -100,6 +125,12 @@ namespace Player
         [SerializeField] private float storeVolume = 0.5f;
         [SerializeField] private float storeNoiseScale = 0.2f;
 
+        // A free hand reaching a shoulder, and the pack coming out.
+        [SerializeField] private float reachAmplitude = 0.15f;
+        [SerializeField] private float reachDuration = 0.03f;
+        [SerializeField] private float summonAmplitude = 0.5f;
+        [SerializeField] private float summonDuration = 0.06f;
+
         // Carried loot lighting up a space in the pack.
         [SerializeField] private float hoverAmplitude = 0.15f;
         [SerializeField] private float hoverDuration = 0.03f;
@@ -120,7 +151,11 @@ namespace Player
 
         private bool _hasHaptics;
 
-        // True from the right hand asking for an item until the pack
+        // Whether the pack is out, and which hand is holding it.
+        private bool _isOut;
+        private bool _isPackLeft;
+
+        // True from the free hand asking for an item until the pack
         // hands it over (it's growing back to full size).
         private bool _isTaking;
 
@@ -133,6 +168,11 @@ namespace Player
         /// The pack - for PlayerKeys, which takes the keyring out of it.
         /// Set by the end of Awake().
         public Pack Pack => pack;
+
+        /// True while that hand is holding the pack out. The other hand
+        /// systems leave it alone meanwhile (PlayerHandState).
+        public bool IsLeftBusy => _isOut && _isPackLeft;
+        public bool IsRightBusy => _isOut && !_isPackLeft;
 
         /// <summary>
         /// Editor-only: fills in the references when the component is
@@ -151,6 +191,10 @@ namespace Player
 
         private void Awake()
         {
+            if (playerHandState == null) {
+                playerHandState = PlayerHandState.GetOrAdd(playerHandVisuals);
+            }
+
             if (playerHaptics == null) {
                 playerHaptics = GetComponentInParent<PlayerHaptics>();
             }
@@ -185,20 +229,26 @@ namespace Player
         }
 
         /// <summary>
-        /// Puts the pack on the left hand and puts it away. Start() rather
-        /// than Awake(): PlayerHandVisuals copies each hand visual in its
-        /// own Awake() to make the ghost hands, and a pack already on the
+        /// Puts the pack on a hand and puts it away. Start() rather than
+        /// Awake(): PlayerHandVisuals copies each hand visual in its own
+        /// Awake() to make the ghost hands, and a pack already on the
         /// hand by then would be copied onto the ghost too. Every Awake()
         /// has run before the first Start().
         /// </summary>
         private void Start()
         {
-            Transform packTransform = pack.transform;
-            packTransform.SetParent(playerHandVisuals.LeftHandVisual, false);
-            packTransform.SetLocalPositionAndRotation(packPosition, Quaternion.Euler(packRotation));
-            packTransform.localScale = Vector3.one;
-
+            PlaceOnHand(true);
             pack.Close();
+        }
+
+        private void OnEnable()
+        {
+            DebugDrawRegistry.Register(this);
+        }
+
+        private void OnDisable()
+        {
+            DebugDrawRegistry.Unregister(this);
         }
 
         private void OnDestroy()
@@ -242,24 +292,121 @@ namespace Player
         }
 
         /// <summary>
-        /// The pack button, loot being let go of, and items being taken
-        /// out. Called by PlayerController straight after
-        /// PlayerHandHolding.Tick(), so a prop let go of this frame is
-        /// seen this frame, before it has started to fall.
+        /// Makes the pack a child of one hand's visual, at its set place.
+        /// The right hand visual is the left one mirrored (x scale -1), so
+        /// the same local place there is the mirror image of the left
+        /// hand's - which is where it should be. The pack's own x scale is
+        /// set to -1 under the right hand to cancel the mirroring, or the
+        /// pack itself would be drawn back to front.
         /// </summary>
-        public void Tick()
+        private void PlaceOnHand(bool isLeftHand)
         {
-            if (playerInput.PackPressed) {
-                if (pack.IsOpen) {
+            Transform packTransform = pack.transform;
+            Transform visual = isLeftHand ? playerHandVisuals.LeftHandVisual : playerHandVisuals.RightHandVisual;
+
+            packTransform.SetParent(visual, false);
+            packTransform.SetLocalPositionAndRotation(packPosition, Quaternion.Euler(packRotation));
+            packTransform.localScale = isLeftHand ? Vector3.one : new Vector3(-1f, 1f, 1f);
+        }
+
+        /// <summary>
+        /// Bringing the pack out and putting it away. Called by
+        /// PlayerController before the grab systems (climbing, carrying,
+        /// doors): the pack is taken by reaching, not by the hand rays, so
+        /// a hand that takes it must already be busy when those look at
+        /// what its ray is on.
+        /// </summary>
+        public void TickSummon()
+        {
+            bool isLeftGrabbing = playerInput.IsLeftGrabbing;
+            bool isRightGrabbing = playerInput.IsRightGrabbing;
+
+            if (_isOut) {
+                // Out for as long as the hand holding it keeps its grip.
+                bool isHolding = _isPackLeft ? isLeftGrabbing : isRightGrabbing;
+
+                if (!isHolding) {
                     ClosePack();
-                } else {
-                    pack.Open();
+                }
+            } else {
+                TickReach(_left, isLeftGrabbing, playerTracking.LeftHandPosition);
+
+                if (!_isOut) {
+                    TickReach(_right, isRightGrabbing, playerTracking.RightHandPosition);
                 }
             }
 
+            _left.wasGrabbing = isLeftGrabbing;
+            _right.wasGrabbing = isRightGrabbing;
+        }
+
+        /// <summary>
+        /// One hand, while the pack is away: a tap as the hand, free,
+        /// reaches a shoulder, and the pack out on that hand on the frame
+        /// its grip is pressed there. (Pressed, not held: a hand that
+        /// arrives already gripping doesn't bring it out.)
+        /// </summary>
+        private void TickReach(PackHand hand, bool isGrabbing, Vector3 handPosition)
+        {
+            bool isAtShoulder = IsAtShoulder(handPosition)
+                && !playerHandState.IsBusyExcept(hand.isLeftHand, HandUse.Pack);
+
+            if (isAtShoulder && !hand.wasAtShoulder) {
+                Pulse(hand.isLeftHand, reachAmplitude, reachDuration);
+            }
+
+            hand.wasAtShoulder = isAtShoulder;
+
+            if (!isAtShoulder || !isGrabbing || hand.wasGrabbing) {
+                return;
+            }
+
+            _isOut = true;
+            _isPackLeft = hand.isLeftHand;
+            _left.wasAtShoulder = false;
+            _right.wasAtShoulder = false;
+
+            PlaceOnHand(hand.isLeftHand);
+            pack.Open();
+            Pulse(hand.isLeftHand, summonAmplitude, summonDuration);
+        }
+
+        /// <summary>
+        /// Whether a point is within reach of either shoulder: inside the
+        /// ball over the right one or its mirror image over the left.
+        /// Measured from the head with only its turn to left and right
+        /// taken into account, so looking down doesn't swing the shoulders
+        /// up behind the head.
+        /// </summary>
+        private bool IsAtShoulder(Vector3 worldPoint)
+        {
+            Vector3 local = Quaternion.Inverse(HeadYaw()) * (worldPoint - playerTracking.HeadPosition);
+
+            // Folding left onto right tests both shoulders at once.
+            local.x = Mathf.Abs(local.x);
+
+            return (local - shoulderOffset).sqrMagnitude <= shoulderRadius * shoulderRadius;
+        }
+
+        /// <summary>
+        /// The head's rotation with its tilt taken out: only which way it
+        /// faces round the vertical.
+        /// </summary>
+        private Quaternion HeadYaw()
+        {
+            return Quaternion.Euler(0f, playerTracking.HeadRotation.eulerAngles.y, 0f);
+        }
+
+        /// <summary>
+        /// Loot being let go of, and items being taken out. Called by
+        /// PlayerController straight after PlayerHandHolding.Tick(), so a
+        /// prop let go of this frame is seen this frame, before it has
+        /// started to fall.
+        /// </summary>
+        public void Tick()
+        {
             // Set by whichever hand lights a space up this frame - see
-            // TickHover(). The right hand goes first: it's the one that
-            // can reach the pack.
+            // TickHover().
             _isHovering = false;
 
             TickHand(_right, playerHandHolding.RightHeld, playerHandHolding.IsRightHolding);
@@ -285,6 +432,7 @@ namespace Player
                 PutBack(loot);
             }
 
+            _isOut = false;
             _isTaking = false;
             _left.hoverSpace = Pack.NoSpace;
             _right.hoverSpace = Pack.NoSpace;
@@ -377,7 +525,7 @@ namespace Player
         {
             Vector3 position = hand.grabbable.WorldCentre;
 
-            if (!pack.IsInReach(position)) {
+            if (!pack.IsOpen || !pack.IsInReach(position)) {
                 return;
             }
 
@@ -407,16 +555,17 @@ namespace Player
         }
 
         /// <summary>
-        /// Taking an item out with the right hand. Asking: the hand is
-        /// empty, grip is held and its ray is on one of the pack's
-        /// spaces - the item there starts to grow. Receiving: once it's
-        /// full size the pack hands it over, and the hand picks it up as
-        /// it would any prop. If the hand has let go of grip by then, or
-        /// can't take it, it goes back in.
+        /// Taking an item out with the hand that isn't holding the pack.
+        /// Asking: the hand is empty, grip is held and its ray is on one
+        /// of the pack's spaces - the item there starts to grow.
+        /// Receiving: once it's full size the pack hands it over, and the
+        /// hand picks it up as it would any prop. If the hand has let go
+        /// of grip by then, or can't take it, it goes back in.
         /// </summary>
         private void TickTaking()
         {
-            bool isGrabbing = playerInput.IsRightGrabbing;
+            bool isTakerLeft = !_isPackLeft;
+            bool isGrabbing = isTakerLeft ? playerInput.IsLeftGrabbing : playerInput.IsRightGrabbing;
 
             if (pack.TryPopTaken(out Loot loot)) {
                 _isTaking = false;
@@ -436,20 +585,24 @@ namespace Player
                 // pick-up never sees it lying loose - see Pack.TakeOut().
                 grabbable.Unstow();
 
-                if (!playerHandHolding.TryPickUp(false, grabbable, grabbable.WorldCentre)) {
+                if (!playerHandHolding.TryPickUp(isTakerLeft, grabbable, grabbable.WorldCentre)) {
                     PutBack(loot);
                 }
 
                 return;
             }
 
-            if (_isTaking || !isGrabbing || playerHandHolding.IsRightHolding) {
+            bool isTakerHolding = isTakerLeft ? playerHandHolding.IsLeftHolding : playerHandHolding.IsRightHolding;
+
+            if (_isTaking || !isGrabbing || isTakerHolding) {
                 return;
             }
 
             // The ray target is only an IHandTarget; a type pattern
             // checks whether it's one of the pack's spaces.
-            if (playerHandInteraction.RightTarget is PackSlot slot && slot.Pack == pack) {
+            IHandTarget target = isTakerLeft ? playerHandInteraction.LeftTarget : playerHandInteraction.RightTarget;
+
+            if (target is PackSlot slot && slot.Pack == pack) {
                 _isTaking = pack.BeginTake(slot.Index);
             }
         }
@@ -533,6 +686,36 @@ namespace Player
             if (_hasHaptics) {
                 playerHaptics.Pulse(isLeftHand, amplitude, duration);
             }
+        }
+
+        /// <summary>
+        /// Editor-only: the two shoulder balls while this object is
+        /// selected.
+        /// </summary>
+        private void OnDrawGizmosSelected()
+        {
+            DebugLines.ForGizmos.Draw(this, true);
+        }
+
+        /// <summary>
+        /// The two shoulder balls, for tuning where the pack is reached
+        /// for: in the Scene view while selected and, with InHeadsetGizmos
+        /// showing detail, in the headset. Nothing to draw in Edit Mode -
+        /// they hang off the tracked head.
+        /// </summary>
+        public void DrawDebug(DebugLines lines, bool detailed)
+        {
+            if (!detailed || !Application.isPlaying || playerTracking == null) {
+                return;
+            }
+
+            Vector3 headPosition = playerTracking.HeadPosition;
+            Quaternion yaw = HeadYaw();
+            Vector3 mirrored = new(-shoulderOffset.x, shoulderOffset.y, shoulderOffset.z);
+
+            lines.Color = _isOut ? Color.green : Color.yellow;
+            lines.WireSphere(headPosition + yaw * shoulderOffset, shoulderRadius);
+            lines.WireSphere(headPosition + yaw * mirrored, shoulderRadius);
         }
     }
 }

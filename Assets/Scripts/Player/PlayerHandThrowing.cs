@@ -16,10 +16,10 @@ namespace Player
     /// the hand is tilted, as with a teleport arc: furthest at about 45
     /// degrees.
     ///
-    /// Cancelling is aiming at nothing: point the hand steeply up or down,
-    /// or anywhere the arc doesn't come down on something, and the arc
-    /// turns red - letting go of the trigger then throws nothing, and the
-    /// prop stays in the hand.
+    /// Cancelling is the cancel button (B on the right controller): the
+    /// arc goes and the prop stays in the hand. An arc that doesn't come
+    /// down on anything, or has no room to start, is drawn red, and
+    /// letting go of the trigger then throws nothing either.
     ///
     /// The launch is a short move of the hand visual, not an animation
     /// clip: the hand is snapped a little way forward along the throw
@@ -53,6 +53,11 @@ namespace Player
             // True while the trigger is held with a prop in hand.
             public bool isAiming;
 
+            // True after the cancel button ended this hand's aim, until
+            // its trigger is let out: the trigger is still held, and would
+            // start aiming again straight away.
+            public bool isCancelled;
+
             // True while the hand is making its launch move, and the
             // velocity and spin the prop is to leave with at the end of it.
             public bool isLaunching;
@@ -76,11 +81,6 @@ namespace Player
         // aiming and throwing.
         [SerializeField] private float aimStartTrigger = 0.6f;
         [SerializeField] private float aimEndTrigger = 0.3f;
-
-        // The hand's tilt above and below level, in degrees, beyond which
-        // the throw is cancelled (red arc): the "aim at nothing" gesture.
-        [SerializeField] private float maxAimPitch = 75f;
-        [SerializeField] private float minAimPitch = -60f;
 
         [Header("Throw")]
 
@@ -251,8 +251,11 @@ namespace Player
 
         /// <summary>
         /// One hand: finish a launch under way, or else aim while the
-        /// trigger is held with a prop in hand, and throw (or cancel) when
-        /// it's let go. direction is where the controller points.
+        /// trigger is held with a prop in hand, and throw when it's let
+        /// go. The cancel button ends the aim with nothing thrown: the
+        /// prop stays in the hand, and the trigger has to be let out
+        /// before it can aim again. direction is where the controller
+        /// points.
         /// </summary>
         private void TickHand(HandThrow hand, float trigger, Vector3 direction, bool canAim)
         {
@@ -269,12 +272,29 @@ namespace Player
                 return;
             }
 
+            // Cancelled: nothing more until the trigger has been let out.
+            if (hand.isCancelled) {
+                if (trigger <= aimEndTrigger) {
+                    hand.isCancelled = false;
+                }
+
+                return;
+            }
+
             if (!hand.isAiming) {
                 if (trigger < aimStartTrigger) {
                     return;
                 }
 
                 hand.isAiming = true;
+            }
+
+            // The cancel button: one button for both hands, so it ends
+            // whichever aim is under way.
+            if (playerInput.CancelPressed) {
+                StopAiming(hand);
+                hand.isCancelled = true;
+                return;
             }
 
             // Worked out every frame of aiming, including the one the
@@ -301,15 +321,15 @@ namespace Player
         private void StopAiming(HandThrow hand)
         {
             hand.isAiming = false;
+            hand.isCancelled = false;
             hand.arc.Hide();
         }
 
         /// <summary>
         /// Works out the arc a throw from centre in direction would follow,
         /// into hand.points, stopping at the first thing it hits. True if
-        /// it's a throw that can be made: the hand isn't tilted past the
-        /// cancel angles, there's room for the launch move, and the arc
-        /// lands on something in time.
+        /// it's a throw that can be made: there's room for the launch
+        /// move, and the arc lands on something in time.
         /// </summary>
         private bool ComputeArc(HandThrow hand, Vector3 centre, Vector3 direction, out Vector3 landingPoint, out Vector3 landingNormal)
         {
@@ -331,80 +351,9 @@ namespace Player
                 return false;
             }
 
-            // How far the hand is tilted above level. direction has length
-            // 1, so its y is the sine of that angle; Asin turns it back
-            // into the angle.
-            float pitch = Mathf.Asin(Mathf.Clamp(direction.y, -1f, 1f)) * Mathf.Rad2Deg;
-            bool isPitchValid = pitch <= maxAimPitch && pitch >= minAimPitch;
-
-            Vector3 velocity = direction * launchSpeed;
-            Vector3 gravity = Physics.gravity;
-            float fixedStep = Time.fixedDeltaTime;
-
-            // Two jobs, at two levels of detail.
-            //
-            // 1. Finding where it lands: follow the arc in a FEW long
-            // straight pieces (arcCastTimeStep of flight each), one
-            // physics ray per piece. A straight piece cuts the corner of
-            // the curve, but by very little - gravity x step squared / 8,
-            // about 1cm for a 0.1s piece - so long pieces find the landing
-            // nearly as exactly as short ones, with far fewer rays.
-            float castStep = Mathf.Max(arcCastTimeStep, 0.02f);
-            float flightTime = arcMaxTime;
-            bool hasLanded = false;
-            Vector3 previous = start;
-
-            for (float previousTime = 0f; previousTime < arcMaxTime;) {
-                float t = Mathf.Min(previousTime + castStep, arcMaxTime);
-                Vector3 point = ArcPoint(start, velocity, gravity, t, fixedStep);
-
-                if (Physics.Linecast(previous, point, out RaycastHit hit, arcLayers, QueryTriggerInteraction.Ignore)) {
-                    // When it lands: the hit's share of the way along this
-                    // piece, as the same share of the piece's time.
-                    float pieceLength = (point - previous).magnitude;
-                    float share = pieceLength > 0f ? hit.distance / pieceLength : 0f;
-
-                    flightTime = previousTime + (t - previousTime) * share;
-                    landingPoint = hit.point;
-                    landingNormal = hit.normal;
-                    hasLanded = true;
-                    break;
-                }
-
-                previous = point;
-                previousTime = t;
-            }
-
-            // 2. Drawing it: MANY short pieces, straight from the formula
-            // up to the moment it lands - no rays, just arithmetic, so the
-            // line can be as smooth as it likes.
-            int last = Mathf.Min(Mathf.CeilToInt(flightTime / _arcTimeStep), points.Length - 1);
-
-            for (int i = 0; i < last; i++) {
-                points[i] = ArcPoint(start, velocity, gravity, i * _arcTimeStep, fixedStep);
-            }
-
-            // The line ends exactly on what it hit (or, with no landing,
-            // wherever the arc had got to when it was given up on).
-            points[last] = hasLanded ? landingPoint : ArcPoint(start, velocity, gravity, flightTime, fixedStep);
-            hand.pointCount = last + 1;
-
-            return hasLanded && isPitchValid;
-        }
-
-        /// <summary>
-        /// Where a thrown body is t seconds after leaving start at
-        /// velocity. The textbook answer is start + velocity x t + half
-        /// gravity x t squared - but Unity's physics moves in steps
-        /// (fixedStep seconds each), adding gravity to the speed BEFORE
-        /// each move, so a body really falls a little further: t x (t +
-        /// fixedStep) in place of t squared. Using the same sum puts the
-        /// line where the prop will actually go (about 10cm of difference
-        /// a second into the flight).
-        /// </summary>
-        private static Vector3 ArcPoint(Vector3 start, Vector3 velocity, Vector3 gravity, float t, float fixedStep)
-        {
-            return start + velocity * t + gravity * (0.5f * t * (t + fixedStep));
+            // The path itself is BallisticArc's. A thrown prop is moved by
+            // physics, so the arc allows for physics' stepped gravity.
+            return BallisticArc.Compute(start, direction * launchSpeed, arcLayers, arcCastTimeStep, arcMaxTime, _arcTimeStep, Time.fixedDeltaTime, points, out hand.pointCount, out _, out landingPoint, out landingNormal);
         }
 
         /// <summary>

@@ -6,22 +6,23 @@ loaded when working in this folder. Keep it up to date with every change to thes
 like the root file.
 
 Phase 4 of `Assets/DEVROADMAP.txt`. **Built and working in the headset:** the pack, loot, the
-worth coins, the inventory data, keys and the keyring. **Not built:** equipping tools, bolt
-selection, a number for the gold.
+worth coins, the inventory data, keys and the keyring. **Not built:** the weapon hand menu and bolt
+selection. **Not yet tried in the headset:** the gold number.
 
 ## The design
 
 **A backpack that only holds so much.** The player searches the level and keeps the most
 valuable things, discarding the rest. Each piece of loot takes exactly one of the pack's
 spaces, chosen by holding it over that space (a free space lights up); small things (coins,
-rings) just add to a gold amount. The pack is a physical bag the player summons (X on the
-left controller, again to dismiss) and puts things into by hand; it rides on the left hand
-visual and collides with nothing. Its layout: along the top, side by side, a space for the
+rings) just add to a gold amount. The pack is a physical bag the player brings out by
+reaching over a shoulder with either hand and gripping; it rides on that hand's visual for
+as long as the grip is held (letting go puts it away), the other hand puts things into it,
+and it collides with nothing. Its layout: along the top, side by side, a space for the
 **objective** and one for the **keyring** - both apart from the loot - and under them a
 tunable grid, 3 x 3, whose top left space is the **gold** space. An item in the pack snaps to
 a space and shrinks to fit it; taken out, it grows back first and then the hand takes it as
-normal. Carried loot shows **one to three coins** hovering near it for its worth (the value
-behind each level is not set yet). No hip pocket and no multi-space items.
+normal. Carried loot shows **one to three coins** hovering near it for its worth: **one coin level
+is one gold piece**, so loot is worth one, two or three gold. No hip pocket and no multi-space items.
 
 **Keys:** coloured; collected keys show on the keyring in the pack. To unlock, the keyring is
 taken from the pack and held to a door's lock: if the right key is on it, it snaps into the
@@ -32,7 +33,8 @@ right of the door leaf from the player's side, clockwise if on the left.
 
 - **`Pack`** — the physical pack and what's in it. One in the scene, built in `Awake()` from
   its own fields; `Player.PlayerPack` finds it (or makes one with defaults) and puts it on
-  the left hand. Own axes: X to the player's right, Y up the board, Z away from the player;
+  whichever hand brings it out (x scale -1 under the mirrored right hand visual, so the
+  pack itself is never mirrored). Own axes: X to the player's right, Y up the board, Z away from the player;
   origin = the middle of the board; unscaled. **Layout** (`Build()`): a board `columns` x
   `rows` spaces wide/tall (`cellSize` 0.09, `cellGap` 0.012, `depth` 0.05) plus a top row
   of two wide spaces (objective left, keyring right). Grid spaces are numbered row by row
@@ -54,8 +56,8 @@ right of the door leaf from the player's side, clockwise if on the left.
   highlight block onto that space (**a free space lights up, a taken one doesn't**) and
   returns it; `ClearHover()`; the block is only touched when the space changes.
   **Storing:** `TryStore(loot, worldPoint)` uses the same `TargetSpace()` → `PackResult`:
-  **`Gold`** (value added to `Gold`, `Loot.Collect()`, the pile grows - a full pile at
-  `goldForFullPile` 200), **`Objective`** (into its own space;
+  **`Gold`** (its worth added to `Gold`, `Loot.Collect()`, the pile grows - a full pile at
+  `goldForFullPile` 20 - and the gold number is rewritten), **`Objective`** (into its own space;
   `PlayerInventory.TakeObjective()`; **can't be taken out again**), **`Stored`**, or
   **`NoRoom`** (the space it was over is taken, or it wasn't over the pack). `PutIn()`:
   `Grabbable.Stow()`, child of the pack, upright, its original parent and scale remembered.
@@ -72,6 +74,14 @@ right of the door leaf from the player's side, clockwise if on the left.
   a prop that is in the hand. `PlayerPack` unstows it in the same call as the pick-up, after
   the holding tick. One item is taken at a time. The pack tells `PlayerInventory`
   (`AddLoot` / `RemoveLoot`) as things go in and out.
+- **The gold number** — `BuildGoldNumber()` makes a `TextMeshPro` (3D text, not a canvas)
+  child in the top of the gold space, just proud of the pile, facing the player:
+  `goldNumberHeight` (0.03m), `goldNumberColor`, shadows off, depth-tested like the rest of
+  the pack. Written only in `UpdateGoldPile()`, when the gold changes, with
+  `SetText("{0}", Gold)` (no string made); hidden at zero. **It needs TextMeshPro's font
+  and shader in the project** (Window > TextMeshPro > Import TMP Essential Resources):
+  without them (`Resources.Load<TMP_Settings>("TMP Settings")` is null) no number is made
+  and a warning says why.
 - **`PackSlot`** — one grid space as an `IHandTarget` (made by the pack; `Pack`, `Index`,
   `SetTargetable()` enables its trigger). Registered with `HandTargetRegistry`. The stored
   item's own colliders are off; this stands in for them, so the reticle shows on what can
@@ -103,8 +113,8 @@ right of the door leaf from the player's side, clockwise if on the left.
 
 ## Loot
 
-- **`Loot`** — makes a prop loot: `[RequireComponent(typeof(Grabbable))]`. `value`;
-  `coinLevel` (1-3, the coins shown over it while carried); `isGold` (small loot: adds to
+- **`Loot`** — makes a prop loot: `[RequireComponent(typeof(Grabbable))]`. `coinLevel`
+  (1-3, the coins shown over it while carried, and its worth: `Value` is the coin level); `isGold` (small loot: adds to
   the pack's gold and is gone); `isObjective` (the level's objective: its own space in the
   pack). Picked up, carried and thrown by its `Grabbable` like any prop. Self-registers in a
   static `Grabbable → Loot` dictionary (`OnEnable`/`OnDisable`); `Loot.Find(grabbable)`
@@ -124,7 +134,7 @@ right of the door leaf from the player's side, clockwise if on the left.
   instance event) is raised after any change. No `Update()`.
 - **`ToolType`** (`Blackjack`, `Crossbow`) and **`BoltType`** (`Water`, `Noisemaker`,
   `Rope`) — enums. Add values at the end, no explicit numbers (`BoltType` is an array
-  index). The lockpicks aren't a `ToolType`: they're always on the back of the left hand.
+  index). The lockpicks aren't a `ToolType`: they're always worn on the back of a hand.
 
 ## Debug
 
@@ -132,9 +142,9 @@ right of the door leaf from the player's side, clockwise if on the left.
   to the Console on each `Changed`. The only place the gold's exact amount shows.
 - **`LootTestProps`** (`Inventory/Debug/Editor`, menu **TeaLeaf > Add Loot Test Props**) —
   a table 1.2m ahead of and 1.7m to the right of the main camera with more loot than the
-  pack holds: four coins (gold, 5 each), four purses (20, one coin), three goblets (50, two
-  coins), two candlesticks (80, two coins), a crown (150, three coins) and
-  an idol (100, the objective), in `Assets/Art/Materials/LootGold.mat`. Props are made by
+  pack holds: four coins (gold, 1 each), four purses (one coin), three goblets (two
+  coins), two candlesticks (two coins), a crown (three coins) and
+  an idol (three coins, the objective), in `Assets/Art/Materials/LootGold.mat`. Props are made by
   `Player.GrabbableTestProps.MakeGrabbable()` plus a `Loot`. Adds `PlayerInventory` and
   `InventoryDebug` to the Player root and `PlayerPack` to the Hands object, and makes a
   **`Pack`** object at the scene root (outside the test props, so a rebuild keeps its
