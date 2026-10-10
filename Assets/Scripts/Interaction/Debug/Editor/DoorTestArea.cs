@@ -334,7 +334,7 @@ namespace Interaction
         /// object if it's missing. Its Reset() fills in its references;
         /// its hand pose on the key is the door handle's, as a stand-in.
         /// </summary>
-        private static void EnsurePlayerKeys(HandSnapProfile profile)
+        internal static void EnsurePlayerKeys(HandSnapProfile profile)
         {
             Inventory.LootTestProps.EnsurePlayerComponents();
 
@@ -632,7 +632,7 @@ namespace Interaction
         /// round a bar), so it can be tuned without changing how a bottle
         /// is held. An empty profile if the bottle's is missing.
         /// </summary>
-        private static HandSnapProfile EnsureHandleProfile()
+        internal static HandSnapProfile EnsureHandleProfile()
         {
             HandSnapProfile profile = AssetDatabase.LoadAssetAtPath<HandSnapProfile>(HandleProfilePath);
 
@@ -659,7 +659,7 @@ namespace Interaction
         /// to PlayerHandVisuals (on the Hands object) if it's missing. Its
         /// Reset() fills in its references.
         /// </summary>
-        private static void EnsurePlayerHandDoors()
+        internal static void EnsurePlayerHandDoors()
         {
             PlayerHandVisuals hands = Object.FindFirstObjectByType<PlayerHandVisuals>();
 
@@ -720,7 +720,7 @@ namespace Interaction
         /// isn't one. The big lock sits at the scene's root, not under the
         /// test area, so rebuilding the area keeps any tuning done to it.
         /// </summary>
-        private static void EnsureLockpicking(SoundCue cue)
+        internal static void EnsureLockpicking(SoundCue cue)
         {
             PlayerHandVisuals hands = Object.FindFirstObjectByType<PlayerHandVisuals>();
 

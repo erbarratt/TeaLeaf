@@ -43,6 +43,8 @@ namespace Player
         [SerializeField] private PlayerLockpicking playerLockpicking;
         [SerializeField] private PlayerKeys playerKeys;
         [SerializeField] private PlayerCrossbow playerCrossbow;
+        [SerializeField] private PlayerBlackjack playerBlackjack;
+        [SerializeField] private PlayerCompass playerCompass;
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
         [SerializeField] private PlayerHandAnimation playerHandAnimation;
         [SerializeField] private CharacterController characterController;
@@ -89,6 +91,11 @@ namespace Player
         // Whether the rig has a PlayerCrossbow - see Awake().
         private bool _hasCrossbow;
 
+        // Whether the rig has a PlayerBlackjack, and a PlayerCompass - see
+        // Awake().
+        private bool _hasBlackjack;
+        private bool _hasCompass;
+
         /// <summary>
         /// Editor-only convenience: Unity calls Reset() when the component is
         /// first added (or via the Inspector's Reset menu item), so every
@@ -118,6 +125,8 @@ namespace Player
             playerLockpicking = GetComponentInChildren<PlayerLockpicking>();
             playerKeys = GetComponentInChildren<PlayerKeys>();
             playerCrossbow = GetComponentInChildren<PlayerCrossbow>();
+            playerBlackjack = GetComponentInChildren<PlayerBlackjack>();
+            playerCompass = GetComponentInChildren<PlayerCompass>();
             playerHandVisuals = GetComponentInChildren<PlayerHandVisuals>();
             playerHandAnimation = GetComponentInChildren<PlayerHandAnimation>();
         }
@@ -202,6 +211,20 @@ namespace Player
 
             // And the crossbow.
             _hasCrossbow = playerCrossbow != null;
+
+            if (playerBlackjack == null) {
+                playerBlackjack = GetComponentInChildren<PlayerBlackjack>();
+            }
+
+            // And the blackjack.
+            _hasBlackjack = playerBlackjack != null;
+
+            if (playerCompass == null) {
+                playerCompass = GetComponentInChildren<PlayerCompass>();
+            }
+
+            // And the compass.
+            _hasCompass = playerCompass != null;
         }
 
         /// <summary>
@@ -298,6 +321,21 @@ namespace Player
                     playerKeys.Tick();
                 }
 
+                // 3b (continued). The crossbow's wheel - the other hand
+                // taking it (its ray on the wheel, grip held) to change the
+                // kind of bolt. Before the other grab systems, so the hand
+                // is already busy when they run.
+                if (_hasCrossbow) {
+                    playerCrossbow.TickWheel();
+                }
+
+                // 3b (continued). The blackjack - drawn by gripping at the
+                // chest, put away by letting go. Before the other grab
+                // systems for the same reason.
+                if (_hasBlackjack) {
+                    playerBlackjack.Tick();
+                }
+
                 playerClimbing.Tick();
 
                 // 4a. Picking up and dropping props - after climbing, so it
@@ -326,6 +364,12 @@ namespace Player
                 // already busy: a grab always wins over the crossbow.
                 if (_hasCrossbow) {
                     playerCrossbow.Tick();
+                }
+
+                // 4a (continued). The compass coming out - after the grab
+                // systems too, for the same reason: a grab always wins.
+                if (_hasCompass) {
+                    playerCompass.Tick();
                 }
             }
 
@@ -493,6 +537,12 @@ namespace Player
             // (which carries it) now is, and its bolts in flight.
             if (_hasCrossbow) {
                 playerCrossbow.TickHeld(canAim);
+            }
+
+            // The compass, placed on the hand visual holding it, and put
+            // away when that hand lets go.
+            if (_hasCompass) {
+                playerCompass.TickHeld();
             }
         }
     }

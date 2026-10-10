@@ -27,6 +27,10 @@ namespace Interaction
         // shut.
         [SerializeField] private Door door;
 
+        // The chest it locks, for a lock on a chest rather than a door.
+        // Found on a parent if both are left empty.
+        [SerializeField] private Chest chest;
+
         // How far the lock's face is from this object, through the door,
         // in metres - half the door's thickness plus however far the lock
         // plate stands out. The picks sit here once they're in.
@@ -43,6 +47,7 @@ namespace Interaction
         private static readonly List<PickableLock> _all = new();
 
         private bool _hasDoor;
+        private bool _hasChest;
 
         // False if the door's lock isn't the kind that can be picked.
         private bool _isPickable = true;
@@ -51,7 +56,7 @@ namespace Interaction
         private bool _isLockedAlone = true;
 
         /// True while the lock is locked.
-        public bool IsLocked => _hasDoor ? door.IsLocked : _isLockedAlone;
+        public bool IsLocked => _hasDoor ? door.IsLocked : _hasChest ? chest.IsLocked : _isLockedAlone;
 
         /// True while the picks are in this lock.
         public bool IsBeingPicked { get; private set; }
@@ -71,11 +76,23 @@ namespace Interaction
         private void Reset()
         {
             door = GetComponentInParent<Door>();
+            chest = GetComponentInParent<Chest>();
         }
 
         private void Awake()
         {
             _hasDoor = door != null;
+            // A lock given neither is on a chest if one of its parents is one.
+            if (door == null && chest == null) {
+                chest = GetComponentInParent<Chest>();
+            }
+
+            _hasChest = !_hasDoor && chest != null;
+
+            if (_hasChest && chest.LockType != DoorLock.Simple) {
+                Debug.LogWarning($"PickableLock '{name}': its chest's lock isn't a Simple one, so it can't be picked.", this);
+                _isPickable = false;
+            }
 
             if (_hasDoor && door.LockType != DoorLock.Simple) {
                 Debug.LogWarning($"PickableLock '{name}': its door's lock isn't a Simple one, so it can't be picked.", this);
@@ -161,6 +178,8 @@ namespace Interaction
         {
             if (_hasDoor) {
                 door.Unlock();
+            } else if (_hasChest) {
+                chest.Unlock();
             }
 
             _isLockedAlone = false;

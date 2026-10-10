@@ -6,6 +6,89 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-10, fifth part (bolts, fires, the blackjack, chests, the compass)
+------------------------------------------------------------------------
+- The maintainer's designs, built the same day. All of it compiles; none
+  of it has been tried in the headset except where said.
+- Confirmed in the headset: the shoulder grab for the pack, crouch on
+  the right stick's down push (the threshold is 0.9 in the scene), B as
+  cancel, and haptics through the XR devices.
+- The crossbow (Player.PlayerCrossbow).
+  - Three kinds of bolt, each with its own model: water (blue tip),
+    noisemaker (amber tip), rope (the shaft wound with rope). The bolt
+    lying on the stock shows the chosen kind, and only while the
+    crossbow is wound and the player has one.
+  - Ammunition: each shot takes a bolt of the chosen kind from
+    PlayerInventory; with none left the trigger gives a faint tap. A
+    scene with no inventory has unlimited bolts. The starting counts
+    are on PlayerInventory and are 0 until set in the Inspector.
+  - Water puts out every Core.Flame within 0.6m of where it lands. A
+    noisemaker makes noise where it lands every 1.5s for 12s (its cue
+    if it has one, otherwise a bare Distraction noise only guards
+    hear). A rope bolt that lands on a surface tagged Wood hangs one of
+    two pooled ClimbableRopes down to the ground or 8m; on anything
+    else it is lost.
+  - On its last frame a bolt's ray reaches 5cm past the landing point,
+    so the collider it landed on is always found.
+  - The wheel at the back chooses the kind. It is a hand target
+    (Player.CrossbowWheel: a 6cm trigger ball on Interactable), so the
+    other hand's reticle shows on it; with the ray on it and grip held
+    the hand visual snaps onto it, like a door handle. Twisting that
+    wrist turns it: 40 degrees a step, with a click. The crossbow
+    hand's own ray can't target it. A hand more than 0.3m away is
+    pulled off.
+- Fires (Core.Flame): one component switches a fire's LightSource, its
+  Unity Light, its SoundLoop and an optional flame object off or on
+  together. Flame.ExtinguishNear(point, radius) is what the water bolt
+  calls. The Sound Test House's builder adds one to each light.
+- The blackjack (Player.PlayerBlackjack): a hand that is empty, within
+  0.22m of the chest and palm towards it draws it by pressing grip,
+  and holds it while grip is held; letting go puts it away. Either
+  hand. A greybox model, no takedown yet.
+- Chests (Interaction.Chest, ChestLid): the same lock kinds as doors,
+  through PickableLock and KeyLock, which take a chest in place of a
+  door. Unlocked, a hand takes the front of the lid (ray and grip, the
+  hand snaps on) and lifting the hand opens it: the lid's angle is how
+  far round the hinge the hand is. A locked lid rattles. A lid left
+  nearly shut drops shut. TeaLeaf > Build Chest Test Area makes one of
+  each kind, with a green key.
+- The compass (Player.PlayerCompass) is the player's readout; there is
+  no wrist display.
+  - A hand that is empty, pointing at nothing it could grab and palm up
+    brings it out by pressing grip; it stays while grip is held.
+  - A rim fixed to the hand; a dial inside it that stays turned to the
+    world, with a triangle at north (bigger, red), east, south and
+    west; north is world +Z. A light gem in the middle shows
+    PlayerVisibility.
+  - Up to four arrows outside the rim, one per footstep or voice heard
+    that isn't the player's own; no other kind of sound is shown. An
+    arrow points where the sound is heard from - the portal, for one
+    from another room - is bigger the louder the sound, and fades over
+    two seconds. Repeats from the same place renew one arrow.
+  - Fed by SoundPlayer.Heard, an event raised for each one-off sound
+    that reaches the player: the heard-from point, the loudness at the
+    ears, the cue's noise type and the source.
+  - It is placed on the hand each frame, not made its child: under the
+    mirrored right hand a child would be drawn mirrored, east and west
+    swapped.
+- PlayerHandState has HandUse.Blackjack and HandUse.Compass.
+  TeaLeaf > Add Hand Tools To Player adds the crossbow, blackjack and
+  compass components to the Hands object.
+- LockMeshBuilder.Cylinder takes a centre and a turn; three segments
+  make a triangular prism.
+- Bug: the wheel couldn't be taken. It was first taken by reaching:
+  the other controller's tracked point within 8cm of the wheel, which
+  two controllers can hardly do. Fix: the wheel is a hand target, taken
+  by ray and grip.
+- Lesson: a compass arrow must point at the real place a sound is heard
+  from (the sound, or the portal), not at where its audio voice is
+  played - that is beyond the portal at the whole path's distance, and
+  the arrow drifts off the doorway as the player moves.
+- Lesson: something that rides one hand visual and is held by the other
+  is one frame behind, because both visuals are placed in one call.
+  The hand on the wheel follows the wheel a frame late.
+
+
 2026-10-10, fourth part (controls, the shoulder pack, the crossbow)
 ------------------------------------------------------------------
 - The maintainer's designs, built the same day. Only the crossbow has

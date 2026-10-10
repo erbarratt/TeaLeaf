@@ -1,6 +1,6 @@
 # Interaction systems (`Assets/Scripts/Interaction/`, namespace `Interaction`)
 
-Detail for hand targets, grabbable props, doors, lockpicking, climbables and hand snap poses.
+Detail for hand targets, grabbable props, doors, lockpicking, chests, climbables and hand snap poses.
 The root `CLAUDE.md` holds the project rules, the tick order and the physics layers; this
 file is loaded when working in this folder. Keep it up to date with every change to these
 systems, like the root file.
@@ -186,9 +186,11 @@ its own side whatever the lock. The player's half is `Player.PlayerHandDoors` (s
   facing into the door, thumb up; through `snapProfile` - the test bolt reuses
   `DoorHandle.asset`). `slideCue` at each end. Gizmo: the grab volume; selected, the travel
   (green drawn, red shot) and the knob. The player's half is in `PlayerHandDoors`.
-- **`KeyLock`** — marks a keyed door's lock, as `PickableLock` does a simple one: the middle
-  of the keyway, mid-thickness, X across the face, Y up, Z through. `door`, `faceOffset`,
-  `unlockCue`. `KeyId` (the door's), `IsLocked`, `HasKeyIn` (`BeginKey()` / `EndKey()`).
+- **`KeyLock`** — marks a keyed door's (or chest's) lock, as `PickableLock` does a simple
+  one: the middle of the keyway, mid-thickness, X across the face, Y up, Z through. `door`
+  **or `chest`** (a lock given neither looks for a `Chest` on a parent; `Chest.Centre`
+  stands in for `Door.LeafCentre`), `faceOffset`,
+  `unlockCue`. `KeyId` (the door's or chest's), `IsLocked`, `HasKeyIn` (`BeginKey()` / `EndKey()`).
   `FindInRange(point, range)` = the nearest locked one with no key in it (a static list,
   distance checks only). `GetFace(viewerPosition, out facePoint, out facing)`: the face on
   the viewer's side and **`facing`** - how something looking at the lock from there is
@@ -196,7 +198,7 @@ its own side whatever the lock. The player's half is `Player.PlayerHandDoors` (s
   **`TurnsAnticlockwise(facing)`**: the key turns anticlockwise if the lock is on the right
   of the door leaf from the viewer's side, clockwise if on the left - worked out from where
   the lock is relative to `Door.LeafCentre` along the viewer's right. `Unlock()` calls
-  `Door.Unlock()` and plays the cue. Workable from either side. Gizmo as `PickableLock`'s.
+  `Door.Unlock()` (or `Chest.Unlock()`) and plays the cue. Workable from either side. Gizmo as `PickableLock`'s.
   The keys themselves are `Inventory.Key` / `Keyring` (`Scripts/Inventory/CLAUDE.md`); the
   player's half is `Player.PlayerKeys`.
 - **`DoorKeyhole`** — the keyhole view. **An opening in the door, not a second camera**: as
@@ -276,12 +278,12 @@ the lock's face seen from the player's side, in degrees clockwise from 12.**
 
 - **`PickableLock`** — marks a lock that can be picked: the middle of the keyway,
   mid-thickness, X across the face, Y up, Z through (normally the `DoorKeyhole`'s object).
-  `door` (optional: with none - a chest, later - it keeps its own locked state and raises
-  `Unlocked`), `faceOffset` (from the object out to the lock's face, where the picks sit).
+  `door` or `chest` (a lock given neither looks for a `Chest` on a parent; with neither it
+  keeps its own locked state and raises `Unlocked`), `faceOffset` (from the object out to the lock's face, where the picks sit).
   `IsLocked`, `IsBeingPicked` (`BeginPicking()`/`EndPicking()`), `CanBePicked`. Only a
-  `DoorLock.Simple` door's can be picked (warning otherwise). `GetFace(viewerPosition, out
+  `DoorLock.Simple` door's or chest's can be picked (warning otherwise). `GetFace(viewerPosition, out
   facePoint, out outward)` gives the face on the viewer's side - **pickable from either
-  side**. `Unlock()` calls `Door.Unlock()` (the door stays shut; unlocked until the level
+  side**. `Unlock()` calls `Door.Unlock()` or `Chest.Unlock()` (the door stays shut; unlocked until the level
   restarts). No `Update()`: a static list, `FindInRange(point, range)` = the nearest that
   can be picked (distance checks only). Gizmo (selected / detailed): a ring on each face,
   red locked, green open.
@@ -326,15 +328,54 @@ the lock's face seen from the player's side, in degrees clockwise from 12.**
     reset and every `scrapeAngle` (25°) the left pick sweeps; played **from the real lock**,
     not the floating copy, through `SoundPlayer` (so guards hear it).
 - **`LockMeshBuilder`** — collects boxes (`Box(centre, size, rotation, color)`) and a
-  cylinder along Z (`Cylinder(radius, depth, segments, faceColor, sideColor)`) into one
+  cylinder along Z (`Cylinder(radius, depth, segments, faceColor, sideColor, centre = zero,
+  turn = 0)`: `centre` moves its middle, `turn` turns it about Z in degrees; three segments
+  make a triangular prism whose first corner points along +X) into one
   vertex-coloured mesh (`ToMesh()`); `CreateMaterial(seeThrough, minLight)` makes the two
-  kinds of `TeaLeaf/LockFade` material. Load time only. Also used by the pack and keyring.
+  kinds of `TeaLeaf/LockFade` material. Load time only. Also used by the pack, the
+  keyring, the crossbow, the blackjack and the compass.
 - **`BigLockDebug`** (`Interaction/Debug`, on the Big Lock object) — `IDebugDrawable`, in
   the big lock's own space while it's in view: both picks' angles (white), the current
   stop (yellow), the pin (red), a square per pin (green once set) and the hold timer as a
   bar; logs stage changes to the Console.
 - **Not built / stand-ins:** the "lockpick hold" finger pose (`LockpickHold` is a copy of
-  `RopeGrip`); chests; a left-handed setup; real sounds.
+  `RopeGrip`); real sounds.
+
+## Chests (not yet tried in the headset)
+
+A chest has a lock like a door's - none, simple (picked) or keyed - through the same
+`PickableLock` / `KeyLock`, given the chest instead of a door. Locked, the lid won't move;
+unlocked by any means, a hand takes the front of the lid and lifts. The player's half is in
+`Player.PlayerHandDoors` (chest lids; see `Scripts/Player/CLAUDE.md`).
+
+- **`Chest`** — on the chest's body. Own axes: X along the hinge, Y up, Z towards the
+  front (the side it is opened from). `lockType` (`DoorLock`), `keyId`, `startsLocked`;
+  `lid` - a child Transform **on the hinge line**, with the chest's axes, that turns about
+  its own X (its front along its +Z); `maxOpenAngle` (100°), `closeAngle` (8°);
+  `openCue`, `closeCue`, `lockedCue` (through `SoundPlayer`, so guards hear them).
+  **The lid's angle is set from code, as a door's is - no joint, no forces**:
+  `AngleAt(worldPoint)` = how far round the hinge a point is (`Atan2` of how far up and how
+  far forward of the hinge it is); `SetAngle(angle)` (clamped; false and nothing moves
+  while locked; plays the open and close cues as it leaves and reaches shut);
+  `Release()` (a lid left under `closeAngle` drops shut, otherwise it stays);
+  `RattleLocked()`. `IsLocked`, `Angle`, `IsOpen`, `Centre`, `Unlock()`, `Lock()` (needs a
+  lock and a shut lid). No `Update()`. No Rigidbody: the lid's collider is moved by its
+  transform, and it shoves nothing.
+- **`ChestLid`** — `IHandTarget` + `IHandSnapTarget`; a trigger `BoxCollider` on
+  Interactable, a child of the lid at the middle of its front edge (so it rises with the
+  lid), with the chest's axes. Short reach, like a door handle. `Chest` (found on a
+  parent), `snapProfile`; `GetGripPoint()`, `GetSnapPose(isLeftHand)` (on the grip point,
+  facing into the chest, turned with the lid; called every frame it is held).
+- **`ChestTestArea`** (`Interaction/Debug/Editor`, menu **TeaLeaf > Build Chest Test
+  Area**; not in the scene) — three chests on stands 1.5m ahead of the main camera, fronts
+  towards it: no lock, simple lock and keyed lock (key id `green`; a green key on a stand
+  to the right), each a root with a `Body` box, a `Lid` on the top back edge with a `Lid
+  Board` and a `Lid Grip` (`ChestLid`), and a `Lock` child just behind the front face with
+  a plate. The lid's hand pose is `DoorHandle.asset`, a stand-in. It also runs the Door
+  Test Area's player set-up (`PlayerHandDoors`, lockpicking with the `Big Lock`, the pack
+  and `PlayerKeys`). The chests are solid blocks: nothing is inside them.
+- **Not built:** a chest's inside and loot in it; a lid that stops against the player's
+  body or a prop left on it.
 
 ## Smithy building
 
@@ -478,7 +519,9 @@ files in `Interaction/Debug/Editor`:
     trigger - `length`/`grabRadius` on the rope are the only size controls, and the top (the
     object's position) stays put when `length` changes. `grabRadius` (0.08m) is far thicker
     than a rope so rays can hit it. A visible, solid rope is a child object (e.g. a thin
-    Environment cylinder) inside the grab volume. `SetLength()` is for the rope bolt.
+    Environment cylinder) inside the grab volume. `SetLength()` and
+    `SetSnapProfile()` are for the rope bolt's ropes, which `Player.PlayerCrossbow` makes
+    from code.
   - **Setup check** (`WarnAboutSetup()` from `OnValidate()`, clickable): not on the
     Climbable layer, or a non-trigger child collider reaching `grabRadius` or further from
     the axis (measured by the corners of the collider's own local box, not `Collider.bounds`,

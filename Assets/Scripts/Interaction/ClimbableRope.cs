@@ -376,6 +376,15 @@ namespace Interaction
         }
 
         /// <summary>
+        /// Sets the hand snap profile, for a rope made from code (the rope
+        /// bolt's), which can't be given one in the Inspector.
+        /// </summary>
+        public void SetSnapProfile(HandSnapProfile profile)
+        {
+            snapProfile = profile;
+        }
+
+        /// <summary>
         /// Makes the grab volumes of a rope that sags or has an end point:
         /// one trigger capsule per straight piece (a single piece for a
         /// straight rope to an end point), each on its own child object,

@@ -345,7 +345,8 @@ namespace Core
         /// the same reach so the light can be seen as well as counted. The
         /// source's level and range are private serialized fields, so
         /// they're set the way the Inspector would set them. With a loop
-        /// cue it also gets a SoundLoop, so the light can be heard.
+        /// cue it also gets a SoundLoop, so the light can be heard. Every
+        /// one gets a Flame, so it can be put out.
         /// </summary>
         private static void AddLight(string name, Transform parent, Vector3 localPosition, float level, float range, SoundCue loopCue)
         {
@@ -370,6 +371,10 @@ namespace Core
                 loop.FindProperty("cue").objectReferenceValue = loopCue;
                 loop.ApplyModifiedPropertiesWithoutUndo();
             }
+
+            // Last, so its Reset() finds the parts above: what puts the
+            // whole light out together (a water bolt).
+            light.AddComponent<Flame>();
         }
 
         /// <summary>

@@ -113,10 +113,9 @@ Phase 1 - Locomotion and physical hands (Player)
 [ ] Physical roomscale walking doesn't count as moving for MovementState
     - revisit when guards perceive the player.
 [ ] Revisit PlayerHands-Guard collision when guards exist.
-[ ] Confirm haptics in the headset (PlayerHaptics sends through the XR
-    devices), then remove the unused LeftHaptic/RightHaptic actions.
-[ ] Try in the headset: crouch on the right stick's down push (and
-    whether it fires by accident while turning).
+[x] Haptics through the XR devices; crouch on the right stick's down
+    push.
+[ ] Remove the unused LeftHaptic/RightHaptic actions.
 
 
 Phase 2 - Core stealth framework (Core namespace)
@@ -137,13 +136,14 @@ Phase 2 - Core stealth framework (Core namespace)
 [ ] Tune by ear: the loops' easing through doorways.
 [ ] If up/down direction turns out to matter in the level: Steam Audio,
     through SoundPlayer's Plugin mode.
-[ ] One call that puts a torch out everywhere - the gameplay
-    LightSource, the visible Light, the flame and the SoundLoop together
-    (needed by the water bolt, Phase 5).
+[x] Flame: one call puts a fire out everywhere - the gameplay
+    LightSource, the visible Light, the flame and the SoundLoop together.
+[ ] Try in the headset: a water bolt putting a torch out. Add a Flame
+    to the torches already in the scene.
 [ ] Real audio: torch, wind and room tone loops; the impact cue; a
     carpet footstep; rename the cues still called "Placeholder".
-[ ] Sound direction indicator (UI) - an idea to experiment with; it can
-    read NoiseSystem.Emitted.
+[x] Sound direction indicator: the compass's arrows (Phase 4), fed by
+    SoundPlayer.Heard.
 [ ] Visibility: a proper headset test.
 
 
@@ -190,24 +190,35 @@ Phase 4 - Inventory: the pack, loot and keys (Inventory namespace)
 [x] PlayerHandState: one owner for what each hand is busy with.
 [x] Handedness: one setting swaps which hand wears the lockpicks and
     which the crossbow. The lock puzzle is never mirrored.
-[ ] Try in the headset: the shoulder grab (and whether it gets in the
-    way of grabbing ledges behind the head), the pack in the right
-    hand, the gold number.
+[x] The shoulder grab, working in the headset.
+[ ] Try in the headset: the pack in the right hand, the gold number
+    (needs the TextMeshPro resources imported).
 [ ] Tune in the headset: the shoulder zone, where the pack rides on the
     hand, the gold number's size and place, where the keyring sits in
     the hand, and the hand pose on the key (the door handle's, as a
     stand-in).
 [ ] Real sounds for putting things in the pack and for the keyed lock.
-[ ] Wrist display: visibility gem + loot worth + bolt counts, drawn
-    with TextMeshPro. Enabled only while visible; text updated only
-    when values change.
+[x] The compass (PlayerCompass), the player's readout: brought out by
+    gripping with an empty hand palm up; a rim, a dial that keeps north
+    (world +Z) with a triangle at each of north, east, south and west,
+    a light gem showing visibility, and arrows for the last few
+    footsteps and voices heard, pointing where each is heard from.
+[ ] Try and tune in the headset: the compass - the palm-up angle, where
+    it sits over the palm, its size, the gem's colours, the arrows'
+    sizes and fade time, and whether the fingers closing through it
+    matters.
+[ ] Showing the bolt counts and the loot's worth (on the compass or
+    the pack).
 
 
 Phase 5 - Weapons and tools (Player / Interaction namespaces)
 -------------------------------------------------------------
 Blackjack:
-[ ] Decide how the blackjack is brought out (there is no weapon menu).
-[ ] Greybox blackjack model and hold pose.
+[x] Drawing it (PlayerBlackjack): a hand that is empty, close to the
+    chest and palm towards it draws it by pressing grip and holds it
+    while grip is held; letting go puts it away. Greybox model.
+[ ] Try and tune in the headset: the chest zone, the palm angle, where
+    it sits in the hand; a hold pose.
 [ ] Swing detection: blackjack tip velocity above a threshold on contact
     with a guard's GuardHead collider.
 [ ] Takedown rules: works only if the guard isn't in Chase/Alert and the hit
@@ -224,21 +235,22 @@ Hand crossbow:
 [ ] Tune in the headset: where it sits on the hand, the palm-down
     angle, the range, the rewind time; and whether a red arc for "lands
     on nothing" reads as "can't shoot".
-[ ] The wheel at the back of the crossbow: the other hand grips it and
-    turns it to choose the bolt type.
-[ ] Bolt types, each with its own model so the loaded one can be told
-    at a glance:
-    [ ] Water bolt (a blue glowing tip): hit a LightSource's flame to
-        extinguish it (what it lit goes dark). Small splash noise.
-    [ ] Noisemaker bolt: sticks where it lands and emits repeated loud
-        noise events for N seconds - guards investigate.
-    [ ] Rope bolt (the shaft wrapped in rope): only sticks into surfaces
-        tagged RopeTarget (wood); spawns a ClimbableRope hanging down to
-        the ground/max length (ClimbableRope.SetLength()). Bounces off
-        anything else.
-[ ] Ammunition: shots use PlayerInventory's bolt counts; bolt pickups in
-    the level add to them.
-[ ] Shot and impact sounds, and the noise a bolt makes where it lands.
+[x] The wheel at the back of the crossbow: the other hand's ray on it
+    and grip held takes it, the hand snaps on, and twisting the wrist
+    steps through the bolt kinds.
+[x] Bolt kinds, each with its own model so the loaded one can be told
+    at a glance: water (blue tip) puts out the Flames near where it
+    lands; a noisemaker (amber tip) makes noise where it lands for a
+    while; a rope bolt (the shaft wound with rope) that lands on a
+    surface tagged Wood hangs a pooled ClimbableRope to the ground or a
+    longest length, and is lost on anything else.
+[x] Ammunition: shots use PlayerInventory's bolt counts.
+[ ] Try and tune in the headset: the wheel (its grab ball, the step
+    angle, the hand's pose on it - a wheelProfile - and the one-frame
+    lag of the snapped hand), each bolt kind's effect, the rope a rope
+    bolt hangs.
+[ ] Bolt pickups in the level.
+[ ] Shot and impact sounds, a splash, and the noisemaker's sound.
 Lockpicking:
 [x] Two-pick lockpicking on the big lock: picks on the back of a hand,
     insert, the right pick's four stops, the left pick's pin search by
@@ -248,8 +260,12 @@ Lockpicking:
     pick leaves the pin early; only letting go of the right pick resets;
     the picks are always worn (not equipped); the lock is the same
     whichever hand wears them; the game doesn't pause.
-[ ] Chests: the lock works without a door and raises an event, but there
-    is no chest or lid.
+[x] Chests (Chest, ChestLid): the same lock kinds as doors, picked or
+    opened with a key through the same locks; unlocked, a hand takes
+    the front of the lid and lifts it. Chest Test Area builder.
+[ ] Try and tune in the headset: chests - the lid's lift, the hand's
+    pose on it, picking and unlocking one.
+[ ] A chest's inside, and loot in it.
 [ ] The "lockpick hold" finger pose (Phase 7 - the hand on a pick uses a
     copy of the rope grip).
 [ ] Real picking and unlock sounds.

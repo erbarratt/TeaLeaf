@@ -35,7 +35,7 @@ comment lines).
   `InputDevices.GetDeviceAtXRNode()` and kept, looked up again only when it stops being
   valid - so a pulse creates nothing and may be sent many times a second. Not through
   `OpenXRInput.SendHapticImpulse` on an input action: that builds a control name on every
-  call. **Not yet tried in the headset.** No `Update()`/`Tick()`. Right-click "Test
+  call. Working in the headset. No `Update()`/`Tick()`. Right-click "Test
   Left/Right Pulse" (Play Mode) checks it. Also owns the feedback tuning: it
   subscribes to `PlayerHandVisuals.HandContactStarted` and taps that controller
   (`contactAmplitude` 0.15, `contactDuration` 0.03s), at most once per `contactCooldown`
@@ -152,7 +152,7 @@ the template's keyboard and gamepad bindings.
     inside PhysX, and a C# replacement would be slower and a large source of bugs.
 - **`MovementState`** (enum) — `Still`, `Walking`, `Sprinting`, `CrouchStill`, `CrouchWalking`,
   `Climbing`, `Airborne`, `Mantling` (set whenever a mantle is running): the single value
-  noise, visibility, AI and the wrist gem read, rather than combining flags themselves.
+  noise, visibility, AI and the compass read, rather than combining flags themselves.
   Set by `PlayerLocomotion.TickState()` in priority order (Climbing > Airborne > crouch >
   still > sprint/walk). "Moving" means the real horizontal applied movement exceeds
   `movingSpeedThreshold`, so pushing into a wall counts as still. `Airborne` only kicks in after
@@ -186,7 +186,7 @@ the template's keyboard and gamepad bindings.
   (`Assets/Data/SurfaceSoundsPlaceholder.asset`); silent without it or without a
   `SoundPlayer`.
 - **`PlayerVisibility`** (on the Player root) — how easy the player is to see: `Visibility`
-  0 (hidden) to 1 (plain sight), the one value guards' vision and the wrist gem read.
+  0 (hidden) to 1 (plain sight), the one value guards' vision and the compass's light gem read.
   `Tick()` (tick step 7c, and during a mantle) averages `Core.SceneLight.LevelAt()` at the
   head (Main Camera) and the capsule's centre (`LightLevel`, exposed for debug) - **sampled
   every `sampleInterval` (0.1s), not per frame**, since each sample is a few physics rays -
@@ -202,18 +202,21 @@ the template's keyboard and gamepad bindings.
 
 ## What each hand is busy with
 
-**A hand does one thing at a time**, and seven systems can have a hand: climbing, carrying,
-doors (handles and bolts), the lockpicks, the keys, holding the pack and the crossbow.
+**A hand does one thing at a time**, and nine systems can have a hand: climbing, carrying,
+doors (handles, bolts and chest lids), the lockpicks, the keys, holding the pack, the
+crossbow (active on its hand, or the other hand on its wheel), the blackjack and the
+compass.
 
 - **`PlayerHandState`** (on `Hands`) — the one place that knows what each hand is busy
   with. **It keeps no state**: each system owns what its hands are doing and says so
   through its own flags (`PlayerClimbing.IsLeftHandGripping`,
   `PlayerHandHolding.IsLeftHolding`, `PlayerHandDoors.IsLeftOnDoor`,
   `PlayerLockpicking.IsLeftBusy`, `PlayerKeys.IsLeftBusy`, `PlayerPack.IsLeftBusy`,
-  `PlayerCrossbow.IsLeftBusy`, and the right-hand ones); this
+  `PlayerCrossbow.IsLeftBusy`, `PlayerBlackjack.IsLeftBusy`, `PlayerCompass.IsLeftBusy`,
+  and the right-hand ones); this
   class reads them when asked, so an answer is as fresh as the systems that have ticked so
   far this frame. `HandUse` (enum: `None`, `Climbing`, `Carrying`, `Door`, `Lockpicks`,
-  `Keys`, `Pack`, `Crossbow`); `GetUse(isLeftHand)` / `LeftUse` / `RightUse`; **`IsBusyExcept(isLeftHand,
+  `Keys`, `Pack`, `Crossbow`, `Blackjack`, `Compass`); `GetUse(isLeftHand)` / `LeftUse` / `RightUse`; **`IsBusyExcept(isLeftHand,
   asker)`** - whether any system *other than the asker* has the hand, which is what every
   hand system asks before taking one. Every system it reads is optional, found in `Awake()`.
   Each hand system gets it through `PlayerHandState.GetOrAdd(playerHandVisuals)` in its own
@@ -366,7 +369,7 @@ doors (handles and bolts), the lockpicks, the keys, holding the pack and the cro
     held**; letting go puts it away (`ClosePack()`). `IsLeftBusy`/`IsRightBusy` are what
     `PlayerHandState` reports as `HandUse.Pack`. The pack is first placed in `Start()`,
     not `Awake()` (the ghost hands copy the hand visuals in `PlayerHandVisuals.Awake()`).
-    All of it untuned and not yet tried in the headset. `IDebugDrawable`: the two shoulder
+    Working in the headset. `IDebugDrawable`: the two shoulder
     balls, in the detailed view (yellow, green while the pack is out).
   - **Putting loot in:** it doesn't change how props are carried; `Tick()` (tick step 4a,
     straight after `PlayerHandHolding.Tick()`) compares what each hand holds with last
@@ -474,27 +477,30 @@ doors (handles and bolts), the lockpicks, the keys, holding the pack and the cro
   - `IsLeftBusy`/`IsRightBusy` (true through a needed regrip, and while the taker
     carries the picks) are what `PlayerHandState` reports as `HandUse.Lockpicks`.
 
-## The crossbow (first version; not yet tried in the headset)
+## The crossbow (not yet tried in the headset beyond its first version)
 
 - **`PlayerCrossbow`** (on `Hands`; optional - `PlayerController` finds it in `Awake()` and
-  works without it; **it must be added to the `Hands` object by hand**) — the hand
-  crossbow, always worn on the back of one hand: the right for a right-handed player
-  (`PlayerInputXR.IsLeftHanded`), so never the hand the lockpicks are on.
+  works without it) — the hand crossbow, always worn on the back of one hand: the right
+  for a right-handed player (`PlayerInputXR.IsLeftHanded`), so never the hand the
+  lockpicks are on.
   - **The model** (`BuildCrossbow()`, in `Start()` - after the ghost hands have copied the
-    visuals): a stock, a bow across the front and a wheel at the back as boxes in one mesh
-    from `Interaction.LockMeshBuilder`, `TeaLeaf/LockFade` solid, no collider; its own Z is
-    the way it shoots. A child of the hand visual at `onHandPosition` ((-0.035, -0.05, 0)),
+    visuals): a stock and a bow across the front as boxes in one mesh from
+    `Interaction.LockMeshBuilder`, `TeaLeaf/LockFade` solid, no collider; its own Z is the
+    way it shoots. A child of the hand visual at `onHandPosition` ((-0.035, -0.05, 0)),
     pointing along the fingers (the visual's -Y) with its top away from the back of the
-    hand (-X), then turned by `onHandTilt`. A `Loaded Bolt` child lies on the stock while
-    it is wound.
+    hand (-X), then turned by `onHandTilt`. Two children: the **`Wheel`** at the back (its
+    own mesh, with a notch, so it can be seen to turn) and the **`Loaded Bolt`** lying on
+    the stock, which wears the chosen kind's mesh and shows only while the crossbow is
+    wound and the player has a bolt of that kind (`ShowLoadedBolt()`).
   - **Becoming active** (`Tick()`, tick step 4a, after every grab system): on the frame
     grip is pressed on the crossbow hand, if the hand is free
     (`PlayerHandState.IsBusyExcept(..., HandUse.Crossbow)`), its ray target is null (**a
-    grab always wins**) and the palm faces the floor - the visual's +X, turned into the world with `TransformVector()`
-    so the mirrored right hand's palm comes out the right way (`TransformDirection()`
-    ignores the mirroring), within `palmDownAngle` (50°) of straight down. It stays active until grip is let go, however
-    the hand is turned. `IsLeftBusy`/`IsRightBusy` are what `PlayerHandState` reports as
-    `HandUse.Crossbow`, so nothing else takes the hand meanwhile.
+    grab always wins**) and the palm faces the floor - the visual's +X, turned into the
+    world with `TransformVector()` so the mirrored right hand's palm comes out the right
+    way (`TransformDirection()` ignores the mirroring), within `palmDownAngle` (50°) of
+    straight down. It stays active until grip is let go, however the hand is turned.
+    `IsLeftBusy`/`IsRightBusy` are what `PlayerHandState` reports as `HandUse.Crossbow`:
+    the crossbow hand while active, **and the other hand while it holds the wheel**.
   - **The arc** (`TickHeld(canAim)`, tick step 8a): from `muzzleDistance` (0.1m) ahead of
     the stock along the crossbow's own forward - what is shown is what is shot - through
     `BallisticArc.Compute()` with no stepped-gravity allowance, drawn by a `ThrowArc`
@@ -507,16 +513,123 @@ doors (handles and bolts), the lockpicks, the keys, holding the pack and the cro
     crossbow comes up doesn't shoot). Clockwork: `reloadTime` (1s) after each shot before
     the next; a pull while it winds is used up and does nothing. Optional `fireCue` and
     `impactCue`, through `SoundPlayer`.
+  - **Ammunition:** `Fire()` takes one bolt of the chosen kind with
+    `Inventory.PlayerInventory.TryUseBolt()`; with none left the pull gives only a faint
+    tap (`emptyAmplitude`) and nothing is shot. **A scene with no `PlayerInventory` has
+    unlimited bolts.** The starting counts are the inventory's `waterBolts`,
+    `noisemakerBolts` and `ropeBolts` fields (0 by default: set them in the Inspector).
+  - **The wheel** (choosing the kind; `SelectedBolt`): `TickWheel()` (tick step 3b) - **taken
+    the way a door handle is**: the wheel has a trigger ball round it (`Wheel Grab`:
+    `wheelGrabRadius` 0.06m, Interactable layer, kinematic Rigidbody, a child of the
+    crossbow) registered as a hand target, **`CrossbowWheel`**, so the reticle shows on it.
+    `CrossbowWheel.CanBeTargetedFrom()` refuses the crossbow hand's own ray (a ray's hand
+    is the one its origin is nearer). The **other** hand, free, with its ray on the wheel
+    and grip held, takes it (a click) and **its hand visual snaps onto the wheel**
+    (`WheelSnapPose()`: on the wheel, facing down onto it from the crossbow's top, through
+    `wheelProfile` - empty = exactly on the grip frame; untuned), which also hides the
+    reticle. It holds it until that grip is let go (`LetGoOfWheel()`), or its controller
+    is more than `wheelBreakDistance` (0.3m) from the wheel (then a regrip is needed).
+    Held (`TickHeldWheel()`, in `TickHeld()`), the wheel is turned by **twisting that
+    hand**: each frame's turn of the controller since the last frame, the part of it that
+    is a twist about the wheel's axis (the crossbow's forward in the world; twice the
+    arctangent of the quaternion's share along the axis over w), is added up. The snapped
+    hand is shown turned by the total since it took hold, and each `wheelStepAngle` (40°)
+    steps to the next kind (or back, the other way; it wraps), with a click on that
+    controller, the wheel turned a third of a turn and the loaded bolt's mesh swapped.
+    The snap pose is moved onto the wheel every frame, **after** the hand visuals are
+    placed (the wheel rides the crossbow hand's visual, placed in the same call), so the
+    snapped hand is one frame behind the wheel when the crossbow hand moves.
   - **Bolts:** a pool of `boltCount` (8) made at load under a `Crossbow Bolts` object at
-    the scene root; the oldest is reused. **Not physics objects**: each is moved along
-    `BallisticArc.Point()` from where and how fast it left, so it lands where the arc
-    showed, with one `Physics.Linecast` a frame along its move in case something has come
-    into its way. It stops where it lands and is put away after `boltLifetime` (30s); one
-    that lands on nothing is put away at the end of its flight. Bolts tick on every path
-    through `Update()`.
-  - **Not built:** bolt types and their effects and models, ammunition (every shot is
-    free), choosing the type by turning the wheel with the other hand, any effect of a
-    bolt on what it hits.
+    the scene root; the oldest is reused. One mesh per kind (`BuildBoltMeshes()`: a thin
+    shaft, with a fat tip in `waterColor` or `noisemakerColor`, or rope-coloured winding
+    round the back half for the rope bolt), put on a pooled bolt as it is shot. **Not
+    physics objects**: each is moved along `BallisticArc.Point()` from where and how fast
+    it left, so it lands where the arc showed, with one `Physics.Linecast` a frame along
+    its move in case something has come into its way - reaching `LandingProbe` (5cm) past
+    the landing point on the last frame, so the collider it landed on is always found. It
+    stops where it lands and is put away after `boltLifetime` (30s); one that lands on
+    nothing is put away at the end of its flight. Bolts tick on every path through
+    `Update()`.
+  - **What each kind does where it lands** (`Land()`): **water** -
+    `Core.Flame.ExtinguishNear(point, waterRadius)` (0.6m); **noisemaker** - sounds at
+    once and then every `noiseInterval` (1.5s) for `noiseDuration` (12s) (`MakeNoise()`:
+    `noiseCue` through `SoundPlayer` if set, otherwise a bare
+    `NoiseSystem.Emit(..., noiseRadius 12m, NoiseType.Distraction, ...)` guards hear and
+    the player doesn't); **rope** - only if the collider's `SurfaceTag.Of()` is `Wood`:
+    `HangRope()` takes the next of `ropeCount` (2) pooled `Interaction.ClimbableRope`s
+    (made at load on the Climbable layer under `Crossbow Bolts`, each with a thin box to
+    be seen; the oldest is reused), puts its top at the bolt and sets its length to the
+    ground below (one ray down on `ropeGroundLayers`, Environment) or `ropeMaxLength`
+    (8m). A rope bolt that lands on anything else is lost. `ropeProfile` is the ropes'
+    hand snap profile (empty = the rope's own fallback pose).
+  - **Not built:** bolt pickups in the level, any showing of how many bolts are left,
+    real sounds, and a bolt's effect on a guard.
+
+## The blackjack (not yet tried in the headset)
+
+- **`PlayerBlackjack`** (on `Hands`; optional) — drawing the blackjack and putting it
+  away; the takedown comes with the guards. `Tick()` (tick step 3b, before the grab
+  systems: it is taken by reaching, not by the hand rays). **Drawn at the chest**: a hand
+  that is free (`IsBusyExcept(..., HandUse.Blackjack)`), within `chestRadius` (0.22m) of
+  the chest point - `chestOffset` ((0, -0.3, 0.05): right, up, ahead) from the head with
+  the head's tilt ignored - and whose palm (the visual's +X through `TransformVector()`)
+  is within `palmAngle` (60°) of pointing at that point, feels a tap; on the frame its
+  grip is pressed there the blackjack becomes a child of that hand's visual at
+  `inHandPosition` / `inHandRotation` (untuned; lying along the thumb side). **Held while
+  that grip is held; letting go puts it away** (inactive, back under `Hands`) - it is
+  never dropped. Either hand, one at a time; the pack's shoulder reach is ticked first and
+  wins where the two overlap. The model is two boxes in one mesh (`LockMeshBuilder`,
+  `TeaLeaf/LockFade`), made in `Awake()` under `Hands` - not on a hand visual, so the
+  ghost hands never copy it; no collider. `IsOut`, `IsInLeftHand`;
+  `IsLeftBusy`/`IsRightBusy` are `HandUse.Blackjack`. `IDebugDrawable`: the chest ball in
+  the detailed view (yellow, green while drawn).
+
+## The compass (not yet tried in the headset)
+
+- **`PlayerCompass`** (on `Hands`; optional) — the player's readout: north, how visible
+  they are, and where the sounds they have just heard came from.
+  - **Bringing it out** (`Tick()`, tick step 4a, after the crossbow): on the frame grip
+    is pressed on a hand that is free (`IsBusyExcept(..., HandUse.Compass)`), whose ray
+    target is null (a grab always wins) and whose palm is within `palmUpAngle` (50°) of
+    straight up. Either hand, one at a time. **It stays while that grip is held**;
+    `TickHeld()` (tick step 8a, every path) puts it away when the grip is let go.
+    `IsLeftBusy`/`IsRightBusy` are `HandUse.Compass`.
+  - **Placed, not parented:** the `Compass` object is a child of `Hands`, put each frame
+    at `inHandPosition` ((0.07, -0.09, 0), over the palm) in the hand visual's space.
+    Never a child of a hand visual: under the mirrored right one it would be drawn
+    mirrored, east and west swapped. Its own axes: Z into the palm, Y up its face, X to
+    the right as it is looked at.
+  - **The model** (`BuildCompass()`, `LockMeshBuilder` cylinders, `TeaLeaf/LockFade`, no
+    colliders): the **rim** (`radius` 0.05, `thickness` 0.01), fixed to the hand; the
+    **dial** on top of it (`dialSize` 0.88 of the rim) with a triangular prism near its
+    edge at north (red, `northMarkScale` 1.6 times bigger), east, south and west, turned
+    every frame so its top is north laid flat onto the compass's face; and the **light
+    gem** on the middle of the dial. **North is world +Z** (east is +X), turned by
+    `northAngle` degrees about the vertical if a level needs it.
+  - **Light gem:** its own material with full least-light (so the scene's light never
+    darkens the reading), its `_BaseColor` set between `gemDarkColor` and `gemLightColor`
+    by `PlayerVisibility.Visibility` - written only when the value has moved by 0.02.
+  - **Sound arrows:** `arrowCount` (4) pooled triangular prisms outside the rim, each with
+    a see-through material of its own. `OnSoundHeard()` is subscribed to
+    `Core.SoundPlayer.Heard` (in `Start()`), so sounds are noted whether or not the
+    compass is out. **Only footsteps and voices that aren't the player's get an arrow**
+    (the cue's `NoiseType` is `Footstep` or `Voice`, and the source isn't under the Player
+    root): everything else - doors, impacts, bolts, locks - is ignored, as is a sound
+    quieter than `minLoudness` (0.02). **The arrow points where the sound is heard from**:
+    the sound itself in the same room, the portal it came through otherwise. A sound within `sameSourceDistance`
+    (1.5m) of a showing arrow's point renews that arrow (a guard's footsteps are one
+    arrow); otherwise it takes a free arrow, or the faintest one's place if it is louder
+    - so the arrows are the loudest few. An arrow holds for `arrowHoldTime` (0.5s) and
+    fades over `arrowFadeTime` (2s) (`_Alpha`). Each frame the compass is out
+    (`TickArrows()`), an arrow is put `arrowGap` beyond the rim towards its sound - the
+    level direction to the heard-from point (the sound itself, or the portal it came
+    through), laid flat onto the face - pointing outwards, sized between `arrowMinSize`
+    and `arrowMaxSize` by loudness. The points are in the world, so the arrows go round
+    the compass as the player turns. Loops and ambience raise no arrows.
+  - A held object like the pack, depth-tested, not an overlay marker.
+- **`PlayerHandTools`** (`Debug/Editor`, menu **TeaLeaf > Add Hand Tools To Player**) —
+  adds `PlayerCrossbow`, `PlayerBlackjack` and `PlayerCompass` to the `Hands` object, each
+  only if missing.
 
 ## Opening doors
 
@@ -525,8 +638,8 @@ doors (handles and bolts), the lockpicks, the keys, holding the pack and the cro
   (tick step 4a, after climbing and carrying): a free hand whose grip is held takes the
   `DoorHandle` its ray is on, if no other hand is on that door - the hand visual snaps onto
   the lever on the head's side; letting go of grip lets go. `IsLeftOnDoor`/`IsRightOnDoor`
-  (true through a needed regrip; they cover a hand on a bolt too) are what `PlayerHandState`
-  reports as `HandUse.Door`. The reticle is hidden by the snap (`IsSnapped`), as for a
+  (true through a needed regrip; they cover a hand on a bolt or a chest lid too) are what
+  `PlayerHandState` reports as `HandUse.Door`. The reticle is hidden by the snap (`IsSnapped`), as for a
   ledge.
   - `TickHeld()` (tick step 8, after `Move()`, straight before `PlayerHandVisuals.Tick()`,
     on every path through `Update()`), per held handle: **twist** = how far the controller
@@ -552,6 +665,15 @@ doors (handles and bolts), the lockpicks, the keys, holding the pack and the cro
     the door, from where it was - with the unlatch haptic as it reaches an end; the snap
     pose follows the knob; the same `breakDistance`. Letting go (`LetGoOfBolt()`) lets the
     bolt settle.
+  - **Chest lids** (not yet tried in the headset): a free hand holding grip with its ray
+    on an `Interaction.ChestLid` takes it the same way (`TakeLid()`) and its visual snaps
+    onto the lid's front edge. In `TickHeld()` (`TickHeldLid()`) the lid is asked for
+    `chest.AngleAt(controller position)` plus the offset noted at the grab
+    (`Chest.SetAngle()`) - so **lifting the hand opens the lid**, as far as the hand goes
+    round the hinge. A locked chest's lid doesn't move: it rattles once with a haptic
+    knock (`Chest.RattleLocked()`). The snap pose follows the lid; the same
+    `breakDistance`. Letting go (`LetGoOfLid()`) calls `Chest.Release()`: a lid left
+    nearly shut drops shut, otherwise it stays where it was left.
 - **`PlayerBodyPushing`** (on the Player root, with the `CharacterController`) — the body
   pushes open doors. `OnControllerColliderHit()`, which Unity calls from inside `Move()` (so
   no `Tick()`: it happens at tick step 6): looks the collider up in

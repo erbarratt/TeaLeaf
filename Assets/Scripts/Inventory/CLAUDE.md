@@ -6,8 +6,9 @@ loaded when working in this folder. Keep it up to date with every change to thes
 like the root file.
 
 Phase 4 of `Assets/DEVROADMAP.txt`. **Built and working in the headset:** the pack, loot, the
-worth coins, the inventory data, keys and the keyring. **Not built:** the weapon hand menu and bolt
-selection. **Not yet tried in the headset:** the gold number.
+worth coins, the inventory data, keys and the keyring. **Not built:** bolt pickups, and any
+showing of the bolt counts (the crossbow uses them: `Scripts/Player/CLAUDE.md`). **Not yet
+tried in the headset:** the gold number.
 
 ## The design
 

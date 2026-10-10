@@ -114,26 +114,30 @@ namespace Interaction
         /// Adds a cylinder lying along Z, its middle at the origin: a
         /// round face at each end (the one facing -Z in faceColor, the
         /// other in sideColor) and the wall between them. segments is how
-        /// many flat pieces the round is made of.
+        /// many flat pieces the round is made of. centre moves its middle
+        /// from the origin, and turn (degrees) turns it about Z: three
+        /// segments make a triangular prism, whose first corner points
+        /// along +X until it's turned.
         /// </summary>
-        public void Cylinder(float radius, float depth, int segments, Color32 faceColor, Color32 sideColor)
+        public void Cylinder(float radius, float depth, int segments, Color32 faceColor, Color32 sideColor, Vector3 centre = default, float turn = 0f)
         {
             float front = -depth * 0.5f;
             float back = depth * 0.5f;
+            float turnRadians = turn * Mathf.Deg2Rad;
 
             // The two end faces: a middle point and a ring each.
             int frontCentre = _vertices.Count;
-            AddPoint(new Vector3(0f, 0f, front), Vector3.back, faceColor);
+            AddPoint(centre + new Vector3(0f, 0f, front), Vector3.back, faceColor);
 
             for (int i = 0; i < segments; i++) {
-                AddPoint(RingPoint(i, segments, radius, front), Vector3.back, faceColor);
+                AddPoint(centre + RingPoint(i, segments, radius, front, turnRadians), Vector3.back, faceColor);
             }
 
             int backCentre = _vertices.Count;
-            AddPoint(new Vector3(0f, 0f, back), Vector3.forward, sideColor);
+            AddPoint(centre + new Vector3(0f, 0f, back), Vector3.forward, sideColor);
 
             for (int i = 0; i < segments; i++) {
-                AddPoint(RingPoint(i, segments, radius, back), Vector3.forward, sideColor);
+                AddPoint(centre + RingPoint(i, segments, radius, back, turnRadians), Vector3.forward, sideColor);
             }
 
             // The wall: both rings again, this time facing outwards (a
@@ -142,9 +146,9 @@ namespace Interaction
             int wall = _vertices.Count;
 
             for (int i = 0; i < segments; i++) {
-                Vector3 point = RingPoint(i, segments, 1f, 0f);
-                AddPoint(RingPoint(i, segments, radius, front), point, sideColor);
-                AddPoint(RingPoint(i, segments, radius, back), point, sideColor);
+                Vector3 point = RingPoint(i, segments, 1f, 0f, turnRadians);
+                AddPoint(centre + RingPoint(i, segments, radius, front, turnRadians), point, sideColor);
+                AddPoint(centre + RingPoint(i, segments, radius, back, turnRadians), point, sideColor);
             }
 
             for (int i = 0; i < segments; i++) {
@@ -161,11 +165,12 @@ namespace Interaction
         }
 
         /// <summary>
-        /// Point i of a ring of count points round the Z axis, at z.
+        /// Point i of a ring of count points round the Z axis, at z, the
+        /// whole ring turned by turn radians.
         /// </summary>
-        private static Vector3 RingPoint(int i, int count, float radius, float z)
+        private static Vector3 RingPoint(int i, int count, float radius, float z, float turn)
         {
-            float angle = Mathf.PI * 2f * i / count;
+            float angle = Mathf.PI * 2f * i / count + turn;
             return new Vector3(Mathf.Cos(angle) * radius, Mathf.Sin(angle) * radius, z);
         }
 

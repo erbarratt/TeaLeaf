@@ -165,6 +165,15 @@ namespace Core
         /// or later.
         public static SoundPlayer Instance { get; private set; }
 
+        /// Raised for every one-off sound the player actually hears: the
+        /// point it is heard from (the sound itself in the same room,
+        /// otherwise the portal it came through), how loud it was at the
+        /// ears (0-1 or so), what kind of sound it was (its cue's noise
+        /// type) and who made it (may be null). Not raised for loops or
+        /// ambience. An instance event: the sound player is destroyed
+        /// with the scene on a restart, and its subscribers go with it.
+        public event System.Action<Vector3, float, NoiseType, Transform> Heard;
+
         /// Where the player's ears are, in world space.
         public Vector3 ListenerPosition => listener.position;
 
@@ -429,6 +438,18 @@ namespace Core
             }
 
             _startTimes[voice] = Time.time + delay;
+
+            // Told to whatever shows the player what they hear (the
+            // compass): the real place the ears take it to come from -
+            // the sound itself in the same room, otherwise the portal it
+            // came through - how loud it was at the ears (the cue's
+            // volume after the same distance fade the voice gets), and
+            // what kind of sound it was.
+            if (Heard != null) {
+                float fade = Mathf.Pow(1f - Mathf.Clamp01(path.Distance / Mathf.Max(range, 0.01f)), falloffSharpness);
+                Heard(path.IsDirect ? position : path.HeardFrom, cue.Volume * volumeScale * fade, cue.NoiseType, source);
+            }
+
             return true;
         }
 

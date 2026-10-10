@@ -24,6 +24,10 @@ namespace Interaction
         // The door it locks, whose key id says which key fits.
         [SerializeField] private Door door;
 
+        // The chest it locks, for a lock on a chest rather than a door.
+        // Found on a parent if both are left empty.
+        [SerializeField] private Chest chest;
+
         // How far the lock's face is from this object, through the door,
         // in metres - half the door's thickness plus however far the lock
         // plate stands out. The key sits here once it's in.
@@ -43,12 +47,13 @@ namespace Interaction
         private static readonly List<KeyLock> _all = new();
 
         private bool _hasDoor;
+        private bool _hasChest;
 
         /// Which key fits: the door's key id.
-        public string KeyId => _hasDoor ? door.KeyId : null;
+        public string KeyId => _hasDoor ? door.KeyId : _hasChest ? chest.KeyId : null;
 
         /// True while the lock is locked.
-        public bool IsLocked => _hasDoor && door.IsLocked;
+        public bool IsLocked => _hasDoor ? door.IsLocked : _hasChest && chest.IsLocked;
 
         /// True while a key is in this lock.
         public bool HasKeyIn { get; private set; }
@@ -60,16 +65,23 @@ namespace Interaction
         private void Reset()
         {
             door = GetComponentInParent<Door>();
+            chest = GetComponentInParent<Chest>();
         }
 
         private void Awake()
         {
             _hasDoor = door != null;
+            // A lock given neither is on a chest if one of its parents is one.
+            if (door == null && chest == null) {
+                chest = GetComponentInParent<Chest>();
+            }
 
-            if (!_hasDoor) {
-                Debug.LogWarning($"KeyLock '{name}': no door assigned, so it locks nothing.", this);
-            } else if (door.LockType != DoorLock.Keyed) {
-                Debug.LogWarning($"KeyLock '{name}': its door's lock isn't a Keyed one.", this);
+            _hasChest = !_hasDoor && chest != null;
+
+            if (!_hasDoor && !_hasChest) {
+                Debug.LogWarning($"KeyLock '{name}': no door or chest assigned, so it locks nothing.", this);
+            } else if ((_hasDoor ? door.LockType : chest.LockType) != DoorLock.Keyed) {
+                Debug.LogWarning($"KeyLock '{name}': what it's on doesn't have a Keyed lock.", this);
             }
         }
 
@@ -137,14 +149,16 @@ namespace Interaction
         /// </summary>
         public bool TurnsAnticlockwise(Quaternion facing)
         {
-            if (!_hasDoor) {
+            if (!_hasDoor && !_hasChest) {
                 return false;
             }
 
-            // How far the lock is from the middle of the leaf, measured
-            // along the viewer's right: above zero, it's on the right.
+            // How far the lock is from the middle of the leaf (or of the
+            // chest), measured along the viewer's right: above zero, it's
+            // on the right.
+            Vector3 centre = _hasDoor ? door.LeafCentre : chest.Centre;
             Vector3 viewerRight = facing * Vector3.right;
-            return Vector3.Dot(transform.position - door.LeafCentre, viewerRight) > 0f;
+            return Vector3.Dot(transform.position - centre, viewerRight) > 0f;
         }
 
         /// <summary>
@@ -170,11 +184,13 @@ namespace Interaction
         /// </summary>
         public void Unlock()
         {
-            if (!_hasDoor) {
+            if (_hasDoor) {
+                door.Unlock();
+            } else if (_hasChest) {
+                chest.Unlock();
+            } else {
                 return;
             }
-
-            door.Unlock();
 
             if (unlockCue == null) {
                 return;

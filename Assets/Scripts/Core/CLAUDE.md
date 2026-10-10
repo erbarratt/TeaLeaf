@@ -228,8 +228,13 @@ night. The player's side (`Player.PlayerVisibility`) is in `Scripts/Player/CLAUD
   the visible light is an ordinary Unity `Light` on the same object. Place it a little out
   from the wall it hangs on. `IDebugDrawable`: orange wire sphere at the range, plus the
   full-brightness distance when selected.
-- **Not built:** one call that puts a torch out everywhere - the `LightSource`, the Unity
-  light, the flame and the `SoundLoop` together (with the water bolt).
+- **`Flame`** — something burning that can be put out (a torch, a brazier): the one place
+  that switches a fire's parts off, or on again, together - its `LightSource`, its Unity
+  `Light`, its `SoundLoop` (each found on the same object if not wired) and an optional
+  `flameVisual` object. `Extinguish()` (with an optional `extinguishCue`), `Relight()`,
+  `IsLit`, `startsLit`. Self-registering static list; **`Flame.ExtinguishNear(point,
+  radius)`** puts out every lit one within the radius (distance checks only) and returns
+  how many - what the water bolt calls. No `Update()`. Not yet tried in the headset.
 - The Sound Test House has three sources with matching point lights (Hall torch, Kitchen
   torch, Lounge lamp at 0.7); moonlight reaches the Yard and the roofless upper floor; the
   Store is dark behind its closed door.
@@ -366,7 +371,12 @@ the player truthfully where it is, on stereo headphones.
   at 0.05s): the spatialiser's one-off voices, the listener's room every
   `listenerCheckInterval` (0.2s) - which sets the reverb's and ambience's targets - then
   the three helpers' ticks. `ListenerRoom`, `Spatialiser`, `IsSpatialised`,
-  `PlayingVoiceCount`, `PlayingLoopCount`.
+  `PlayingVoiceCount`, `PlayingLoopCount`. **`Heard`** (instance event: heard-from point,
+  loudness, the cue's `NoiseType`, source) is raised by `Play()` for every one-off sound
+  that actually reaches the player - the real point it is heard from (the sound itself in
+  the same room, otherwise the portal it came through: `SoundPath.HeardFrom`) and its
+  loudness at the ears (cue volume x `volumeScale` x the distance fade);
+  not for loops or ambience. `Player.PlayerCompass` listens to it for its sound arrows.
 - **`SoundLoop`** — a sound that never stops, from one place (a torch, a fire): a `cue` and
   a `volumeScale`, on the object that makes it. Self-registering static list
   (`Count`/`Get(i)`); **disabling it fades it out**. The cue's noise half is ignored; one
@@ -491,7 +501,8 @@ the player truthfully where it is, on stereo headphones.
   including a **stairwell portal lying flat in the stair hole** (rotated 90° about X), the
   only link between the floors. Nine listener cubes, a knock in the Store, and a stand-in
   guard: a footstep emitter with `WaypointMoverDebug` going Bedroom → Landing → stairs →
-  Hall → Kitchen. A `SoundLoop` on the Hall and Kitchen torches; a different reverb per room
+  Hall → Kitchen. A `SoundLoop` on the Hall and Kitchen torches and a `Flame` on all three
+  lights (in a house built since `Flame` was written; add it by hand to older ones); a different reverb per room
   (Hall `StoneHall`, Kitchen `StoneRoom`, Store `Cellar`, Lounge `SmallRoom`, upper floor and
   Yard `Alley`); the indoor tone on the ground floor and the wind upstairs and in the Yard.
   Footstep surfaces: upper floor and stairs tagged Wood, and 2cm floor coverings tagged

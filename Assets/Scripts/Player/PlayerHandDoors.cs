@@ -77,6 +77,15 @@ namespace Player
             // was along it when it took hold, so the bolt moves as far as
             // the hand does from there rather than jumping to the hand.
             public float boltSlideOffset;
+
+            // The chest lid this hand is on instead, or null; the
+            // difference between the lid's angle and where the hand was
+            // round the hinge when it took hold, so the lid moves as far
+            // as the hand does from there; and whether the locked rattle
+            // has been played for this hold.
+            public ChestLid lid;
+            public float lidAngleOffset;
+            public bool hasLidRattled;
         }
 
         [SerializeField] private PlayerInputXR playerInput;
@@ -119,10 +128,10 @@ namespace Player
         /// True while the left hand is on a door handle - and, after being
         /// let go by force, until its grip is released: the hand is still
         /// busy as far as climbing and carrying are concerned.
-        public bool IsLeftOnDoor => _left.handle is not null || _left.bolt is not null || _left.needsRegrip;
+        public bool IsLeftOnDoor => _left.handle is not null || _left.bolt is not null || _left.lid is not null || _left.needsRegrip;
 
         /// True while the right hand is on a door handle (as IsLeftOnDoor).
-        public bool IsRightOnDoor => _right.handle is not null || _right.bolt is not null || _right.needsRegrip;
+        public bool IsRightOnDoor => _right.handle is not null || _right.bolt is not null || _right.lid is not null || _right.needsRegrip;
 
         /// <summary>
         /// Editor-only: fills in the references when the component is added
@@ -167,6 +176,8 @@ namespace Player
             LetGo(_right, false);
             LetGoOfBolt(_left, false);
             LetGoOfBolt(_right, false);
+            LetGoOfLid(_left, false);
+            LetGoOfLid(_right, false);
         }
 
         /// <summary>
@@ -213,6 +224,14 @@ namespace Player
                 return;
             }
 
+            if (hand.lid is not null) {
+                if (!isGrabbing) {
+                    LetGoOfLid(hand, false);
+                }
+
+                return;
+            }
+
             if (!isGrabbing) {
                 // Grip released - this hand may take a handle again.
                 hand.needsRegrip = false;
@@ -231,12 +250,97 @@ namespace Player
                 return;
             }
 
+            // And a chest's lid.
+            if (rayTarget is ChestLid lid) {
+                TakeLid(hand, lid);
+                return;
+            }
+
             // A door takes one hand at a time.
             if (rayTarget is not DoorHandle handle || handle.Door == null || handle.Door.IsHeld) {
                 return;
             }
 
             TakeHold(hand, handle);
+        }
+
+        /// <summary>
+        /// Puts this hand on a chest's lid: the hand visual snaps onto its
+        /// front, and where the hand is round the hinge is noted so the
+        /// lid moves with it from here. One hand at a time.
+        /// </summary>
+        private void TakeLid(HandOnDoor hand, ChestLid lid)
+        {
+            HandOnDoor other = hand.isLeftHand ? _right : _left;
+
+            if (other.lid == lid || lid.Chest == null) {
+                return;
+            }
+
+            Vector3 controllerPosition = hand.isLeftHand ? playerTracking.LeftHandPosition : playerTracking.RightHandPosition;
+
+            hand.lid = lid;
+            hand.lidAngleOffset = lid.Chest.Angle - lid.Chest.AngleAt(controllerPosition);
+            hand.hasLidRattled = false;
+            SnapFor(hand).Snap(lid.GetSnapPose(hand.isLeftHand));
+        }
+
+        /// <summary>
+        /// Takes this hand off its lid (nothing happens if it isn't on
+        /// one): a lid left nearly shut drops shut, and the hand visual
+        /// blends back to the controller. With byForce, the hand can't
+        /// take anything again until its grip has been released.
+        /// </summary>
+        private void LetGoOfLid(HandOnDoor hand, bool byForce)
+        {
+            if (hand == null || hand.lid is null) {
+                return;
+            }
+
+            // Unity's == null is true for a lid destroyed while held.
+            if (hand.lid != null && hand.lid.Chest != null) {
+                hand.lid.Chest.Release();
+            }
+
+            hand.lid = null;
+            hand.needsRegrip = byForce;
+            SnapFor(hand).Release();
+        }
+
+        /// <summary>
+        /// One hand on a lid: the lid opens as far as the real hand has
+        /// moved round the hinge since it took hold - lifting the hand
+        /// lifts the lid - and the snapped hand moves with it. A locked
+        /// chest's lid doesn't move: it rattles, once per hold. The hand
+        /// is let go by force if the real hand strays too far.
+        /// </summary>
+        private void TickHeldLid(HandOnDoor hand, Vector3 controllerPosition)
+        {
+            if (hand.lid is null) {
+                return;
+            }
+
+            // Lid destroyed while held (Unity's == null).
+            if (hand.lid == null || hand.lid.Chest == null) {
+                LetGoOfLid(hand, true);
+                return;
+            }
+
+            ChestLid lid = hand.lid;
+            Chest chest = lid.Chest;
+
+            if (!chest.SetAngle(chest.AngleAt(controllerPosition) + hand.lidAngleOffset) && !hand.hasLidRattled) {
+                hand.hasLidRattled = true;
+                chest.RattleLocked();
+                Pulse(hand, lockedAmplitude, lockedDuration);
+            }
+
+            HandSnapPose pose = lid.GetSnapPose(hand.isLeftHand);
+            SnapFor(hand).SetSnapPose(pose.Position, pose.Rotation);
+
+            if ((controllerPosition - lid.GetGripPoint()).sqrMagnitude > breakDistance * breakDistance) {
+                LetGoOfLid(hand, true);
+            }
         }
 
         /// <summary>
@@ -385,6 +489,8 @@ namespace Player
             TickHeldHand(_right, playerTracking.RightHandPosition, playerTracking.RightHandRotation);
             TickHeldBolt(_left, playerTracking.LeftHandPosition);
             TickHeldBolt(_right, playerTracking.RightHandPosition);
+            TickHeldLid(_left, playerTracking.LeftHandPosition);
+            TickHeldLid(_right, playerTracking.RightHandPosition);
         }
 
         /// <summary>
