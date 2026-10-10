@@ -6,6 +6,70 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-10, third part (docs cut down, a project review, a clean-up)
+-------------------------------------------------------------------
+- Two rules added to the root CLAUDE.md.
+  - "Choosing a solution": every solution is the simplest, most stable
+    and most performant way to do the thing; where there are options or
+    levels of complexity, lay out the trade-offs and wait for a choice
+    before building anything.
+  - The CLAUDE.md files, the roadmap and this log describe what is true
+    now. No notes that something changed, was decided on a date or
+    replaced an earlier plan.
+- The roadmap and the five CLAUDE.md files hold the current state only.
+  A finished roadmap item is one line; open items keep their detail.
+  The roadmap is 31 KB.
+- Spatialiser and reverb are done, tuning included.
+- A review of the whole project for simpler, more stable or faster ways
+  of doing things, from the settings and a search of the scripts. The
+  largest finds were in the PC render settings, which were Unity's
+  template defaults. The scripts were clean: no scene searches per
+  frame, no allocating physics queries.
+- PC render settings (PC_RPAsset, PC_Renderer): ambient occlusion
+  switched off (a full-screen effect with its own depth pass), no depth
+  texture, no opaque texture, HDR off, two shadow cascades with hard
+  edges. The shadow distance stays 50m: shorter, and distant shadows
+  would vanish while the gameplay light still counted them.
+- Packages removed: Visual Scripting, Timeline, Multiplayer Center,
+  Version Control, Test Framework. Nothing used them.
+- Template leftovers removed: the sample volume profile, and the Look,
+  Attack, Interact, Previous and Next input actions.
+  - The UI action map stays: the Input System reports an error in the
+    editor if the project-wide actions have none. Its keyboard, gamepad,
+    touch and joystick schemes stay with it.
+  - Lesson: a regex that matches "a block with no braces inside" misses
+    input bindings whose path has braces, like {PrimaryAction}. Two
+    were left behind and found by checking the file as JSON afterwards.
+- SoundPlayer does the one-off sounds and hands the rest to three plain
+  classes it makes and ticks: SoundLoopPlayer, ListenerReverb and
+  RoomAmbience. Every setting stays on the Sound Player, so the scene's
+  tuning is kept.
+- SoundRoom works its box out once in Play Mode, not on every lookup.
+  In Edit Mode it still works it out each
+  time, so rooms can be moved while building.
+- A one-off sound's end time is worked out when it starts, so the
+  spatialiser no longer asks every voice every frame whether it is
+  playing.
+- PlayerHaptics sends pulses through each hand's XR device, found once
+  and kept. Sending through an input action builds a name on every
+  call, and lockpicking pulses twenty times a second. Not yet tried in the
+  headset; the LeftHaptic and RightHaptic actions are unused until it
+  is.
+- Checked: the game scripts compile, with Unity's own compiler run
+  outside the editor on the editor's own list of sources and
+  references, and then in the editor. Nothing in this part was run in
+  the headset.
+  - Lesson: Unity keeps each compile's arguments in
+    Library/Bee/artifacts/<name>.dag/Assembly-CSharp.rsp. Copying it,
+    adding new files and running the editor's csc.dll on it checks code
+    Unity hasn't imported yet.
+- To check in the headset: the look without ambient occlusion and with
+  hard shadow edges; that haptics still buzz; that loops, reverb and
+  ambience sound as before.
+- Next: as before - the open inventory decisions, then the tools
+  (Phase 5) or the guards (Phase 6).
+
+
 2026-10-10, second part (the target changes: PCVR on a 3060-class rig)
 ----------------------------------------------------------------------
 - No code this part: a decision, and the documents brought into line.

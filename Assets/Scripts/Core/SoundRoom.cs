@@ -53,18 +53,53 @@ namespace Core
         private static readonly Color _gizmoColor = new(0.3f, 0.6f, 1f, 0.5f);
         private static readonly Color _gizmoSelectedColor = new(0.3f, 0.6f, 1f, 1f);
 
+        // The box as Contains() and Find() need it: the matrix that turns a
+        // world point into this object's local space, half the box's size,
+        // and its volume. Rooms don't move while playing and Find() is
+        // called for every sound, so in Play Mode these are worked out
+        // once and kept. In Edit Mode they're worked out afresh each time
+        // (_isCached stays false), so a room being moved or resized is
+        // right straight away.
+        private Matrix4x4 _worldToLocal;
+        private Vector3 _halfSize;
+        private float _volume;
+        private bool _isCached;
+
         /// <summary>
-        /// The box's volume. Only worked out where rooms overlap, to pick
-        /// the smallest (a cupboard inside a hall) - so it isn't cached,
-        /// and a room resized in the editor is right straight away.
+        /// The box's volume, for picking the smallest where rooms overlap
+        /// (a cupboard inside a hall).
         /// </summary>
         private float Volume
         {
             get
             {
-                Vector3 scale = transform.lossyScale;
-                return Mathf.Abs(size.x * scale.x * size.y * scale.y * size.z * scale.z);
+                if (!_isCached) {
+                    Cache();
+                }
+
+                return _volume;
             }
+        }
+
+        /// <summary>
+        /// Works out the box's matrix, half size and volume.
+        /// </summary>
+        private void Cache()
+        {
+            Vector3 scale = transform.lossyScale;
+            _worldToLocal = transform.worldToLocalMatrix;
+            _halfSize = size * 0.5f;
+            _volume = Mathf.Abs(size.x * scale.x * size.y * scale.y * size.z * scale.z);
+            _isCached = Application.isPlaying;
+        }
+
+        /// <summary>
+        /// Editor-only: an Inspector change (the size, say) while playing
+        /// throws the kept values away.
+        /// </summary>
+        private void OnValidate()
+        {
+            _isCached = false;
         }
 
         public ReverbSettings Reverb => reverb;
@@ -115,6 +150,7 @@ namespace Core
         private void OnEnable()
         {
             _rooms.Add(this);
+            _isCached = false;
             DebugDrawRegistry.Register(this);
             SoundPropagation.MarkLayoutDirty();
         }
@@ -151,11 +187,15 @@ namespace Core
         /// </summary>
         public bool Contains(Vector3 worldPoint)
         {
-            Vector3 local = transform.InverseTransformPoint(worldPoint);
+            if (!_isCached) {
+                Cache();
+            }
 
-            return Mathf.Abs(local.x) <= size.x * 0.5f
-                && Mathf.Abs(local.y) <= size.y * 0.5f
-                && Mathf.Abs(local.z) <= size.z * 0.5f;
+            Vector3 local = _worldToLocal.MultiplyPoint3x4(worldPoint);
+
+            return Mathf.Abs(local.x) <= _halfSize.x
+                && Mathf.Abs(local.y) <= _halfSize.y
+                && Mathf.Abs(local.z) <= _halfSize.z;
         }
 
         /// <summary>

@@ -6,15 +6,14 @@ showcases every core stealth mechanic end to end - sneak in, steal the
 objective item, escape - with a fail/restart loop when caught. No settings
 menu, main menu, save system or final art required.
 
-Written 2026-09-26. Tick items off as [x] and log details in DEVLOG.txt.
-[-] marks an item deferred to a later phase (the item says where).
+[x] = done, [ ] = to do. Done items are kept as one line; how each works
+is in the CLAUDE.md files, and how it got there is in DEVLOG.txt.
 
 
-Vertical slice feature list (agreed scope)
-------------------------------------------
-Movement:     walk, smooth/snap turn, gravity, crouch (done), sprint, jump,
-              ledge climbing (done), mantling,
-              ladders, rope climbing.
+Vertical slice feature list
+---------------------------
+Movement:     walk, smooth/snap turn, gravity, crouch, sprint, jump, ledge
+              climbing, mantling, ladders, rope climbing, zip lines.
 Visibility:   worked out from the level's geometry - moonlight, shadowed
               wherever something stands between the player and the moon,
               plus torches and lamps within their range. Extinguishing a
@@ -22,51 +21,46 @@ Visibility:   worked out from the level's geometry - moonlight, shadowed
               feedback.
 Noise:        footsteps by surface type (scaled by sprint/walk/crouch),
               thrown/dropped physics objects, doors and other interactions.
+Sound:        rooms and portals, so a sound is heard from where it really
+              comes; reverb from the room the player is in; looping sounds
+              and room ambience; the project's own spatialiser.
 Guard AI:     patrol, suspicion, search, chase, catch (= fail + restart).
               Knockout state. Guards react to finding KO'd bodies.
 Tools:        blackjack takedown, hand crossbow (either hand, physically
               cocked) with water / noisemaker / rope bolts, two-handed
               lockpicking on a large copy of the lock (one pick turns in
               stages, the other searches for each pin by feel).
-Inventory:    wrist radial menu to select tools/bolt types; loot pickup and
-              pocketing with a running loot total.
+Inventory:    a pack that only holds so much, summoned onto the left hand;
+              loot put in by hand, one space each; gold; the objective;
+              coloured keys on a keyring.
 Bodies:       grab and drag KO'd guards to hide them.
-Throwing:     two ways, both kept. Aimed (fine control) - hold an object,
-              hold that hand's trigger for a trajectory arc, release the
-              trigger to throw (short hand launch animation). Physical -
-              move the hand and let go of grip, and the object leaves with
-              the hand's movement.
+Throwing:     aimed (hold the trigger for an arc, release to throw) and
+              physical (move the hand and let go of grip).
 Hands:        physical hands - the visual hand model collides with the world
               and stops at walls/props instead of passing through, then
-              catches back up to the real controller position (Half-Life:
-              Alyx / Thief VR style).
+              catches back up to the real controller position.
 Art:          greybox (ProBuilder/primitives) for environment and props.
-              Placeholder humanoid + Mixamo animations for guards. Existing
-              real hand models with finger animation/grip poses.
+              Placeholder humanoid + Mixamo animations for guards. Real hand
+              models with finger animation/grip poses.
 
 
-Performance rules for everything built from here (added 2026-10-07)
--------------------------------------------------------------------
-The target changed on 2026-10-10: PCVR, 90 fps with 25% headroom (8.3 ms
-a frame for the CPU and for the GPU) at about 2000 x 2000 pixels per eye
-on an RTX 3060 12 GB, a Ryzen 5 5600X class processor and 16 GB of RAM -
-"3060 upwards", so most Steam players are covered. Quest 3 standalone
-was the target before that and is now only a possible later port. The
-cheap time to meet the target is while each thing is built, not in
-Phase 10. Every phase below follows these; the fuller form is in the
-root CLAUDE.md ("Performance rules"). The tasks they lead to are in
-Phases 6, 8 and 10. The rules that only existed for mobile hardware
-were loosened that day; the ones that are cheap now and costly to
-retrofit were kept, which also keeps a Quest port possible.
+Performance rules for everything built
+--------------------------------------
+The target: PCVR, 90 fps with 25% headroom (8.3 ms a frame for the CPU and
+for the GPU) at about 2000 x 2000 pixels per eye on an RTX 3060 12 GB, a
+Ryzen 5 5600X class processor and 16 GB of RAM - "3060 upwards". Quest 3
+standalone is only a possible later port. The cheap time to meet the
+target is while each thing is built, not in Phase 10. Every phase follows
+these; the fuller form is in the root CLAUDE.md ("Performance rules").
 - Nothing has been measured on a 3060-class machine yet. Until it has,
   a cost is a judgement.
-- Pixels are still the biggest cost (8 million a frame, 90 times a
-  second): the game must not depend on a full-screen effect or on the
-  camera depth or opaque texture (an optional one that can be switched
-  off is allowed once measured), no parallax occlusion on surfaces
-  that fill the view, as little see-through overdraw as possible. The
-  procedural cobblestone and brick shaders are acceptable, subject to
-  measuring. 4x MSAA is affordable and wanted.
+- Pixels are the biggest cost (8 million a frame, 90 times a second): the
+  game must not depend on a full-screen effect or on the camera depth or
+  opaque texture (an optional one that can be switched off is allowed
+  once measured), no parallax occlusion on surfaces that fill the view,
+  as little see-through overdraw as possible. The procedural cobblestone
+  and brick shaders are acceptable, subject to measuring. 4x MSAA is
+  wanted.
 - Light is baked where it can be; realtime lights are few and
   short-ranged. Torches may cast realtime shadows from moving things,
   with the level's shadows baked, as a quality setting that can be
@@ -82,796 +76,126 @@ retrofit were kept, which also keeps a Quest port possible.
   and less often again when far away or unseen.
 - Nothing is created or destroyed during play: pool it.
 - Tricks kept in reserve, to try only if profiling asks: light distance
-  haze with nearer cull distances for small props, application
-  spacewarp, impostors.
+  haze with nearer cull distances for small props, impostors.
 
 
-Phase 0 - Finish in-progress work
----------------------------------
-[x] Hand animation: Index and Grip (middle+ring+pinky) Open/Closed pose
-    clips, and a Grip layer with a GripCurl blend tree on
-    Left Hand Visual.controller.
-[x] Hand animation: no Avatar Masks needed - each clip only keys its own
-    finger bones, so the layers don't overwrite each other.
-[x] Hand animation: right hand is the same hand.fbx mirrored (scale.x -1),
-    so it shares Left Hand Visual.controller. Both hands verified in Play
-    Mode.
-[x] Player "tick orchestrator": PlayerController now owns the frame order
-    and the single characterController.Move() call; PlayerLocomotion only
-    does locomotion (TickBody/TickMovement/TickTurning).
-[x] Set up physics layers now, before content exists: Environment, Player,
-    PlayerHands, Interactable, Climbable, Guard, GuardHead, Projectile
-    (ShadowVolume/NoiseOccluder dropped - not needed, see DEVLOG). Layer
-    collision matrix trimmed; hand rays masked to Environment/Interactable/
-    Climbable.
-[-] Quest 3 standalone baseline: deferred (2026-09-26) - development stays
-    PCVR-first for now; the first standalone build and frame-time baseline
-    move to Phase 10. Quest 3 standalone is still the eventual target, so
-    the performance habits in CLAUDE.md still apply to all new code.
-    (2026-10-10: no longer a target - PCVR on a 3060-class rig is. A
-    Quest port is only a possibility; see Phase 10.)
+Phase 0 - Foundations
+---------------------
+[x] Hand animation: index and grip curl layers, mirrored right hand.
+[x] PlayerController owns the frame order and the single Move() call.
+[x] Physics layers and the trimmed collision matrix.
 
 
 Phase 1 - Locomotion and physical hands (Player)
 -----------------------------------------------
-Scripting:
-[x] Sprint: click-to-toggle on the left stick click (project-wide
-    InputSystem_Actions Player/Sprint), sprintSpeed replaces moveSpeed.
-    Ends when the stick returns to centre, on a second click, on crouch or
-    on climb; can't start while crouched. Exposes IsSprinting. Verified
-    in headset.
-[x] Single MovementState (Still, Walking, Sprinting, CrouchStill,
-    CrouchWalking, Climbing, Airborne) on PlayerLocomotion, so AI, noise and
-    the wrist gem read one value instead of each re-deriving it. Moving is
-    measured from real applied movement; Airborne after a short grace
-    period. Verified in headset. Physical roomscale walking
-    doesn't count as moving yet - revisit when guards perceive the player.
-[x] Ray-targeted climb grab + general hand snap poses. Climbing currently
-    starts when a hand's SphereCollider overlaps a ClimbableEdge; change it
-    so a hand grabs whatever its hand ray/reticle is on, and generalise
-    the "hand snaps to a target" idea so ladders, ropes, doors, tools and
-    props can all reuse it.
-    [x] Grab trigger: holding grip while that hand's ray target
-        (PlayerHandInteraction.LeftTarget/RightTarget) is a climbable
-        starts the climb on that hand - held rather than press-only, to
-        keep the old "hold grip and reach into a ledge" feel. The overlap
-        check, ClimbableEdge.Active/Bounds/Overlaps/ClosestPoint and the
-        climb SphereColliders are removed. Verified in headset.
-    [x] Grab reach: decided - no separate grab distance. The hand ray is
-        only 0.5m (rayLength), about arm's reach, so the ray is the reach
-        limit. Revisit if it feels too far in headset.
-    [x] General hand snap pose (Player namespace, used by any grab target):
-        a small data type - e.g. a HandSnapPose struct with local position,
-        local rotation and a hand animation pose/state - plus an interface
-        (e.g. IHandSnapTarget) that a grab target implements to answer "given
-        this hand (left/right) and this ray hit, where does the visual hand
-        go, how is it rotated, and which pose does it play?". Handedness
-        is part of the query, since the right hand is the mirrored left.
-        Snapping is data on the target, not special cases in the hand code.
-        (Verified in headset. HandPose enum, HandSnapPose readonly struct,
-        IHandSnapTarget, all in Interaction. Hand offsets live in a shared
-        HandSnapProfile ScriptableObject, per hand, so they're tuned once
-        for every ledge.)
-    [x] ClimbableEdge implements it: snap point = ray hit projected onto
-        the edge's top-front line (clamped to the edge's length), rotation
-        derived from the edge's orientation (palm down on top, fingers
-        curling over the lip), pose = a "ledge grip" clip with the fingers
-        bent over the edge. Tunable offsets per edge (or per edge type) so it
-        can be lined up visually in the editor. (Position/rotation verified
-        in headset; the finger pose is the PlayerHandAnimation item below.
-        Convention: edge local X along the edge, +Y up, +Z out from the
-        wall.)
-    [x] Hand visual snap: on grab, the visual hand moves/rotates to the snap
-        pose (short blend rather than a pop) and stays pinned there while
-        gripping, replacing the current "pin visual at grab point" code in
-        PlayerClimbing. Climb movement still uses the tracked controller's
-        delta. On release, the visual returns to the controller. (Verified
-        in headset: HandVisualSnap, placed last in the frame via
-        PlayerClimbing.TickHandVisuals(); the visual is detached from the
-        controller while snapped so it can't wobble.)
-    [x] PlayerHandAnimation: a hand that is snapped plays the snap target's
-        pose instead of input-driven curl. (A "Snap Pose" override layer
-        whose weight follows HandVisualSnap.Weight, states named after
-        HandPose values; HandState enum removed. Verified in headset.)
-    [x] Test: grab edges at chest and above head, at edge ends, and from
-        steep angles; both hands on one edge; hand-off between hands; both
-        mirrored hands look correct.
-[x] Jump: a jump button on PlayerInputXR (right A is crouch, so e.g. right
-    B / secondary button, via the project-wide Player/Jump action - check
-    it's free of other bindings on both headsets). Only when
-    grounded and not climbing; sets _verticalVelocity from a tunable
-    jumpHeight (v = sqrt(2 * jumpHeight * -gravity), so height is what's
-    tuned, not a raw speed). (Verified in headset. Bound to
-    right B: the Player/Jump XR binding was <XRController>/secondaryButton,
-    i.e. B or Y on either hand - narrowed to {RightHand}/{SecondaryButton}.
-    Nothing in the XRI asset uses the secondary buttons.) Needs:
-    [x] Horizontal air momentum in PlayerLocomotion: the thumbstick
-        movement velocity at takeoff carries through the jump (running
-        jumps travel further), added to _frameMovement while airborne,
-        cleared on landing, cancelled against walls (CollisionFlags.Sides).
-        (Climb release momentum was going to share this - removed.)
-        (Built: one _horizontalVelocity, set from the stick while
-        grounded and kept while airborne - walking off edges keeps speed
-        too. After Move(), CollisionFlags.Sides replaces it with the
-        velocity actually applied, so walls redirect it rather than kill
-        it outright.)
-    [x] Decide air control: light steering - the stick nudges airborne
-        velocity at airControlAcceleration (3 m/s^2); centred stick bleeds
-        it at airDrag (0.5 m/s^2).
-    [x] Crouch interplay: decided - jump while crouched stands up without
-        jumping (stealth-safe); a jump waits until the capsule is back to
-        full standing height. Head clearance: instead of a pre-check,
-        CollisionFlags.Above zeroes upward velocity, so a jump into a low
-        ceiling bonks and falls rather than sticking to it. (Verified.)
-    [x] Coyote time (a few frames of jump grace after walking off an
-        edge) and a short jump buffer - small, cheap, feels much better.
-        (Built: coyoteTime 0.1s, jumpBufferTime 0.15s.)
-    [x] Grabbing a ClimbableEdge mid-jump works (existing reset of
-        _verticalVelocity on climb start; also clears air momentum).
-        (Built: climb start also clears horizontal velocity and any
-        buffered jump.)
-    [x] Landing: expose a Landed event with fall speed, for the landing
-        noise (Phase 2) and a haptic thump. (Built: event Action<float>
-        Landed, raised when grounded after Airborne.)
-[x] Mantling (design agreed 2026-09-27): a quick, committed, stick-
-    triggered move from gripping a ledge to standing on top of it.
-    [x] Mantleable ledges: a per-edge flag on ClimbableEdge (e.g.
-        isMantleable). Mantleable ledges are always horizontal (edge X
-        axis and top face level), so the mantle only has to handle that
-        case. (Verified in headset. ClimbableEdge.isMantleable.)
-    [x] "In a position to mantle": at least one hand gripping a
-        mantleable edge AND the head pulled up to within a tunable
-        distance below the ledge top (e.g. head >= top - ~0.3m) - you
-        pull yourself up first; no mantling from a full arm-hang. (Verified:
-        headBelowTopAllowance 0.3m.)
-    [x] Destination (simplified 2026-09-27): each mantleable edge has a
-        designer-set mantle point - where the player's feet always land,
-        wherever along the ledge the mantle started. A Vector3 relative to
-        the edge's origin, in real metres along its own axes (position and
-        rotation apply, scale doesn't, since ledges are stretched cubes).
-        Prefilled on the top face, 0.4m in from the lip, centred along
-        the edge (Reset() / "Reset Mantle Point" context menu); a gizmo
-        shows it while the edge is selected. (Verified in headset - landing
-        is on the point.) Extended 2026-09-30 with a per-edge "Move
-        Horizontally To Point" switch (default on = the above): off, the
-        mantle lands straight ahead of the player at the point's height
-        and distance from the lip, for long ledges like roof parapets.
-        (Verified in headset.)
-    [x] End stance (simplified 2026-09-27): a per-edge "mantle ends
-        crouched" switch, set by the designer for low shelves - no
-        runtime clearance checks. (Verified in headset.)
-    [x] Mantle indicator: a small white arrow locked to the headset
-        (position + rotation, e.g. a little below the centre of view,
-        ~0.5m ahead), shown only while a mantle is possible. Must render
-        over geometry, since the player's face is usually right against
-        the wall while climbing. Shown/hidden only on state change.
-        (Verified in headset. MantleIndicator, runtime mesh, UI/Default
-        shader with unity_GUIZTestMode = Always - stereo-safe and draws
-        through walls.)
-    [x] Trigger: pushing up on EITHER thumbstick (y above a threshold)
-        while the arrow is showing starts the mantle. Make sure the push
-        doesn't also fire a snap turn or leave a sprint/jump queued.
-        (Built: stickUpThreshold 0.7. Turning is skipped during the mantle
-        and snap turn is re-armed at the end; sprint and jump buffer are
-        cleared at the start. Verified on both sticks - the right stick
-        only works since the Player/Turn fix (XRI Sector
-        interactions zeroed its Y).)
-    [x] Mantle movement: quick (~0.3-0.5s, tunable), up then over the lip
-        (e.g. rise until the feet clear the top, then forward) with easing
-        - a straight diagonal would drag the capsule through the lip. It
-        completely overrides all other locomotion: no stick movement,
-        turning, gravity, jump, crouch toggle or climbing while it runs,
-        and it can't be cancelled (letting go of grip does nothing).
-        (Verified in headset. Decided: the rig is moved directly with the
-        CharacterController disabled, not through Move() - the landing is
-        designer-placed, so collision could only stop it landing there.
-        PlayerController skips climbing, locomotion, turning and Move()
-        while IsMantling. Path: rise eases out by 60%, forward eases
-        in-out from 30%, overlapping into one arc; duration 0.4s; feet
-        land 2cm above the mantle point so the re-enabled controller never
-        starts inside the floor.)
-    [x] Hands: grips release and hand visuals blend back to the
-        controllers at the start of the mantle. (Verified:
-        PlayerClimbing.ReleaseAll(). A force-released hand can't grab
-        again until its grip is let go - otherwise a still-held grip
-        would re-grab the ledge at your feet the moment the mantle ends.)
-    [x] End: player stands (or crouches) at the destination at rest - no
-        leftover velocity, gravity resumes, MovementState leaves Climbing.
-        Consider a Mantling MovementState (or Climbing) for noise/AI.
-        (Verified: new MovementState.Mantling. PlayerLocomotion.BeginMantle()
-        clears velocity/sprint/jump and sets the crouch from the ledge -
-        the height transition plays out during the mantle; EndMantle()
-        counts as grounded, so no false Airborne/Landed on the first
-        frame back.)
-    [x] Test: chest-high ledge, ledge above head (pull up first), low
-        shelf (mantle ends crouched), ledge ends (lands on the same point
-        wherever you started along it), either hand, stick up on left and
-        on right, crouch/jump/turn ignored mid-mantle, no re-grab while
-        grip is still held after landing, comfort in headset.
-[x] Ladders: Ladder component (Interaction namespace), reusing
-    PlayerClimbing's grab-and-pull-delta approach. Grabbed via the hand ray
-    like ledges, and implements the general hand snap pose: snaps the hand
-    to the nearest rung with a ladder-specific position/rotation and a
-    rung-grip pose. Decisions (2026-09-27):
-    - Shared code: an IClimbable interface (extends IHandSnapTarget), not a
-      "Climbable" base class - PlayerClimbing grabs any IClimbable.
-    - Movement: unconstrained, exactly like ledges (not locked to the
-      ladder's vertical axis). IClimbable is the place to add a movement
-      hook later if a climbable ever needs one.
-    - Top: the designer places a mantleable ClimbableEdge on the lip at the
-      top, and the existing mantle handles it - no ladder-specific mantle.
-      Bottom: let go and drop.
-    [x] IClimbable interface; ClimbableEdge implements it; PlayerClimbing
-        holds IClimbable per hand instead of ClimbableEdge
-        (LeftGrabbedEdge/RightGrabbedEdge stay, for mantling, and are null
-        while that hand holds a non-ledge).
-    [x] Ladder component: one BoxCollider covering the whole ladder (no
-        per-rung colliders); rungs defined by designer data (first rung
-        height, spacing); snap point = nearest rung to the ray hit.
-        A hand target like ClimbableEdge. Own HandSnapProfile asset.
-    [x] Editor gizmos (requested 2026-09-27): always show the rails and
-        every rung in the Scene view (faint), and brighter when selected,
-        with a marker per rung and an arrow for the side the player
-        climbs from - so rung placement is visible while laying out a
-        ladder, without entering Play Mode.
-    [x] Remove highlighting (decided 2026-09-27): the reticle alone tells
-        the player they can interact. IHighlightable -> IHandTarget (empty
-        marker), HighlightableRegistry -> HandTargetRegistry. Climbables
-        need no mesh - just a BoxCollider, shown in the editor by gizmos
-        (edge box + lip; ladder box + rails + rungs). Renderers are only
-        added per item when one should be visible.
-    [x] Greybox ladder in the test area with a mantleable edge at the top.
-    [x] Test in headset: grab rungs at different heights, hand-over-hand
-        up and down, mantle off the top, drop off the bottom.
-    [x] Front only (2026-09-28 - it could be grabbed from behind, and the
-        hand then snapped on facing the wrong way): IHandTarget gained
-        CanBeTargetedFrom(rayOrigin) (default true); Ladder refuses hands
-        behind its rung line unless climbableFromBack is ticked, which
-        also flips the grip for grabs from behind. Verified in headset.
-[x] Rope climbing: ClimbableRope (vertical line segment grab target) - built
-    here so Phase 5's rope bolt only has to spawn one. Also uses the hand
-    snap pose (hand wrapped around the rope at the grabbed height).
-    Decisions (2026-09-27):
-    - Movement: unconstrained, like ledges and ladders (the original
-      "constrained vertical" plan was dropped) - no PlayerClimbing change.
-    - Static straight line, no swinging.
-    - Hangs from its transform's position down its -Y for `length` metres.
-      Requires a CapsuleCollider it sizes itself (grabRadius ~0.08m, far
-      thicker than a real rope so the hand ray can hit it); a public
-      SetLength() for the rope bolt to call at runtime.
-    - Snap: nearest point on the rope's axis to the ray hit (clamped to its
-      ends), facing the rope from the side the hand is on. Own RopeGrip
-      HandSnapProfile.
-    - No mesh (gizmos only), per the no-mesh rule; the Phase 5 rope-bolt
-      prefab brings its own visual. Exits as ladders: mantleable edge at
-      the top, let go at the bottom.
-    [x] ClimbableRope component + gizmos + RopeGrip profile asset.
-    [x] Greybox rope in the test area (with a mantleable edge at the top).
-    [x] Test in headset: grab at different heights and from different
-        sides, hand over hand up and down, mantle off the top, drop off.
-    [x] Solid rope + grab from inside (decided 2026-09-28): a rope can have
-        a solid collider (a thin Environment child, so the physical hands
-        stop against it) inside its larger trigger grab volume. A hand
-        INSIDE any hand target's volume targets it (PlayerHandInteraction
-        checks before casting the ray, since a ray never detects a collider
-        it starts inside) - so a hand against the rope can grab. The grab
-        capsule is always a trigger; a setup warning flags a solid child
-        reaching grabRadius. Verified in headset.
-[x] Gravity/fall interplay: releasing all grips mid-climb falls normally
-    (verified in headset 2026-09-27). Fall damage: none for the slice -
-    it comes later, in a dedicated damage phase after the slice.
-[-] Climb release momentum: removed (2026-09-27). Built and tested -
-    letting go kept the climb's velocity so pushing off a ledge launched
-    the player - but it felt bad in headset and was taken out entirely;
-    letting go drops from rest, as before. Measured with a debug logger:
-    the body is locked 1:1 to the hand while gripping and players stop
-    their arm before letting go, so a multi-frame average launch is a
-    brake-then-kick stutter, and a seamless last-frame launch barely
-    launches at all. See DEVLOG. Don't re-add without a new idea for that.
-Animation:
-[x] Ledge grip pose (HandPose.LedgeGrip) - fingers bent over the top of the
-    ledge, supplied by ClimbableEdge's hand snap pose and played while that
-    hand is snapped (see the ray-targeted climb grab item above).
-    Hand_L_LedgeGrip keys joints 1-3 of all four fingers. Verified in
-    headset.
-[x] Ladder rung and rope grip poses (2026-09-30): HandPose.RungGrip and
-    RopeGrip, each with its own clip (both also pose the thumb) and tuned
-    LadderRung/RopeGrip profile offsets, supplied by Ladder/ClimbableRope
-    snap poses. Verified in headset.
-Physical hands (Player namespace) - a core concept, moved here from
-Phase 3 (2026-09-27). Built as part of Phase 1, since grabbing, tools
-and climbing all sit on top of where the visual hand ends up.
-Claude to guide this step by step, starting with a comparison of the most
-performant approaches for Quest 3 before any code is written:
-[x] Approach comparison (2026-09-27). Chose a KINEMATIC SWEEP - no
-    Rigidbody: each frame, in PlayerController's tick order (Update, at
-    display rate), sweep a hand capsule from the visual hand's last pose
-    towards the controller, stop at hits and slide along them
-    (collide-and-slide, a few iterations, skin width), then depenetrate
-    with an overlap + Physics.ComputePenetration (non-alloc). Rejected a
-    velocity-driven Rigidbody hand: runs at the physics rate (needs a
-    raised fixed timestep for all physics or interpolation lag), costs
-    more on Quest, jitter-prone, and needs teleport special cases for snap
-    turn/mantle/crouch since the rig moves in Update. Its one real win -
-    pushing props for free - can be approximated later (small impulse on
-    contact) and grabbing is custom anyway. Rejected a joint-driven body
-    (same trade-offs, more tuning); a kinematic MovePosition body can't be
-    stopped by static geometry at all.
-    Design notes: one palm-to-fingertips capsule per hand to start (finger
-    capsules only if needed - each shape is another sweep). While the path
-    is clear the visual stays a child of the controller (keeps the
-    Tracked Pose Driver's before-render update, zero added latency); while
-    in contact it's detached and placed by code, like HandVisualSnap.
-    Snap poses take priority; this becomes one hand-visual owner per hand.
-    Hand rays from the visual hand. Ticks after Move()/turning, in
-    PlayerHandVisuals.Tick() (step 1).
-    Build steps: 1. one hand-visual owner, 2. sweep + slide, 3. depenetration
-    + rotation, 4. elastic band, 5. hand rays from the visual, 6. test area
-    + profiling.
-[x] Step 1 - one owner per hand visual: new PlayerHandVisuals (on Hands)
-    owns and ticks both HandVisualSnaps (moved out of PlayerClimbing, which
-    now only snaps/releases); PlayerHandAnimation reads it; PlayerController
-    ticks it at step 8 (and in the mantling branch). No behaviour change.
-[x] Step 2 - sweep + slide (verified in headset 2026-09-27): HandPhysicalFollow
-    per hand, capsule measured from the wrist and middle fingertip bones,
-    CapsuleCast collide-and-slide (3 sweeps, skin width), detach while
-    blocked / re-attach when clear, suspended while snapped. Gizmos on
-    PlayerHandVisuals. Known until later steps: no push-out if the hand
-    starts inside something (step 3), instant return when clear and no
-    max-distance snap-back (step 4), a small pop if grabbing while the hand
-    is held off a surface (integration), rays still from the controller
-    (step 5).
-[x] Step 3 - depenetration + rotation (verified in headset 2026-09-27):
-    Depenetrate() (OverlapCapsuleNonAlloc + ComputePenetration against a
-    parked, never-moved trigger capsule per hand) runs BEFORE the sweep -
-    a wrist twist overlapped the wall at the sweep's start, which a
-    CapsuleCast can't see, so the hand passed through. While in contact
-    the hand holds the rotation it touched with; contact ends only when
-    the hand also fits at the controller's own rotation.
-[x] Step 4 - elastic band (verified in headset 2026-09-27): on release the
-    hand's offset from the controller (in controller space) eases to zero
-    over catchUpDuration (0.1s); beyond maxSeparation (0.4m) it snaps
-    straight back and passes through (collision off) until the controller
-    is clear. Revised 2026-09-28 (verified): position and rotation are held
-    and released separately, each with its own ease (the position used to
-    jump back while only the rotation eased); the snap-back also eases now,
-    through the wall with collision off, so every return is eased.
-[x] Step 5 - hand rays from the visual (verified in headset 2026-09-27):
-    rays start from the controller pose shifted to where a surface holds
-    the visual, so you can't target or grab through a wall.
-[x] Separate the visual hand from the tracked controller: done as the
-    visual staying a child of the controller while free (zero added
-    latency) and detached, placed by code, while held (steps 2-4).
-[x] Hand colliders: decided one wrist-to-fingertip capsule per hand as
-    the query shape (sweep, overlap, CheckCapsule) - no colliders on the
-    hand itself, just the parked penetration capsule. Finger capsules only
-    if play shows they're needed. Revisit PlayerHands-Guard when guards
-    exist.
-[x] Collision response: stop at the surface and slide along it, and push
-    out of anything the hand starts inside (steps 2-3).
-[x] "Elastic band" catch-up and max-distance snap-back (step 4).
-[x] Rotation (revised 2026-09-27): follows the controller while free, HELD
-    at the contact rotation while in contact, eased back on release.
-    "Always follow the controller" (the earlier decision) made the hand
-    back away from the wall as the wrist tilted while pushing deeper.
-[ ] Integrate with existing systems. Done: snapping takes priority over
-    the physical follow (steps 1-2); hand rays use the visual hand (step
-    5); no pop when grabbing while a surface holds the hand off the
-    controller (fixed 2026-09-30). Left: held items/tools inherit the
-    visual hand's position (when tools exist).
-[x] Optional feedback (2026-09-30): light haptic pulse on first contact
-    (PlayerHaptics, with a global vibration on/off for a future settings
-    dialogue); faint "ghost" hand at the real controller position while
-    separated (HandGhost, as Alyx does). Verified in headset.
-[x] Debug: in-headset gizmos (verified 2026-09-28). Gizmos only show in
-    one eye in VR (drawn for one flat camera), so - widened from "the hand
-    capsules" to every component with gizmos, on request - drawing is
-    written once against Core's DebugLines and goes to either the Scene
-    view's Gizmos or one line mesh rendered in both eyes (InHeadsetGizmos,
-    on the Debug object, costs nothing while off). A shared line mesh
-    instead of the planned two spheres + a cylinder per hand, so ledges,
-    ladders, ropes and later AI/visibility debug all use it. Also
-    DefaultLayerGizmos: magenta outlines of colliders left on Default.
-[x] Step 6a - test area (verified 2026-09-28): TeaLeaf > Build Physical
-    Hands Test Area builds an inside corner, 2cm thin panel, table with an
-    Interactable crate, pillar, 5cm gap, 45 degree slope and round post.
-    All block the hand with no tunnelling. Fixed from testing: jitter at
-    the 5cm gap (slides now re-aim at the goal - see DEVLOG).
-[ ] Step 6b - profiling: read PhysicalHands.Follow in the Profiler (worst
-    case a hand pressed into a corner or the gap), in the editor and on a
-    Quest standalone development build once one exists.
-Test scene:
-[x] Extend the CharacterController test scene: ledge at chest height, ledge
-    above head, mantle onto low-clearance shelf, 4m ladder, rope, a gap to
-    jump across, a jump up onto a low crate, a low ceiling over a jump spot.
-    Done 2026-09-30 as TeaLeaf > Build Locomotion Test Course (an editor
-    builder, like the physical hands test area). Verified in headset.
-    Also (2026-09-30, on request): TeaLeaf > Build Town Test Area - six
-    greybox houses round a square, from a reference photo, for climbing,
-    mantling and later sneaking in a larger space. Verified in headset.
-    2026-10-03: town edges now follow the solid geometry to within 1cm
-    (TestGeometry.TightOverhang), wall tops/parapets/balustrades/sills are
-    single two-sided edges, and the balcony side balustrades and terrace
-    walls gained mantleable edges.
-Traversal additions (2026-10-03, on request, before Phase 2):
-[x] Two-sided edges: ClimbableEdge "Grabbable From Both Sides" - the hand
-    snaps onto the lip on the player's side (decided by the head), for
-    free-standing wall tops. Off by default. Verified in headset.
-[x] Strung ropes: a ClimbableRope turned on its side or given an End Point
-    transform, with optional sag (a chain of capsule grab volumes along a
-    parabola). Grip is fixed rather than from where the hand was: wrist
-    down on a strung rope (thumb towards the player, whichever way they
-    face), wrist towards that hand's shoulder on a hanging one. Verified
-    in headset.
-[x] Ladder mantle: IMantleable (ClimbableEdge, Ladder). A ladder is
-    mantleable by default - arrow with a hand on the top rung, landing on
-    its mantle point. Verified in headset 2026-10-03 (course tower
-    ladder).
-[x] Zip lines: ClimbableRope "Is Zip Line" (IZipLine) - a grab slides the
-    hand and player along the rope (downhill, or the facing direction on a
-    level rope) until they let go, reach the end or are blocked, then they
-    drop. Verified in headset 2026-10-03 (course: a level one between
-    posts, an angled one down from the tower). Sagging zip lines are not
-    supported (decided 2026-10-03 - they slide, but with no physics).
-[x] View calibration at level start (PlayerTracking): through Virtual
-    Desktop/SteamVR the tracking space often started upside down with its
-    origin on the floor. Behind the level-start fade, Camera Offset is
-    turned upright and set to standing eye height, and again whenever the
-    headset is recentred. Verified in headset.
+[x] Sprint (click-to-toggle), jump (momentum, air control, coyote time,
+    jump buffer), one MovementState.
+[x] Ray-targeted climbing and the general hand snap pose
+    (IHandSnapTarget, HandSnapProfile, the Snap Pose finger layer).
+[x] Mantling: per-target landing point, head-locked arrow, stick up.
+[x] Ladders, ropes (hanging, strung, sagging), zip lines, two-sided
+    edges, ladder mantles.
+[x] Ledge, rung and rope grip finger poses.
+[x] Physical hands: kinematic sweep and slide, depenetration, held
+    rotation, elastic band, snap-back, rays from the visual hand, ghost
+    hands, contact haptics.
+[x] In-headset gizmos (DebugLines, InHeadsetGizmos).
+[x] View calibration at level start and on recentre.
+[x] Test builders: Locomotion Test Course, Town Test Area, Physical
+    Hands Test Area.
+[ ] Held tools inherit the visual hand's position (when tools exist).
+[ ] Profile PhysicalHands.Follow (worst case a hand pressed into a corner
+    or a narrow gap) - Phase 10.
+[ ] Physical roomscale walking doesn't count as moving for MovementState
+    - revisit when guards perceive the player.
+[ ] Revisit PlayerHands-Guard collision when guards exist.
+[ ] Confirm haptics in the headset (PlayerHaptics sends through the XR
+    devices), then remove the unused LeftHaptic/RightHaptic actions.
 
 
 Phase 2 - Core stealth framework (Core namespace)
 -------------------------------------------------
-[x] GameState/LevelManager: Playing, Caught, Won. Restart the level on
-    Caught (fade to black, reload scene). Won when the objective item is
-    carried into the exit zone. Done 2026-10-03 as Core.GameState,
-    Core.LevelManager (Caught(), SetObjectiveCarried(), StateChanged) and
-    Core.ExitZone (a maths box, no collider). The player's body is frozen
-    during the end fade. Won restarts like Caught until Phase 9's panel.
-    Driven from the keyboard by GameStateDebug until guards (Phase 6) and
-    the objective item (Phase 3/4) call it. Verified in headset
-    2026-10-03.
-[x] Screen fade: simple fade-to-black sphere/quad around the head camera
-    (used for caught, restart, level start). Done 2026-10-03 as
-    Core.ScreenFade: a cube round the head drawn with the overlay shader,
-    FadeOut/FadeIn with a completion callback, level start black then
-    fading to clear, Hold()/Release() for work that must finish behind
-    the black. Level-start fade verified in headset; FadeOut is used
-    by the level manager (above).
-[x] Noise event system: NoiseSystem static/singleton with
-    Emit(position, loudness/radius, NoiseType, source). Listeners (guards)
-    register on enable. No per-frame allocation - use a struct payload.
-    Done 2026-10-03: Core.Noise (struct), NoiseType, INoiseListener,
-    NoiseSystem (plus an Emitted event for debug/UI), and SoundCue - one
-    asset holding a sound's audio half and its noise half. Verified.
-Sound system (added 2026-10-03 - a sound must tell the player truthfully
-where it is, on stereo headphones; see Scripts/Core/CLAUDE.md):
-[x] Rooms and portals, Thief style: SoundRoom boxes joined by SoundPortal
-    rectangles (doorways, stairwells). Sound and noise go straight within
-    a room, room to room only through portals, never through walls, and
-    arrive from the last portal at the length of the whole route
-    (SoundPropagation: portal-to-portal tables, rebuilt only when the
-    layout or a door changes). No route, or too long = not heard - so a
-    guard on the floor above is heard from the stairwell or not at all.
-    Closed portals (doors, thin walls, windows) muffle and add distance.
-    Guards hear by the same routes. Verified in headset.
-[x] SoundPlayer: 16 pooled voices; plays a cue from the direction of the
-    portal it came through, at the route's distance; high end rolled off
-    a little per open portal passed and more per closed one; volume falls
-    off along a curve (fast near, slow far). One-shots only. Verified in
-    headset with generated placeholder sounds.
-[x] Test areas: TeaLeaf > Build Sound Test Area (three rooms) and Build
-    Sound Test House (two storeys, stairwell, closed door, window, walled
-    yard, a stand-in guard walking a route). Verified in headset.
-[x] Looping sounds (torches, ambience): re-check the route a few times a
-    second, with the apparent position and muffle eased.
-    Done 2026-10-10: Core.SoundLoop on the object that makes the sound;
-    its own pool of 8 voices in SoundPlayer; routes re-checked every
-    0.2s in earshot, 1s beyond, staggered. Disabling the component
-    fades it out. Also a background per room with no position
-    (SoundRoom's ambience, SoundPlayer's for outside), crossfaded on a
-    change of room. Heard working.
-    [ ] Real loop and ambience recordings (the torch, wind and room
-        tone are generated placeholders).
-[x] Reverb per room: one shared reverb set from the listener's room, not
-    one per voice.
-    Done 2026-10-10: four numbers per SoundRoom (level, decay time,
-    damping, size) with presets on the component's right-click menu;
-    one AudioReverbFilter on the listener's object, blended over 0.6s
-    on a change of room. Heard working. (A reverb zone was tried first
-    and gave no reverb at all - see the devlog.)
-    [ ] Tune the presets by ear; they were chosen on paper.
-[x] Spatialiser for front/back direction (Unity's own audio only pans
-    left/right).
-    Done 2026-10-10, the project's own (Core.SpatialVoice): the time
-    difference between the ears, head shadow, and a duller sound from
-    behind. No cue for up and down. Heard working. The Meta XR Audio
-    SDK was added first, worked, and was removed the same day (not
-    platform-agnostic by licence).
-    [ ] Tune its settings by ear (all first guesses), and match its
-        volume to what sounds were before.
-    [ ] Profile it on the target rig (C# on the audio thread) -
-        Phase 10.
-    [ ] If up/down turns out to matter in the level: Steam Audio,
-        through SoundPlayer's Plugin mode.
+[x] GameState, LevelManager (caught, won, restart), ExitZone.
+[x] Screen fade.
+[x] Noise event system and SoundCue.
+[x] Sound rooms and portals, SoundPropagation, SoundPlayer.
+[x] Looping sounds (SoundLoop) and room ambience.
+[x] Reverb from the listener's room, tuned per SoundRoom.
+[x] The project's own spatialiser (SpatialVoice).
+[x] Visibility from the level's geometry: moonlight, light sources,
+    stance.
+[x] Surfaces, footsteps (surface x stance x speed, heel and toe) and
+    landings.
+[x] Debug: noise, sound and visibility readouts; Sound Test Area and
+    Sound Test House.
+[ ] Tune by ear: the loops' easing through doorways.
+[ ] If up/down direction turns out to matter in the level: Steam Audio,
+    through SoundPlayer's Plugin mode.
+[ ] One call that puts a torch out everywhere - the gameplay
+    LightSource, the visible Light, the flame and the SoundLoop together
+    (needed by the water bolt, Phase 5).
+[ ] Real audio: torch, wind and room tone loops; the impact cue; a
+    carpet footstep; rename the cues still called "Placeholder".
 [ ] Sound direction indicator (UI) - an idea to experiment with; it can
     read NoiseSystem.Emitted.
-[ ] Real audio: replace the generated placeholder clips in the cues.
-    Footsteps done 2026-10-04 (except carpet). Left: the impact cue, a
-    carpet footstep, and renaming the cues still called "Placeholder".
-[x] Visibility from the level's geometry (changed 2026-10-04 from
-    designer-placed shadow volumes): levels are at night; the base light
-    is moonlight, and a point is in full shadow when geometry is between
-    it and the moon (one physics ray), so gameplay shadows fall where the
-    rendered ones do. Done 2026-10-04: Core.SceneLight.LevelAt(),
-    Core.Moonlight (on the Directional Light) and Player.PlayerVisibility
-    (head + body samples at 10Hz, eased, one Visibility 0-1). Awaiting a
-    proper headset test.
-[x] Light sources (was light-to-volume linking): LightSource component
-    (torch, lamp) with a level and range, blocked by geometry; disabling
-    it puts it out. Done 2026-10-04.
-    [ ] Left: one call that puts a torch out everywhere - the gameplay
-        LightSource, the visible Light, flame VFX and audio together
-        (needed by the water bolt, Phase 5).
-[x] Stance modifies visibility: crouching lowers it, sprinting raises it.
-    Keep the multipliers as serialized fields for tuning. Done 2026-10-04
-    (crouch 0.6, sprint 1.3, in PlayerVisibility).
-[x] Surfaces: SurfaceType enum (Carpet, Wood, Stone, Metal, Water, ...),
-    mapped via a small SurfaceTag component or physics material lookup.
-    Done 2026-10-04: SurfaceType (also Tile, Grass, Gravel), SurfaceTag
-    (on the collider or any parent; untagged = stone) and SurfaceSounds
-    (one asset: each surface's footstep cue and heel-and-toe settings).
-[x] Footsteps: PlayerFootsteps measures horizontal distance travelled,
-    emits a step every N metres, raycasts down for SurfaceType, plays the
-    surface sound and emits a noise event scaled by surface x stance
-    (one SoundPlayer.Play() of the surface's SoundCue does both).
-    No steps while climbing or airborne. Landing (from a jump or fall)
-    emits a noise event scaled by fall speed x surface - jumping is loud.
-    Done 2026-10-04, with two additions: steps are also quieter at a
-    creep (scaled by speed), and hard surfaces can play heel and toe. A
-    landing is the surface's step played loud twice, not its own sound.
-    Real clips for every surface but carpet (which borrows grass).
-    Tuned by ear by the maintainer.
-[x] Debug (Scripts/Core/Debug): on-screen/world-space readout of current
-    visibility, stance and last noise; gizmos drawing shadow volumes and
-    noise radii. Done 2026-10-03 for noise and sound: NoiseDebug (noise
-    spheres, N = test noise + report), NoiseListenerDebug (stand-in
-    ears), SoundEmitterDebug, SoundDebug (L = report). Done 2026-10-04
-    for visibility: VisibilityDebug (head-locked gauge + log) and the
-    LightSource range gizmo. Stance is logged by MovementStateDebug.
+[ ] Visibility: a proper headset test.
 
 
 Phase 3 - Interaction framework (Interaction namespace)
 -------------------------------------------------------
-Physical hands: moved to Phase 1 (2026-09-27) - done before this phase.
-Grabbing and props:
-[x] Decide grab approach: custom grab consistent with PlayerClimbing
-    (recommended - one system, one set of hand states) vs XRI interactables.
-    Decided 2026-09-30: custom grab - XRI was removed from the project.
-    Build IGrabbable (or a Grabbable base) alongside the existing
-    IHandTarget pattern. Decided 2026-10-04: a carried prop follows the
-    visual hand and stops at walls with it; props are held at an
-    authored pose (grip point + HandSnapProfile).
-[x] Grabbable physics props: pick up, hold, release (release with a
-    still hand = drop). Written 2026-10-04 (Interaction.Grabbable,
-    Player.PlayerHandHolding, the hand sweep's held shape, test props),
-    reworked in the headset that evening (the hand reaches out to the
-    prop and both come back; the prop is a child of the hand visual;
-    cylinder grip; two ray reaches) and finished 2026-10-07 (a carried
-    prop is out of physics and pushes nothing; interpolated once let
-    go). Tested in the headset.
-    [x] Add PlayerHandHolding to the Hands object in Main.unity.
-    [x] Author a prop grip profile for the bottle (BottleHold: profile +
-        finger pose, 2026-10-07; a cylinder grip needs no grip point).
-    [ ] Grip points, profiles and hold poses for other prop shapes (the
-        test cube and crate are held by the middle with the ledge
-        fingers) - as real props need them.
-[x] Physical throwing (decided 2026-10-07: wanted as well as aimed
-    throwing, not instead of it): move the hand and let go of grip, and
-    the object leaves with the hand's movement. Letting go with a still
-    hand is still a plain drop. Either hand. The quick, natural throw;
-    aimed throwing below is the accurate one. Built and tested
-    2026-10-07 (PlayerHandHolding).
-    [x] Hand velocity: track each hand's recent movement (averaged over
-        the last few frames, so one noisy frame doesn't decide the throw)
-        and its turning, for spin. Measured from the visual hand, not the
-        controller (decided 2026-10-07): the prop follows the visual
-        hand, which stops at walls, so a hand held against a wall throws
-        nothing however the controller moves. Built: the prop's middle
-        over the last 0.1s, measured in the rig (so a snap turn isn't a
-        throw) with the body's velocity added back.
-    [x] Release: on letting go of grip, give the prop that velocity
-        instead of zero. Below a speed threshold (1 m/s) it's a drop
-        from rest, as before. Capped at 12 m/s; a thrown prop uses
-        continuous collision detection.
-    [x] Tune in the headset: averaging window, a throw strength scale,
-        and the drop threshold. The first values (0.1s, strength 1,
-        1 m/s) felt right and were kept; revisit if playtests say so.
-[x] Aimed throwing (decided 2026-09-29; first meant to replace the
-    physical throw, now alongside it - see above): grip holds the object;
-    holding that hand's trigger shows a trajectory arc (drawn as in-world
-    UI with OverlayMaterial); releasing the trigger plays a short hand
-    visual launch animation and throws the object along the arc. Either
-    hand, each with its own trigger. For accuracy: a thrown distraction
-    has to land where it was meant to. Built and tested 2026-10-07
-    (Player.PlayerHandThrowing, Player.ThrowArc). The aim is straight
-    out of the controller, not along the hand ray.
-    [x] Decide the throw input and distance (2026-09-29): trigger hold =
-        aim, trigger release = throw; distance from hand pitch with a fixed
-        launch speed, teleport-arc style.
-    [x] Decide how to cancel (2026-09-29): aim-at-nothing, teleport-arc
-        style - hand pitched too far up/down or no valid landing turns the
-        arc red/faded, and releasing the trigger then cancels. (Rejected
-        fast-release-throws / slow-release-cancels as unreliable under
-        stress and invisible; could be a later secondary cancel.)
-    [x] Trajectory arc: sampled ballistic curve from the hand, stopping at
-        the first hit, with a landing marker; red/faded when invalid
-        (cancel state). Drawn as a line or as dots (a toggle); the
-        landing is found with at most 25 rays a frame, the drawing uses
-        none.
-    [x] Launch animation on the hand visual, releasing the object at the
-        right moment with the velocity that matches the arc. Done as a
-        short forward move of the hand visual (a snap), not an animation
-        clip; a clip could replace it later if it looks too plain.
-[x] Hand smoothing (added and built 2026-10-07): a One Euro filter on the
-    controllers' tracked poses (PlayerTracking, HandPoseFilter), so the
-    real shake of a hand doesn't show, without lag; tuned separately for
-    PCVR and Quest standalone. Climbing uses the smoothed hands too.
-    [ ] Tune the Quest standalone numbers on the device (first guesses
-        so far; only the PCVR set has been tried).
-[x] Impact noise: ImpactNoise component emits a noise event on collision
-    above a speed threshold, loudness scaled by impact speed + surface.
-    Built and tested 2026-10-07 (Interaction.ImpactNoise): audio and
-    noise in one call; surface loudness from the footstep cues
-    (SurfaceSounds.GetLoudness).
-    [ ] Later: impact sounds per prop material and per surface (one
-        placeholder cue for everything so far).
-[ ] Doors: hinged door, grabbed by handle and swung by the hand (or push to
-    open), with Locked state, creak noise event while moving, and NavMesh
-    obstacle/link updates so guards can path through. Design given by
-    the maintainer 2026-10-08 and started that day (Interaction.Door,
-    DoorHandle, DoorLock; Player.PlayerHandDoors; TeaLeaf > Build Door
-    Test Area). The door's angle is set from code on a kinematic
-    Rigidbody - no hinge joint.
-    [x] Lock kinds: none, simple (can be picked), keyed (its own key).
-        Two separate states: locked/unlocked and latched/open.
-    [x] Handle: ray-targeted and grabbed at the ledge reach, the hand
-        snaps onto the lever (one handle serves both sides, chosen by
-        where the head is). Turning the hand 60 degrees frees the
-        latch; a locked door's lever stops at 10 and rattles.
-    [x] Swing: follows the hand round the hinge, either way, to 110
-        degrees; never into the player's body; the hand is let go if
-        the real hand gets 0.4m from the handle. Let go within 10
-        degrees of closed, it shuts itself and latches.
-    [x] An open door is pushed by the hand visuals touching it, and
-        swings on with momentum (also after a moving release). A door
-        swinging by itself latches when it reaches closed. Tried in
-        the headset: the hand stuttered while pushing; the fix (the
-        hand re-sweeps in the same frame once the door has moved) was
-        confirmed 2026-10-09.
-    [x] Check the stutter fix in the headset (confirmed 2026-10-09). A
-        tap on first touching a door being pushed: decided yes, built
-        and tested 2026-10-09 (a push counts as a new touch after half
-        a second without one).
-    [ ] Door handle hand pose: Assets/Data/DoorHandle.asset is a copy of
-        BottleHold as a stand-in. Tune its offsets; give it a finger
-        pose of its own if the bottle's looks wrong.
-    [x] Keyhole view on a simple-lock door (2026-10-09, tried and
-        working): as the head nears the keyhole, a keyhole-shaped
-        opening (a circle with a slot below it) grows in the door and
-        the player looks through with their own eyes. Changed from the
-        first plan, a scope-style picture from a second camera, which
-        would have drawn the far room again - against the pixel budget
-        on Quest. The door's shader cuts the opening
-        (TeaLeaf/DoorLeaf); Interaction.DoorKeyhole sizes it and makes
-        its walls through the door's thickness; Player.PlayerKeyholes
-        finds the keyhole the head is near.
-    [x] The circular lock plate round the keyway, from the lockpicking
-        design (2026-10-09): a short cylinder through the door, cut by
-        the same keyhole opening (DoorKeyhole's plateRenderers). The
-        door leaf stays a flat colour - a texture was dropped from the
-        plan by the maintainer 2026-10-09.
-    [x] Sliding bolt (2026-10-09, tested): Interaction.DoorBolt,
-        optional on any door, worked only from the side it's on,
-        whatever the lock's state. Taken like a handle and slid by
-        moving the hand along the door; it only shoots while the door
-        is shut. Its hand pose is the door handle's, as a stand-in.
-    [x] Keys (2026-10-09, tested): a keyed door's lock
-        (Interaction.KeyLock) is opened by the key with the door's
-        keyId, turned in it - see Phase 4.
-    [x] A creak (2026-10-09, tested): a generated placeholder cue, one
-        every 25 degrees of travel.
-    [ ] Sounds left: real latch, rattle and creak sounds (all
-        placeholders), and a louder latch for a slam.
-    [x] A sound portal on a real doorway (2026-10-09, tested): one in
-        each doorway of the Door Test Area, with a sound room each side
-        of the wall and a knocking cube behind it. The Sound Test
-        House's Store still has a plain closed portal and a slab.
-    [x] The player's body pushes an open door (decided yes and built
-        2026-10-09, tested): Player.PlayerBodyPushing, at a set 1.5m a
-        second. A door pulled towards the body by its handle, or
-        shutting itself, is still stopped by the body.
-    [ ] NavMesh obstacle/link updates - with the guards, Phase 6.
-[ ] Grab hand poses: hold-object pose per hand, as a new HandPose value +
-    Snap Pose layer state. Grabbables, door handles and tools supply their
-    hold position/rotation/pose through the same hand snap pose interface
-    as climbables. Done for props (2026-10-07): Grabbable is an
-    IHandSnapTarget, and BottleHold is the first hold pose (one clip,
-    mirrored for the right hand like the others). Door handles
-    (2026-10-08): DoorHandle is an IHandSnapTarget, with a stand-in
-    profile and the bottle's finger pose. Tools to come.
-[ ] Targeting: grabbables/doors/locks implement IHandTarget so the
-    existing hand ray + reticle system works for them unchanged. Done
-    for grabbables (2026-10-04), with a longer reach than climbables
-    (IHandTarget.HasLongReach), and for door handles (2026-10-08, the
-    short reach); locks to come.
+[x] Grabbable props: reach, carry as a child of the hand visual, drop;
+    cylinder grip; held shape; a carried prop pushes nothing.
+[x] Physical throwing and aimed throwing (arc as line or dots).
+[x] Hand smoothing (One Euro filter).
+[x] Impact noise.
+[x] Doors: lock kinds, handle, swing, self-closing latch, pushed by
+    hands and body, sliding bolt, creak, sound portal.
+[x] Keyhole view and the lock plate.
+[ ] Hold poses for other prop shapes (the test cube and crate are held
+    by the middle with the ledge fingers) - as real props need them.
+[ ] Door handle hand pose: Assets/Data/DoorHandle.asset is a copy of
+    BottleHold. Tune its offsets; give it a finger pose of its own if the
+    bottle's looks wrong.
+[ ] Door sounds: real latch, rattle and creak, and a louder latch for a
+    slam.
+[ ] Impact sounds per prop material and per surface (one placeholder cue
+    for everything so far).
+[ ] Doors and the NavMesh: obstacle/link updates so guards can path
+    through - with the guards, Phase 6.
+[ ] The Sound Test House's Store still has a plain closed portal and a
+    slab rather than a real door.
 
 
 Phase 4 - Inventory: the pack, loot and keys (Inventory namespace)
 ------------------------------------------------------------------
-Redesigned by the maintainer 2026-10-09, replacing "loot pocketed at the
-hip for a running total" and (for loot and keys) the wrist radial menu: a
-backpack that only holds so much, so the player searches the level, keeps
-the most valuable things and leaves the rest. Built and tested in the
-headset the same day. A hip pocket was built first, to the old plan, and
-removed.
-[x] Inventory data (Inventory.PlayerInventory): the worth of what's in
-    the pack, the objective flag, tools owned, bolt counts per type. Data
-    only, with a Changed event. The lockpicks aren't a tool here: they're
-    worn on the back of the left hand.
-[x] The pack (Inventory.Pack, Player.PlayerPack): summoned and dismissed
-    with X on the left controller; rides on the left hand visual; collides
-    with nothing. A board with a space for the objective and one for the
-    keyring along the top, and under them a tunable grid (3 x 3 for now)
-    whose top left space is the gold space. Greybox.
-[x] Loot (Inventory.Loot): each piece takes exactly one space, chosen by
-    holding it over that space - a free space lights up, a taken one
-    doesn't - and let go of there it snaps in and shrinks to fit. Taken
-    out (right hand, hand ray and grip) it grows back first, then the hand
-    takes it as normal. Let go of over a taken space it's refused and
-    drops. (Loot taking more than one space was built and removed.)
-[x] Gold: small loot (coins, rings) put anywhere in the pack goes to the
-    gold space, adds to the gold there and is gone. Shown as a pile that
-    grows.
-[x] The objective: its own space, apart from the loot; putting it in is
-    what tells the level manager it's carried. It can't be taken out.
-[x] Worth coins (Player.LootWorthMarker): one to three coins hover over
-    loot a hand carries.
-[x] Keys (Inventory.Key, Keyring; Interaction.KeyLock; Player.PlayerKeys):
-    coloured key pickups, put into the pack like loot, go onto the keyring
-    and show there as coloured bars. The keyring is taken from the pack
-    (right hand) and held to a keyed door's lock: if the key is on it, it
-    snaps in, and either hand grips the key and turns it a quarter turn
-    with the wrist - anticlockwise if the lock is on the right of the
-    door leaf from the player's side, clockwise if on the left. The door
-    unlocks and the keyring returns to the pack. A lock the ring has no
-    key for buzzes the hand.
-[x] One owner for what each hand is busy with (Player.PlayerHandState):
-    the five hand systems (climbing, carrying, doors, lockpicks, keys)
-    ask it instead of checking each other. A new hand system is added
-    there once.
-[ ] Set what each coin level is worth (the maintainer's to decide), and
-    whether a loot item's coin level then follows from its value.
+[x] Inventory data (PlayerInventory): loot worth, objective, tools
+    owned, bolt counts.
+[x] The pack: summoned with X, rides on the left hand, 3 x 3 grid, gold
+    space, objective and keyring spaces.
+[x] Loot: one space each, chosen by hovering; shrinks in, grows out.
+[x] Worth coins over carried loot.
+[x] Keys and the keyring; turning a key in a keyed door's lock.
+[x] PlayerHandState: one owner for what each hand is busy with.
+[ ] Set what each coin level is worth, and whether a loot item's coin
+    level then follows from its value.
 [ ] A number for the gold (needs text drawing, which the project hasn't
-    got yet). Only the pile and the debug log show it now.
+    got). Only the pile and the debug log show it.
 [ ] Tune in the headset: where the pack rides on the left hand, where
     the keyring sits in the right hand, and the hand pose on the key
     (the door handle's, as a stand-in).
 [ ] The left hand wears the pack, so loot in the left hand can't reach
     it, and the left hand's reticle can show on pack items it can't
     take. Decide whether either needs changing.
-[ ] Real sounds for putting things in the pack (the placeholder
-    footstep) and for the keyed lock (the placeholder impact).
-[ ] Decide how tools and bolt types are chosen now there is a pack: in
-    the pack too, or still a wrist radial menu (the earlier plan: hold a
-    menu button, a radial on that wrist, select with the other hand,
-    equip into the other hand; a second ring for water / noisemaker /
-    rope bolts, greyed out at zero).
+[ ] Real sounds for putting things in the pack and for the keyed lock.
+[ ] Decide how tools and bolt types are chosen: in the pack, or a wrist
+    radial menu (hold a menu button, a radial on that wrist, select with
+    the other hand, equip into the other hand; a second ring for water /
+    noisemaker / rope bolts, greyed out at zero).
 [ ] Equip/unequip: enable the tool model in the chosen hand, snap that
     hand to the tool's hold pose, unequip back to an empty hand.
-[ ] Wrist display: visibility gem + loot worth + bolt counts.
-[ ] Performance: any world-space canvases only enabled while visible; no
-    layout rebuilds per frame; update text only when values change.
+[ ] Wrist display: visibility gem + loot worth + bolt counts. Any
+    world-space canvases only enabled while visible; no layout rebuilds
+    per frame; update text only when values change.
 
 
 Phase 5 - Tools (Player / Interaction namespaces)
@@ -888,9 +212,9 @@ Hand crossbow:
 [ ] Greybox crossbow with separate moving parts (string/lever, bolt slot)
     usable in either hand; mirrored hold pose per hand.
 [ ] Physical cocking: the other hand grabs the lever/string and pulls it
-    back past a threshold, then the crossbow is cocked. Auto-loads the bolt
-    type currently selected in the radial menu if that type has any left.
-[ ] Fire with the holding hand's trigger: spawn a pooled bolt, simple
+    back past a threshold, then the crossbow is cocked. Auto-loads the
+    selected bolt type if that type has any left.
+[ ] Fire with the holding hand's trigger: a pooled bolt, simple
     ballistic flight (manual integration or Rigidbody), fire sound,
     haptics. Decide on a small aiming aid (e.g. a faint sight pin on the
     crossbow).
@@ -900,91 +224,29 @@ Hand crossbow:
     [ ] Noisemaker bolt: sticks where it lands and emits repeated loud
         noise events for N seconds - guards investigate.
     [ ] Rope bolt: only sticks into surfaces tagged RopeTarget (wood); spawns
-        a ClimbableRope hanging down to the ground/max length. Bounces
-        off anything else.
+        a ClimbableRope hanging down to the ground/max length
+        (ClimbableRope.SetLength()). Bounces off anything else.
 [ ] Bolt pickups in the level (placed ammo) that add to inventory counts.
 Lockpicking:
-Design given by the maintainer 2026-10-09, replacing the single-pick
-wrist-roll plan: two picks, worked with both hands on a large copy of the
-lock. Angles are clock positions on the lock's face, seen from the
-player's side. Every distance, angle and time below is a tunable field.
-Built and tested in the headset 2026-10-09 (Player.PlayerLockpicking,
-Interaction.BigLock, PickableLock, LockMeshBuilder, BigLockDebug; the
-TeaLeaf/LockFade shader; set up by TeaLeaf > Build Door Test Area). As
-built: picks are taken by reaching for them with grip, not by the hand
-rays (a light tap says a hand is in reach, no reticle); the big lock
-appears 0.2m out from the door, 0.3m below the head; the door's keyway
-is the keyhole shape of the keyhole view, cut through a round lock
-plate (the big lock's is the plain rectangle); a new pin is never
-within 20 degrees of where the left pick already is; stops are 28
-degrees apart.
-[ ] Left over: chests (the lock works without a door and raises an
-    event, but there is no chest or lid); the "lockpick hold" finger
-    pose (Phase 7 - the hand on a pick uses a copy of the rope grip);
-    real picking and unlock sounds (the placeholder impact cue).
-[x] The picks: two long, thin, small boxes on the back of the left hand
-    (children of it). The right hand grabs them with grip, as ONE
-    grabbable object.
-[x] Locks (greybox): circular, with a plain rectangular keyway the picks
-    stick out of - the same look on the door (simple lock kind only) and
-    on the large copy. Chests get the same lock.
-[x] Insert: bringing the held picks within a set distance of a locked
-    simple lock snaps them into its keyhole, and the right hand is freed.
-[x] The big lock: once the picks are in, a large copy of the lock fades
-    in, floating in front of the door. Both picks stick out of its
-    keyway, angled outward: the left at about 11 o'clock, the right at
-    about 1 o'clock. A world object the hands reach into, so depth-
-    tested, not drawn on top like UI. One copy, made at load and reused
-    for every lock (nothing created during play).
-[x] Turning a pick: grip it and carry the hand round the lock's centre,
-    like a clock hand - the angle comes from where the hand is, not from
-    twisting the wrist. Right hand on the right pick, left on the left.
-[x] Right pick (the turning pick): turns clockwise until it stops at
-    stage 1, 25-30 degrees from its start. Each pin found frees it to
-    the next stop, a further 25-30 degrees: stage 2, stage 3, then one
-    last turn that unlocks. Four stops in all. Letting go of it at any
-    time before that swings it back to its start and resets the lock.
-[x] Left pick (the searching pick): while the right pick is held at
-    stage 1, 2 or 3, the left pick is swept between 11 o'clock and
-    7 o'clock (down the left side, 120 degrees) to find that stage's
-    pin - a random angle within the arc. Held within 5 degrees of it for
-    one second, the pin is set and the right pick is freed to the next
-    stage.
-[x] Haptics: a pulse on the right hand each time the right pick reaches
-    its next stop. On the left hand, a vibration that starts 10 degrees
-    from the pin and rises to its maximum inside the 5 degrees.
-[x] Unlocked: after the last turn the lock calls Door.Unlock() (chest:
-    the lid opens) and stays unlocked until the level restarts - a
-    restart locks it again, like everything else. Nothing is kept across
-    reloads.
-[x] Leaving: moving the body a set distance from the lock fades the big
-    lock out and puts the picks back on the left hand, lock reset.
-[x] Fade in and out of the big lock: a see-through fade on a small object
-    for a fraction of a second (within the overdraw rule); opaque once
-    fully in.
-[x] Quiet picking noise events while working the lock.
-[x] Debug (Scripts/Interaction/Debug): show the stage, each pick's angle,
-    the pin's angle and the hold timer.
-Also decided (confirmed by the maintainer 2026-10-09):
-    - The stops are evenly spaced (the same 25-30 degrees each).
-    - Each stage has its own random pin, and a reset picks new ones.
-    - The one-second timer starts again if the left pick leaves the 5
-      degrees early. The left pick stays where it's left when let go;
-      only letting go of the right pick resets.
-    - Picks let go of away from a lock return to the left hand. After
-      the unlock, the big lock fades out and they return too.
-    - The picks are always on the left hand once owned - not equipped
-      from the wrist radial menu (Phase 4), which keeps the blackjack and
-      crossbow. No left-handed (mirrored) setup in the slice.
-    - A hand gripping a pick on the big lock snaps to it, through the
-      hand snap pose interface (the "lockpick hold" pose, Phase 7).
-    - The game doesn't pause: guards can still find the player picking.
+[x] Two-pick lockpicking on the big lock: picks on the back of the left
+    hand, insert, the right pick's four stops, the left pick's pin search
+    by haptics, reset, unlock, leaving, quiet noise, debug view.
+    The rules: stops evenly spaced; each stage has its own random pin and
+    a reset picks new ones; the one-second timer starts again if the left
+    pick leaves the pin early; only letting go of the right pick resets;
+    the picks are always on the left hand (not equipped); no left-handed
+    setup in the slice; the game doesn't pause.
+[ ] Chests: the lock works without a door and raises an event, but there
+    is no chest or lid.
+[ ] The "lockpick hold" finger pose (Phase 7 - the hand on a pick uses a
+    copy of the rope grip).
+[ ] Real picking and unlock sounds.
 
 
 Phase 6 - Guard AI (AI namespace)
 ---------------------------------
 Setup:
-[ ] Install/confirm the AI Navigation package; NavMeshSurface on the level.
+[ ] Confirm the AI Navigation package; NavMeshSurface on the level.
 [ ] Guard prefab: placeholder humanoid, NavMeshAgent, Animator, head
     collider (GuardHead layer), eye transform, capsule body collider.
 Perception:
@@ -1012,7 +274,7 @@ Behaviour (explicit state machine - keep it readable and debuggable):
     nearby NavMesh points to check, with a timeout before giving up.
 [ ] Chase: run to the player's live position while seen, last known when
     lost; drop back to Search when lost for N seconds.
-[ ] Catch: within catch range while chasing, trigger GameState Caught.
+[ ] Catch: within catch range while chasing, call LevelManager.Caught().
 [ ] Knocked out: disable perception/agent; the body becomes draggable.
     KO'd guards stay down for the whole slice.
 [ ] Return to patrol after search, resuming the nearest waypoint.
@@ -1020,17 +282,21 @@ Body dragging:
 [ ] KO'd guard has a grab handle (collar/shoulder). The player grabs it and
     the body follows the hand along the ground (kinematic follow with
     ground snapping, or ragdoll with a joint to the hand - start with
-    kinematic, it's cheaper and more predictable on Quest). Dragging
-    slows the player and makes some noise on loud surfaces.
+    kinematic, it's cheaper and more predictable). Dragging slows the
+    player and makes some noise on loud surfaces.
 Audio feedback:
 [ ] Placeholder barks per state transition (suspicious, searching, gave up,
     spotted, found body) - these are how the player reads AI state.
-[ ] Voice lines that don't repeat (added 2026-10-07). Guards draw from
-    very large pools of lines - big enough that a usual playthrough of a
-    level never hears the same line twice - and a line isn't played again
-    until every other line in its pool has been used. Barks above use
-    this too, and so does idle chatter: now and then a guard on a normal
-    patrol says something to himself.
+[ ] Voice lines that don't repeat. Guards draw from very large pools of
+    lines - big enough that a usual playthrough of a level never hears
+    the same line twice - and a line isn't played again until every
+    other line in its pool has been used. Barks use this too, and so
+    does idle chatter: now and then a guard on a normal patrol says
+    something to himself. Several guard voices: each voice has its own
+    set of pools (one per kind of line), each guard is given a voice and
+    keeps it, and "used" is tracked per voice's pool. Other guards don't
+    react to idle chatter - a spoken line is sound only, not a noise
+    event.
     [ ] Voice line pool (Core, beside SoundCue, which picks a clip at
         random and so can repeat): one pool per kind of line (idle
         mutter, suspicious, searching, gave up, spotted, found body),
@@ -1040,25 +306,17 @@ Audio feedback:
         isn't the one just played. Built once, nothing allocated per
         line.
     [ ] Shared and lasting: one record per pool for all guards with that
-        voice, so two guards don't say the same line, and kept for the whole play
-        session - a level restart (being caught) must not start the
-        lines over. So it lives outside the scene, and isn't saved to
-        disk.
+        voice, kept for the whole play session - a level restart must
+        not start the lines over. So it lives outside the scene, and
+        isn't saved to disk.
     [ ] Played through SoundPlayer like any other sound (rooms and
         portals, muffling), from the guard's head. One line at a time
         per guard; a state bark cuts off an idle mutter.
     [ ] Idle chatter: on patrol only, at a random interval with a long
         minimum gap, and not while another guard nearby is talking.
-    [x] Decided 2026-10-07: several guard voices. Each voice has its own
-        set of pools (one per kind of line), each guard is given a voice
-        and keeps it, and "used" is tracked per voice's pool - so guards
-        sharing a voice still don't repeat each other.
-    [x] Decided 2026-10-07: other guards don't react to idle chatter -
-        a spoken line is sound only, not a noise event.
-    [ ] Later, maybe: conversations between two guards (a set of lines
-        played in turn between two voices). Not planned for the slice,
-        but keep the pool usable for it: a conversation would be one
-        entry that isn't repeated, the same as a single line.
+    [ ] Later, maybe: conversations between two guards. Keep the pool
+        usable for it: a conversation would be one entry that isn't
+        repeated, the same as a single line.
     [ ] Placeholder lines to prove the system; the large pools are a
         recording job - list the lines wanted per pool, and how many.
 Debug (Scripts/AI/Debug):
@@ -1068,14 +326,13 @@ Performance:
 [ ] Budget: ~4-6 guards in the slice. Stagger perception, avoid
     allocations in state updates, and animator culling mode = cull
     completely when offscreen.
-[ ] Guards far from the player or out of sight think less often (added
-    2026-10-07): a slower perception timer by distance, and no vision
-    rays at all for a guard too far away to see the player. Path
-    requests spread out, never several in one frame.
-[ ] One skinned mesh and one material per guard, a modest bone count,
-    2 bone weights on Quest (the Mobile quality level already says so).
-    No realtime shadow from guards unless Phase 8's lighting choice
-    gives it cheaply; otherwise a blob shadow or none.
+[ ] Guards far from the player or out of sight think less often: a
+    slower perception timer by distance, and no vision rays at all for a
+    guard too far away to see the player. Path requests spread out,
+    never several in one frame.
+[ ] One skinned mesh and one material per guard, a modest bone count.
+    Guards cast shadows from torches through the torch shadow setting
+    (Phase 8).
 
 
 Phase 7 - Animation
@@ -1092,11 +349,12 @@ Guard (Mixamo):
 [ ] Head look-at towards stimulus while suspicious (Animator IK or simple
     head bone rotation in LateUpdate).
 Player hands:
-[ ] Pose clips: climbing grip, object hold, blackjack hold, crossbow hold,
-    crossbow cocking-hand grip, lockpick hold, radial-menu point.
+[ ] Pose clips: object hold, door handle, blackjack hold, crossbow hold,
+    crossbow cocking-hand grip, lockpick hold.
 [ ] Add each as a HandPose value + same-named Snap Pose layer state (the
     blend on transitions already comes from HandVisualSnap.Weight).
-[ ] Thumb curl (deferred earlier) - add if hold poses look wrong without it.
+[ ] Thumb curl on the input layers - add if hold poses look wrong
+    without it.
 Tools:
 [ ] Crossbow cock/fire motion via simple transform animation (the lever
     follows the pulling hand, the string snaps forward on fire).
@@ -1105,15 +363,8 @@ Tools:
 
 Phase 8 - Level: the docks warehouse
 ------------------------------------
-[x] A first building made the way level buildings could be (2026-10-09,
-    ahead of this phase, at the maintainer's request): TeaLeaf > Build
-    Smithy makes a half-timbered blacksmith's house from code - one
-    mesh per material (six draw calls), textures painted by the script
-    and saved as PNGs, Static with mesh colliders, hollow, and about 35
-    ledges, window sills, ridges and ladders to climb.
-[x] Try the smithy in the headset: how it looks and whether every ledge
-    is in reach of the next (2026-10-09: fine, the maintainer's word).
-[ ] What the smithy costs on the target rig - Phase 10.
+[x] The smithy: a building made from code as level buildings could be
+    (TeaLeaf > Build Smithy).
 Design (on paper first):
 [ ] Layout sketch with a critical path and at least one alternate route per
     area. Each beat below should teach or test one mechanic, roughly in
@@ -1134,84 +385,79 @@ Design (on paper first):
        drag the body into shadow (body-discovery teaches the hiding
        reason).
     8. Office: locked door (lockpick) and a locked chest/safe with the
-       objective item. Loot scattered around (coins, goblets) for a
-       loot total.
+       objective item. More loot scattered around than the pack holds.
     9. Escape: back out to a boat/exit zone, a guard now searching near
        the route in.
-[ ] Loot target and bolt counts: enough bolts to solve each beat with a
-    small spare; tune after playtesting.
-[ ] Lay it out so the level culls itself (added 2026-10-07): no long
-    straight views across the whole site - bent approaches, the yard
-    wall, the warehouse's own walls and doors between areas, so that
-    from any spot only one or two areas can be seen. The interior and
-    the docks should rarely be on screen together.
+[ ] Loot and bolt counts: enough bolts to solve each beat with a small
+    spare; tune after playtesting.
+[ ] Lay it out so the level culls itself: no long straight views across
+    the whole site - bent approaches, the yard wall, the warehouse's own
+    walls and doors between areas, so that from any spot only one or two
+    areas can be seen. The interior and the docks should rarely be on
+    screen together.
 Greybox build:
 [ ] Block out in ProBuilder at true VR scale (door heights 2.1m, ceilings,
     catwalk rail heights, ledge heights tested at 1.2-2m).
-[ ] Mark everything that never moves Static (added 2026-10-07; nothing
-    in the scene is yet, and the test-area builders don't set it), on
-    the Environment layer, with a small number of shared materials -
-    one material and one colour-swatch texture can cover the greybox.
-    Box/capsule colliders where they fit; mesh colliders only where the
-    shape needs one.
-[ ] Small props (bottles, coins, crates) cast no realtime shadows.
-    They're on Interactable, not Environment, so that layer can be
-    given a nearer cull distance than walls if profiling asks for it.
+[ ] Mark everything that never moves Static (nothing in the scene is but
+    the smithy and the door test wall, and the other test-area builders
+    don't set it), on the Environment layer, with a small number of
+    shared materials - one material and one colour-swatch texture can
+    cover the greybox. Box/capsule colliders where they fit; mesh
+    colliders only where the shape needs one.
+[ ] Small props (bottles, coins, crates) are on Interactable, not
+    Environment, so that layer can be given a nearer cull distance than
+    walls if profiling asks for it.
 [ ] Tag surfaces (SurfaceType), RopeTarget beams, ClimbableEdges, ladders.
-[ ] Place the LightSources, each with its visible Unity light (no shadow
-    volumes: visibility is worked out from the geometry, 2026-10-04).
+[ ] Place the sound rooms and portals, with each room's reverb and
+    ambience, and a SoundLoop on each torch and fire.
+[ ] Place the LightSources, each with its visible Unity light.
 [ ] Bake the NavMesh; add NavMesh links/obstacles for doors; verify guards
     can't path onto player-only routes (catwalks/roofs).
 [ ] Place guards + PatrolRoutes, loot, bolt pickups, objective, exit zone,
     player start.
 Lighting:
 [ ] Baked lighting with light probes for the static environment; torches
-    as a small number of realtime/mixed lights (baked lights can't be
-    turned off by a water bolt). Keep realtime lights per view low and
-    ranges short.
-    [ ] Decide how the moon is lit (added 2026-10-07). It never moves,
-        so its light and shadows on the level can be baked. To try
-        first: the Directional Light as Mixed, lighting mode
-        Subtractive or Shadowmask - the level's shadows come from the
+    as a small number of mixed lights (baked lights can't be turned off
+    by a water bolt). Keep realtime lights per view low and ranges
+    short.
+    [ ] The moon. It never moves, so its light and shadows on the level
+        can be baked. To try first: the Directional Light as Mixed,
+        lighting mode Shadowmask - the level's shadows come from the
         lightmap, and only moving things (guards, props, hands) are
         drawn into a small, short-distance shadow map. Fully realtime,
         as now, redraws the whole level into the shadow map each frame.
-    [ ] Decide how torches are lit (added 2026-10-07). The problem: a
-        realtime point light with no shadows shines through walls,
-        while the gameplay light (LightSource) is blocked by them - and
-        point light shadow maps cost six views each. To try first:
-        torches as Mixed lights in Shadowmask mode with indirect light
-        at zero - the light itself stays realtime, so a water bolt can
-        still put it out (and with no indirect light, no baked glow is
-        left behind), but its shadows from the level are baked, so
-        walls block it for no shadow map. At most four such lights may
-        overlap at any one spot (the moon counts as one if it is Mixed).
-        Wanted by the maintainer 2026-10-10, now the target is PC:
-        realtime shadows from moving things (guards, props, hands) on
-        top - only those are drawn into the torch's shadow map. Make it
-        a quality setting that can be turned off; if six views a torch
-        costs too much, try spot lights for wall torches (one view) or
-        shadows on the nearest one or two torches only. Untested.
+    [ ] Torches. A realtime point light with no shadows shines through
+        walls, while the gameplay light (LightSource) is blocked by
+        them. The plan (untested): Mixed lights in Shadowmask mode with
+        indirect light at zero - the light itself stays realtime, so a
+        water bolt can put it out and no baked glow is left behind, and
+        its shadows from the level are baked, so walls block it for no
+        shadow map. On top, realtime shadows from moving things only
+        (guards, props, hands), as a quality setting that can be turned
+        off. A point light's shadow map is six views: if that costs too
+        much, try spot lights for wall torches (one view) or shadows on
+        the nearest one or two torches only. At most four mixed lights
+        may overlap at any one spot (the moon counts as one if Mixed).
     [ ] Keep the lights reaching any one object few (URP Forward drops
-        the extra ones, and they pop; the limit is eight on PC, four on
-        mobile). Keep torch ranges short and don't merge the level into
-        a few huge meshes - or test Forward+.
+        the extra ones, and they pop). Keep torch ranges short and don't
+        merge the level into a few huge meshes - or test Forward+.
     [ ] Light probes along every route the player, guards and props
         use; one baked reflection probe, or none.
+    [ ] A Meta pass for the cobblestone and brick shaders, so a lightmap
+        bake can see their colours.
 [ ] Make sure visible light matches the gameplay light (SceneLight) -
     the player must be able to trust what they see. Every mesh that
     casts a shadow has a collider on Environment or Interactable.
 [ ] Occlusion culling bake; split the level into chunks that cull cleanly.
 [ ] Set the camera's far clip plane to a little more than the longest
-    view in the level (the sky doesn't depend on it). Brought in from
-    1000m to 200m on 2026-10-07 as a first step.
+    view in the level (the sky doesn't depend on it; it is 200m now).
 [ ] If profiling asks for it: light distance haze (URP's built-in fog,
     not a depth-based effect) with nearer cull distances for small
     props. It needs the sky to fade into the same haze at the horizon,
     and must stay thin enough to read lit and dark areas from afar.
-Audio (placeholder):
-[ ] Ambient bed (water lapping, distant bells, warehouse hum), footsteps per
-    surface, door creaks, impacts, crossbow cock/fire, bolt effects,
+Audio:
+[ ] Ambient beds (water lapping, distant bells, warehouse hum), footsteps
+    per surface, door creaks, impacts, crossbow cock/fire, bolt effects,
     lockpick clicks, loot pickup, guard barks, alert/chase stinger.
 
 
@@ -1222,11 +468,12 @@ Phase 9 - Game loop, feedback and slice polish
 [ ] Caught: guard catch -> stinger -> fade -> reload at start.
 [ ] Win: objective item in the exit zone -> fade -> simple "Mission
     complete - loot X / Y" world-space panel -> restart on button.
-[ ] Haptics pass: pulses for grabs, climbing grips, lockpick, crossbow
-    cock/fire, blackjack hit, loot pickup (none for footsteps).
-[ ] Comfort pass: vignette while sprinting/jumping/falling (optional), snap/smooth
-    turn works everywhere including while climbing.
-[ ] Playtest checklist (in-headset, PCVR):
+[ ] Haptics pass: pulses for grabs, climbing grips, crossbow cock/fire,
+    blackjack hit, loot pickup (none for footsteps).
+[ ] Comfort pass: vignette while sprinting/jumping/falling (optional, and
+    switchable), snap/smooth turn works everywhere including while
+    climbing.
+[ ] Playtest checklist (in-headset):
     [ ] Every beat 1-9 completable using its intended mechanic.
     [ ] Every beat completable via at least one alternate approach.
     [ ] Guards never get stuck; they always return to patrol.
@@ -1236,34 +483,33 @@ Phase 9 - Game loop, feedback and slice polish
 
 Phase 10 - Performance pass (PCVR target rig)
 ---------------------------------------------
-Retitled 2026-10-10 from "Quest 3 performance pass", when the target
-became PCVR on a 3060-class rig. The Quest-only tasks are kept at the
-end of this phase, for a port that may never happen.
 [ ] Find a way to measure against the target rig (RTX 3060 12 GB, Ryzen
     5 5600X class, 16 GB): a machine of that class, or a tested scaling
-    from the dev machine. Nothing has been measured on one yet.
+    from the dev machine.
 [ ] Baseline: frame times for the CPU and the GPU at about 2000 x 2000
     per eye and 90Hz, with the Unity Profiler and SteamVR's frame
     timing, streamed through Virtual Desktop as the dev headset is (the
-    video encode takes some of the GPU's time).
-    Target: 8.3 ms each - 90 fps with 25% headroom.
+    video encode takes some of the GPU's time). Target: 8.3 ms each -
+    90 fps with 25% headroom.
 [ ] Rendering: draw call/batch count, SRP Batcher compatibility, MSAA,
     shadows, render scale. To settle on the target rig (PC_RPAsset is
-    what a PC build uses; check its settings as Mobile_RPAsset's were
-    on 2026-10-07):
+    what a PC build uses):
+    [x] PC render settings trimmed: no ambient occlusion, no depth or
+        opaque texture, HDR off, two shadow cascades with hard edges.
+    [ ] Switch off the features nothing uses (additional-light shadows
+        until torches need them, light cookies, reflection probe
+        blending) and choose between Forward and Forward+.
     [ ] 4x MSAA at render scale 1.0; come down only if the frame time
         says so.
     [ ] Dynamic resolution as the safety net for heavy moments.
     [ ] Environment and prop materials are URP Lit (full PBR). Compare
         Simple Lit and Baked Lit once lighting is baked.
     [ ] The procedural surface shaders (TeaLeaf/Cobblestone and
-        TeaLeaf/BrickWall, added 2026-10-08) work their pattern out per
-        pixel, on surfaces that fill the view. Profile them, with and
-        without Dirt and Parallax; the cobbles' 5x5 search is the heavy
-        one. If they cost too much, bake each pattern into textures at
-        level load (as the moon's face is) and keep the same material
-        settings. Both also need a Meta pass before a lightmap bake can
-        see their colours (Phase 8).
+        TeaLeaf/BrickWall) work their pattern out per pixel, on surfaces
+        that fill the view. Profile them, with and without Dirt and
+        Parallax; the cobbles' 5x5 search is the heavy one. If they cost
+        too much, bake each pattern into textures at level load (as the
+        moon's face is) and keep the same material settings.
     [ ] Main light shadows: distance 50m at 1024 with one cascade is
         both costly and blurry; with baked level shadows (Phase 8) it
         only has to cover moving things near the player - try 10-15m.
@@ -1273,45 +519,40 @@ end of this phase, for a port that may never happen.
         torch shadows, MSAA and render scale.
     [ ] Textures: sensible maximum sizes, mipmaps on anything in the
         world.
+    [ ] What the smithy costs.
 [ ] CPU: zero per-frame GC allocations in gameplay code, perception
     staggering verified, Animator culling, physics layer matrix trimmed,
-    fixed timestep appropriate.
-    [x] Props are smoothed between physics steps (50Hz physics, 72-90Hz
-        headset) by Rigidbody interpolation, not a faster physics rate:
-        Grabbable has set it on every drop and throw since 2026-10-07,
-        and the test props now start with it on too.
+    fixed timestep appropriate. Profile the physical hands
+    (PhysicalHands.Follow) and the spatialiser (C# on the audio thread).
 [ ] Audio: every clip's import settings read as Decompress On Load
-    with Preload Audio Data off (seen in the .meta files 2026-10-07;
-    check in the Inspector). If so, each clip is decoded on the main
-    thread the first time it plays - a hitch on the first footstep on
-    each surface. Turn preloading on for short sounds; long ambience
-    loops should stream or stay compressed in memory.
+    with Preload Audio Data off (check in the Inspector). If so, each
+    clip is decoded on the main thread the first time it plays - a hitch
+    on the first footstep on each surface. Turn preloading on for short
+    sounds; long ambience loops should stream or stay compressed in
+    memory.
 [ ] Object pooling for bolts, impact/noise VFX and audio sources.
 [ ] Record final numbers in DEVLOG.txt as the post-slice baseline.
 
-Possible later port: Quest 3 standalone (not a target since 2026-10-10)
-Kept from the old Phase 10 so the work already done isn't lost. A port
-would also have to go back to the stricter rules: no realtime torch
+Possible later port: Quest 3 standalone (not a target)
+A port would have to go back to stricter rules: no realtime torch
 shadows, no post-processing, the procedural shaders baked to textures.
 [ ] First standalone build; profile with the Unity Profiler + OVR
-    Metrics Tool. The OpenXR "Meta Quest Support" feature is still off
-    for Android (seen 2026-10-07) - turn it on first. Target a stable
-    72Hz minimum (90Hz stretch).
-[x] HDR was on in Mobile_RPAsset with no post-processing to use it.
-    Turned off 2026-10-07 (PC keeps it). Not yet seen on the device.
-[ ] MSAA is off and render scale is 0.8 in Mobile_RPAsset. On Quest's
-    GPU 4x MSAA is cheap and matters a lot in VR; try 4x at scale 1.0.
-[ ] Foveated rendering. Set up 2026-10-07, untested: the OpenXR feature
-    is enabled for Android with the SRP Foveation API, and
-    Core.FoveatedRendering asks for level 0.5 when a Quest build
-    starts. Left: check it on the device and tune the level.
+    Metrics Tool. The OpenXR "Meta Quest Support" feature is off for
+    Android - turn it on first. Target a stable 72Hz minimum (90Hz
+    stretch).
+[ ] Mobile_RPAsset: HDR is off; MSAA is off and render scale is 0.8 -
+    try 4x MSAA at scale 1.0.
+[ ] Foveated rendering: the OpenXR feature is enabled for Android with
+    the SRP Foveation API, and Core.FoveatedRendering asks for level 0.5
+    when a Quest build starts. Check it on the device and tune the
+    level.
 [ ] Keep off for Quest: post-processing, depth and opaque textures,
     soft shadows, additional light shadows.
 [ ] Textures as ASTC.
 [ ] Application spacewarp only as a last resort (it has artefacts on
     fast hands and thin shapes).
-[ ] Tune the hand smoothing's Quest standalone numbers on the device
-    (Phase 3), and profile the spatialiser there.
+[ ] Tune the hand smoothing's Quest numbers on the device, and profile
+    the physical hands and the spatialiser there.
 
 
 Milestones
@@ -1324,17 +565,6 @@ M5  Playable slice           Phases 8-9  (the level, start to finish)
 M6  Slice at target          Phase 10    (90 fps with 25% headroom on the
                                          target rig)
 
-Recommended: build a small test area per milestone from the TeaLeaf menu
-(like the Sound Test House) so each system is proven in isolation before
-it goes into the level.
-
-
-Explicitly out of scope for the slice
--------------------------------------
-- Settings/options menu (locomotion values stay as serialized fields).
-- Main menu, save/load, mission briefing screens.
-- Final art, texturing, character modelling, custom animation.
-- Combat (guards catch, they don't fight), health, fall damage (fall
-  damage and health belong to a later damage phase, after the slice).
-- Broadhead/other bolt types, additional tools.
-- Teleport locomotion or XRI locomotion/climb providers (never).
+Build a small test area per milestone from the TeaLeaf menu (like the
+Sound Test House) so each system is proven in isolation before it goes
+into the level.

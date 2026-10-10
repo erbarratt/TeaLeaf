@@ -1,6 +1,5 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
-using UnityEngine.XR.OpenXR.Input;
+using UnityEngine.XR;
 
 namespace Player
 {
@@ -11,21 +10,15 @@ namespace Player
     /// hardware themselves, so strengths and durations are tuned in one
     /// place and the output route can change without touching them.
     ///
-    /// Haptics go out through the OpenXR runtime, via a PassThrough action
-    /// bound to each controller's "haptic" output (Player/LeftHaptic and
-    /// Player/RightHaptic in the project's InputSystem_Actions). The same
-    /// binding works on every OpenXR controller profile, so on PCVR and
-    /// Quest standalone alike.
+    /// Haptics go out through Unity's XR device for each hand (the left
+    /// and right controllers, as the XR runtime reports them), which is
+    /// found once and kept: sending a pulse then creates nothing, so it's
+    /// safe to call many times a second.
     ///
     /// No Update() and no Tick(): it only does anything when asked.
     /// </summary>
     public class PlayerHaptics : MonoBehaviour
     {
-        // Player/LeftHaptic and Player/RightHaptic - output-only actions
-        // bound to <XRController>{LeftHand}/haptic and {RightHand}/haptic.
-        [SerializeField] private InputActionReference leftHapticAction;
-        [SerializeField] private InputActionReference rightHapticAction;
-
         // Global vibration switch, a player setting like PlayerLocomotion's
         // useSmoothTurn: off, Pulse() does nothing, so every haptic in the
         // game stops. A future settings dialogue sets it through
@@ -53,10 +46,11 @@ namespace Player
         [SerializeField] private float testAmplitude = 0.5f;
         [SerializeField] private float testDuration = 0.1f;
 
-        // Resolved once in OnEnable(), like PlayerInputXR: .action does a
-        // lookup on every access.
-        private InputAction _leftHaptic;
-        private InputAction _rightHaptic;
+        // The two controllers as XR devices. Looked up the first time a
+        // pulse is sent and again whenever one stops being valid (a
+        // controller switched off and on comes back as a new device).
+        private InputDevice _leftDevice;
+        private InputDevice _rightDevice;
 
         // Time.time before which each hand's contact pulse is still cooling
         // down - see contactCooldown.
@@ -83,14 +77,6 @@ namespace Player
 
         private void OnEnable()
         {
-            _leftHaptic = leftHapticAction.action;
-            _rightHaptic = rightHapticAction.action;
-
-            // An action only has bound controls - which is how OpenXR finds
-            // the controller to buzz - while it's enabled.
-            _leftHaptic.Enable();
-            _rightHaptic.Enable();
-
             playerHandVisuals.HandContactStarted += OnHandContactStarted;
         }
 
@@ -100,13 +86,10 @@ namespace Player
         }
 
         /// <summary>
-        /// Buzzes one controller. amplitude is 0-1 (clamped by OpenXR),
-        /// duration in seconds. Does nothing if that controller isn't
-        /// connected, or if haptics are switched off (HapticsEnabled) -
-        /// every vibration goes through here, so that one check covers them
-        /// all. Meant for events (a contact, a hit), not every frame:
-        /// OpenXR looks the controller up by name on each call, which
-        /// allocates a little.
+        /// Buzzes one controller. amplitude is 0-1, duration in seconds.
+        /// Does nothing if that controller isn't connected, or if haptics
+        /// are switched off (HapticsEnabled) - every vibration goes through
+        /// here, so that one check covers them all.
         /// </summary>
         public void Pulse(bool isLeftHand, float amplitude, float duration)
         {
@@ -114,7 +97,31 @@ namespace Player
                 return;
             }
 
-            OpenXRInput.SendHapticImpulse(isLeftHand ? _leftHaptic : _rightHaptic, amplitude, duration);
+            if (isLeftHand) {
+                Send(ref _leftDevice, XRNode.LeftHand, amplitude, duration);
+            } else {
+                Send(ref _rightDevice, XRNode.RightHand, amplitude, duration);
+            }
+        }
+
+        /// <summary>
+        /// Sends the pulse to a hand's device, finding the device first if
+        /// the one kept isn't valid (never found yet, or disconnected).
+        /// The device is a struct passed by reference, so the one found is
+        /// kept for next time.
+        /// </summary>
+        private static void Send(ref InputDevice device, XRNode hand, float amplitude, float duration)
+        {
+            if (!device.isValid) {
+                device = InputDevices.GetDeviceAtXRNode(hand);
+
+                if (!device.isValid) {
+                    return;
+                }
+            }
+
+            // Channel 0: controllers have the one motor.
+            device.SendHapticImpulse(0u, Mathf.Clamp01(amplitude), duration);
         }
 
         /// <summary>

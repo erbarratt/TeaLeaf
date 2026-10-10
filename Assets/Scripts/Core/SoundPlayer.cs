@@ -19,24 +19,20 @@ namespace Core
     ///
     /// Voices are a fixed pool of AudioSources made once in Awake(), so
     /// playing a sound creates nothing. Each playing voice costs audio
-    /// processing, which is the real cost on Quest, so the pool size is the
-    /// budget: when every voice is busy, the one that started longest ago
-    /// is cut off and reused.
+    /// processing, so the pool size is the budget: when every voice is
+    /// busy, the one that started longest ago is cut off and reused.
     ///
-    /// Three things run all the time, from Update():
-    /// - Loops (SoundLoop: torches, fires). Each has its route worked out
-    ///   again a few times a second, and the ones that reach the player
-    ///   play on a second, smaller pool of voices, gliding to wherever the
-    ///   route now says they're heard from.
-    /// - Reverb. One reverb for everything, set from the room the player
-    ///   is standing in (SoundRoom's reverb settings) and faded to the
-    ///   next room's on the way through a doorway.
-    /// - Ambience. The room's background loop, with no position, faded
-    ///   over to the next room's.
+    /// This class does the one-off sounds itself. It also holds every
+    /// sound setting, makes the voices, and each frame works out where the
+    /// player's ears are and which room they're in - and hands that to
+    /// three helpers that each do one job:
+    /// - SoundLoopPlayer: the looping sounds (SoundLoop: torches, fires).
+    /// - ListenerReverb: one reverb for everything, set from the room the
+    ///   player is standing in.
+    /// - RoomAmbience: that room's background loop.
     ///
-    /// With a spatialiser plugin chosen in the project's audio settings,
-    /// every voice is passed through it, so a sound is heard in front,
-    /// behind, above or below rather than only left or right.
+    /// Each voice is given its direction by a SpatialVoice (the project's
+    /// own spatialiser), unless the spatialiser mode says otherwise.
     /// </summary>
     public class SoundPlayer : MonoBehaviour
     {
@@ -125,14 +121,13 @@ namespace Core
         // nothing.
         private const float OpenCutoff = 22000f;
 
-        // A loop only takes a voice from a quieter one if it's this many
-        // times louder - otherwise two loops of about the same loudness
-        // would keep taking it from each other.
-        private const float StealMargin = 1.25f;
-
         // The longest step the easing takes in one frame, in seconds, so a
         // loading hitch can't jump it.
         private const float MaxStep = 0.05f;
+
+        // Added to a voice's worked-out end time, in seconds, so its
+        // direction is kept up until the sound has certainly finished.
+        private const float EndMargin = 0.1f;
 
         // The pool. One AudioSource and one low-pass filter per voice, and
         // the time each was last started (to find the oldest).
@@ -140,25 +135,20 @@ namespace Core
         private AudioLowPassFilter[] _filters;
         private float[] _startTimes;
 
-        // The loops' own pool, so a burst of one-off sounds can never cut
-        // a torch off.
-        private LoopVoice[] _loopVoices;
-
         // Whether the voices go through the project's own spatialiser, or
         // through a spatialiser plugin (never both).
         private bool _builtIn;
         private bool _spatialised;
 
         // For the project's own spatialiser: one per one-off voice, with
-        // where that voice's sound is in the world and how far it carries,
-        // so its direction from the head can be kept up as the head turns.
+        // where that voice's sound is in the world, how far it carries and
+        // when it will have finished (unscaled time), so its direction
+        // from the head can be kept up as the head turns - without asking
+        // every voice every frame whether it's still playing.
         private SpatialVoice[] _spatials;
         private Vector3[] _positions;
         private float[] _ranges;
-
-        // The turn from world directions to the head's own (x right, y
-        // up, z ahead), worked out once a frame.
-        private Quaternion _toHead = Quaternion.identity;
+        private float[] _endTimes;
         private int _sampleRate;
 
         // The room the player's ears were in at the last look (null =
@@ -166,70 +156,10 @@ namespace Core
         private SoundRoom _listenerRoom;
         private float _nextListenerCheck;
 
-        // The one reverb: a Unity reverb filter on the same object as the
-        // AudioListener, where it works on everything the player hears
-        // after it has been mixed together - one effect however many
-        // sounds are playing.
-        // A change of room blends from where the settings had got to
-        // (_reverbFrom) to the new room's (_reverbTarget); _reverbBlend
-        // runs 0 to 1 and stays at 1 once there, when nothing is touched.
-        private AudioReverbFilter _reverbFilter;
-        private float _appliedReverbAmount;
-        private ReverbSettings _reverbFrom;
-        private ReverbSettings _reverbCurrent;
-        private ReverbSettings _reverbTarget;
-        private float _reverbBlend = 1f;
-        private bool _reverbStarted;
-
-        // The ambience: two plain (not 3D) looping sources, so one room's
-        // can fade out on one while the next room's fades in on the
-        // other. For each: the cue it's playing, the cue's volume times
-        // the room's, how far it has faded in (0-1) and where that fade is
-        // heading. _ambienceActive is the one playing the current room's.
-        private readonly AudioSource[] _ambienceSources = new AudioSource[2];
-        private readonly SoundCue[] _ambienceCues = new SoundCue[2];
-        private readonly float[] _ambienceVolumes = new float[2];
-        private readonly float[] _ambienceGains = new float[2];
-        private readonly float[] _ambienceTargets = new float[2];
-        private int _ambienceActive;
-        private bool _ambienceFading;
-
-        /// <summary>
-        /// One voice of the loop pool and what it's doing.
-        /// </summary>
-        private class LoopVoice
-        {
-            public AudioSource Source;
-            public AudioLowPassFilter Filter;
-            public SpatialVoice Spatial;
-
-            // How far the loop it's playing carries, in metres.
-            public float Range;
-
-            // The loop it's playing. InUse is kept separately because a
-            // loop destroyed with its object reads as null while its voice
-            // is still fading out.
-            public SoundLoop Loop;
-            public bool InUse;
-
-            // Where the sound is heard from, relative to the ears.
-            public Vector3 Offset;
-
-            // Whether the route was a straight line at the last look, and
-            // how much longer to ease after it changed between straight
-            // and through a portal.
-            public bool WasDirect;
-            public float SettleTime;
-
-            // The fade in/out (0-1), the eased muffle (0-1) and the loop's
-            // own volume, and the volume and muffle last sent to the
-            // AudioSource and filter - they're only written when changed.
-            public float Gain;
-            public float Muffle;
-            public float BaseVolume;
-            public float AppliedVolume;
-            public float AppliedMuffle;
-        }
+        // The three helpers. The reverb is null when reverb is off.
+        private SoundLoopPlayer _loops;
+        private ListenerReverb _reverb;
+        private RoomAmbience _ambience;
 
         /// The scene's sound player. Set in Awake(), so use it from Start()
         /// or later.
@@ -251,24 +181,17 @@ namespace Core
         /// rather than Unity's left/right panning.
         public bool IsSpatialised => _builtIn || _spatialised;
 
-        /// <summary>
         /// How many loops have a voice right now. For debug readouts.
-        /// </summary>
-        public int PlayingLoopCount
-        {
-            get
-            {
-                int count = 0;
+        public int PlayingLoopCount => _loops.PlayingCount;
 
-                for (int i = 0; i < _loopVoices.Length; i++) {
-                    if (_loopVoices[i].InUse) {
-                        count++;
-                    }
-                }
-
-                return count;
-            }
-        }
+        // What the loop player reads of the settings, each frame, so they
+        // can be tuned while playing.
+        public float FalloffSharpness => falloffSharpness;
+        public float MuffledVolume => muffledVolume;
+        public float LoopCheckInterval => loopCheckInterval;
+        public float LoopFarCheckInterval => loopFarCheckInterval;
+        public float LoopEaseTime => loopEaseTime;
+        public float LoopFadeTime => loopFadeTime;
 
         /// <summary>
         /// How many voices are playing right now. For debug readouts - it
@@ -328,44 +251,22 @@ namespace Core
             _spatials = new SpatialVoice[voiceCount];
             _positions = new Vector3[voiceCount];
             _ranges = new float[voiceCount];
+            _endTimes = new float[voiceCount];
 
             AnimationCurve falloff = BuildFalloffCurve();
 
             for (int i = 0; i < voiceCount; i++) {
                 CreateVoice($"Voice {i}", falloff, out _sources[i], out _filters[i], out _spatials[i]);
                 _startTimes[i] = float.NegativeInfinity;
+                _endTimes[i] = float.NegativeInfinity;
             }
 
-            _loopVoices = new LoopVoice[loopVoiceCount];
-
-            for (int i = 0; i < loopVoiceCount; i++) {
-                LoopVoice voice = new();
-                CreateVoice($"Loop Voice {i}", falloff, out voice.Source, out voice.Filter, out voice.Spatial);
-                voice.Source.loop = true;
-                _loopVoices[i] = voice;
-            }
-
-            for (int i = 0; i < _ambienceSources.Length; i++) {
-                GameObject bed = new($"Ambience {i}");
-                bed.transform.SetParent(transform, false);
-
-                AudioSource source = bed.AddComponent<AudioSource>();
-                source.playOnAwake = false;
-                source.loop = true;
-
-                // Not 3D: it comes from nowhere in particular.
-                source.spatialBlend = 0f;
-                _ambienceSources[i] = source;
-            }
+            _loops = new SoundLoopPlayer(this, loopVoiceCount, falloff);
+            _ambience = new RoomAmbience(transform);
 
             if (reverb && listener != null) {
-                // A filter only works on the listener's output if it's on
-                // the very object the AudioListener is on.
                 if (listener.TryGetComponent(out AudioListener _)) {
-                    _reverbFilter = listener.gameObject.AddComponent<AudioReverbFilter>();
-
-                    // "User" is the preset that takes its numbers from code.
-                    _reverbFilter.reverbPreset = AudioReverbPreset.User;
+                    _reverb = new ListenerReverb(listener.gameObject);
                 } else {
                     Debug.LogWarning("SoundPlayer: the Listener object has no AudioListener, so there is no reverb.", this);
                 }
@@ -375,10 +276,10 @@ namespace Core
         /// <summary>
         /// Makes one 3D voice as a child object: an AudioSource and the
         /// low-pass filter that muffles it, and with the project's own
-        /// spatialiser a SpatialVoice (null otherwise). Shared by the
-        /// one-off pool and the loop pool.
+        /// spatialiser a SpatialVoice (null otherwise). Used for this
+        /// class's one-off pool and by the loop player for its own.
         /// </summary>
-        private void CreateVoice(string voiceName, AnimationCurve falloff, out AudioSource source, out AudioLowPassFilter filter, out SpatialVoice spatial)
+        public void CreateVoice(string voiceName, AnimationCurve falloff, out AudioSource source, out AudioLowPassFilter filter, out SpatialVoice spatial)
         {
             GameObject voice = new(voiceName);
             voice.transform.SetParent(transform, false);
@@ -494,20 +395,27 @@ namespace Core
             int voice = FindVoice();
             AudioSource audioSource = _sources[voice];
             AudioLowPassFilter filter = _filters[voice];
+            AudioClip clip = cue.GetClip(Random.Range(0, cue.ClipCount));
+            float pitch = 1f + Random.Range(-cue.PitchVariation, cue.PitchVariation);
 
             Vector3 offset = HeardOffset(path, position, ears);
             audioSource.transform.position = ears + offset;
 
             if (_builtIn) {
                 // Remembered, so the direction can follow the head as it
-                // turns while the sound plays (TickSpatialVoices()).
+                // turns while the sound plays (TickSpatialVoices()), until
+                // the clip has run its length at this pitch.
                 _positions[voice] = ears + offset;
                 _ranges[voice] = range;
+                _endTimes[voice] = clip != null
+                    ? Time.unscaledTime + delay + clip.length / Mathf.Max(pitch, 0.01f) + EndMargin
+                    : float.NegativeInfinity;
                 _spatials[voice].Begin(Quaternion.Inverse(listener.rotation) * offset, range, falloffSharpness);
             }
+
             audioSource.maxDistance = range;
-            audioSource.clip = cue.GetClip(Random.Range(0, cue.ClipCount));
-            audioSource.pitch = 1f + Random.Range(-cue.PitchVariation, cue.PitchVariation);
+            audioSource.clip = clip;
+            audioSource.pitch = pitch;
             audioSource.volume = cue.Volume * volumeScale * Mathf.Lerp(1f, muffledVolume, path.Muffle);
 
             // The route's muffle plus the caller's own, capped at fully
@@ -531,7 +439,7 @@ namespace Core
         /// the 3D fade and panning match the route, not the straight line
         /// through the wall.
         /// </summary>
-        private static Vector3 HeardOffset(in SoundPath path, Vector3 position, Vector3 ears)
+        public static Vector3 HeardOffset(in SoundPath path, Vector3 position, Vector3 ears)
         {
             if (path.IsDirect) {
                 return position - ears;
@@ -552,7 +460,7 @@ namespace Core
         /// between open and muffled by ratio too: halfway muffled is
         /// halfway in octaves.
         /// </summary>
-        private void SetMuffle(AudioLowPassFilter filter, float muffle)
+        public void SetMuffle(AudioLowPassFilter filter, float muffle)
         {
             bool muffled = muffle > 0f;
             filter.enabled = muffled;
@@ -563,10 +471,22 @@ namespace Core
         }
 
         /// <summary>
-        /// The loops, the reverb and the ambience. Its own Update() rather
-        /// than a Tick() from PlayerController: it isn't a player system
-        /// and nothing depends on when in the frame it runs. Unscaled time,
-        /// so sound carries on if the game is ever paused by time scale.
+        /// Looks up which room the ears are in right now, remembers it and
+        /// returns it. For the loop player, whose routes need the room as
+        /// of this frame rather than as of the last reverb look.
+        /// </summary>
+        public SoundRoom RefreshListenerRoom(Vector3 ears)
+        {
+            _listenerRoom = SoundRoom.Find(ears);
+            return _listenerRoom;
+        }
+
+        /// <summary>
+        /// Every frame: where the ears are and how the head is turned,
+        /// then each job in turn. Its own Update() rather than a Tick()
+        /// from PlayerController: it isn't a player system and nothing
+        /// depends on when in the frame it runs. Unscaled time, so sound
+        /// carries on if the game is ever paused by time scale.
         /// </summary>
         private void Update()
         {
@@ -574,36 +494,42 @@ namespace Core
             float deltaTime = Mathf.Min(Time.unscaledDeltaTime, MaxStep);
             Vector3 ears = listener.position;
 
+            // The turn from world directions to the head's own (x right,
+            // y up, z ahead), for the spatialiser.
+            Quaternion toHead = Quaternion.identity;
+
+            if (_builtIn) {
+                spatialiser.Prepare(_sampleRate);
+                toHead = Quaternion.Inverse(listener.rotation);
+                TickSpatialVoices(now, ears, toHead);
+            }
+
             if (now >= _nextListenerCheck) {
                 _nextListenerCheck = now + listenerCheckInterval;
                 UpdateListenerRoom(ears);
             }
 
-            if (_builtIn) {
-                spatialiser.Prepare(_sampleRate);
-                _toHead = Quaternion.Inverse(listener.rotation);
-                TickSpatialVoices(ears);
+            if (_reverb != null) {
+                _reverb.Tick(deltaTime, reverbBlendTime, reverbAmount);
             }
 
-            TickReverb(deltaTime);
-            TickAmbience(deltaTime);
-            TickLoopChecks(now, ears);
-            TickLoopVoices(deltaTime, ears);
+            _ambience.Tick(deltaTime, ambienceFadeTime);
+            _loops.Tick(now, deltaTime, ears, toHead);
         }
 
         /// <summary>
         /// The project's own spatialiser, for the one-off voices: tells
-        /// each one that is playing where its sound now is relative to the
-        /// head. The sound stays put in the world, but the head moves and
-        /// turns under it - and a direction that follows the head's turn
-        /// is most of how a listener tells in front from behind. (The loop
-        /// voices are told in TickLoopVoices().)
+        /// each one that hasn't finished where its sound now is relative
+        /// to the head. The sound stays put in the world, but the head
+        /// moves and turns under it - and a direction that follows the
+        /// head's turn is most of how a listener tells in front from
+        /// behind. (The loop player does the same for its voices.)
         /// </summary>
-        private void TickSpatialVoices(Vector3 ears)
+        private void TickSpatialVoices(float now, Vector3 ears, Quaternion toHead)
         {
-            for (int i = 0; i < _sources.Length; i++) {
-                if (_sources[i].isPlaying) {
-                    _spatials[i].SetTarget(_toHead * (_positions[i] - ears), _ranges[i], falloffSharpness);
+            for (int i = 0; i < _spatials.Length; i++) {
+                if (now < _endTimes[i]) {
+                    _spatials[i].SetTarget(toHead * (_positions[i] - ears), _ranges[i], falloffSharpness);
                 }
             }
         }
@@ -611,402 +537,21 @@ namespace Core
         /// <summary>
         /// Looks up which room the player is in and points the reverb and
         /// the ambience at that room's settings. A few times a second, not
-        /// per frame. Comparing the settings rather than the room means a
-        /// room tuned in the Inspector while playing is heard straight
-        /// away.
+        /// per frame.
         /// </summary>
         private void UpdateListenerRoom(Vector3 ears)
         {
-            _listenerRoom = SoundRoom.Find(ears);
-            bool inRoom = _listenerRoom != null;
+            SoundRoom room = RefreshListenerRoom(ears);
+            bool inRoom = room != null;
 
-            if (_reverbFilter != null) {
-                ReverbSettings wanted = inRoom ? _listenerRoom.Reverb : outsideReverb;
-
-                if (!_reverbStarted) {
-                    // The first look, as the level starts: no blend.
-                    _reverbStarted = true;
-                    _reverbCurrent = wanted;
-                    _reverbTarget = wanted;
-                    _reverbBlend = 1f;
-                    _appliedReverbAmount = reverbAmount;
-                    wanted.ApplyTo(_reverbFilter, reverbAmount);
-                } else if (!wanted.Matches(_reverbTarget) || reverbAmount != _appliedReverbAmount) {
-                    // Blend from wherever the reverb has got to, so a
-                    // change part-way through another is still smooth.
-                    _reverbFrom = _reverbCurrent;
-                    _reverbTarget = wanted;
-                    _reverbBlend = 0f;
-                }
+            if (_reverb != null) {
+                _reverb.SetWanted(inRoom ? room.Reverb : outsideReverb, reverbAmount);
             }
 
             if (inRoom) {
-                SetAmbience(_listenerRoom.Ambience, _listenerRoom.AmbienceVolume);
+                _ambience.Set(room.Ambience, room.AmbienceVolume);
             } else {
-                SetAmbience(outsideAmbience, outsideAmbienceVolume);
-            }
-        }
-
-        /// <summary>
-        /// Moves the reverb on towards the current room's settings. Does
-        /// nothing once it's there, so the reverb is only touched for the
-        /// moment after a change of room.
-        /// </summary>
-        private void TickReverb(float deltaTime)
-        {
-            if (_reverbBlend >= 1f) {
-                return;
-            }
-
-            _reverbBlend = Mathf.Min(1f, _reverbBlend + deltaTime / Mathf.Max(reverbBlendTime, 0.01f));
-
-            // SmoothStep eases in and out of the change.
-            _reverbCurrent = ReverbSettings.Lerp(_reverbFrom, _reverbTarget, Mathf.SmoothStep(0f, 1f, _reverbBlend));
-            _appliedReverbAmount = reverbAmount;
-            _reverbCurrent.ApplyTo(_reverbFilter, reverbAmount);
-        }
-
-        /// <summary>
-        /// Says what the ambience should be now: cue (null = silence) at
-        /// roomVolume times the cue's own. If that isn't what's playing,
-        /// the current one starts fading out and the new one fading in on
-        /// the other source.
-        /// </summary>
-        private void SetAmbience(SoundCue cue, float roomVolume)
-        {
-            if (cue != null && (cue.ClipCount == 0 || cue.GetClip(0) == null)) {
-                cue = null;
-            }
-
-            int active = _ambienceActive;
-            float volume = cue != null ? cue.Volume * roomVolume : 0f;
-
-            // Already playing it (the same room, or the next room shares
-            // the cue): carry on, at this room's volume.
-            if (_ambienceCues[active] == cue) {
-                if (cue != null && !Mathf.Approximately(_ambienceVolumes[active], volume)) {
-                    _ambienceVolumes[active] = volume;
-                    _ambienceFading = true;
-                }
-
-                return;
-            }
-
-            int other = 1 - active;
-            AudioSource source = _ambienceSources[other];
-            _ambienceTargets[active] = 0f;
-            _ambienceActive = other;
-            _ambienceFading = true;
-
-            if (cue == null) {
-                // Into silence: nothing to start.
-                source.Stop();
-                _ambienceCues[other] = null;
-                _ambienceGains[other] = 0f;
-                _ambienceTargets[other] = 0f;
-                return;
-            }
-
-            // Stepping back into the room just left, its ambience is still
-            // fading out on this source: turn the fade round rather than
-            // starting the clip again.
-            if (_ambienceCues[other] != cue || !source.isPlaying) {
-                // An ambience uses its cue's first clip, so the same cue
-                // is always the same sound.
-                source.clip = cue.GetClip(0);
-                source.volume = 0f;
-                source.Play();
-                _ambienceGains[other] = 0f;
-            }
-
-            _ambienceCues[other] = cue;
-            _ambienceVolumes[other] = volume;
-            _ambienceTargets[other] = 1f;
-        }
-
-        /// <summary>
-        /// Moves the two ambience sources' fades on, and stops one that
-        /// has faded out. Does nothing once both have arrived.
-        /// </summary>
-        private void TickAmbience(float deltaTime)
-        {
-            if (!_ambienceFading) {
-                return;
-            }
-
-            float step = deltaTime / Mathf.Max(ambienceFadeTime, 0.01f);
-            bool stillFading = false;
-
-            for (int i = 0; i < _ambienceSources.Length; i++) {
-                if (_ambienceCues[i] == null) {
-                    continue;
-                }
-
-                _ambienceGains[i] = Mathf.MoveTowards(_ambienceGains[i], _ambienceTargets[i], step);
-                _ambienceSources[i].volume = _ambienceVolumes[i] * _ambienceGains[i];
-
-                if (_ambienceGains[i] != _ambienceTargets[i]) {
-                    stillFading = true;
-                } else if (_ambienceTargets[i] <= 0f) {
-                    _ambienceSources[i].Stop();
-                    _ambienceCues[i] = null;
-                }
-            }
-
-            _ambienceFading = stillFading;
-        }
-
-        /// <summary>
-        /// Works out the route again for every loop whose turn it is.
-        /// Each loop keeps its own time for this, so the work is spread
-        /// over frames: a few route look-ups a frame at most, however many
-        /// loops the level has.
-        /// </summary>
-        private void TickLoopChecks(float now, Vector3 ears)
-        {
-            bool roomIsFresh = false;
-
-            for (int i = 0; i < SoundLoop.Count; i++) {
-                SoundLoop loop = SoundLoop.Get(i);
-
-                if (now < loop.NextCheckTime) {
-                    continue;
-                }
-
-                // The route needs the room the ears are in right now, not
-                // as of the last reverb look: once for the frame's loops.
-                if (!roomIsFresh) {
-                    roomIsFresh = true;
-                    _listenerRoom = SoundRoom.Find(ears);
-                }
-
-                CheckLoop(loop, now, ears);
-            }
-        }
-
-        /// <summary>
-        /// Works out whether one loop reaches the player and by what
-        /// route, and gives it a voice if it does and has none.
-        /// </summary>
-        private void CheckLoop(SoundLoop loop, float now, Vector3 ears)
-        {
-            SoundCue cue = loop.Cue;
-            bool audible = false;
-            float interval = loopFarCheckInterval;
-
-            if (cue != null && cue.ClipCount > 0) {
-                Vector3 position = loop.Position;
-                float range = cue.AudibleRange;
-
-                // Cheapest test first, as for a one-off sound: too far in
-                // a straight line is too far by any route. Those loops are
-                // looked at less often.
-                if ((position - ears).sqrMagnitude <= range * range) {
-                    interval = loopCheckInterval;
-
-                    if (SoundPropagation.TryGetPath(position, SoundRoom.Find(position), ears, _listenerRoom, range, out SoundPath path)) {
-                        audible = true;
-                        loop.Path = path;
-
-                        // The same sum the voice's volume comes to: the
-                        // cue's volume, the fade with distance, the muffle.
-                        loop.Loudness = cue.Volume * loop.VolumeScale
-                            * Mathf.Pow(Mathf.Clamp01(1f - path.Distance / range), falloffSharpness)
-                            * Mathf.Lerp(1f, muffledVolume, path.Muffle);
-                    }
-                }
-            }
-
-            loop.IsAudible = audible;
-
-            // A little random each time, so loops enabled together (a
-            // level loading) drift apart rather than all landing on the
-            // same frame for ever.
-            loop.NextCheckTime = now + interval * Random.Range(0.9f, 1.1f);
-
-            if (audible && loop.VoiceIndex < 0) {
-                TryGiveVoice(loop, ears);
-            }
-        }
-
-        /// <summary>
-        /// Finds a loop voice for a loop that has just come into earshot:
-        /// a free one, or failing that the quietest one playing, if this
-        /// loop is clearly louder.
-        /// </summary>
-        private void TryGiveVoice(SoundLoop loop, Vector3 ears)
-        {
-            int chosen = -1;
-            float quietest = float.PositiveInfinity;
-
-            for (int i = 0; i < _loopVoices.Length; i++) {
-                LoopVoice voice = _loopVoices[i];
-
-                if (!voice.InUse) {
-                    chosen = i;
-                    quietest = -1f;
-                    break;
-                }
-
-                // A voice that is fading out counts as silent.
-                float loudness = IsHeard(voice, i) ? voice.Loop.Loudness : 0f;
-
-                if (loudness < quietest) {
-                    quietest = loudness;
-                    chosen = i;
-                }
-            }
-
-            if (chosen < 0 || quietest * StealMargin >= loop.Loudness) {
-                return;
-            }
-
-            LoopVoice target = _loopVoices[chosen];
-
-            if (target.InUse) {
-                ReleaseLoopVoice(target, chosen);
-            }
-
-            SoundCue cue = loop.Cue;
-            AudioClip clip = cue.GetClip(Random.Range(0, cue.ClipCount));
-
-            if (clip == null) {
-                return;
-            }
-
-            SoundPath path = loop.Path;
-            target.Loop = loop;
-            target.InUse = true;
-            target.Offset = HeardOffset(path, loop.Position, ears);
-            target.WasDirect = path.IsDirect;
-            target.SettleTime = 0f;
-            target.Gain = 0f;
-            target.Muffle = path.Muffle;
-            target.BaseVolume = cue.Volume * loop.VolumeScale;
-            target.Range = cue.AudibleRange;
-            target.AppliedVolume = 0f;
-            target.AppliedMuffle = path.Muffle;
-            loop.VoiceIndex = chosen;
-
-            AudioSource source = target.Source;
-            source.transform.position = ears + target.Offset;
-            source.maxDistance = cue.AudibleRange;
-            source.clip = clip;
-            source.pitch = 1f + Random.Range(-cue.PitchVariation, cue.PitchVariation);
-            source.volume = 0f;
-            SetMuffle(target.Filter, path.Muffle);
-
-            if (_builtIn) {
-                target.Spatial.Begin(Quaternion.Inverse(listener.rotation) * target.Offset, target.Range, falloffSharpness);
-            }
-
-            source.Play();
-
-            // Start somewhere at random in the clip, so two torches with
-            // the same clip don't crackle in step.
-            source.timeSamples = Random.Range(0, clip.samples);
-        }
-
-        /// <summary>
-        /// Whether a loop voice's loop is still there, still enabled,
-        /// still this voice's, and still reaching the player.
-        /// </summary>
-        private static bool IsHeard(LoopVoice voice, int index)
-        {
-            SoundLoop loop = voice.Loop;
-            return loop != null && loop.isActiveAndEnabled && loop.VoiceIndex == index && loop.IsAudible;
-        }
-
-        /// <summary>
-        /// Stops a loop voice and frees it for another loop.
-        /// </summary>
-        private static void ReleaseLoopVoice(LoopVoice voice, int index)
-        {
-            voice.Source.Stop();
-            voice.InUse = false;
-
-            if (voice.Loop != null && voice.Loop.VoiceIndex == index) {
-                voice.Loop.VoiceIndex = -1;
-            }
-
-            voice.Loop = null;
-        }
-
-        /// <summary>
-        /// Every frame, for the few loops that have a voice: put the voice
-        /// where the loop is now heard from, and move its fade and muffle
-        /// on. The route itself comes from the loop's last check; this
-        /// only glides between one answer and the next.
-        /// </summary>
-        private void TickLoopVoices(float deltaTime, Vector3 ears)
-        {
-            float easeTime = Mathf.Max(loopEaseTime, 0.01f);
-
-            for (int i = 0; i < _loopVoices.Length; i++) {
-                LoopVoice voice = _loopVoices[i];
-
-                if (!voice.InUse) {
-                    continue;
-                }
-
-                bool heard = IsHeard(voice, i);
-
-                if (heard) {
-                    SoundLoop loop = voice.Loop;
-                    SoundPath path = loop.Path;
-                    Vector3 target = HeardOffset(path, loop.Position, ears);
-
-                    // Changing between "in my room" and "through a
-                    // doorway" moves where it's heard from a long way at
-                    // once: ease for a while afterwards.
-                    if (path.IsDirect != voice.WasDirect) {
-                        voice.WasDirect = path.IsDirect;
-                        voice.SettleTime = easeTime * 4f;
-                    }
-
-                    if (!path.IsDirect || voice.SettleTime > 0f) {
-                        // Through a portal the route's length is a
-                        // fraction of a second old and arrives in steps,
-                        // so always ease. Slerp turns the direction and
-                        // slides the distance separately: a straight line
-                        // from one side of the head to the other would
-                        // pass through it, and be loud on the way.
-                        voice.SettleTime -= deltaTime;
-                        voice.Offset = Vector3.Slerp(voice.Offset, target, 1f - Mathf.Exp(-deltaTime / easeTime));
-                    } else {
-                        // In the same room and settled: exactly where it
-                        // is, with no lag as the player moves.
-                        voice.Offset = target;
-                    }
-
-                    voice.Muffle = Mathf.MoveTowards(voice.Muffle, path.Muffle, deltaTime / easeTime);
-                    voice.BaseVolume = loop.Cue.Volume * loop.VolumeScale;
-                }
-
-                voice.Gain = Mathf.MoveTowards(voice.Gain, heard ? 1f : 0f, deltaTime / Mathf.Max(loopFadeTime, 0.01f));
-
-                if (!heard && voice.Gain <= 0f) {
-                    ReleaseLoopVoice(voice, i);
-                    continue;
-                }
-
-                voice.Source.transform.position = ears + voice.Offset;
-
-                if (_builtIn) {
-                    voice.Spatial.SetTarget(_toHead * voice.Offset, voice.Range, falloffSharpness);
-                }
-
-                float volume = voice.BaseVolume * Mathf.Lerp(1f, muffledVolume, voice.Muffle) * voice.Gain;
-
-                if (volume != voice.AppliedVolume) {
-                    voice.AppliedVolume = volume;
-                    voice.Source.volume = volume;
-                }
-
-                if (voice.Muffle != voice.AppliedMuffle) {
-                    voice.AppliedMuffle = voice.Muffle;
-                    SetMuffle(voice.Filter, voice.Muffle);
-                }
+                _ambience.Set(outsideAmbience, outsideAmbienceVolume);
             }
         }
 
