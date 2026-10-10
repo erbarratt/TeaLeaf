@@ -28,6 +28,9 @@ namespace Core
         public const string ImpactCuePath = CueFolder + "/ImpactPlaceholder.asset";
         public const string SurfaceSoundsPath = CueFolder + "/SurfaceSoundsPlaceholder.asset";
         public const string CreakCuePath = CueFolder + "/CreakPlaceholder.asset";
+        public const string TorchLoopCuePath = CueFolder + "/TorchLoopPlaceholder.asset";
+        public const string OutsideAmbienceCuePath = CueFolder + "/AmbienceOutsidePlaceholder.asset";
+        public const string IndoorAmbienceCuePath = CueFolder + "/AmbienceIndoorPlaceholder.asset";
 
         /// <summary>
         /// Makes any placeholder clips and cues that don't exist yet.
@@ -64,6 +67,19 @@ namespace Core
             }
 
             EnsureCue(CreakCuePath, creaks, 0.6f, 20f, NoiseType.Mechanism, 5f);
+
+            // Loops: a torch's crackle for SoundLoop (heard from where the
+            // torch is, within 12m), and two backgrounds for the rooms'
+            // ambience - wind for outside, a low room tone for indoors.
+            // Noise radius 0: guards never react to them. No pitch
+            // variation: a loop is one long sound, not a repeated one.
+            AudioClip[] torch = { EnsureClip($"{ClipFolder}/TorchLoopPlaceholder.wav", Seamless(Fire(700, 4f + LoopOverlap), LoopOverlap)) };
+            AudioClip[] wind = { EnsureClip($"{ClipFolder}/AmbienceOutsidePlaceholder.wav", Seamless(Wind(800, 9f + LoopOverlap), LoopOverlap)) };
+            AudioClip[] roomTone = { EnsureClip($"{ClipFolder}/AmbienceIndoorPlaceholder.wav", Seamless(RoomTone(900, 6f + LoopOverlap), LoopOverlap)) };
+
+            EnsureCue(TorchLoopCuePath, torch, 0.5f, 12f, NoiseType.Impact, 0f, 0f);
+            EnsureCue(OutsideAmbienceCuePath, wind, 0.3f, 0f, NoiseType.Impact, 0f, 0f);
+            EnsureCue(IndoorAmbienceCuePath, roomTone, 0.25f, 0f, NoiseType.Impact, 0f, 0f);
 
             // The other surfaces: the same recipe with different numbers
             // (see SurfaceStep()), so each can be told apart by ear. The
@@ -264,6 +280,121 @@ namespace Core
             return samples;
         }
 
+        // How much of a loop's end is blended into its start, in seconds.
+        private const float LoopOverlap = 0.5f;
+
+        /// <summary>
+        /// A fire: a low flutter (the flame), a soft hiss, and sharp
+        /// crackles at random moments - each a burst of hiss that dies in a
+        /// few hundredths of a second.
+        /// </summary>
+        private static float[] Fire(int seed, float duration)
+        {
+            float[] samples = new float[(int)(SampleRate * duration)];
+            System.Random random = new(seed);
+            float rumble = 0f;
+            float soft = 0f;
+            float crackle = 0f;
+
+            for (int i = 0; i < samples.Length; i++) {
+                float time = i / (float)SampleRate;
+                float hiss = (float)(random.NextDouble() * 2.0 - 1.0);
+
+                // Two smoothings of the same hiss: a heavy one leaves only
+                // a low rumble, a light one a soft rush.
+                rumble += (hiss - rumble) * 0.02f;
+                soft += (hiss - soft) * 0.25f;
+
+                // The flame's flutter: two slow waves multiplied, so it
+                // swells unevenly.
+                float flutter = 0.65f + 0.35f * Mathf.Sin(2f * Mathf.PI * 7.3f * time) * Mathf.Sin(2f * Mathf.PI * 1.1f * time);
+
+                // About a dozen crackles a second, each a different size.
+                if (random.NextDouble() < 12.0 / SampleRate) {
+                    crackle = 0.4f + (float)random.NextDouble() * 0.6f;
+                }
+
+                crackle *= 0.9985f;
+                samples[i] = rumble * 2.5f * flutter + soft * 0.06f + hiss * crackle * 0.45f;
+            }
+
+            return samples;
+        }
+
+        /// <summary>
+        /// Wind: hiss smoothed twice into a low rush, rising and falling
+        /// in slow gusts that also brighten it as they rise.
+        /// </summary>
+        private static float[] Wind(int seed, float duration)
+        {
+            float[] samples = new float[(int)(SampleRate * duration)];
+            System.Random random = new(seed);
+            float first = 0f;
+            float second = 0f;
+
+            for (int i = 0; i < samples.Length; i++) {
+                float time = i / (float)SampleRate;
+                float hiss = (float)(random.NextDouble() * 2.0 - 1.0);
+
+                // Two gust waves of unrelated lengths, so the pattern
+                // doesn't obviously repeat within the loop.
+                float gust = 0.55f + 0.3f * Mathf.Sin(2f * Mathf.PI * time / 4.5f) + 0.15f * Mathf.Sin(2f * Mathf.PI * time / 1.7f);
+                float openness = 0.015f + 0.03f * gust;
+
+                first += (hiss - first) * openness;
+                second += (first - second) * openness;
+                samples[i] = second * gust * 7f;
+            }
+
+            return samples;
+        }
+
+        /// <summary>
+        /// The sound of an empty room: a very low, steady rumble, barely
+        /// there.
+        /// </summary>
+        private static float[] RoomTone(int seed, float duration)
+        {
+            float[] samples = new float[(int)(SampleRate * duration)];
+            System.Random random = new(seed);
+            float first = 0f;
+            float second = 0f;
+
+            for (int i = 0; i < samples.Length; i++) {
+                float hiss = (float)(random.NextDouble() * 2.0 - 1.0);
+                first += (hiss - first) * 0.01f;
+                second += (first - second) * 0.01f;
+                samples[i] = second * 18f;
+            }
+
+            return samples;
+        }
+
+        /// <summary>
+        /// Makes a sound loop without a click: the last overlap seconds
+        /// are cut off and blended into the first overlap seconds, so the
+        /// loop's end runs straight on into its start. The blend keeps the
+        /// loudness even through it (square-root weights, right for
+        /// noise-like sounds, where a straight blend would dip).
+        /// </summary>
+        private static float[] Seamless(float[] samples, float overlap)
+        {
+            int blend = (int)(SampleRate * overlap);
+            int length = samples.Length - blend;
+            float[] result = new float[length];
+
+            for (int i = 0; i < length; i++) {
+                if (i < blend) {
+                    float t = i / (float)blend;
+                    result[i] = samples[i] * Mathf.Sqrt(t) + samples[length + i] * Mathf.Sqrt(1f - t);
+                } else {
+                    result[i] = samples[i];
+                }
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// Loads the clip at path, writing and importing the .wav first if
         /// it isn't there.
@@ -286,7 +417,7 @@ namespace Core
         /// it either way. Its fields are private and serialized, so they're
         /// set the way the Inspector would set them.
         /// </summary>
-        private static SoundCue EnsureCue(string path, AudioClip[] clips, float volume, float audibleRange, NoiseType noiseType, float noiseRadius)
+        private static SoundCue EnsureCue(string path, AudioClip[] clips, float volume, float audibleRange, NoiseType noiseType, float noiseRadius, float pitchVariation = 0.05f)
         {
             SoundCue cue = AssetDatabase.LoadAssetAtPath<SoundCue>(path);
 
@@ -305,6 +436,7 @@ namespace Core
             }
 
             serialized.FindProperty("volume").floatValue = volume;
+            serialized.FindProperty("pitchVariation").floatValue = pitchVariation;
             serialized.FindProperty("audibleRange").floatValue = audibleRange;
             serialized.FindProperty("noiseType").enumValueIndex = (int)noiseType;
             serialized.FindProperty("noiseRadius").floatValue = noiseRadius;

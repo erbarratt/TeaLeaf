@@ -171,6 +171,25 @@ namespace Core
         }
 
         /// <summary>
+        /// The same, with the room's reverb and (optionally) its ambience
+        /// set rather than left at the defaults.
+        /// </summary>
+        internal static void AddRoom(string name, Transform parent, Vector3 localPosition, Vector3 size, ReverbSettings reverb, SoundCue ambience = null, float ambienceVolume = 1f)
+        {
+            AddRoom(name, parent, localPosition, size);
+
+            SerializedObject serialized = new(parent.Find(name).GetComponent<SoundRoom>());
+            SerializedProperty settings = serialized.FindProperty("reverb");
+            settings.FindPropertyRelative("level").floatValue = reverb.Level;
+            settings.FindPropertyRelative("decayTime").floatValue = reverb.DecayTime;
+            settings.FindPropertyRelative("damping").floatValue = reverb.Damping;
+            settings.FindPropertyRelative("size").floatValue = reverb.Size;
+            serialized.FindProperty("ambience").objectReferenceValue = ambience;
+            serialized.FindProperty("ambienceVolume").floatValue = ambienceVolume;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
         /// Makes a SoundPortal of the given opening size under parent,
         /// turned by yaw degrees about the vertical.
         /// </summary>
@@ -238,6 +257,17 @@ namespace Core
                 } else {
                     Debug.LogWarning("SoundTestArea: no main camera found - assign the Sound Player's Listener by hand.");
                 }
+            }
+
+            // The wind for outside, unless the Sound Player already has an
+            // outside ambience of its own.
+            SoundPlayer soundPlayer = Object.FindAnyObjectByType<SoundPlayer>();
+            SerializedObject ambience = new(soundPlayer);
+            SerializedProperty outside = ambience.FindProperty("outsideAmbience");
+
+            if (outside.objectReferenceValue == null) {
+                outside.objectReferenceValue = AssetDatabase.LoadAssetAtPath<SoundCue>(PlaceholderSounds.OutsideAmbienceCuePath);
+                ambience.ApplyModifiedProperties();
             }
 
             GameObject debug = GameObject.Find("Debug");

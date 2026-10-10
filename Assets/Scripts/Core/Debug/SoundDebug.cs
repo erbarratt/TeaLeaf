@@ -48,7 +48,30 @@ namespace Core
 
             Vector3 ears = player.ListenerPosition;
             _report.Clear();
-            _report.AppendLine($"SOUND REPORT: listener at {ears:0.00}, room {RoomName(SoundRoom.Find(ears))}, {player.PlayingVoiceCount} voices playing, {SoundPortal.Count} portals");
+            SoundRoom listenerRoom = SoundRoom.Find(ears);
+            string plugin = AudioSettings.GetSpatializerPluginName();
+            _report.AppendLine($"SOUND REPORT: listener at {ears:0.00}, room {RoomName(listenerRoom)}, {player.PlayingVoiceCount} voices playing, {SoundPortal.Count} portals");
+            _report.AppendLine($"- spatialiser: {player.Spatialiser} ({(player.IsSpatialised ? "in use" : "not in use: left/right panning only")}), plugin {(string.IsNullOrEmpty(plugin) ? "none" : plugin)}");
+
+            if (listenerRoom != null) {
+                ReverbSettings reverb = listenerRoom.Reverb;
+                _report.AppendLine($"- room reverb: level {reverb.Level:0.00}, decay {reverb.DecayTime:0.00}s, damping {reverb.Damping:0.00}, size {reverb.Size:0.0}m; ambience {(listenerRoom.Ambience != null ? listenerRoom.Ambience.name : "none")}");
+            }
+
+            _report.AppendLine($"- loops: {SoundLoop.Count} enabled, {player.PlayingLoopCount} playing");
+
+            for (int i = 0; i < SoundLoop.Count; i++) {
+                SoundLoop loop = SoundLoop.Get(i);
+                _report.Append($"  - {loop.name}: room {RoomName(SoundRoom.Find(loop.Position))}, ");
+
+                if (!loop.IsAudible) {
+                    _report.AppendLine("not heard");
+                    continue;
+                }
+
+                SoundPath loopPath = loop.Path;
+                _report.AppendLine($"path {loopPath.Distance:0.00}m ({(loopPath.IsDirect ? "direct" : "via portal")}), muffle {loopPath.Muffle:0.00}, loudness {loop.Loudness:0.00}, {(loop.VoiceIndex >= 0 ? $"voice {loop.VoiceIndex}" : "NO VOICE (all busy with louder loops)")}");
+            }
 
             for (int i = 0; i < SoundEmitterDebug.Count; i++) {
                 SoundEmitterDebug emitter = SoundEmitterDebug.Get(i);

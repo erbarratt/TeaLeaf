@@ -206,17 +206,26 @@ namespace Core
             float upperHeight = WallHeight + SlabThickness * 0.5f;
             float upperY = groundHeight + upperHeight * 0.5f;
 
-            SoundTestArea.AddRoom("Sound Room Hall", parent, new Vector3(2f, groundY, 4f), new Vector3(4f, groundHeight, 8f));
-            SoundTestArea.AddRoom("Sound Room Kitchen", parent, new Vector3(6f, groundY, 2f), new Vector3(4f, groundHeight, 4f));
-            SoundTestArea.AddRoom("Sound Room Store", parent, new Vector3(10f, groundY, 2f), new Vector3(4f, groundHeight, 4f));
-            SoundTestArea.AddRoom("Sound Room Lounge", parent, new Vector3(8f, groundY, 6f), new Vector3(8f, groundHeight, 4f));
-            SoundTestArea.AddRoom("Sound Room Landing", parent, new Vector3(2f, upperY, 4f), new Vector3(4f, upperHeight, 8f));
-            SoundTestArea.AddRoom("Sound Room Bedroom", parent, new Vector3(8f, upperY, 4f), new Vector3(8f, upperHeight, 8f));
+            // Each room has its own reverb, chosen to be easy to tell apart
+            // by ear walking from one to the next: the stone Hall rings,
+            // the tiled Kitchen less so, the Store is a small hard box,
+            // the carpeted Lounge is nearly dead. The ground floor shares
+            // an indoor room tone; the upper floor has no roof, so it gets
+            // the outside wind, as does the Yard.
+            SoundCue indoors = AssetDatabase.LoadAssetAtPath<SoundCue>(PlaceholderSounds.IndoorAmbienceCuePath);
+            SoundCue wind = AssetDatabase.LoadAssetAtPath<SoundCue>(PlaceholderSounds.OutsideAmbienceCuePath);
+
+            SoundTestArea.AddRoom("Sound Room Hall", parent, new Vector3(2f, groundY, 4f), new Vector3(4f, groundHeight, 8f), ReverbSettings.StoneHall, indoors);
+            SoundTestArea.AddRoom("Sound Room Kitchen", parent, new Vector3(6f, groundY, 2f), new Vector3(4f, groundHeight, 4f), ReverbSettings.StoneRoom, indoors);
+            SoundTestArea.AddRoom("Sound Room Store", parent, new Vector3(10f, groundY, 2f), new Vector3(4f, groundHeight, 4f), ReverbSettings.Cellar, indoors);
+            SoundTestArea.AddRoom("Sound Room Lounge", parent, new Vector3(8f, groundY, 6f), new Vector3(8f, groundHeight, 4f), ReverbSettings.SmallRoom, indoors);
+            SoundTestArea.AddRoom("Sound Room Landing", parent, new Vector3(2f, upperY, 4f), new Vector3(4f, upperHeight, 8f), ReverbSettings.Alley, wind);
+            SoundTestArea.AddRoom("Sound Room Bedroom", parent, new Vector3(8f, upperY, 4f), new Vector3(8f, upperHeight, 8f), ReverbSettings.Alley, wind);
 
             // Outdoor space only blocks sound if it's a room too: without
             // this the yard would be part of "outside", and everything
             // outside hears everything else outside in a straight line.
-            SoundTestArea.AddRoom("Sound Room Yard", parent, new Vector3(Width * 0.5f, 1.5f, -YardDepth * 0.5f), new Vector3(Width, 3f, YardDepth));
+            SoundTestArea.AddRoom("Sound Room Yard", parent, new Vector3(Width * 0.5f, 1.5f, -YardDepth * 0.5f), new Vector3(Width, 3f, YardDepth), ReverbSettings.Alley, wind, 0.7f);
 
             // Lights, for the visibility test: a torch in the Hall and one
             // in the Kitchen, and a dimmer lamp at the doorway end of the
@@ -225,9 +234,12 @@ namespace Core
             // upper floor wherever the walls don't shadow them, and the
             // ground floor's ceiling keeps it out of the rooms below. The
             // Store is dark: its closed door blocks the Kitchen's torch.
-            AddLight("Light Source Hall Torch", parent, new Vector3(2.5f, 2.2f, 4f), 1f, 6f);
-            AddLight("Light Source Kitchen Torch", parent, new Vector3(6f, 2.2f, 2f), 1f, 5f);
-            AddLight("Light Source Lounge Lamp", parent, new Vector3(5f, 1.2f, 6f), 0.7f, 4f);
+            // The two torches crackle (a SoundLoop each); the lamp is
+            // silent.
+            SoundCue torchLoop = AssetDatabase.LoadAssetAtPath<SoundCue>(PlaceholderSounds.TorchLoopCuePath);
+            AddLight("Light Source Hall Torch", parent, new Vector3(2.5f, 2.2f, 4f), 1f, 6f, torchLoop);
+            AddLight("Light Source Kitchen Torch", parent, new Vector3(6f, 2.2f, 2f), 1f, 5f, torchLoop);
+            AddLight("Light Source Lounge Lamp", parent, new Vector3(5f, 1.2f, 6f), 0.7f, 4f, null);
 
             Vector2 doorSize = new(DoorWidth, DoorHeight);
             float doorY = DoorHeight * 0.5f;
@@ -332,9 +344,10 @@ namespace Core
         /// Makes a LightSource under parent, with a Unity point light of
         /// the same reach so the light can be seen as well as counted. The
         /// source's level and range are private serialized fields, so
-        /// they're set the way the Inspector would set them.
+        /// they're set the way the Inspector would set them. With a loop
+        /// cue it also gets a SoundLoop, so the light can be heard.
         /// </summary>
-        private static void AddLight(string name, Transform parent, Vector3 localPosition, float level, float range)
+        private static void AddLight(string name, Transform parent, Vector3 localPosition, float level, float range, SoundCue loopCue)
         {
             GameObject light = new(name);
             light.transform.SetParent(parent, false);
@@ -351,6 +364,12 @@ namespace Core
             serialized.FindProperty("level").floatValue = level;
             serialized.FindProperty("range").floatValue = range;
             serialized.ApplyModifiedPropertiesWithoutUndo();
+
+            if (loopCue != null) {
+                SerializedObject loop = new(light.AddComponent<SoundLoop>());
+                loop.FindProperty("cue").objectReferenceValue = loopCue;
+                loop.ApplyModifiedPropertiesWithoutUndo();
+            }
         }
 
         /// <summary>

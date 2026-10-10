@@ -37,8 +37,9 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
   `ClimbableEdge`, `Ladder`, `ClimbableRope`) and hand snap poses.
 - **`Assets/Scripts/Core/CLAUDE.md`** — game state and level restart (`GameState`,
   `LevelManager`, `ExitZone`), the screen fade (`ScreenFade`), noise events and sound
-  propagation (`NoiseSystem`, `SoundCue`, `SoundRoom`, `SoundPortal`, `SoundPropagation`, `SoundPlayer`;
-  loops, reverb and a spatialiser planned), Quest foveated rendering (`FoveatedRendering`), surfaces (`SurfaceType`, `SurfaceTag`,
+  propagation (`NoiseSystem`, `SoundCue`, `SoundRoom`, `SoundPortal`, `SoundPropagation`, `SoundPlayer`,
+  `SoundLoop`, `ReverbSettings`, `SpatialVoice`; loops, per-room reverb, room ambience and
+  the project's own spatialiser written 2026-10-10), Quest foveated rendering (`FoveatedRendering`), surfaces (`SurfaceType`, `SurfaceTag`,
   `SurfaceSounds`), gameplay light (`SceneLight`, `Moonlight`, `LightSource`), the procedural
   night sky (`ProceduralSky`, `MoonSurfaceBuilder`), shared debug
   drawing (`DebugLines`, `IDebugDrawable`, `InHeadsetGizmos` - gizmos that also show in the
@@ -368,7 +369,13 @@ fails and restarts. Agreed mechanics:
   through walls, and is heard from the last portal at the distance of the whole path - so a
   guard on the floor above is heard from the stairwell or not at all. Closed doors muffle
   (high end rolled off). Guards' hearing follows the same paths. No ray-cast muffling inside
-  a room; per-room reverb is planned. Detail in `Assets/Scripts/Core/CLAUDE.md`.
+  a room. **Reverb belongs to the room the listener is in, not the sound's** (the
+  maintainer's rule, 2026-10-10): one shared reverb, tuned per `SoundRoom`. Looping sounds
+  (`SoundLoop`) and a per-room ambience follow the same rooms. Direction by ear comes from
+  the project's own simple spatialiser (`SpatialVoice`: time difference between the ears,
+  head shadow, duller from behind; no up/down cue), hand-built like the locomotion - the
+  Meta XR Audio SDK was tried and removed 2026-10-10 (not platform-agnostic), and Steam
+  Audio is the fallback if up/down turns out to matter. Detail in `Assets/Scripts/Core/CLAUDE.md`.
 - **Guard AI:** patrol → suspicion → search → chase → catch (no combat). Knockout state;
   guards react to finding bodies. Placeholder humanoid + Mixamo animations, NavMesh.
   **Voice lines don't repeat** (decided 2026-10-07, not built): guards draw barks and idle

@@ -6,6 +6,82 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-10 (sound: loops, reverb, ambience, our own spatialiser)
+----------------------------------------------------------------
+- Back to the sound system, to finish Phase 2's sound block. All four
+  parts below were heard working by the maintainer.
+- Looping sounds. Core.SoundLoop goes on the object that makes the
+  sound (a torch, a fire) with a cue. SoundPlayer works each loop's
+  route out again on the loop's own timer (0.2s in earshot, 1s beyond,
+  each a little random so they never share a frame for long) and plays
+  the ones that reach the player on a separate pool of 8 voices, so a
+  burst of one-off sounds can't cut a torch off. With more in earshot
+  than voices the loudest win. In the same room a loop is heard exactly
+  where it is; through a portal, and for a moment after changing
+  between the two, where it's heard from glides to the new answer.
+  Disabling the component fades it out. SoundPlayer has an Update() of
+  its own for this (it had none).
+- Reverb, to the maintainer's rule: it belongs to the room the listener
+  is in, not the sound's. Every sound heard while standing in an echoey
+  room gets that room's reverb. Core.ReverbSettings is four numbers
+  (level, decay time, damping, size) on every SoundRoom, with presets
+  on the component's right-click menu, and one on SoundPlayer for
+  outside. One reverb for everything, blended over 0.6s on a change of
+  room. A room tuned in the Inspector while playing is heard at once.
+- Bug: no reverb at all, whatever the settings. The first version was a
+  Unity reverb zone riding on the listener, with each voice sending
+  into it. Loops and ambience worked; the reverb was silent. Meta's
+  spatialiser plugin was in use at the time, and the working theory -
+  not proven - is that a sound passed through a spatialiser plugin
+  never reaches Unity's reverb zones. Fix: an AudioReverbFilter on the
+  object the AudioListener is on, which works on the whole mix after
+  everything else. The price: the ambience gets the reverb too, and
+  there is no per-sound send.
+  - Lesson: the reverb zone's level settings are whole numbers and the
+    reverb filter's are not; the first compile failed on it.
+- Room ambience: a background loop with no position, per SoundRoom,
+  and one on SoundPlayer for outside. Two plain sources crossfade on a
+  change of room; rooms that share a cue carry on without a restart.
+- The spatialiser. The Meta XR Audio SDK went in first, as the usual
+  one for a Quest game, and worked. The maintainer then asked for
+  something platform-agnostic (Meta's is under the Oculus SDK License),
+  and after weighing Steam Audio chose to write a simple one. The Meta
+  package, its registry and the files it generated were removed the
+  same day; no third-party audio package is installed.
+  - Core.SpatialVoice, one per voice, changes the voice's samples on
+    Unity's audio thread: the far ear hears the sound up to 0.7ms late,
+    quieter and duller (the head is in the way), and a sound from
+    behind is a little duller in both. It also does the fade with
+    distance, since the voice's AudioSource is now plain 2D. The
+    direction is kept up every frame as the head turns, which is most
+    of how front and behind are told apart.
+  - No cue for up and down: that takes measured ear data. Accepted -
+    the rooms and portals already keep a guard upstairs from being
+    heard through the floor. Steam Audio is the fallback, through
+    SoundPlayer's Plugin mode.
+  - Core.SpatialiserSettings on SoundPlayer holds its numbers, read
+    every frame so they tune by ear in Play Mode. SpatialiserMode
+    picks Unity's panning, ours (the default) or a plugin.
+- Placeholder sounds: a generated torch crackle, wind and room tone,
+  each made to loop without a click. The Sound Test House builder now
+  gives its torches a SoundLoop, each room a different reverb, and
+  ambience. The L key sound report lists the spatialiser, the room's
+  reverb and every loop.
+- Small things: a bash command containing a long perl script failed on
+  quoting twice; writing the script to a file first worked. Rider's
+  code analysis can check a file for compile errors while Unity is in
+  the background and hasn't recompiled.
+- Not done: the spatialiser's and the reverb presets' numbers are
+  first guesses, untuned; the spatialiser's cost on Quest is
+  unprofiled; real loop and ambience recordings; one call that puts a
+  torch out everywhere (light, flame and loop together) stays with the
+  water bolt in Phase 5.
+- Roadmap: the three sound items in Phase 2 are ticked, with the tuning
+  and profiling left under them.
+- Next: as before - the open inventory decisions, then the tools
+  (Phase 5) or the guards (Phase 6).
+
+
 2026-10-09, third part (the pack, loot, keys, the hand state)
 -------------------------------------------------------------
 - Phase 4 started. Everything below was tested in the headset by the

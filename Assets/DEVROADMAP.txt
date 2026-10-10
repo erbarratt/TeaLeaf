@@ -547,13 +547,36 @@ where it is, on stereo headphones; see Scripts/Core/CLAUDE.md):
 [x] Test areas: TeaLeaf > Build Sound Test Area (three rooms) and Build
     Sound Test House (two storeys, stairwell, closed door, window, walled
     yard, a stand-in guard walking a route). Verified in headset.
-[ ] Looping sounds (torches, ambience): re-check the route a few times a
+[x] Looping sounds (torches, ambience): re-check the route a few times a
     second, with the apparent position and muffle eased.
-[ ] Reverb per room: one shared reverb set from the listener's room, not
-    one per voice. Approach not chosen.
-[ ] Spatialiser plugin for front/back direction (Unity's own audio only
-    pans left/right). Candidate: Meta XR Audio SDK - check Unity 6000.3
-    and PCVR through SteamVR/Virtual Desktop first. Fallback: Steam Audio.
+    Done 2026-10-10: Core.SoundLoop on the object that makes the sound;
+    its own pool of 8 voices in SoundPlayer; routes re-checked every
+    0.2s in earshot, 1s beyond, staggered. Disabling the component
+    fades it out. Also a background per room with no position
+    (SoundRoom's ambience, SoundPlayer's for outside), crossfaded on a
+    change of room. Heard working.
+    [ ] Real loop and ambience recordings (the torch, wind and room
+        tone are generated placeholders).
+[x] Reverb per room: one shared reverb set from the listener's room, not
+    one per voice.
+    Done 2026-10-10: four numbers per SoundRoom (level, decay time,
+    damping, size) with presets on the component's right-click menu;
+    one AudioReverbFilter on the listener's object, blended over 0.6s
+    on a change of room. Heard working. (A reverb zone was tried first
+    and gave no reverb at all - see the devlog.)
+    [ ] Tune the presets by ear; they were chosen on paper.
+[x] Spatialiser for front/back direction (Unity's own audio only pans
+    left/right).
+    Done 2026-10-10, the project's own (Core.SpatialVoice): the time
+    difference between the ears, head shadow, and a duller sound from
+    behind. No cue for up and down. Heard working. The Meta XR Audio
+    SDK was added first, worked, and was removed the same day (not
+    platform-agnostic by licence).
+    [ ] Tune its settings by ear (all first guesses), and match its
+        volume to what sounds were before.
+    [ ] Profile it on Quest (C# on the audio thread) - Phase 10.
+    [ ] If up/down turns out to matter in the level: Steam Audio,
+        through SoundPlayer's Plugin mode.
 [ ] Sound direction indicator (UI) - an idea to experiment with; it can
     read NoiseSystem.Emitted.
 [ ] Real audio: replace the generated placeholder clips in the cues.

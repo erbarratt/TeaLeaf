@@ -4,7 +4,7 @@ Detail for the core systems. The root `CLAUDE.md` holds the project rules, the t
 the physics layers; this file is loaded when working in this folder. Keep it up to date with
 every change to these systems, like the root file.
 
-Planned here (Phase 2): the rest of the sound system (below). The game state/level manager,
+The game state/level manager,
 the screen fade, noise events, sound, surfaces, gameplay light, the procedural night sky and
 the shared debug drawing exist so far.
 
@@ -327,8 +327,10 @@ hears. Both travel the same way - **Thief-style rooms and portals**: straight wi
 room to room only through portals, never through walls. The aim is that a sound always tells
 the player truthfully where it is, on stereo headphones, cheaply enough for Quest (the
 maintainer's complaint about Thief VR: guard sounds had little distance or blocking
-processing). Noise events, the cue asset, rooms, portals, propagation and one-shot audio
-playback exist; loops, reverb and the spatialiser are the remaining design below.
+processing). Noise events, the cue asset, rooms, portals, propagation, one-shot playback,
+loops, per-room reverb, room ambience and the project's own spatialiser all exist; the last four were
+written 2026-10-10: loops and ambience heard working by the maintainer that day, the
+reverb rebuilt once (below) and heard working, the spatialiser heard working too (defaults untuned).
 
 - **`Noise`** (readonly struct) — `Position`, `Radius` (metres it carries), `Type`
   (`NoiseType`), `Source` (the `Transform` that made it, may be null; lets a listener ignore
@@ -448,8 +450,101 @@ playback exist; loops, reverb and the spatialiser are the remaining design below
   filter is disabled unless the sound is muffled** (so same-room and straight-through-a-
   doorway sounds cost no filter; anything round a corner does). A fixed pool of `voiceCount` (16) child
   `AudioSource`s made in `Awake()` (3D, no doppler); when all are busy the oldest is reused.
-  No `Update()`. One-shots only so far: a sound's position and muffle are fixed when it
-  starts. The voice cap is the main Quest cost control (per-voice spatialiser + filter).
+  A one-shot's position and muffle are fixed when it starts. The voice caps (16 one-shot,
+  8 loop) are the main Quest cost control (per-voice spatialiser + filter). Since
+  2026-10-10 it has its own `Update()` (not a `Tick()`: it isn't a player system and has no
+  ordering needs; unscaled time, steps capped at 0.05s) for the loops, reverb and ambience
+  below. `ListenerRoom`, `Spatialiser`, `IsSpatialised`, `PlayingLoopCount`.
+- **`SoundLoop`** (added 2026-10-10, unheard) — a sound that never stops, from one place (a
+  torch, a fire): a `cue` and a `volumeScale`, on the object that makes it. Self-registering
+  static list (`Count`/`Get(i)`); **disabling it fades it out**, so a torch put out goes
+  quiet by itself (`LightSource` and the visible light are still separate components). The
+  cue's noise half is ignored; one clip is picked when it starts to be heard, started at a
+  random point so two torches don't crackle in step. It also holds the `SoundPlayer`'s
+  bookkeeping for it (`NextCheckTime`, `IsAudible`, `Path`, `Loudness`, `VoiceIndex`) so
+  no lookup table is needed. **How `SoundPlayer` runs loops:** each loop's route is worked
+  out again on its own timer - `loopCheckInterval` (0.2s) within straight-line earshot,
+  `loopFarCheckInterval` (1s) beyond it, each interval ±10% at random so loops drift apart
+  and never share a frame for long (`TickLoopChecks()`; the listener's room is looked up
+  once per frame that has a check). A loop that reaches the player takes one of
+  `loopVoiceCount` (8) **loop voices, a separate pool** so one-shots can't cut a torch off;
+  with none free it takes the quietest one's only if it is 1.25 times louder
+  (`StealMargin`, stops two loops swapping). Per frame, only for loops with a voice
+  (`TickLoopVoices()`): the voice is placed at `ears + offset`. In the same room and
+  settled the offset is exact (no lag as the player moves); through a portal, and for
+  `4 x loopEaseTime` after changing between direct and through-a-portal, it is eased
+  towards the target with `Vector3.Slerp` (turns the direction and slides the distance
+  separately - a straight line from one side of the head to the other would pass through
+  it and be loud on the way). Muffle is eased over `loopEaseTime` (0.25s), the fade in/out
+  over `loopFadeTime` (0.4s); volume and filter are only written when changed.
+- **Reverb** (added 2026-10-10, unheard) — **one shared reverb, set by the room the
+  listener is in, not the sound's** (the maintainer's rule: every sound heard while
+  standing in an echoey room gets that room's reverb). **`ReverbSettings`** (serializable
+  struct) is four numbers: `level` (0-2, 1 = as loud as Unity's presets), `decayTime`
+  (seconds), `damping` (0 bright stone - 1 dull carpet: lowers `roomHF` and
+  `decayHFRatio`) and `size` (metres to the walls: sets the two delays and quietens the
+  first echoes). `ApplyTo(AudioReverbFilter, amount)` maps them to Unity's parameters; `Lerp()`,
+  `Matches()`; static presets `None`, `SmallRoom`, `Room`, `StoneRoom`, `StoneHall`,
+  `Cellar`, `Warehouse`, `Alley`, `Outdoors`. Each **`SoundRoom`** has a `reverb` field
+  (default `Room`, which existing rooms in a scene get too) with the presets on the
+  component's right-click menu (**Reverb Preset/...**); outside every room uses
+  `SoundPlayer.outsideReverb` (`Outdoors`). `SoundPlayer` adds one `AudioReverbFilter`
+  (User preset) to the object the `AudioListener` is on, where it works on the whole mix
+  after spatialising; every 0.2s
+  (`listenerCheckInterval`) it finds the listener's room and, if the wanted settings
+  differ from the target (a new room, **or a room tuned in the Inspector while playing**),
+  blends there over `reverbBlendTime` (0.6s, SmoothStep) - the filter is only written during
+  a blend. `reverbAmount` (1, live) multiplies every room's level. **First built as an
+  `AudioReverbZone` riding on the listener, with voices sending by `reverbZoneMix`: no
+  reverb was heard at all, whatever the settings** (maintainer, 2026-10-10). The working
+  theory, not proven: a source passed through a spatialiser plugin (Meta's, in use at the
+  time) doesn't feed Unity's reverb zones. Don't go back to a zone. The price of the listener filter: no per-source
+  send, and the room ambience gets the reverb too. An `AudioMixer` send would give both
+  back but a mixer asset can't be made from code. `reverb` off on the player = no filter
+  added.
+- **Room ambience** (added 2026-10-10, unheard) — a background loop with no position,
+  chosen by the listener's room: `SoundRoom.ambience` (a cue; its **first** clip) and
+  `ambienceVolume`, `SoundPlayer.outsideAmbience`/`outsideAmbienceVolume` for no room.
+  Two plain 2D sources (they do pass through the listener's reverb); a change of room fades one out and the
+  other in over `ambienceFadeTime` (1.5s). Rooms that share a cue carry on without a
+  restart, and stepping back into the room just left turns its fade round rather than
+  restarting the clip. Nothing runs once the fades have arrived. A sound that comes from
+  somewhere is a `SoundLoop`, not this.
+- **Spatialiser** (2026-10-10; the project's own, written that day and heard working by the maintainer, untuned)
+  — `SoundPlayer.spatialiserMode` (`SpatialiserMode`: `UnityPanning`, `BuiltIn` - the
+  default - or `Plugin`; read in `Awake()`). **`SpatialVoice`** is one voice's spatialiser,
+  added to each voice object after its low-pass filter, with the voice's `AudioSource` set
+  to **2D** (`spatialBlend` 0) so Unity adds no panning or distance fade of its own -
+  `SpatialVoice` does both. Three cues, from where the sound is in the head's own axes:
+  the **time difference** between the ears (Woodworth's ball-head formula, up to about
+  0.7ms, a fractional delay line of 256 samples), the **head shadow** (the far ear quieter
+  and with a one-pole low-pass mixed in, the near ear slightly up) and **behind** (a
+  low-pass mixed into both ears, slightly quieter). "To the side" is the direction's x, so
+  a sound above, ahead or behind on the middle plane is centred. **No cue for up and
+  down** - that takes measured ear data (an HRTF); accepted, since the room system already
+  avoids floor-above confusion. Direction fades out within 0.25m of the head. Two threads:
+  `SetTarget(localOffset, range, falloffSharpness)` on the main thread works out per-ear
+  targets (volume including the distance fade - the same `(1 - d/range)^sharpness` curve -
+  delay, shadow mix, rear mix); `OnAudioFilterRead()` on the audio thread slides from the
+  values in use to the targets across each buffer (no clicks) and **must never
+  allocate**. `Begin()` (a new sound on the voice) jumps instead of sliding and clears the
+  delay line and filter memories. `SoundPlayer` calls `SetTarget` every frame for every
+  playing voice (`TickSpatialVoices()` for one-shots, from each one's remembered world
+  position; `TickLoopVoices()` for loops), so the direction follows the head as it turns -
+  most of how front and behind are told apart. **`SpatialiserSettings`** (serializable
+  class, `SoundPlayer.spatialiser`, read every frame so it tunes live): `volume`,
+  `headRadius`, `timeDifference`, `farEarVolume`, `nearEarVolume`, `shadowCutoff`,
+  `shadowAmount`, `rearCutoff`, `rearAmount`, `rearVolume`; `Prepare(sampleRate)` once a
+  frame works out the two filter coefficients. All first guesses. A script on each voice,
+  not a native Unity spatialiser plugin (those are C++ built per platform). The ambience
+  is 2D and not spatialised. **History:** the Meta XR Audio SDK was added first and worked
+  (2026-10-10), then removed the same day at the maintainer's request - it isn't
+  platform-agnostic by licence (Oculus SDK License) - with its scoped registry, its
+  generated `Assets/Resources/MetaXR*.asset` files and the plugin names in
+  `AudioManager.asset`. No third-party audio package is installed. `Plugin` mode stays for
+  trying Steam Audio (open source, every platform, real up/down) if the built-in one
+  isn't enough: it sets `AudioSource.spatialize` (`spatialiseAfterMuffle` =
+  `spatializePostEffects`) and logs once if no plugin is chosen.
 - **`SoundEmitterDebug`** (`Core/Debug`) — plays a cue from its position every `interval`
   seconds (noise off by default). With `surfaceSounds` assigned it's a walker: each play
   is a `SurfaceSounds.PlayStep()` on the floor beneath it, heel and toe included
@@ -471,6 +566,17 @@ playback exist; loops, reverb and the spatialiser are the remaining design below
   sharp hiss) - three clips and a cue each for wood (noise 7m), carpet (2.5m, range 15m), metal
   (10m, range 30m) and water (8m), `FootstepPlaceholder` doubling as stone (6m); and
   `Assets/Data/SurfaceSoundsPlaceholder.asset` (`SurfaceSoundsPath`) listing them all.
+  Added 2026-10-10: three generated loops, each made seamless by `Seamless()` (the last
+  half second blended into the first with square-root weights) - `TorchLoopPlaceholder`
+  (`Fire()`; cue volume 0.5, range 12m), `AmbienceOutsidePlaceholder` (`Wind()`, 0.3) and
+  `AmbienceIndoorPlaceholder` (`RoomTone()`, 0.25), all noise radius 0 and no pitch
+  variation (`TorchLoopCuePath`, `OutsideAmbienceCuePath`, `IndoorAmbienceCuePath`).
+  **The Sound Test House uses them when rebuilt**: a `SoundLoop` on the Hall and Kitchen
+  torches, a different reverb per room (Hall `StoneHall`, Kitchen `StoneRoom`, Store
+  `Cellar`, Lounge `SmallRoom`, upper floor and Yard `Alley`), the indoor tone on the
+  ground floor and the wind upstairs and in the Yard; `SoundTestArea.EnsureSceneObjects()`
+  gives the Sound Player the wind as its outside ambience if it has none.
+  `SoundDebug`'s `L` report also lists the spatialiser, the room's reverb and every loop.
   **Real clips swapped in 2026-10-04** from `Assets/Audio/footsteps/<set>/` (`.ogg`, each
   folder with a `license.txt`): the cues kept their "Placeholder" names (the test builders
   load them by path) but now play `boots` (stone, `FootstepPlaceholder`), `wood`, `metal` and
@@ -484,18 +590,18 @@ playback exist; loops, reverb and the spatialiser are the remaining design below
   Most sets are CC-BY 3.0 (swuing, Eelke, EminYILDIRIM, ceberation, sabotovat, Lee Barkovich
   - credit needed in a release); `bones` and `gravel` are CC0.
 
-**Remaining design (agreed 2026-10-03):**
+**Design notes and what's left:**
 
-- **Looping sounds** (torches, ambience) — not built: re-evaluate the path ~5 Hz, staggered,
-  with the apparent position and muffle eased.
 - **No line-of-sight ray muffling inside a room** (dropped 2026-10-03, maintainer's
   decision): with portals handling walls, a guard in the same room should be heard clearly -
   position and reverb matter more there.
-- **Reverb** — per room, so a sound's space is audible. Approach not chosen yet; keep it to
-  one shared reverb (set from the listener's room), not one per voice.
-- **Spatialiser** — a head-related spatialiser plugin (Unity's built-in audio only pans left/
-  right). Meta XR Audio SDK is the candidate; Unity 6000.3 support and PCVR through
-  SteamVR/Virtual Desktop still to be verified. Steam Audio is the fallback.
+- **To check by ear** (2026-10-10): the loops' easing through doorways, the reverb presets
+  and whether the filter changes without clicks, the ambience fades, and the project's own spatialiser (how
+  well front/behind reads, its volume against the old panning, and its cost on Quest -
+  C# on the audio thread, unprofiled). Steam Audio through `Plugin` mode is the fallback.
+- **Not done:** one call that puts a torch out everywhere (`LightSource`, the Unity light,
+  the flame and the `SoundLoop` together - Phase 5, with the water bolt); real loop and
+  ambience recordings.
 
 ## Game state and level manager (added 2026-10-03)
 
