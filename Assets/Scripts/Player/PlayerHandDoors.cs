@@ -602,8 +602,10 @@ namespace Player
 
             // DeltaAngle gives the short way round, so passing from 179
             // to -179 degrees is a turn of 2, not 358.
-            float limit = door.MaxOpenAngle + SwingOverrun;
-            hand.swingAngle = Mathf.Clamp(hand.swingAngle + Mathf.DeltaAngle(hand.lastBearing, bearing), -limit, limit);
+            hand.swingAngle = Mathf.Clamp(
+                hand.swingAngle + Mathf.DeltaAngle(hand.lastBearing, bearing),
+                door.MinAngle - SwingOverrun,
+                door.MaxAngle + SwingOverrun);
             hand.lastBearing = bearing;
 
             door.SetAngle(hand.swingAngle);

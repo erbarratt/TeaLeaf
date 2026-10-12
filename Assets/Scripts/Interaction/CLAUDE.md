@@ -101,23 +101,41 @@ systems, like the root file.
 
 Three lock kinds (none, simple = pickable, keyed); any unlocked door opens by its handle; the
 handle is ray-targeted and grabbed at the ledge reach, and the hand snaps onto it; turning
-the hand 60° frees the door; it swings either way; let go within a few degrees of closed, it
-shuts again; an open door is moved by the hand visuals and the body touching it; a
+the hand 60° frees the door; it swings either way, or one way only; let go within a few
+degrees of closed, it shuts again; an open door is moved by the hand visuals and the body
+touching it; **a door with no handle is pushed open from shut**; a
 simple-lock door has a keyhole to look through; an optional sliding bolt is worked only from
 its own side whatever the lock. The player's half is `Player.PlayerHandDoors` (see
 `Scripts/Player/CLAUDE.md`).
 
 - **`DoorLock`** (enum) — `None`, `Simple` (can be picked), `Keyed` (its own key only).
   Stored as its number: add values at the end.
-- **`Door`** — on the hinge: the door turns about its local Y, X runs along it to the handle
-  edge, Z is the way through. `[RequireComponent(Rigidbody)]`, made kinematic in `Awake()`.
+- **`DoorSwing`** (enum) — which way a door opens: `BothWays`, `TowardsPlusZ`,
+  `TowardsMinusZ` (the side of the doorway the leaf swings out to, along the door's local
+  Z). Stored as its number: add values at the end.
+- **`Door`** — the door turns about its local Y, X runs along it, Z is the way through.
+  `[RequireComponent(Rigidbody)]`, made kinematic in `Awake()`.
   **The angle is set from code - no hinge joint, no forces**: predictable, cheap, and exact
   under a snapped hand; the Rigidbody is there so physics moves the collider cheaply and the
   door shoves loose props aside.
+  - **The hinge is the object's origin, or `hingeOffset` from it** (along the door's own
+    axes; only X and Z matter) - for a pack model, whose origin is the middle of the leaf:
+    half the leaf's width along X, the sign choosing the hinged edge. So `Door` goes
+    straight on the root of a prefab variant, with the pack's LODs and collider as they
+    are. `HingePosition` is the hinge in the world; everything that used the hinge measures
+    from it, and `MoveTo()` sets position and rotation together so the origin goes round
+    the hinge. The leaf may be on either side of the hinge along X.
+  - **`swing`** (`DoorSwing`) with `maxOpenAngle` (110) gives `MinAngle` / `MaxAngle`,
+    worked out in `Awake()` from which side of the hinge the leaf is (`GetLimits()`): one
+    of them is 0 for a door that opens one way. Every clamp uses them.
+  - **No `DoorHandle` below it = no latch to turn** (`_hasHandle`, found in `Awake()`): a
+    push that would turn the shut door frees it (`Push()` calls `Unlatch()`), unless it is
+    locked or bolted; a push against the way a one-way door opens leaves it shut. It still
+    latches when it swings or shuts itself closed, so its sound portal closes.
   - **Two states, kept apart:** `IsLocked` (only ever true with a lock; `startsLocked`) and
     `IsLatched` (shut and caught; `IsOpen` is its opposite, whatever the angle). `Angle` is
-    degrees from closed (positive towards local -Z), limited to `maxOpenAngle` (110) each
-    way. `IsBolted` is set by a `DoorBolt` through `SetBolted()`; `IsHeldShut` = locked or
+    degrees from closed (positive clockwise seen from above), within `MinAngle` and
+    `MaxAngle`. `IsBolted` is set by a `DoorBolt` through `SetBolted()`; `IsHeldShut` = locked or
     bolted, which is what `Unlatch()` refuses and what the player's handle code reads for
     the short stop and the rattle. `keyId` is the id its key must have.
   - `BeginHold()`/`EndHold()` (`IsHeld`: one hand at a time), `Unlatch(soundPosition)`,
@@ -141,6 +159,7 @@ its own side whatever the lock. The player's half is `Player.PlayerHandDoors` (s
     a hand takes it through.
   - **Pushed** (`IHandPushable.Push(point, displacement)`, from the hand sweep and from
     `Player.PlayerBodyPushing` when the body walks into the leaf): an open, unheld door
+    (or a shut one with no handle)
     turns by the change in bearing between the pressed point and that point moved by the
     push - so nearer the hinge turns it further, and a push along the door does nothing - at
     most `maxPushSpeed` (360°/s), once a frame.
@@ -157,8 +176,11 @@ its own side whatever the lock. The player's half is `Player.PlayerHandDoors` (s
     portal's own `Awake()`), `latchCue` (freeing and catching), `lockedCue`, `creakCue`
     (one-shot every `creakInterval` 25° of travel); all through `SoundPlayer`, so guards
     hear them.
-  - Gizmo (selected / detailed): the swing arc on the floor with the limits and the close
-    angle, red locked, yellow latched, green open.
+  - Gizmo (selected / detailed): the hinge line (as tall as the leaf) and the swing arc on
+    the leaf's side with the limits and the close angle, red locked, yellow latched, green
+    open - what `hingeOffset` and `swing` are set by eye against.
+  - **A door made from a pack prefab**: untick Static on every object of the variant (the
+    pack marks them static, and the door moves) and put them on Interactable.
 - **`DoorHandle`** — `IHandTarget` + `IHandSnapTarget`; a trigger `BoxCollider` on
   Interactable, a child of the door on the spindle, mid-thickness, with the door's axes.
   **One handle serves both sides**: the grab volume goes through the door and out of both

@@ -4,15 +4,20 @@ using UnityEngine;
 namespace Interaction
 {
     /// <summary>
-    /// A hinged door. This object sits on the hinge: the door turns about
-    /// its local Y axis, its local X runs along the door towards the edge
-    /// with the handle, and its local Z is the way through the doorway. The
-    /// door's solid part (the leaf) and its DoorHandle are children.
+    /// A hinged door. The door turns about its local Y axis, its local X
+    /// runs along the door, and its local Z is the way through the
+    /// doorway. The hinge is at this object's origin, or hingeOffset away
+    /// from it - for a model whose origin is somewhere else, such as the
+    /// middle of the leaf. The door's solid part (the leaf) is this object
+    /// or a child, and its DoorHandle, if it has one, is a child.
+    ///
+    /// A door with no DoorHandle has no latch to turn: pushing it, with a
+    /// hand or the body, opens it from shut.
     ///
     /// A door has two separate states. Locked or unlocked: whether the
     /// handle will turn far enough to free it. Latched (closed) or open: a
     /// latched door is shut and can't move at all; an open one swings
-    /// freely, either way, as far as maxOpenAngle.
+    /// freely as far as maxOpenAngle - either way, or one way only (swing).
     ///
     /// The door only knows about itself. It's told what to do: the hand on
     /// its handle (Player.PlayerHandDoors) frees the latch and says what
@@ -54,7 +59,18 @@ namespace Interaction
         // player's body - see IsBlockedAt().
         [SerializeField] private BoxCollider leaf;
 
-        // How far the door opens each way from closed, in degrees.
+        // Where the hinge is, from this object's origin, along its own
+        // axes. Zero = the object is on the hinge. For a door whose origin
+        // is the middle of the leaf, half the leaf's width along X: plus
+        // or minus picks which edge is hinged. Only X and Z matter - the
+        // hinge line runs straight up through this point.
+        [SerializeField] private Vector3 hingeOffset;
+
+        // Which way the door opens: either way, or only out to one side
+        // of the doorway (a door that shuts against a stop in its frame).
+        [SerializeField] private DoorSwing swing;
+
+        // How far the door opens from closed, in degrees.
         [SerializeField] private float maxOpenAngle = 110f;
 
         // Let go of within this many degrees of closed, the door shuts
@@ -126,9 +142,21 @@ namespace Interaction
         // angle is a turn about Y on top of this.
         private Quaternion _closedLocalRotation;
 
-        // The leaf's box, measured once in the door's own frame (position
-        // and rotation, not scale, so the numbers are real metres): where
-        // its middle is, half its size, and which way it's turned.
+        // The hinge, which never moves: where it is relative to the
+        // door's parent, and how far it is from the door's origin along
+        // the door's axes (hingeOffset times the door's scale). Turning
+        // the door about it moves the origin - see MoveTo().
+        private Vector3 _hingeInParent;
+        private Vector3 _scaledHingeOffset;
+
+        // True if the door has a DoorHandle. Without one, a push opens it
+        // from shut - see Push().
+        private bool _hasHandle;
+
+        // The leaf's box, measured once from the hinge along the door's
+        // axes (position and rotation, not scale, so the numbers are real
+        // metres): where its middle is, half its size, and which way it's
+        // turned.
         private Vector3 _leafCentre;
         private Vector3 _leafHalfSize;
         private Quaternion _leafRotation;
@@ -177,16 +205,25 @@ namespace Interaction
         public bool IsHeld { get; private set; }
 
         /// How far open the door is, in degrees: 0 closed, positive
-        /// swinging towards its local -Z, negative towards +Z.
+        /// turned clockwise seen from above, negative anticlockwise.
         public float Angle { get; private set; }
 
-        public float MaxOpenAngle => maxOpenAngle;
+        /// The furthest the door turns each way, in degrees: from
+        /// maxOpenAngle and which way it opens. One of them is 0 for a
+        /// door that only opens one way.
+        public float MinAngle { get; private set; }
+        public float MaxAngle { get; private set; }
+
         public float UnlatchTwist => unlatchTwist;
         public float LockedTwist => lockedTwist;
 
+        /// A point on the hinge line in the world. It stays where it is
+        /// as the door turns.
+        public Vector3 HingePosition => transform.TransformPoint(hingeOffset);
+
         /// The middle of the leaf in the world, right now - where the
         /// door's own sounds come from.
-        public Vector3 LeafCentre => transform.position + transform.rotation * _leafCentre;
+        public Vector3 LeafCentre => HingePosition + transform.rotation * _leafCentre;
 
         /// <summary>
         /// Editor-only: runs when the component is added. Finds the leaf -
@@ -211,12 +248,18 @@ namespace Interaction
         private void Awake()
         {
             _closedLocalRotation = transform.localRotation;
+            _scaledHingeOffset = Vector3.Scale(transform.localScale, hingeOffset);
+            _hingeInParent = transform.localPosition + _closedLocalRotation * _scaledHingeOffset;
             IsLocked = startsLocked && lockType != DoorLock.None;
+            _hasHandle = GetComponentInChildren<DoorHandle>() != null;
 
             // Moved from code, never by physics.
             GetComponent<Rigidbody>().isKinematic = true;
 
             MeasureLeaf();
+            GetLimits(_leafCentre.x, out float minAngle, out float maxAngle);
+            MinAngle = minAngle;
+            MaxAngle = maxAngle;
 
             // Not OnEnable/OnDisable, as other registrations are: this
             // component disables itself whenever the door is at rest.
@@ -250,8 +293,9 @@ namespace Interaction
         }
 
         /// <summary>
-        /// Measures the leaf's box in the door's own frame, so where it
-        /// would be at any angle can be worked out without moving it.
+        /// Measures the leaf's box from the hinge along the door's axes, so
+        /// where it would be at any angle can be worked out without moving
+        /// it.
         /// </summary>
         private void MeasureLeaf()
         {
@@ -266,7 +310,7 @@ namespace Interaction
             Quaternion toDoor = Quaternion.Inverse(transform.rotation);
             Vector3 scale = leafTransform.lossyScale;
 
-            _leafCentre = toDoor * (leafTransform.TransformPoint(leaf.center) - transform.position);
+            _leafCentre = toDoor * (leafTransform.TransformPoint(leaf.center) - HingePosition);
             _leafRotation = toDoor * leafTransform.rotation;
 
             // A box's size is in its own unscaled units; times the scale
@@ -275,6 +319,31 @@ namespace Interaction
                 Mathf.Abs(leaf.size.x * scale.x),
                 Mathf.Abs(leaf.size.y * scale.y),
                 Mathf.Abs(leaf.size.z * scale.z)) * 0.5f;
+        }
+
+        /// <summary>
+        /// The furthest the door turns each way, from maxOpenAngle and
+        /// which way it opens. leafSide is where the leaf's middle is
+        /// along the door's X from the hinge: a positive turn about Y
+        /// takes +X towards -Z, so it swings a leaf on the +X side out
+        /// towards -Z and one on the -X side out towards +Z.
+        /// </summary>
+        private void GetLimits(float leafSide, out float minAngle, out float maxAngle)
+        {
+            minAngle = -maxOpenAngle;
+            maxAngle = maxOpenAngle;
+
+            if (swing == DoorSwing.BothWays) {
+                return;
+            }
+
+            bool positiveIsMinusZ = leafSide >= 0f;
+
+            if ((swing == DoorSwing.TowardsMinusZ) == positiveIsMinusZ) {
+                minAngle = 0f;
+            } else {
+                maxAngle = 0f;
+            }
         }
 
         /// <summary>
@@ -341,7 +410,7 @@ namespace Interaction
                 target = 0f;
             }
 
-            float clamped = Mathf.Clamp(target, -maxOpenAngle, maxOpenAngle);
+            float clamped = Mathf.Clamp(target, MinAngle, MaxAngle);
             bool moved = MoveTo(clamped);
 
             if (reachesClosed && moved) {
@@ -405,12 +474,19 @@ namespace Interaction
         /// handle edge, and a push along the door turns it not at all.
         /// It also takes up the speed it was pushed at, and swings on
         /// from there when the pushing stops. True if the door moved.
+        ///
+        /// A shut door only moves if it has no handle: then a push that
+        /// would turn it frees it, unless it's locked or bolted.
         /// </summary>
         public bool Push(Vector3 point, Vector3 displacement)
         {
             float deltaTime = Time.deltaTime;
 
-            if (IsLatched || IsHeld || deltaTime <= 0f) {
+            if (IsHeld || deltaTime <= 0f) {
+                return false;
+            }
+
+            if (IsLatched && (_hasHandle || IsHeldShut)) {
                 return false;
             }
 
@@ -434,7 +510,19 @@ namespace Interaction
             }
 
             float before = Angle;
-            MoveTo(Mathf.Clamp(Angle + step, -maxOpenAngle, maxOpenAngle));
+            float target = Mathf.Clamp(Angle + step, MinAngle, MaxAngle);
+
+            // A shut door with no handle: freed only by a push that turns
+            // it, so one against the way it opens leaves it shut.
+            if (IsLatched) {
+                if (target == before) {
+                    return false;
+                }
+
+                Unlatch(point);
+            }
+
+            MoveTo(target);
             TrackVelocity(before, deltaTime);
 
             _lastPushFrame = Time.frameCount;
@@ -483,7 +571,7 @@ namespace Interaction
 
         /// <summary>
         /// Turns the door to angle (degrees from closed, kept within
-        /// maxOpenAngle either way), unless it's latched or the player's
+        /// MinAngle and MaxAngle), unless it's latched or the player's
         /// body is in the way.
         /// </summary>
         public void SetAngle(float angle)
@@ -495,7 +583,7 @@ namespace Interaction
             }
 
             float before = Angle;
-            MoveTo(Mathf.Clamp(angle, -maxOpenAngle, maxOpenAngle));
+            MoveTo(Mathf.Clamp(angle, MinAngle, MaxAngle));
             TrackVelocity(before, deltaTime);
         }
 
@@ -546,8 +634,8 @@ namespace Interaction
 
         /// <summary>
         /// Which way round the hinge a world point is, in degrees, measured
-        /// the same way as Angle: a point on the closed door's handle edge
-        /// is at 0, and it grows as the door opens towards local -Z. So a
+        /// the same way as Angle: a point along the closed door's +X from
+        /// the hinge is at 0, and it grows clockwise seen from above. So a
         /// hand moving round the hinge changes its bearing by exactly as
         /// much as the door should turn. False (no bearing) for a point
         /// almost on the hinge line, where a tiny movement would swing the
@@ -557,7 +645,7 @@ namespace Interaction
         {
             // Into the closed door's frame: take away the hinge's position,
             // then undo the closed rotation.
-            Vector3 local = Quaternion.Inverse(ClosedRotation()) * (worldPoint - transform.position);
+            Vector3 local = Quaternion.Inverse(ClosedRotation()) * (worldPoint - HingePosition);
             bearing = 0f;
 
             if (local.x * local.x + local.z * local.z < MinBearingRadius * MinBearingRadius) {
@@ -598,7 +686,13 @@ namespace Interaction
 
             _creakTravel += Mathf.Abs(angle - Angle);
             Angle = angle;
-            transform.localRotation = _closedLocalRotation * Quaternion.AngleAxis(angle, Vector3.up);
+
+            // Turning about the hinge rather than the origin: the origin
+            // goes round the hinge, so it's put back hingeOffset away from
+            // the hinge along the door's new axes. With no offset the
+            // position doesn't change.
+            Quaternion localRotation = _closedLocalRotation * Quaternion.AngleAxis(angle, Vector3.up);
+            transform.SetLocalPositionAndRotation(_hingeInParent - localRotation * _scaledHingeOffset, localRotation);
 
             // Physics normally only learns that a collider has moved at
             // its next step (50 a second), but the hands sweep against the
@@ -627,7 +721,7 @@ namespace Interaction
             }
 
             Quaternion rotation = ClosedRotation() * Quaternion.AngleAxis(angle, Vector3.up);
-            Vector3 centre = transform.position + rotation * _leafCentre;
+            Vector3 centre = HingePosition + rotation * _leafCentre;
 
             return Physics.CheckBox(centre, _leafHalfSize, rotation * _leafRotation, blockingLayers, QueryTriggerInteraction.Ignore);
         }
@@ -686,10 +780,11 @@ namespace Interaction
 
         /// <summary>
         /// In the detailed view (selected, or in the headset with detail
-        /// on), draws the door's swing on the floor: the arc its handle
-        /// edge travels through, a line at each limit and at closed, and a
-        /// line each side at closeAngle - inside those it shuts itself.
-        /// Red while locked, yellow while latched, green while open.
+        /// on), draws the hinge line and the door's swing on the floor: the
+        /// arc its free edge travels through, a line at each limit and at
+        /// closed, and a line each side at closeAngle - inside those it
+        /// shuts itself. Red while locked, yellow while latched, green
+        /// while open.
         /// </summary>
         public void DrawDebug(DebugLines lines, bool detailed)
         {
@@ -701,13 +796,23 @@ namespace Interaction
             // which is closed.
             bool isPlaying = Application.isPlaying;
             Quaternion closed = isPlaying ? ClosedRotation() : transform.rotation;
-            Vector3 hinge = transform.position;
+            Vector3 hinge = HingePosition;
 
-            // How far the handle edge is from the hinge: the far end of the
-            // leaf's box along the door.
+            // How far the free edge is from the hinge: the far end of the
+            // leaf's box along the door. Negative for a leaf on the -X
+            // side of the hinge, so the arc is drawn on the leaf's side.
             Transform leafTransform = leaf.transform;
+            Vector3 leafScale = leafTransform.lossyScale;
             Vector3 leafCentre = Quaternion.Inverse(transform.rotation) * (leafTransform.TransformPoint(leaf.center) - hinge);
-            float reach = Mathf.Abs(leafCentre.x) + Mathf.Abs(leaf.size.x * leafTransform.lossyScale.x) * 0.5f;
+            float reach = Mathf.Abs(leafCentre.x) + Mathf.Abs(leaf.size.x * leafScale.x) * 0.5f;
+
+            if (leafCentre.x < 0f) {
+                reach = -reach;
+            }
+
+            // Worked out here, not read from MinAngle and MaxAngle, which
+            // Awake() sets: in the editor it hasn't run.
+            GetLimits(leafCentre.x, out float minAngle, out float maxAngle);
 
             // In the editor nothing has run yet: go by how it will start.
             bool isLocked = isPlaying ? IsLocked : startsLocked && lockType != DoorLock.None;
@@ -718,25 +823,30 @@ namespace Interaction
                 lines.Color = !isPlaying || IsLatched ? _latchedColor : _openColor;
             }
 
-            Vector3 previous = ArcPoint(hinge, closed, -maxOpenAngle, reach);
+            // The hinge line, as tall as the leaf: for placing hingeOffset.
+            Vector3 up = closed * Vector3.up;
+            float halfHeight = Mathf.Abs(leaf.size.y * leafScale.y) * 0.5f;
+            lines.Line(hinge + up * (leafCentre.y - halfHeight), hinge + up * (leafCentre.y + halfHeight));
+
+            Vector3 previous = ArcPoint(hinge, closed, minAngle, reach);
 
             for (int i = 1; i <= ArcSegments; i++) {
-                float angle = Mathf.Lerp(-maxOpenAngle, maxOpenAngle, i / (float)ArcSegments);
+                float angle = Mathf.Lerp(minAngle, maxAngle, i / (float)ArcSegments);
                 Vector3 point = ArcPoint(hinge, closed, angle, reach);
                 lines.Line(previous, point);
                 previous = point;
             }
 
-            lines.Line(hinge, ArcPoint(hinge, closed, -maxOpenAngle, reach));
-            lines.Line(hinge, ArcPoint(hinge, closed, maxOpenAngle, reach));
+            lines.Line(hinge, ArcPoint(hinge, closed, minAngle, reach));
+            lines.Line(hinge, ArcPoint(hinge, closed, maxAngle, reach));
             lines.Line(hinge, ArcPoint(hinge, closed, 0f, reach));
-            lines.Line(hinge, ArcPoint(hinge, closed, -closeAngle, reach * 0.5f));
-            lines.Line(hinge, ArcPoint(hinge, closed, closeAngle, reach * 0.5f));
+            lines.Line(hinge, ArcPoint(hinge, closed, Mathf.Max(-closeAngle, minAngle), reach * 0.5f));
+            lines.Line(hinge, ArcPoint(hinge, closed, Mathf.Min(closeAngle, maxAngle), reach * 0.5f));
         }
 
         /// <summary>
-        /// Where a point reach metres along the door from the hinge is,
-        /// with the door at angle.
+        /// Where a point reach metres along the door's X from the hinge
+        /// is, with the door at angle.
         /// </summary>
         private static Vector3 ArcPoint(Vector3 hinge, Quaternion closed, float angle, float reach)
         {

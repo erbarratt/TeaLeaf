@@ -161,6 +161,8 @@ Phase 3 - Interaction framework (Interaction namespace)
 [x] Doors: lock kinds, handle, swing, self-closing latch, pushed by
     hands and body, sliding bolt, creak, sound portal.
 [x] Keyhole view and the lock plate.
+[x] Doors on pack prefabs: a hinge offset from the object's origin, a
+    one-way swing, and a door with no handle pushed open from shut.
 [ ] Hold poses for other prop shapes (the test cube and crate are held
     by the middle with the ledge fingers) - as real props need them.
 [ ] Door handle hand pose: Assets/Data/DoorHandle.asset is a copy of
@@ -480,8 +482,11 @@ Design (on paper first):
     areas can be seen. The interior and the docks should rarely be on
     screen together.
 Greybox build:
-[ ] Block out in ProBuilder at true VR scale (door heights 2.1m, ceilings,
-    catwalk rail heights, ledge heights tested at 1.2-2m).
+[ ] Build by hand in the editor from prefab variants of the Astrofish
+    packs (Assets/Prefabs), at true VR scale (door heights 2.1m,
+    ceilings, catwalk rail heights, ledge heights tested at 1.2-2m).
+    Each variant holds what the game adds: Static and the Environment
+    layer, a collider, a SurfaceTag, scripts such as Door or Ladder.
 [ ] Mark everything that never moves Static (nothing in the scene is but
     the smithy and the door test wall, and the other test-area builders
     don't set it), on the Environment layer, with a small number of

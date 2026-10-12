@@ -188,7 +188,10 @@ a single commit at the end, with the session's devlog/roadmap wrap-up, rather th
 change - unless the maintainer asks for a commit sooner. A Unity `.gitignore` excludes
 generated folders, `.csproj`/`.sln`, and `.idea/`. `.meta` files must always be committed with
 their assets. `*.blend` source files (`Blends/`) are ignored because they exceed GitHub's
-100 MB limit — they need Git LFS before they can be tracked.
+100 MB limit — they need Git LFS before they can be tracked. `Assets/ASTROFISH_GAMES` (the
+bought level art packs, 3.9 GB) is ignored too: a fresh clone re-imports the packs from the
+Asset Store, then converts their materials to URP (Window > Rendering > Render Pipeline
+Converter, Material Upgrade) and caps their textures at 2048 again.
 
 All gameplay scripts compile into the default `Assembly-CSharp` assembly — no `.asmdef` files
 exist, so there is only one compilation unit for `Assets/Scripts`.
@@ -543,13 +546,24 @@ fails and restarts. The mechanics:
   of Dishonored**: broad brush dabs, a grimy washed-out palette with cool shadows and warm
   lights, light painted onto edges. **What the player stands on, holds or opens stays
   true** - floors flat, ledges and rails level and straight, ladders straight, door hinges
-  upright: the crookedness is in the silhouette. Architecture is built from code by the
-  editor builders (one mesh per material, textures painted in code and saved as PNGs,
-  which can be replaced by sourced ones); organic models (the guard, hands, hero props)
-  come from outside. The Smithy is the first building in the style
-  (`Assets/Scripts/Interaction/CLAUDE.md`); the other test areas, the props and the guard
-  are still greybox. Out of scope: settings/main menu, save/load, combat, fall damage and
-  health.
+  upright: the crookedness is in the silhouette. **Levels and prefabs are built by hand
+  in the editor from the bought Astrofish Games packs** in `Assets/ASTROFISH_GAMES`:
+  `STYLZ_MVillage` (medieval village: walls, roofs, doors, windows, steps, bridges,
+  fences, foliage, terrain), `DETAILED_MCastle` (castle, cliff rock) and
+  `DETAILED_FantasyMarkets` (market stalls and goods). **Level art is not built from
+  code: don't propose an editor builder for it.** The pack folder is git-ignored and its
+  own prefabs are left untouched; **the game's prefabs live in `Assets/Prefabs`, each a
+  prefab variant of a pack prefab** holding what the game adds - Static and the
+  `Environment` layer, a collider, a `SurfaceTag` where it is walked on or shot at, and
+  scripts such as `Door` or `Ladder` - and levels are built from those variants, never
+  straight from the pack. The packs' materials are URP Lit and their textures are
+  imported at 2048 at most; keep both so. Their demo scenes, skyboxes, lighting
+  settings, post effects and `SimpleCameraController` are not used. Organic models (the
+  guard, hands, hero props) come from outside. The test areas in `Main.unity` are the
+  exception: they are built from code by the TeaLeaf menu's editor builders, the Smithy
+  textured (`Assets/Scripts/Interaction/CLAUDE.md`) and the rest greybox, as are the
+  props and the guard.
+  Out of scope: settings/main menu, save/load, combat, fall damage and health.
 
 ### Planned systems
 
