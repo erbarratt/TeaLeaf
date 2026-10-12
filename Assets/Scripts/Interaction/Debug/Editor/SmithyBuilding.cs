@@ -49,6 +49,16 @@ namespace Interaction
     /// All measurements are metres in the building's own space: X along
     /// the front, Y up, Z out of the front (towards the forge side).
     ///
+    /// Nothing is quite true, in the storybook way: the building is
+    /// written square and upright and then pushed out of true as a whole
+    /// (see Warp()) - each storey leans and turns a different way - the
+    /// roofs sweep in a curve from a steep ridge to flared eaves, the
+    /// studs wander, the braces and posts bow and the chimney staggers.
+    /// What the player stands on or holds stays true: Warp() only slides
+    /// and turns each level, so every floor, rail, sill and ridge is
+    /// still level and straight, and the ledges and ladders are moved by
+    /// the same amounts as the timber they sit on.
+    ///
     /// Built from code so it can be rebuilt identically, and undone with
     /// Ctrl+Z. In an Editor folder, so it never ends up in a build.
     /// </summary>
@@ -88,13 +98,37 @@ namespace Interaction
         private const float WindowHead = 2.1f;
 
         // The roof: where it starts (the top of the upper walls), how
-        // steep it is, how thick its slabs are, and how far it overhangs
-        // the walls below the slope (eaves) and at the gable ends (verge).
+        // steep it is on average, how thick its slabs are, and how far it
+        // overhangs the walls at the gable ends (verge).
         private const float EaveY = FloorTop + UpperHeight;
         private const float RoofPitch = 48f;
         private const float RoofThickness = 0.14f;
-        private const float EaveOverhang = 0.35f;
         private const float VergeOverhang = 0.2f;
+
+        // The roof's sweep. A slope is a curve, not a straight line:
+        // steeper than RoofPitch at the ridge and shallower at the eaves.
+        // RoofBow is how strong the curve is (0 = straight; 0.3 would be
+        // upright at the ridge). EaveReach is how far down the curve the
+        // slab goes, where 1 is the top of the wall - so the part past 1
+        // is the eaves. RoofPieces is how many flat strips the curve is
+        // cut into.
+        private const float RoofBow = 0.12f;
+        private const float EaveReach = 1.14f;
+        private const int RoofPieces = 8;
+
+        // How the building is pushed out of true (see Warp()). At each of
+        // these heights, everything is slid sideways by the lean (metres
+        // along X and Z) and turned about the building's middle by the
+        // twist (degrees); between two heights the amounts blend. The
+        // ground doesn't move, and the floor (StoneTop to FloorTop) moves
+        // in one piece.
+        private static readonly float[] _warpHeights = { 0f, StoneTop, FloorTop, EaveY, EaveY + 3f };
+        private static readonly Vector2[] _warpLean = { new(0f, 0f), new(0.08f, -0.03f), new(0.08f, -0.03f), new(-0.07f, 0.05f), new(0f, 0.12f) };
+        private static readonly float[] _warpTwist = { 0f, 1.2f, 1.2f, -1.2f, -2.5f };
+
+        // The seed for the timber's unevenness: the same seed gives the
+        // same building every time.
+        private const int CrookedSeed = 1907;
 
         // The main roof's ridge runs along X over the middle of the upper
         // floor, front to back.
@@ -139,13 +173,12 @@ namespace Interaction
         private static HandSnapProfile _ladderProfile;
         private static int _climbableLayer;
 
-        // The roof's slope, worked out once from RoofPitch: its sine,
-        // cosine and tangent, and how high the two ridges are.
-        private static float _sin;
-        private static float _cos;
-        private static float _tan;
+        // How high the two ridges are, worked out once from RoofPitch.
         private static float _ridgeY;
         private static float _gableRidgeY;
+
+        // The source of the timber's unevenness - see Jitter().
+        private static System.Random _random;
 
         [MenuItem("TeaLeaf/Build Smithy")]
         private static void Build()
@@ -211,11 +244,12 @@ namespace Interaction
             _planks = new BuildingMesh(SmithyTextures.PlanksTileSize);
             _iron = new BuildingMesh(1f);
 
-            _sin = Mathf.Sin(RoofPitch * Mathf.Deg2Rad);
-            _cos = Mathf.Cos(RoofPitch * Mathf.Deg2Rad);
-            _tan = _sin / _cos;
-            _ridgeY = EaveY + RoofHalfSpan * _tan;
-            _gableRidgeY = EaveY + GableHalfWidth * _tan;
+            float tan = Mathf.Tan(RoofPitch * Mathf.Deg2Rad);
+            _ridgeY = EaveY + RoofHalfSpan * tan;
+            _gableRidgeY = EaveY + GableHalfWidth * tan;
+
+            _random = new System.Random(CrookedSeed);
+            SetWarp(Warp);
 
             BuildGroundFloor();
             BuildForge();
@@ -229,7 +263,7 @@ namespace Interaction
 
             SmithyTextures.EnsureFolder(MeshFolder);
 
-            AddPart(root.transform, "Plaster", _plaster, materials.Plaster, SurfaceType.Stone, environment);
+            AddPart(root.transform, "Plaster", _plaster, materials.Plaster, SurfaceType.Plaster, environment);
             AddPart(root.transform, "Timber", _timber, materials.Timber, SurfaceType.Wood, environment);
             AddPart(root.transform, "Stone", _stone, materials.Stone, SurfaceType.Stone, environment);
             AddPart(root.transform, "Tiles", _tiles, materials.Tiles, SurfaceType.Tile, environment);
@@ -241,6 +275,7 @@ namespace Interaction
             // Nothing is kept between builds.
             _plaster = _timber = _stone = _tiles = _planks = _iron = null;
             _climbables = null;
+            _random = null;
 
             Selection.activeGameObject = root;
         }
@@ -304,6 +339,73 @@ namespace Interaction
         }
 
         /// <summary>
+        /// Switches the warp on (pass Warp) or off (pass null) for
+        /// everything added next, in every material.
+        /// </summary>
+        private static void SetWarp(System.Func<Vector3, Vector3> warp)
+        {
+            _plaster.Warp = warp;
+            _timber.Warp = warp;
+            _stone.Warp = warp;
+            _tiles.Warp = warp;
+            _planks.Warp = warp;
+            _iron.Warp = warp;
+        }
+
+        /// <summary>
+        /// How far the building is slid sideways (lean: x and z, metres)
+        /// and turned about its middle (twist, degrees) at a height:
+        /// blended between the two entries of the warp tables that the
+        /// height lies between.
+        /// </summary>
+        private static void WarpAt(float y, out Vector2 lean, out float twist)
+        {
+            int last = _warpHeights.Length - 1;
+
+            if (y <= _warpHeights[0]) {
+                lean = _warpLean[0];
+                twist = _warpTwist[0];
+                return;
+            }
+
+            for (int i = 0; i < last; i++) {
+                if (y <= _warpHeights[i + 1]) {
+                    float t = Mathf.InverseLerp(_warpHeights[i], _warpHeights[i + 1], y);
+                    lean = Vector2.Lerp(_warpLean[i], _warpLean[i + 1], t);
+                    twist = Mathf.Lerp(_warpTwist[i], _warpTwist[i + 1], t);
+                    return;
+                }
+            }
+
+            lean = _warpLean[last];
+            twist = _warpTwist[last];
+        }
+
+        /// <summary>
+        /// Pushes a point out of true: turned about the building's middle
+        /// and slid sideways by the amounts for its height. Its height is
+        /// never changed, and every point at one height is moved alike -
+        /// so a level surface stays level, flat and the same shape, and
+        /// only what joins one height to another (a wall, a post) leans.
+        /// </summary>
+        private static Vector3 Warp(Vector3 point)
+        {
+            WarpAt(point.y, out Vector2 lean, out float twist);
+
+            Vector3 turned = Quaternion.Euler(0f, twist, 0f) * new Vector3(point.x, 0f, point.z);
+            return new Vector3(turned.x + lean.x, point.y, turned.z + lean.y);
+        }
+
+        /// <summary>
+        /// A random amount between -amount and +amount: how far a timber
+        /// is off where a ruler would put it.
+        /// </summary>
+        private static float Jitter(float amount)
+        {
+            return ((float)_random.NextDouble() * 2f - 1f) * amount;
+        }
+
+        /// <summary>
         /// Shorthand for a point.
         /// </summary>
         private static Vector3 P(float x, float y, float z)
@@ -320,7 +422,9 @@ namespace Interaction
         /// landing inset in from the lip; bothSidesThickness above 0 makes
         /// it grabbable from either side of something that thick. Long
         /// ledges land a mantle straight ahead of the player; short ones
-        /// (a window) at their middle.
+        /// (a window) at their middle. lip and yaw are given as the
+        /// building is written, square and upright: the ledge is warped
+        /// here, as the solid it sits on is.
         /// </summary>
         private static GameObject Ledge(
             string name,
@@ -334,12 +438,13 @@ namespace Interaction
             float bothSidesThickness = 0f)
         {
             float overhang = TestGeometry.TightOverhang;
+            WarpAt(lip.y, out _, out float twist);
 
             return TestGeometry.Edge(
                 name,
                 _climbables,
-                lip,
-                yaw,
+                Warp(lip),
+                yaw + twist,
                 width,
                 isMantleable,
                 endsCrouched,
@@ -547,7 +652,8 @@ namespace Interaction
                     float cornerZ = sideZ > 0 ? UpperFrontZ : UpperBackZ;
                     float z = cornerZ + sideZ * (proud - post * 0.5f);
 
-                    _timber.Beam(P(x, FloorTop, z), P(x, EaveY, z), post, post, Vector3.forward);
+                    // Each bows a little, its own way.
+                    _timber.BentBeam(P(x, FloorTop, z), P(x, EaveY, z), post, post, Vector3.forward, Jitter(0.035f));
                 }
             }
         }
@@ -602,11 +708,12 @@ namespace Interaction
             _timber.Box(P(-half, sillRailTop - railHeight, -0.04f), P(half, sillRailTop, railProud));
             _timber.Box(P(-half, WindowHead, -0.04f), P(half, headRailTop, railProud));
 
-            // Studs: one each side of the window, and the rest spaced
-            // evenly, leaving out any that would land on the window or
-            // its shutters.
-            Stud(windowLeft - 0.07f, plateTop);
-            Stud(windowRight + 0.07f, plateTop);
+            // Studs: one each side of the window (nearly straight, so
+            // the opening keeps its width), and the rest spaced evenly
+            // and wandering, leaving out any that would land on the
+            // window or its shutters.
+            Stud(windowLeft - 0.07f, plateTop, 0.012f);
+            Stud(windowRight + 0.07f, plateTop, 0.012f);
 
             int bays = Mathf.Max(2, Mathf.RoundToInt(width / 1.3f));
 
@@ -614,18 +721,18 @@ namespace Interaction
                 float x = -half + i * width / bays;
 
                 if (x < windowLeft - 0.7f || x > windowRight + 0.7f) {
-                    Stud(x, plateTop);
+                    Stud(x, plateTop, 0.06f);
                 }
             }
 
-            // Diagonal braces in the end bays, below and above the sill
+            // Curved braces in the end bays, below and above the sill
             // rail, mirrored at the two ends.
             for (int side = -1; side <= 1; side += 2) {
                 float corner = side * (half - 0.15f);
                 float inward = side * (half - 0.95f);
 
-                Brace(P(corner, sillRailTop - railHeight, 0f), P(inward, plateTop, 0f));
-                Brace(P(corner, sillRailTop, 0f), P(inward, WindowHead, 0f));
+                Brace(P(corner, sillRailTop - railHeight, 0f), P(inward, plateTop, 0f), side * 0.09f);
+                Brace(P(corner, sillRailTop, 0f), P(inward, WindowHead, 0f), side * 0.09f);
             }
 
             // Ledges. Kept clear of the corners, where the next wall's
@@ -660,21 +767,28 @@ namespace Interaction
         }
 
         /// <summary>
-        /// An upright stud on the wall being built, from the bottom plate
-        /// to the top plate.
+        /// A stud on the wall being built, from the bottom plate to the
+        /// top plate. Not quite upright, straight or the same width as
+        /// the next: its foot and its head are each up to wander metres
+        /// off x, and it bows by about as much.
         /// </summary>
-        private static void Stud(float x, float plateTop)
+        private static void Stud(float x, float plateTop, float wander)
         {
-            _timber.Beam(P(x, plateTop, -0.005f), P(x, UpperHeight - 0.15f, -0.005f), 0.14f, 0.07f, Vector3.forward);
+            Vector3 foot = P(x + Jitter(wander), plateTop, -0.005f);
+            Vector3 head = P(x + Jitter(wander), UpperHeight - 0.15f, -0.005f);
+            float width = 0.14f + Jitter(wander * 0.4f);
+
+            _timber.BentBeam(foot, head, width, 0.07f, Vector3.forward, Jitter(wander * 0.6f));
         }
 
         /// <summary>
-        /// A diagonal brace on the wall being built.
+        /// A curved brace on the wall being built: its middle is bow
+        /// metres off the straight line between its ends.
         /// </summary>
-        private static void Brace(Vector3 from, Vector3 to)
+        private static void Brace(Vector3 from, Vector3 to, float bow)
         {
             Vector3 back = P(0f, 0f, -0.01f);
-            _timber.Beam(from + back, to + back, 0.12f, 0.06f, Vector3.forward);
+            _timber.BentBeam(from + back, to + back, 0.13f, 0.06f, Vector3.forward, bow);
         }
 
         // ---- Gables ----
@@ -699,10 +813,13 @@ namespace Interaction
         }
 
         /// <summary>
-        /// One gable: a triangle of plaster, halfBase each side of its
-        /// middle and rise high, in the same wall coordinates as
-        /// BuildUpperWall(). Framed with a tie beam along its foot, a
-        /// rafter up each slope, a king post up the middle and a level
+        /// One gable: a wall of plaster under a roof's end, halfBase each
+        /// side of its middle and rise high, in the same wall coordinates
+        /// as BuildUpperWall(). Its two sides follow the roof's sweep, so
+        /// it is a pointed arch rather than a triangle - built as a
+        /// stack of level bands, each as wide as the roof is at its
+        /// height. Framed with a tie beam along its foot, a curved
+        /// rafter up each side, a king post up the middle and a level
         /// rail at each of railTops, each rail a ledge. A shuttered attic
         /// window sits just above the tie beam. tieIsLedge also makes
         /// the tie beam a ledge.
@@ -716,19 +833,46 @@ namespace Interaction
             const float tieProud = 0.05f;
             const float railProud = 0.04f;
             const float railHeight = 0.15f;
+            const int bands = 6;
 
-            _plaster.Prism(
-                new[] { P(-halfBase, 0f, 0f), P(halfBase, 0f, 0f), P(0f, rise, 0f) },
-                P(0f, 0f, -UpperThickness),
-                Vector3.right,
-                Vector3.up);
+            // The rafters' middle lines, filled in band by band: a
+            // little inside the plaster's edge, so most of each rafter
+            // lies on the wall and the rest tucks under the roof.
+            Vector3[] leftRafter = new Vector3[bands + 1];
+            Vector3[] rightRafter = new Vector3[bands + 1];
+
+            for (int i = 0; i <= bands; i++) {
+                // 0 at the gable's foot, 1 at its point.
+                float up = i / (float)bands;
+                float halfWidth = RoofRun(halfBase, 1f - up);
+                float rafterX = Mathf.Max(halfWidth - 0.05f, 0f);
+                float rafterY = Mathf.Lerp(0.09f, rise - 0.08f, up);
+
+                leftRafter[i] = P(-rafterX, rafterY, 0.005f);
+                rightRafter[i] = P(rafterX, rafterY, 0.005f);
+
+                if (i == bands) {
+                    break;
+                }
+
+                float nextUp = (i + 1) / (float)bands;
+                float nextHalfWidth = RoofRun(halfBase, 1f - nextUp);
+                float y = rise * up;
+                float nextY = rise * nextUp;
+
+                // The top band comes to a point: three corners, not four.
+                Vector3[] band = i == bands - 1
+                    ? new[] { P(-halfWidth, y, 0f), P(halfWidth, y, 0f), P(0f, nextY, 0f) }
+                    : new[] { P(-halfWidth, y, 0f), P(halfWidth, y, 0f), P(nextHalfWidth, nextY, 0f), P(-nextHalfWidth, nextY, 0f) };
+
+                _plaster.Prism(band, P(0f, 0f, -UpperThickness), Vector3.right, Vector3.up);
+            }
 
             _timber.Box(P(-halfBase, 0f, -0.04f), P(halfBase, tieTop, tieProud));
 
-            // Rafters, a little prouder than everything else, their
-            // upper halves tucked under the roof's edge.
-            _timber.Beam(P(-halfBase, 0.09f, 0.005f), P(0f, rise - 0.08f, 0.005f), 0.16f, 0.11f, Vector3.forward);
-            _timber.Beam(P(halfBase, 0.09f, 0.005f), P(0f, rise - 0.08f, 0.005f), 0.16f, 0.11f, Vector3.forward);
+            // Rafters, a little prouder than everything else.
+            _timber.PolyBeam(leftRafter, 0.16f, 0.11f, Vector3.forward);
+            _timber.PolyBeam(rightRafter, 0.16f, 0.11f, Vector3.forward);
 
             _timber.Beam(P(0f, tieTop, -0.005f), P(0f, rise - 0.3f, -0.005f), 0.14f, 0.07f, Vector3.forward);
 
@@ -737,7 +881,7 @@ namespace Interaction
 
                 // The gable narrows as it rises: half its width at this
                 // height, less a little so the rail's ends stay inside.
-                float halfWidth = halfBase * (1f - top / rise) - 0.06f;
+                float halfWidth = RoofRun(halfBase, 1f - top / rise) - 0.06f;
 
                 _timber.Box(P(-halfWidth, top - railHeight, -0.04f), P(halfWidth, top, railProud));
                 Ledge($"{name} Rail {i + 1}", origin + rotation * P(0f, top, railProud), yaw, halfWidth * 2f - 0.1f, railHeight);
@@ -755,24 +899,105 @@ namespace Interaction
         // ---- Roof ----
 
         /// <summary>
-        /// One slope of a roof: a thin slab lying on the line from the
-        /// ridge down to the eaves. ridgeMiddle is the middle of the
-        /// ridge line (the slab's underside starts there), along is the
-        /// way the ridge runs, down is the way down the slope. The tile
-        /// texture runs along the ridge and down the slope, which is what
-        /// SmithyTextures paints the tiles for.
+        /// How far out from its ridge, level, a swept roof is at a point
+        /// fraction of the way down it (0 = the ridge, 1 = the top of
+        /// the wall, halfSpan out; more than 1 = the eaves). A straight
+        /// roof would be halfSpan x fraction; taking a sine wave's hump
+        /// off that holds the roof in near the ridge (steeper there) and
+        /// lets it out again towards the wall (shallower), and past the
+        /// wall the sine turns negative, which flares the eaves.
         /// </summary>
-        private static void RoofSlab(Vector3 ridgeMiddle, Vector3 along, Vector3 down, float length, float slopeLength, float thickness)
+        private static float RoofRun(float halfSpan, float fraction)
         {
-            // Square to the slope, on its upper side.
-            Vector3 normal = Vector3.Cross(down, along).normalized;
+            return halfSpan * (fraction - RoofBow * Mathf.Sin(Mathf.PI * fraction));
+        }
 
-            if (normal.y < 0f) {
-                normal = -normal;
+        /// <summary>
+        /// A point of a swept roof's cross-section: x is how far out
+        /// from the ridge it is, level, and y how far above the ridge
+        /// (so negative). fraction is how far down the roof (as for
+        /// RoofRun()), and above lifts the point that far off the roof's
+        /// underside, square to the slope there - 0 for the underside,
+        /// the slab's thickness for its top.
+        /// </summary>
+        private static Vector2 RoofSection(float halfSpan, float rise, float fraction, float above)
+        {
+            // How fast the roof goes out as it goes down: RoofRun()'s
+            // slope. The roof's direction here is that far out for rise
+            // down, and the direction square to it swaps the two.
+            float runRate = halfSpan * (1f - RoofBow * Mathf.PI * Mathf.Cos(Mathf.PI * fraction));
+            Vector2 square = new Vector2(rise, runRate).normalized;
+
+            return new Vector2(RoofRun(halfSpan, fraction), -rise * fraction) + square * above;
+        }
+
+        /// <summary>
+        /// One slope of a roof: a thin slab swept in a curve from the
+        /// ridge down to reach (1 = the top of the wall, EaveReach = the
+        /// eaves), in RoofPieces flat strips. ridgeMiddle is the middle
+        /// of the ridge line (the slab's underside starts there), along
+        /// is the way the ridge runs, outward is the level direction
+        /// away from the ridge, halfSpan is how far out the wall is and
+        /// rise how far below the ridge its top is. The tile texture
+        /// runs along the ridge and down the curve - placed by distance
+        /// down the slab's top, so the rows of tiles follow the sweep -
+        /// which is what SmithyTextures paints the tiles for.
+        /// </summary>
+        private static void RoofSlab(Vector3 ridgeMiddle, Vector3 along, Vector3 outward, float length, float halfSpan, float rise, float reach, float thickness)
+        {
+            Vector3[] under = new Vector3[RoofPieces + 1];
+            Vector3[] top = new Vector3[RoofPieces + 1];
+            float[] distance = new float[RoofPieces + 1];
+
+            for (int i = 0; i <= RoofPieces; i++) {
+                float fraction = reach * i / RoofPieces;
+                Vector2 low = RoofSection(halfSpan, rise, fraction, 0f);
+                Vector2 high = RoofSection(halfSpan, rise, fraction, thickness);
+
+                under[i] = ridgeMiddle + outward * low.x + Vector3.up * low.y;
+                top[i] = ridgeMiddle + outward * high.x + Vector3.up * high.y;
+                distance[i] = i == 0 ? 0f : distance[i - 1] + Vector3.Distance(top[i], top[i - 1]);
             }
 
-            Vector3 centre = ridgeMiddle + down * (slopeLength * 0.5f) + normal * (thickness * 0.5f);
-            _tiles.OrientedBox(centre, along, normal, down, P(length, thickness, slopeLength));
+            // The slab's two ends along the ridge, and where they are in
+            // the texture.
+            Vector3 halfAlong = along * (length * 0.5f);
+            float uMiddle = Vector3.Dot(ridgeMiddle, along);
+            float uLow = uMiddle - length * 0.5f;
+            float uHigh = uMiddle + length * 0.5f;
+
+            for (int i = 0; i < RoofPieces; i++) {
+                Vector3 down = (top[i + 1] - top[i]).normalized;
+                Vector3 underDown = (under[i + 1] - under[i]).normalized;
+
+                // Square to this strip, on its upper side.
+                Vector3 normal = Vector3.Cross(down, along).normalized;
+
+                if (normal.y < 0f) {
+                    normal = -normal;
+                }
+
+                _tiles.MappedPolygon(
+                    normal,
+                    along,
+                    down,
+                    new[] { top[i] - halfAlong, top[i] + halfAlong, top[i + 1] + halfAlong, top[i + 1] - halfAlong },
+                    new[] { new Vector2(uLow, distance[i]), new Vector2(uHigh, distance[i]), new Vector2(uHigh, distance[i + 1]), new Vector2(uLow, distance[i + 1]) });
+
+                _tiles.Polygon(-normal, along, underDown, under[i] - halfAlong, under[i] + halfAlong, under[i + 1] + halfAlong, under[i + 1] - halfAlong);
+
+                // The slab's edge at each end of the ridge.
+                _tiles.Polygon(along, down, normal, under[i] + halfAlong, under[i + 1] + halfAlong, top[i + 1] + halfAlong, top[i] + halfAlong);
+                _tiles.Polygon(-along, down, normal, under[i] - halfAlong, under[i + 1] - halfAlong, top[i + 1] - halfAlong, top[i] - halfAlong);
+            }
+
+            // The slab's edge at the ridge, and at its foot.
+            int last = RoofPieces;
+            Vector3 ridgeDown = (top[1] - top[0]).normalized;
+            Vector3 footDown = (top[last] - top[last - 1]).normalized;
+
+            _tiles.Polygon(-ridgeDown, along, (top[0] - under[0]).normalized, under[0] - halfAlong, under[0] + halfAlong, top[0] + halfAlong, top[0] - halfAlong);
+            _tiles.Polygon(footDown, along, (top[last] - under[last]).normalized, under[last] - halfAlong, under[last] + halfAlong, top[last] + halfAlong, top[last] - halfAlong);
         }
 
         /// <summary>
@@ -782,57 +1007,52 @@ namespace Interaction
         /// ledges.
         ///
         /// Where two slopes cross, nothing is cut to fit: each is a plain
-        /// rectangle and the part of one inside the other is simply
+        /// swept slab and the part of one inside the other is simply
         /// hidden. The one exception is the main roof's front slope,
         /// which is in three pieces so that its eaves don't stick out
         /// through the front gable's wall.
         /// </summary>
         private static void BuildRoof()
         {
-            Vector3 downFront = P(0f, -_sin, _cos);
-            Vector3 downBack = P(0f, -_sin, -_cos);
-
-            // A slope's length is its level run divided by the cosine of
-            // its pitch.
-            float fullSlope = (RoofHalfSpan + EaveOverhang) / _cos;
-            float wallSlope = RoofHalfSpan / _cos;
+            float mainRise = _ridgeY - EaveY;
+            float crossRise = _gableRidgeY - EaveY;
 
             float halfX = UpperHalfX + VergeOverhang;
             float gableLeft = GableX - GableHalfWidth;
             float gableRight = GableX + GableHalfWidth;
 
-            RoofSlab(P(0f, _ridgeY, RoofCentreZ), Vector3.right, downBack, halfX * 2f, fullSlope, RoofThickness);
+            RoofSlab(P(0f, _ridgeY, RoofCentreZ), Vector3.right, Vector3.back, halfX * 2f, RoofHalfSpan, mainRise, EaveReach, RoofThickness);
 
             // Front slope: left of the gable, behind the gable (stopping
             // at the wall, no eaves), right of the gable.
-            RoofSlab(P((-halfX + gableLeft) * 0.5f, _ridgeY, RoofCentreZ), Vector3.right, downFront, gableLeft + halfX, fullSlope, RoofThickness);
-            RoofSlab(P(GableX, _ridgeY, RoofCentreZ), Vector3.right, downFront, GableHalfWidth * 2f, wallSlope, RoofThickness);
-            RoofSlab(P((gableRight + halfX) * 0.5f, _ridgeY, RoofCentreZ), Vector3.right, downFront, halfX - gableRight, fullSlope, RoofThickness);
+            RoofSlab(P((-halfX + gableLeft) * 0.5f, _ridgeY, RoofCentreZ), Vector3.right, Vector3.forward, gableLeft + halfX, RoofHalfSpan, mainRise, EaveReach, RoofThickness);
+            RoofSlab(P(GableX, _ridgeY, RoofCentreZ), Vector3.right, Vector3.forward, GableHalfWidth * 2f, RoofHalfSpan, mainRise, 1f, RoofThickness);
+            RoofSlab(P((gableRight + halfX) * 0.5f, _ridgeY, RoofCentreZ), Vector3.right, Vector3.forward, halfX - gableRight, RoofHalfSpan, mainRise, EaveReach, RoofThickness);
 
-            float capBottom = _ridgeY + 0.06f;
+            // The cap starts just under the ridge line, so it closes the
+            // gap between the tops of the two slabs.
+            float capBottom = _ridgeY - 0.01f;
             float capTop = _ridgeY + RidgeCapTop;
             _tiles.Box(P(-halfX, capBottom, RoofCentreZ - RidgeCapHalfWidth), P(halfX, capTop, RoofCentreZ + RidgeCapHalfWidth));
 
             // The cross gable's roof, from its verge in front of the
-            // gable wall back to where its ridge has sunk into the main
-            // slope.
+            // gable wall back to a little past where its ridge meets the
+            // main roof's front slope - which is where that slope is as
+            // high as the cross ridge.
             float crossFront = UpperFrontZ + VergeOverhang;
-            const float crossBack = 0.8f;
+            float crossBack = RoofCentreZ + RoofRun(RoofHalfSpan, 1f - crossRise / mainRise) - 0.25f;
             float crossLength = crossFront - crossBack;
-            float crossSlope = (GableHalfWidth + EaveOverhang) / _cos;
             Vector3 crossRidge = P(GableX, _gableRidgeY, (crossFront + crossBack) * 0.5f);
 
-            RoofSlab(crossRidge, Vector3.forward, P(_cos, -_sin, 0f), crossLength, crossSlope, RoofThickness);
-            RoofSlab(crossRidge, Vector3.forward, P(-_cos, -_sin, 0f), crossLength, crossSlope, RoofThickness);
+            RoofSlab(crossRidge, Vector3.forward, Vector3.right, crossLength, GableHalfWidth, crossRise, EaveReach, RoofThickness);
+            RoofSlab(crossRidge, Vector3.forward, Vector3.left, crossLength, GableHalfWidth, crossRise, EaveReach, RoofThickness);
 
             float crossCapTop = _gableRidgeY + RidgeCapTop;
             _tiles.Box(
-                P(GableX - RidgeCapHalfWidth, _gableRidgeY + 0.06f, crossBack + 0.1f),
+                P(GableX - RidgeCapHalfWidth, _gableRidgeY - 0.01f, crossBack + 0.1f),
                 P(GableX + RidgeCapHalfWidth, crossCapTop, crossFront));
 
-            // The chimney, up through the back slope, with a capstone.
-            _stone.Box(P(1.5f, EaveY, -1.6f), P(2.2f, _ridgeY + 0.7f, -0.9f));
-            _stone.Box(P(1.42f, _ridgeY + 0.7f, -1.68f), P(2.28f, _ridgeY + 0.82f, -0.82f));
+            BuildChimney();
 
             // Ledges. The main ridge: along its length from either side
             // (how the lower ridge leads onto it), and end-on from each
@@ -846,13 +1066,48 @@ namespace Interaction
             Ledge("Front Ridge End", P(GableX, crossCapTop, crossFront), 0f, capWidth, 0.14f, true);
 
             // The eaves, to hang from: the slab's top outer edge, which
-            // is the full slope's length down from the ridge and the
-            // slab's thickness up off it.
-            float eaveY = _ridgeY - _sin * fullSlope + _cos * RoofThickness;
-            float eaveOut = _cos * fullSlope + _sin * RoofThickness;
+            // is the foot of the sweep, the slab's thickness up off it.
+            Vector2 eave = RoofSection(RoofHalfSpan, mainRise, EaveReach, RoofThickness);
+            float eaveY = _ridgeY + eave.y;
+            float eaveOut = eave.x;
 
             Ledge("Front Eaves", P((gableRight + 0.4f + halfX) * 0.5f, eaveY, RoofCentreZ + eaveOut), 0f, halfX - gableRight - 0.6f, RoofThickness);
             Ledge("Back Eaves", P(0f, eaveY, RoofCentreZ - eaveOut), 180f, halfX * 2f - 0.4f, RoofThickness);
+        }
+
+        /// <summary>
+        /// The chimney, up through the back slope: four blocks of stone
+        /// stacked askew - each narrower than the one below, slid a
+        /// little off it and turned a few degrees - then a capstone and
+        /// two clay pots.
+        /// </summary>
+        private static void BuildChimney()
+        {
+            // How far each block is slid along X (and half as far back
+            // along Z), and how far it's turned.
+            float[] slide = { 0f, 0.04f, -0.02f, 0.05f };
+            float[] turn = { 0f, 6f, -5f, 4f };
+
+            Vector3 foot = P(1.85f, EaveY, -1.25f);
+            float height = _ridgeY + 0.7f - EaveY;
+            float blockHeight = height / slide.Length;
+
+            for (int i = 0; i < slide.Length; i++) {
+                float width = 0.72f - i * 0.04f;
+                Quaternion turned = Quaternion.Euler(0f, turn[i], 0f);
+                Vector3 centre = foot + P(slide[i], (i + 0.5f) * blockHeight, -slide[i] * 0.5f);
+
+                _stone.OrientedBox(centre, turned * Vector3.right, Vector3.up, turned * Vector3.forward, P(width, blockHeight, width));
+            }
+
+            Vector3 top = foot + P(0.05f, height, -0.025f);
+            Quaternion capTurn = Quaternion.Euler(0f, 9f, 0f);
+            _stone.OrientedBox(top + Vector3.up * 0.06f, capTurn * Vector3.right, Vector3.up, capTurn * Vector3.forward, P(0.8f, 0.12f, 0.8f));
+
+            for (int side = -1; side <= 1; side += 2) {
+                Vector3 pot = top + P(side * 0.16f, 0.12f, side * 0.05f);
+                _tiles.Cylinder(pot, new[] { 0f, 0.3f + side * 0.04f }, new[] { 0.11f, 0.08f }, 8, true, false);
+            }
         }
 
         /// <summary>
@@ -871,7 +1126,13 @@ namespace Interaction
             float slopeLength = AwningRun / cos;
             float middle = (left + right) * 0.5f;
 
-            RoofSlab(P(middle, AwningWallY, StoneFrontZ), Vector3.right, P(0f, -sin, cos), right - left, slopeLength, AwningThickness);
+            // A plain flat slab (the awning is stood on, so it isn't
+            // swept): lying on the line from the wall down to its front
+            // edge, with the tiles running along the wall and down it.
+            Vector3 down = P(0f, -sin, cos);
+            Vector3 normal = P(0f, cos, sin);
+            Vector3 centre = P(middle, AwningWallY, StoneFrontZ) + down * (slopeLength * 0.5f) + normal * (AwningThickness * 0.5f);
+            _tiles.OrientedBox(centre, Vector3.right, normal, down, P(right - left, AwningThickness, slopeLength));
 
             // The beam under the outer edge: its top just under the slab
             // there (the slab's underside drops by the tangent of the
@@ -932,7 +1193,7 @@ namespace Interaction
             // beside the hatch.
             float height = FloorTop - GroundY;
             Vector3 insideFoot = P(1.85f, GroundY, StoneBackZ + StoneThickness + 0.15f);
-            BuildLadder("Inside Ladder", insideFoot, Quaternion.identity, height, true, P(-0.9f, height, 0.3f));
+            BuildLadder("Inside Ladder", insideFoot, Quaternion.identity, height, true, insideFoot + P(-0.9f, height, 0.3f));
         }
 
         /// <summary>
@@ -940,13 +1201,38 @@ namespace Interaction
         /// Climbable), and its two rails and its rungs in the timber
         /// mesh, well inside the box. The ladder's own Y runs up it, so a
         /// leaning one is just turned. Rungs at exactly the heights the
-        /// Ladder snaps hands to. mantlePoint is in the ladder's own
-        /// coordinates.
+        /// Ladder snaps hands to. landing is where a mantle off its top
+        /// puts the feet.
+        ///
+        /// foot, rotation, length and landing are given as the building
+        /// is written, square and upright. A ladder has to stay straight
+        /// (its grab box and its rungs' heights are), so it isn't warped
+        /// point by point like the rest: its foot and its top are, and a
+        /// straight ladder is built between where the two end up.
         /// </summary>
-        private static void BuildLadder(string name, Vector3 foot, Quaternion rotation, float length, bool isMantleable, Vector3 mantlePoint)
+        private static void BuildLadder(string name, Vector3 foot, Quaternion rotation, float length, bool isMantleable, Vector3 landing)
         {
             const float width = 0.5f;
             const float railInset = 0.03f;
+
+            Vector3 top = foot + rotation * Vector3.up * length;
+            Vector3 warpedTop = Warp(top);
+            WarpAt((foot.y + top.y) * 0.5f, out _, out float twist);
+
+            // The ladder's new directions: up it from foot to top, the
+            // way it faces turned with the building, and then facing
+            // made exactly square to up.
+            Vector3 up = (warpedTop - Warp(foot)).normalized;
+            Vector3 facing = Quaternion.Euler(0f, twist, 0f) * (rotation * Vector3.forward);
+            Vector3 across = Vector3.Cross(up, facing).normalized;
+
+            foot = Warp(foot);
+            rotation = Quaternion.LookRotation(Vector3.Cross(across, up), up);
+            length = Vector3.Distance(foot, warpedTop);
+
+            // The landing, moved the same way, then written in the
+            // ladder's own coordinates, as the Ladder component wants.
+            Vector3 mantlePoint = isMantleable ? Quaternion.Inverse(rotation) * (Warp(landing) - foot) : Vector3.zero;
 
             GameObject ladder = new(name) { layer = _climbableLayer };
             ladder.transform.SetParent(_climbables, false);
@@ -967,6 +1253,9 @@ namespace Interaction
             settings.FindProperty("mantlePoint").vector3Value = mantlePoint;
             settings.ApplyModifiedPropertiesWithoutUndo();
 
+            // Already placed where the warp puts it, so the warp is off
+            // while its timber is added.
+            SetWarp(null);
             SetMatrix(Matrix4x4.TRS(foot, rotation, Vector3.one));
 
             float railX = width * 0.5f - railInset;
@@ -983,6 +1272,7 @@ namespace Interaction
             }
 
             SetMatrix(Matrix4x4.identity);
+            SetWarp(Warp);
         }
 
         // ---- Props ----

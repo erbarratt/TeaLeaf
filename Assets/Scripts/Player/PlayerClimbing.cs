@@ -463,6 +463,22 @@ namespace Player
         }
 
         /// <summary>
+        /// Makes any hand gripping this climbable let go, as if it had
+        /// been pulled off - for a climbable that gives way (a rope
+        /// bolt's rope coming loose).
+        /// </summary>
+        public void Release(IClimbable climbable)
+        {
+            if (ReferenceEquals(_leftGrabbed, climbable)) {
+                ForceRelease(Hand.Left);
+            }
+
+            if (ReferenceEquals(_rightGrabbed, climbable)) {
+                ForceRelease(Hand.Right);
+            }
+        }
+
+        /// <summary>
         /// Makes one hand let go, whatever its grip is doing: its visual
         /// starts blending back to the controller, and it can't grab again
         /// until its grip has been released (see _leftNeedsRegrip) - or it

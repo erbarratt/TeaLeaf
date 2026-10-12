@@ -205,21 +205,21 @@ the template's keyboard and gamepad bindings.
 
 ## What each hand is busy with
 
-**A hand does one thing at a time**, and nine systems can have a hand: climbing, carrying,
+**A hand does one thing at a time**, and eight systems can have a hand: climbing, carrying,
 doors (handles, bolts and chest lids), the lockpicks, the keys, holding the pack, the
-crossbow (active on its hand, or the other hand on its wheel), the blackjack and the
-compass.
+crossbow (active on its hand, or the other hand on its wheel) and the blackjack. The
+compass is only worn: it never has a hand.
 
 - **`PlayerHandState`** (on `Hands`) — the one place that knows what each hand is busy
   with. **It keeps no state**: each system owns what its hands are doing and says so
   through its own flags (`PlayerClimbing.IsLeftHandGripping`,
   `PlayerHandHolding.IsLeftHolding`, `PlayerHandDoors.IsLeftOnDoor`,
   `PlayerLockpicking.IsLeftBusy`, `PlayerKeys.IsLeftBusy`, `PlayerPack.IsLeftBusy`,
-  `PlayerCrossbow.IsLeftBusy`, `PlayerBlackjack.IsLeftBusy`, `PlayerCompass.IsLeftBusy`,
+  `PlayerCrossbow.IsLeftBusy`, `PlayerBlackjack.IsLeftBusy`,
   and the right-hand ones); this
   class reads them when asked, so an answer is as fresh as the systems that have ticked so
   far this frame. `HandUse` (enum: `None`, `Climbing`, `Carrying`, `Door`, `Lockpicks`,
-  `Keys`, `Pack`, `Crossbow`, `Blackjack`, `Compass`); `GetUse(isLeftHand)` / `LeftUse` / `RightUse`; **`IsBusyExcept(isLeftHand,
+  `Keys`, `Pack`, `Crossbow`, `Blackjack`); `GetUse(isLeftHand)` / `LeftUse` / `RightUse`; **`IsBusyExcept(isLeftHand,
   asker)`** - whether any system *other than the asker* has the hand, which is what every
   hand system asks before taking one. Every system it reads is optional, found in `Awake()`.
   Each hand system gets it through `PlayerHandState.GetOrAdd(playerHandVisuals)` in its own
@@ -480,7 +480,7 @@ compass.
   - `IsLeftBusy`/`IsRightBusy` (true through a needed regrip, and while the taker
     carries the picks) are what `PlayerHandState` reports as `HandUse.Lockpicks`.
 
-## The crossbow (not yet tried in the headset beyond its first version)
+## The crossbow
 
 - **`PlayerCrossbow`** (on `Hands`; optional - `PlayerController` finds it in `Awake()` and
   works without it) — the hand crossbow, always worn on the back of one hand: the right
@@ -520,7 +520,8 @@ compass.
     `Inventory.PlayerInventory.TryUseBolt()`; with none left the pull gives only a faint
     tap (`emptyAmplitude`) and nothing is shot. **A scene with no `PlayerInventory` has
     unlimited bolts.** The starting counts are the inventory's `waterBolts`,
-    `noisemakerBolts` and `ropeBolts` fields (0 by default: set them in the Inspector).
+    `noisemakerBolts`, `ropeBolts`, `stunBolts` and `sleepBolts` fields (0 by default:
+    set them in the Inspector).
   - **The wheel** (choosing the kind; `SelectedBolt`): `TickWheel()` (tick step 3b) - **taken
     the way a door handle is**: the wheel has a trigger ball round it (`Wheel Grab`:
     `wheelGrabRadius` 0.06m, Interactable layer, kinematic Rigidbody, a child of the
@@ -537,38 +538,94 @@ compass.
     is a twist about the wheel's axis (the crossbow's forward in the world; twice the
     arctangent of the quaternion's share along the axis over w), is added up. The snapped
     hand is shown turned by the total since it took hold, and each `wheelStepAngle` (40°)
-    steps to the next kind (or back, the other way; it wraps), with a click on that
-    controller, the wheel turned a third of a turn and the loaded bolt's mesh swapped.
+    steps to the next kind (or back, the other way; it wraps; five kinds, `BoltKinds`),
+    with a click on that controller, the wheel turned a fifth of a turn and the loaded
+    bolt's mesh swapped.
     The snap pose is moved onto the wheel every frame, **after** the hand visuals are
     placed (the wheel rides the crossbow hand's visual, placed in the same call), so the
     snapped hand is one frame behind the wheel when the crossbow hand moves.
-  - **Bolts:** a pool of `boltCount` (8) made at load under a `Crossbow Bolts` object at
-    the scene root; the oldest is reused. One mesh per kind (`BuildBoltMeshes()`: a thin
-    shaft, with a fat tip in `waterColor` or `noisemakerColor`, or rope-coloured winding
-    round the back half for the rope bolt), put on a pooled bolt as it is shot. **Not
-    physics objects**: each is moved along `BallisticArc.Point()` from where and how fast
-    it left, so it lands where the arc showed, with one `Physics.Linecast` a frame along
-    its move in case something has come into its way - reaching `LandingProbe` (5cm) past
-    the landing point on the last frame, so the collider it landed on is always found. It
-    stops where it lands and is put away after `boltLifetime` (30s); one that lands on
-    nothing is put away at the end of its flight. Bolts tick on every path through
-    `Update()`.
-  - **What each kind does where it lands** (`Land()`): **water** -
-    `Core.Flame.ExtinguishNear(point, waterRadius)` (0.6m); **noisemaker** - sounds at
-    once and then every `noiseInterval` (1.5s) for `noiseDuration` (12s) (`MakeNoise()`:
-    `noiseCue` through `SoundPlayer` if set, otherwise a bare
+  - **Bolts:** a pool of `BoltPoolSize` (16: the player carries at most three of each of
+    the five kinds, so they can never all be out) made at load under a `Crossbow Bolts`
+    object at the scene root. One mesh per kind (`BuildBoltMeshes()`: a thin
+    shaft, with a fat tip in `waterColor`, `noisemakerColor` or `stunColor` (black), or
+    rope-coloured winding round the back half for the rope bolt; the sleep dart is half
+    as long, with crossed flights in `sleepColor` (green) at its back), put on a pooled
+    bolt as it is shot. Each bolt is in one `BoltState`: `Away`, `Flying`, `Tumbling`,
+    `Resting`. `TakeBoltSlot()` picks the next to shoot: one that is away and not
+    sounding, else one at rest that can't be picked up, else the next in turn.
+    **In flight a bolt is not a physics object**: it is moved along
+    `BallisticArc.Point()` from where and how fast it left, so it lands where the arc
+    showed, with one `Physics.Linecast` a frame along its move in case something has come
+    into its way - reaching `LandingProbe` (5cm) past the landing point on the last
+    frame, so the collider it landed on is always found. One that lands on nothing is
+    put away at the end of its flight. Bolts tick on every path through `Update()`.
+  - **Where a bolt lands** (`Land()`). A guard first
+    (`HitGuard()`, below). Then **water** and **noisemaker** bolts are **used up
+    whatever they hit**, their effect set off, and put away: water -
+    `Core.Flame.ExtinguishNear(point, waterRadius)` (0.6m); noisemaker - sounds at once
+    and then every `noiseInterval` (1.5s) for `noiseDuration` (12s) from where it landed
+    (`MakeNoise()`: `noiseCue` through `SoundPlayer` if set, otherwise a bare
     `NoiseSystem.Emit(..., noiseRadius 12m, NoiseType.Distraction, ...)` guards hear and
-    the player doesn't); **rope** - only if the collider's `SurfaceTag.Of()` is `Wood`:
-    `HangRope()` takes the next of `ropeCount` (2) pooled `Interaction.ClimbableRope`s
-    (made at load on the Climbable layer under `Crossbow Bolts`, each with a thin box to
-    be seen; the oldest is reused), puts its top at the bolt and sets its length to the
-    ground below (one ray down on `ropeGroundLayers`, Environment) or `ropeMaxLength`
-    (8m). A rope bolt that lands on anything else is lost. `ropeProfile` is the ropes'
-    hand snap profile (empty = the rope's own fallback pose).
-  - **Not built:** bolt pickups in the level, any showing of how many bolts are left,
-    real sounds, and a bolt's effect on a guard.
+    the player doesn't). **Stun, sleep and rope bolts stick or bounce**: a bolt sticks
+    only into static level geometry (a collider with no Rigidbody - not a door or a prop,
+    which would leave it hanging in the air) whose `Core.SurfaceTag` is a kind that
+    holds one (`SurfaceTag.HoldsBolt()`: Wood, Carpet, Grass, Plaster; untagged is Stone,
+    so **nothing holds a bolt unless it is tagged**) - then `Rest()`. Everything else,
+    a guard included, it bounces off (`Rebound()`).
+  - **Bouncing off - the one time a bolt is physics** (`Tumble()`, **`CrossbowBolt`**, a
+    component on each pooled bolt): the bolt is pulled back its own half length so its
+    point is clear of the surface, then `BeginTumble()` makes its Rigidbody non-kinematic
+    with gravity, continuous collision detection (asked for after it stops being
+    kinematic) and its solid `BoxCollider` on (the **Projectile** layer; a no-bounce,
+    high-friction `PhysicsMaterial`), moving at `reboundSpeed` (0.8 m/s) **level,
+    straight back the way it came**, turning end over end at `reboundSpin` (3 rad/s).
+    `Interpolate` while tumbling (physics steps at 50Hz; `None` again at rest).
+    Its first touch **on an upward-facing surface** (`CheckLanded()`, from
+    `OnCollisionEnter` and `OnCollisionStay`: contact normal y at least 0.5) raises its
+    damping to `landedDamping` (6) and `landedAngularDamping` (8), so it stops where it
+    comes down. **Never damp on any first touch**: the bolt starts its tumble touching
+    what it bounced off, and damped from then it sinks slowly without turning. `TickBolts()` waits for
+    `HasSettled` (touched something and nearly still, or asleep) or `TumbleTimeout` (5s),
+    then `Rest()`: `EndTumble()` makes it kinematic again with the solid collider off -
+    **a bolt at rest touches nothing**.
+  - **At rest and picking up:** a **stun bolt always, and a sleep dart that hit no
+    guard, can be picked up** (`CanBePickedUp()`); at rest they stay for good, with the
+    trigger ball on their `Bolt Grab` child on (`pickupRadius` 0.08m, Interactable
+    layer; `CrossbowBolt` is the `IHandTarget`, `HasLongReach`). `TickPickup()` (in
+    `TickWheel()`, tick step 3b, either hand): on the frame grip is pressed on a free
+    hand whose ray is on a bolt at rest, `PlayerInventory.TryAddBolt()` and the bolt is
+    put away - **never carried**. With the most of that kind already carried it stays,
+    with a faint tap. A rope bolt at rest with no rope on it is put away after
+    `boltLifetime` (30s).
+  - **Rope bolts** stick like the others and are never picked up. Stuck, `HangRope()`
+    takes the next of `RopePoolSize` (3) pooled `Interaction.ClimbableRope`s (made at
+    load on the Climbable layer under `Crossbow Bolts`, each with a thin box to be seen;
+    the oldest is reused, taking its old bolt with it), puts its top at the bolt and
+    sets its length to the ground below (one ray down on `ropeGroundLayers`,
+    Environment) or `ropeMaxLength` (8m); with less than `MinRopeLength` (0.5m) of drop
+    no rope is hung. **Whether it bears weight is the surface's `SurfaceTag`
+    `supportsRopeBolt` toggle** (off by default). On, it is climbed as usual. Off, it
+    looks the same, and `TickRopes()` (in `TickHeld()`) brings it down the moment
+    `PlayerClimbing.LeftGrabbed`/`RightGrabbed` is that rope (`DropRope()`):
+    `PlayerClimbing.Release(rope)`, its grab volume off, its bolt tumbling out, and the
+    rope's top falling under gravity as the visible rope shortens to nothing, then put
+    away. `ropeProfile` is the ropes' hand snap profile: `Assets/Data/RopeGrip.asset`,
+    the one every placed rope uses, so a hand sits on a bolt's rope as on any other
+    (empty = the bare grip frame, turned differently).
+  - **A bolt that hits a guard** (`HitGuard()`; `AI.Guard.FindByBody()` on the collider -
+    bolts' rays see the Guard layer, the body capsule, not GuardHead): a **sleep** dart
+    anywhere calls `Guard.Sedate(sleepDelay)` (10s) and is gone - it stays in the
+    guard; a **stun** bolt whose line runs on through the head (`Guard.IsHeadOnLine()`,
+    from `LandingProbe` short of the hit, `HeadProbe` 0.7m on) calls
+    `Guard.Stun(stunTime)` (10s); **every other hit** - any other kind, or a stun bolt
+    to the body - calls `Guard.HitByBolt()` with where the bolt was shot from. The bolt
+    then goes on as it would off any hard surface: water and noisemakers are used up
+    there, stun and rope bolts bounce off. What the guard does is in
+    `Scripts/AI/CLAUDE.md`. **No bolt kills.**
+  - **Not built:** bolt pickups placed in the level, any showing of how many bolts are
+    left, and real sounds.
 
-## The blackjack (not yet tried in the headset)
+## The blackjack
 
 - **`PlayerBlackjack`** (on `Hands`; optional) — drawing the blackjack, putting it
   away, and hitting a guard with it. `Tick()` (tick step 3b, before the grab
@@ -595,21 +652,22 @@ compass.
   `IsLeftBusy`/`IsRightBusy` are `HandUse.Blackjack`. `IDebugDrawable`: the chest box in
   the detailed view (yellow, green while drawn).
 
-## The compass (not yet tried in the headset)
+## The compass
 
 - **`PlayerCompass`** (on `Hands`; optional) — the player's readout: north, how visible
   they are, and where the sounds they have just heard came from.
-  - **Bringing it out** (`Tick()`, tick step 4a, after the crossbow): on the frame grip
-    is pressed on a hand that is free (`IsBusyExcept(..., HandUse.Compass)`), whose ray
-    target is null (a grab always wins) and whose palm is within `palmUpAngle` (50°) of
-    straight up. Either hand, one at a time. **It stays while that grip is held**;
-    `TickHeld()` (tick step 8a, every path) puts it away when the grip is let go.
-    `IsLeftBusy`/`IsRightBusy` are `HandUse.Compass`.
+  - **Always worn, on the back of the wrist of the hand the lockpicks are on** (the left
+    for a right-handed player; `PlayerInputXR.IsLeftHanded`, read in `Awake()`), a little
+    further up the arm than the picks. It takes no input, is never put away and never
+    makes its hand busy: it is not a `HandUse`, and `PlayerHandState` doesn't know it.
+    One `Tick()` (tick step 8a, every path) places it. The object is switched off only
+    while the component is disabled.
   - **Placed, not parented:** the `Compass` object is a child of `Hands`, put each frame
-    at `inHandPosition` ((0.07, -0.09, 0), over the palm) in the hand visual's space.
-    Never a child of a hand visual: under the mirrored right one it would be drawn
-    mirrored, east and west swapped. Its own axes: Z into the palm, Y up its face, X to
-    the right as it is looked at.
+    at `onWristPosition` ((-0.03, 0.06, 0): the back of the hand is -X, and the picks'
+    handles end at about y 0; untuned) in the hand visual's space, its face out of the
+    back of the wrist. Never a child of a hand visual: under the mirrored right one it
+    would be drawn mirrored, east and west swapped. Its own axes: Z into the wrist, Y up
+    its face, X to the right as it is looked at.
   - **The model** (`BuildCompass()`, `LockMeshBuilder` cylinders, `TeaLeaf/LockFade`, no
     colliders): the **rim** (`radius` 0.05, `thickness` 0.01), fixed to the hand; the
     **dial** on top of it (`dialSize` 0.88 of the rim) with a triangular prism near its
@@ -622,8 +680,7 @@ compass.
     by `PlayerVisibility.Visibility` - written only when the value has moved by 0.02.
   - **Sound arrows:** `arrowCount` (4) pooled triangular prisms outside the rim, each with
     a see-through material of its own. `OnSoundHeard()` is subscribed to
-    `Core.SoundPlayer.Heard` (in `Start()`), so sounds are noted whether or not the
-    compass is out. **Only footsteps and voices that aren't the player's get an arrow**
+    `Core.SoundPlayer.Heard` (in `Start()`). **Only footsteps and voices that aren't the player's get an arrow**
     (the cue's `NoiseType` is `Footstep` or `Voice`, and the source isn't under the Player
     root): everything else - doors, impacts, bolts, locks - is ignored, as is a sound
     quieter than `minLoudness` (0.02). **The arrow points where the sound is heard from**:
@@ -631,16 +688,16 @@ compass.
     (1.5m) of a showing arrow's point renews that arrow (a guard's footsteps are one
     arrow); otherwise it takes a free arrow, or the faintest one's place if it is louder
     - so the arrows are the loudest few. An arrow holds for `arrowHoldTime` (0.5s) and
-    fades over `arrowFadeTime` (2s) (`_Alpha`). Each frame the compass is out
-    (`TickArrows()`), an arrow is put `arrowGap` beyond the rim towards its sound - the
+    fades over `arrowFadeTime` (2s) (`_Alpha`). Each frame (`TickArrows()`), an arrow is put `arrowGap` beyond the rim towards its sound - the
     level direction to the heard-from point (the sound itself, or the portal it came
     through), laid flat onto the face - pointing outwards, sized between `arrowMinSize`
     and `arrowMaxSize` by loudness. The points are in the world, so the arrows go round
     the compass as the player turns. Loops and ambience raise no arrows.
-  - A held object like the pack, depth-tested, not an overlay marker.
+  - A worn object like the lockpicks, depth-tested, not an overlay marker.
 - **`PlayerHandTools`** (`Debug/Editor`, menu **TeaLeaf > Add Hand Tools To Player**) —
   adds `PlayerCrossbow`, `PlayerBlackjack` and `PlayerCompass` to the `Hands` object, each
-  only if missing.
+  only if missing, and sets the crossbow's `ropeProfile` to `RopeGrip.asset` if it is
+  empty.
 
 ## Opening doors
 
@@ -676,7 +733,7 @@ compass.
     the door, from where it was - with the unlatch haptic as it reaches an end; the snap
     pose follows the knob; the same `breakDistance`. Letting go (`LetGoOfBolt()`) lets the
     bolt settle.
-  - **Chest lids** (not yet tried in the headset): a free hand holding grip with its ray
+  - **Chest lids**: a free hand holding grip with its ray
     on an `Interaction.ChestLid` takes it the same way (`TakeLid()`) and its visual snaps
     onto the lid's front edge. In `TickHeld()` (`TickHeldLid()`) the lid is asked for
     `chest.AngleAt(controller position)` plus the offset noted at the grab
@@ -713,7 +770,8 @@ compass.
   movement the CharacterController didn't apply is retried via `ReportAppliedMovement()` so
   the grab point never drifts. On grab it asks the target for a `HandSnapPose` and hands it
   to that hand's `HandVisualSnap` (`PlayerHandVisuals.LeftVisualSnap`/`RightVisualSnap`).
-  `ReleaseAll()` force-releases both hands (used by mantling); a force-released hand can't
+  `ReleaseAll()` force-releases both hands (used by mantling) and `Release(climbable)`
+  any hand on one climbable (a rope bolt's rope coming loose); a force-released hand can't
   grab again until its grip is let go, since "held" grabbing would otherwise instantly
   re-grab. Sets `characterController.minMoveDistance = 0` so slow hand movement isn't
   swallowed. Exposes `IsClimbing`, `IsLeftHandGripping`/`IsRightHandGripping`,

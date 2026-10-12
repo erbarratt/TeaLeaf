@@ -5,10 +5,11 @@ using UnityEngine;
 namespace Player
 {
     /// <summary>
-    /// The compass: a disc that appears on an open hand. A hand that is
-    /// empty, isn't pointing at anything it could grab, and has its palm
-    /// to the sky brings it out by pressing grip, and it stays for as
-    /// long as grip is held - like the pack. Either hand; one at a time.
+    /// The compass: a disc worn on the back of the wrist, always there to
+    /// be looked at, like a watch. It is on the hand that wears the
+    /// lockpicks (the left for a right-handed player), a little further
+    /// up the arm than they are. It takes no input and never makes its
+    /// hand busy.
     ///
     /// It shows three things:
     /// - North. The outer rim stays put on the hand; the dial inside it,
@@ -26,47 +27,31 @@ namespace Player
     /// Only other people's footsteps and voices are shown - it is for
     /// following guards - and an arrow points where the sound is heard
     /// from: at the doorway, for one coming through from another room.
-    /// Sounds are noted whether or not the compass is out, so bringing
-    /// it out shows what was heard a moment ago.
     ///
     /// The compass is not a child of the hand visual: it is placed on it
     /// each frame. The right hand visual is the left one mirrored, and a
     /// child of it would be drawn mirrored too - east and west swapped.
     ///
     /// Lives on the Hands object. No Update(): PlayerController calls
-    /// Tick() (coming out) after the grab systems, and TickHeld()
-    /// (placing it, and putting it away) after the hand visuals.
+    /// Tick() after the hand visuals are placed.
     /// </summary>
     public class PlayerCompass : MonoBehaviour
     {
         [SerializeField] private PlayerInputXR playerInput;
-        [SerializeField] private PlayerTracking playerTracking;
-        [SerializeField] private PlayerHandInteraction playerHandInteraction;
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
-
-        // What each hand is busy with. Found (or made) in Awake() if not
-        // wired (it's on this same object).
-        [SerializeField] private PlayerHandState playerHandState;
 
         // How well lit the player is, for the gem. Optional: without it
         // the gem stays dark.
         [SerializeField] private PlayerVisibility playerVisibility;
 
-        // Optional: a rig with no haptics still shows the compass.
-        [SerializeField] private PlayerHaptics playerHaptics;
-
-        [Header("Bringing It Out")]
-
-        // How far the palm may be turned away from straight up, in
-        // degrees, and still count as facing the sky when grip is
-        // pressed.
-        [SerializeField] private float palmUpAngle = 50f;
-
         [Header("Where It Sits")]
 
         // The middle of the compass in the hand visual's own space (its
-        // fingers point along -Y, the palm faces +X): over the palm.
-        [SerializeField] private Vector3 inHandPosition = new(0.07f, -0.09f, 0f);
+        // fingers point along -Y, the back of the hand is -X): on the
+        // back of the wrist, past the handles of the lockpicks, which end
+        // at about y 0. The right hand visual is the left one mirrored,
+        // so the same numbers put it on either wrist.
+        [SerializeField] private Vector3 onWristPosition = new(-0.03f, 0.06f, 0f);
 
         [Header("North")]
 
@@ -138,12 +123,6 @@ namespace Player
 
         [SerializeField] private Color arrowColor = new(1f, 1f, 1f, 1f);
 
-        [Header("Haptics")]
-
-        // The compass coming out.
-        [SerializeField] private float showAmplitude = 0.25f;
-        [SerializeField] private float showDuration = 0.03f;
-
         // How far the gem's brightness must change before its colour is
         // written again.
         private const float GemStep = 0.02f;
@@ -151,8 +130,10 @@ namespace Player
         private static readonly int _baseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int _alphaId = Shader.PropertyToID("_Alpha");
 
-        private bool _hasHaptics;
         private bool _hasVisibility;
+
+        // The hand that wears it: the one the lockpicks are on.
+        private bool _isOnLeftHand;
 
         // The player's root: a sound made by anything under it is the
         // player's own.
@@ -175,15 +156,6 @@ namespace Player
         // The gem's brightness as last written (-1 = never).
         private float _gemShown = -1f;
 
-        // Whether it's out, and on which hand.
-        private bool _isOut;
-        private bool _isOnLeftHand;
-
-        // Grip last frame, per hand: it comes out on the frame grip is
-        // pressed, not for a hand that arrives gripping.
-        private bool _wasLeftGrabbing;
-        private bool _wasRightGrabbing;
-
         // The arrows. For each: its object, its renderer and its own
         // material (so each fades by itself); where its sound came from,
         // how loud it was and when it was heard (-1 = not in use).
@@ -194,11 +166,6 @@ namespace Player
         private float[] _arrowLoudness;
         private float[] _arrowTimes;
 
-        /// True while that hand holds the compass out. The other hand
-        /// systems leave it alone meanwhile (PlayerHandState).
-        public bool IsLeftBusy => _isOut && _isOnLeftHand;
-        public bool IsRightBusy => _isOut && !_isOnLeftHand;
-
         /// <summary>
         /// Editor-only: fills in the references when the component is
         /// added (on the Hands object; the body systems are on the Player
@@ -207,10 +174,7 @@ namespace Player
         private void Reset()
         {
             playerInput = GetComponentInParent<PlayerInputXR>();
-            playerTracking = GetComponentInParent<PlayerTracking>();
             playerVisibility = GetComponentInParent<PlayerVisibility>();
-            playerHaptics = GetComponentInParent<PlayerHaptics>();
-            playerHandInteraction = GetComponent<PlayerHandInteraction>();
             playerHandVisuals = GetComponent<PlayerHandVisuals>();
         }
 
@@ -220,34 +184,21 @@ namespace Player
                 playerInput = GetComponentInParent<PlayerInputXR>();
             }
 
-            if (playerTracking == null) {
-                playerTracking = GetComponentInParent<PlayerTracking>();
-            }
-
-            if (playerHandInteraction == null) {
-                playerHandInteraction = GetComponent<PlayerHandInteraction>();
-            }
-
             if (playerHandVisuals == null) {
                 playerHandVisuals = GetComponent<PlayerHandVisuals>();
-            }
-
-            if (playerHandState == null) {
-                playerHandState = PlayerHandState.GetOrAdd(playerHandVisuals);
             }
 
             if (playerVisibility == null) {
                 playerVisibility = GetComponentInParent<PlayerVisibility>();
             }
 
-            if (playerHaptics == null) {
-                playerHaptics = GetComponentInParent<PlayerHaptics>();
-            }
-
-            // Looked up once, so the per-frame code tests plain bools.
-            _hasHaptics = playerHaptics != null;
+            // Looked up once, so the per-frame code tests a plain bool.
             _hasVisibility = playerVisibility != null;
             _playerRoot = playerInput.transform;
+
+            // A right-handed player wears the lockpicks, and so the
+            // compass, on the left hand; a left-handed one on the right.
+            _isOnLeftHand = !playerInput.IsLeftHanded;
 
             BuildCompass();
             BuildArrows();
@@ -268,6 +219,12 @@ namespace Player
             }
         }
 
+        private void OnEnable()
+        {
+            // Awake() has always run by now, so the compass exists.
+            _compass.gameObject.SetActive(true);
+        }
+
         private void OnDisable()
         {
             // Null if Awake() hasn't run. And if the scene is being
@@ -277,7 +234,8 @@ namespace Player
                 return;
             }
 
-            PutAway();
+            // Nothing places it while this is off, so it isn't shown.
+            _compass.gameObject.SetActive(false);
         }
 
         private void OnDestroy()
@@ -310,9 +268,9 @@ namespace Player
         }
 
         /// <summary>
-        /// Makes the compass, once, under this object and switched off.
-        /// Its own axes: Z points away from whoever is looking at its
-        /// face (into the palm), Y is up the face and X to the right -
+        /// Makes the compass, once, under this object. Its own axes: Z
+        /// points away from whoever is looking at its face (into the
+        /// wrist), Y is up the face and X to the right -
         /// so on the dial, +Y is north and +X is east. Three stacked
         /// discs: the rim, the dial on top of it and the gem on top of
         /// that. No colliders: it's only to look at.
@@ -362,8 +320,6 @@ namespace Player
             _compass = MakePart("Compass", _rimMesh, transform, _material, out _).transform;
             _dial = MakePart("Dial", _dialMesh, _compass, _material, out _).transform;
             MakePart("Light Gem", _gemMesh, _dial, _gemMaterial, out _);
-
-            _compass.gameObject.SetActive(false);
         }
 
         /// <summary>
@@ -421,9 +377,8 @@ namespace Player
         /// compass is for following guards, so doors, impacts, bolts and
         /// the player's own steps are left out, as is anything too faint
         /// to show. heardFrom is where the ears take the sound to come
-        /// from - the portal, for one from another room. Called whenever
-        /// a sound plays, whether or not the compass is out; nothing here
-        /// touches anything drawn.
+        /// from - the portal, for one from another room. Nothing here
+        /// touches anything drawn: Tick() places the arrows.
         /// </summary>
         private void OnSoundHeard(Vector3 heardFrom, float loudness, NoiseType type, Transform source)
         {
@@ -494,107 +449,30 @@ namespace Player
         }
 
         /// <summary>
-        /// The compass coming out. Called by PlayerController after the
-        /// grab systems (climbing, carrying, doors), so a hand that
-        /// grabbed something this frame is already busy: a grab always
-        /// wins over the compass.
+        /// Places the compass on the wrist, turns the dial to north,
+        /// colours the gem and places the sound arrows. Called by
+        /// PlayerController after the hand visuals are placed, on every
+        /// path through Update().
         /// </summary>
         public void Tick()
         {
-            bool isLeftGrabbing = playerInput.IsLeftGrabbing;
-            bool isRightGrabbing = playerInput.IsRightGrabbing;
-
-            if (!_isOut) {
-                if (isLeftGrabbing && !_wasLeftGrabbing && CanShow(true)) {
-                    Show(true);
-                } else if (isRightGrabbing && !_wasRightGrabbing && CanShow(false)) {
-                    Show(false);
-                }
-            }
-
-            _wasLeftGrabbing = isLeftGrabbing;
-            _wasRightGrabbing = isRightGrabbing;
-        }
-
-        /// <summary>
-        /// Whether a hand may bring the compass out now: it's doing
-        /// nothing else, its ray isn't on anything it could grab, and its
-        /// palm faces the sky.
-        /// </summary>
-        private bool CanShow(bool isLeftHand)
-        {
-            if (playerHandState.IsBusyExcept(isLeftHand, HandUse.Compass)) {
-                return false;
-            }
-
-            IHandTarget target = isLeftHand ? playerHandInteraction.LeftTarget : playerHandInteraction.RightTarget;
-
-            if (target is not null) {
-                return false;
-            }
-
-            // The dot product with straight up is the cosine of the angle
-            // between the two: 1 when the palm faces the sky.
-            return Vector3.Dot(Palm(isLeftHand), Vector3.up) >= Mathf.Cos(palmUpAngle * Mathf.Deg2Rad);
-        }
-
-        /// <summary>
-        /// Which way a hand's palm faces, in the world: the hand visual's
-        /// own +X. TransformVector(), not TransformDirection(): the right
-        /// visual is the left one mirrored, and only TransformVector()
-        /// takes the mirroring into account.
-        /// </summary>
-        private Vector3 Palm(bool isLeftHand)
-        {
-            Transform visual = isLeftHand ? playerHandVisuals.LeftHandVisual : playerHandVisuals.RightHandVisual;
-            return visual.TransformVector(Vector3.right).normalized;
-        }
-
-        private void Show(bool isLeftHand)
-        {
-            _isOut = true;
-            _isOnLeftHand = isLeftHand;
-            _compass.gameObject.SetActive(true);
-
-            if (_hasHaptics) {
-                playerHaptics.Pulse(isLeftHand, showAmplitude, showDuration);
-            }
-        }
-
-        private void PutAway()
-        {
-            _isOut = false;
-            _compass.gameObject.SetActive(false);
-        }
-
-        /// <summary>
-        /// Puts the compass away when its hand lets go; otherwise places
-        /// it on the hand, turns the dial to north, colours the gem and
-        /// places the sound arrows. Called by PlayerController after the
-        /// hand visuals are placed, on every path through Update().
-        /// </summary>
-        public void TickHeld()
-        {
-            if (!_isOut) {
-                return;
-            }
-
-            if (!(_isOnLeftHand ? playerInput.IsLeftGrabbing : playerInput.IsRightGrabbing)) {
-                PutAway();
-                return;
-            }
-
             Transform visual = _isOnLeftHand ? playerHandVisuals.LeftHandVisual : playerHandVisuals.RightHandVisual;
-            Vector3 position = visual.TransformPoint(inHandPosition);
-            Vector3 palm = Palm(_isOnLeftHand);
+            Vector3 position = visual.TransformPoint(onWristPosition);
 
-            // The rim rides the hand: its face out of the palm (the
-            // compass's own Z points into the palm), its top towards the
-            // fingers (the visual's -Y).
+            // Which way the palm faces, in the world: the hand visual's
+            // own +X - the way into the wrist, for someone looking at the
+            // compass's face. TransformVector(), not TransformDirection():
+            // the right visual is the left one mirrored, and only
+            // TransformVector() takes the mirroring into account.
+            Vector3 palm = visual.TransformVector(Vector3.right).normalized;
+
+            // The rim rides the wrist: its face out of the back of it
+            // (the compass's own Z points into the wrist), its top
+            // towards the fingers (the visual's -Y).
             Vector3 fingers = Vector3.ProjectOnPlane(visual.TransformVector(Vector3.down), palm);
 
             if (fingers.sqrMagnitude > 0.000001f) {
-                _compass.SetPositionAndRotation(position, Quaternion.LookRotation(-palm, fingers));
+                _compass.SetPositionAndRotation(position, Quaternion.LookRotation(palm, fingers));
             } else {
                 _compass.position = position;
             }
@@ -606,7 +484,7 @@ namespace Player
             Vector3 north = Vector3.ProjectOnPlane(Quaternion.Euler(0f, northAngle, 0f) * Vector3.forward, palm);
 
             if (north.sqrMagnitude > 0.0001f) {
-                _dial.rotation = Quaternion.LookRotation(-palm, north);
+                _dial.rotation = Quaternion.LookRotation(palm, north);
             }
 
             TickGem();
@@ -668,7 +546,7 @@ namespace Player
                 float size = Mathf.Lerp(arrowMinSize, arrowMaxSize, _arrowLoudness[i]);
                 Transform arrow = _arrows[i];
 
-                arrow.SetPositionAndRotation(position + direction * (radius + arrowGap + size), Quaternion.LookRotation(-palm, direction));
+                arrow.SetPositionAndRotation(position + direction * (radius + arrowGap + size), Quaternion.LookRotation(palm, direction));
                 arrow.localScale = new Vector3(size, size, thickness);
                 _arrowMaterials[i].SetFloat(_alphaId, strength);
             }

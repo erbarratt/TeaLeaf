@@ -1,10 +1,10 @@
 TeaLeaf Development Roadmap - Vertical Slice
 ============================================
 
-Goal: a single greybox level (warehouse/docks) that runs in Play Mode and
+Goal: a single level (warehouse/docks) that runs in Play Mode and
 showcases every core stealth mechanic end to end - sneak in, steal the
 objective item, escape - with a fail/restart loop when caught. No settings
-menu, main menu, save system or final art required.
+menu, main menu or save system required.
 
 [x] = done, [ ] = to do. Done items are kept as one line; how each works
 is in the CLAUDE.md files, and how it got there is in DEVLOG.txt.
@@ -25,9 +25,10 @@ Sound:        rooms and portals, so a sound is heard from where it really
               comes; reverb from the room the player is in; looping sounds
               and room ambience; the project's own spatialiser.
 Guard AI:     patrol, suspicion, search, chase, catch (= fail + restart).
-              Knockout state. Guards react to finding KO'd bodies.
+              Knockout state. Guards find KO'd bodies and wake them.
 Weapons:      blackjack takedown; a clockwork hand crossbow worn on the back
-              of one hand, with water / noisemaker / rope bolts.
+              of one hand, with water, noisemaker, rope, stun and sleep
+              bolts.
 Tools:        two-handed lockpicking on a large copy of the lock (one pick
               turns in stages, the other searches for each pin by feel).
               The picks are worn on the back of the other hand.
@@ -43,9 +44,11 @@ Throwing:     aimed (hold the trigger for an arc, release to throw, B to
 Hands:        physical hands - the visual hand model collides with the world
               and stops at walls/props instead of passing through, then
               catches back up to the real controller position.
-Art:          greybox (ProBuilder/primitives) for environment and props.
-              Placeholder humanoid + Mixamo animations for guards. Real hand
-              models with finger animation/grip poses.
+Art:          storybook-crooked buildings with painted surfaces, built from
+              code (the Smithy is the first); the test areas, props and
+              guard are greybox until restyled. Placeholder humanoid +
+              Mixamo animations for guards. Real hand models with finger
+              animation/grip poses.
 
 
 Performance rules for everything built
@@ -191,22 +194,22 @@ Phase 4 - Inventory: the pack, loot and keys (Inventory namespace)
 [x] Handedness: one setting swaps which hand wears the lockpicks and
     which the crossbow. The lock puzzle is never mirrored.
 [x] The shoulder grab, working in the headset.
-[ ] Try in the headset: the pack in the right hand, the gold number
-    (needs the TextMeshPro resources imported).
+[x] The pack in the right hand, working in the headset.
+[ ] Try in the headset: the gold number (needs the TextMeshPro
+    resources imported).
 [ ] Tune in the headset: the shoulder zone, where the pack rides on the
     hand, the gold number's size and place, where the keyring sits in
     the hand, and the hand pose on the key (the door handle's, as a
     stand-in).
 [ ] Real sounds for putting things in the pack and for the keyed lock.
-[x] The compass (PlayerCompass), the player's readout: brought out by
-    gripping with an empty hand palm up; a rim, a dial that keeps north
+[x] The compass (PlayerCompass), the player's readout, always worn on
+    the back of the wrist of the hand the lockpicks are on: a rim, a dial that keeps north
     (world +Z) with a triangle at each of north, east, south and west,
     a light gem showing visibility, and arrows for the last few
     footsteps and voices heard, pointing where each is heard from.
-[ ] Try and tune in the headset: the compass - the palm-up angle, where
-    it sits over the palm, its size, the gem's colours, the arrows'
-    sizes and fade time, and whether the fingers closing through it
-    matters.
+[x] The compass on the wrist, working in the headset.
+[ ] Tune in the headset: the compass - where it sits on the wrist, its
+    size, the gem's colours, the arrows' sizes and fade time.
 [ ] Showing the bolt counts and the loot's worth (on the compass or
     the pack).
 
@@ -217,8 +220,8 @@ Blackjack:
 [x] Drawing it (PlayerBlackjack): a hand that is empty, in a box at the
     chest and palm towards it draws it by pressing grip and holds it
     while grip is held; letting go puts it away. Greybox model.
-[ ] Try and tune in the headset: the chest zone, the palm angle, where
-    it sits in the hand; a hold pose.
+[ ] Tune in the headset: the palm angle, where it sits in the hand; a
+    hold pose.
 [x] Swing detection (PlayerBlackjack.TickSwing): the blackjack's head
     moving faster than a threshold (measured in the player's own space,
     so walking isn't a swing) while it touches a GuardHead collider.
@@ -228,8 +231,9 @@ Blackjack:
     facing and the level direction from player to guard). Otherwise the
     guard turns on the player.
 [x] Haptic pulse on hit; a thud (the placeholder impact cue).
-[ ] Try and tune the takedown in the headset: the swing speed, the hit
-    radius, how far round "behind" reaches.
+[x] The takedown, working in the headset.
+[ ] Tune the takedown in the headset: the swing speed, the hit radius,
+    how far round "behind" reaches.
 Hand crossbow:
 [x] First version (PlayerCrossbow): greybox model on the back of the
     hand; active while grip is held after pressing it with the hand
@@ -243,17 +247,33 @@ Hand crossbow:
 [x] The wheel at the back of the crossbow: the other hand's ray on it
     and grip held takes it, the hand snaps on, and twisting the wrist
     steps through the bolt kinds.
-[x] Bolt kinds, each with its own model so the loaded one can be told
-    at a glance: water (blue tip) puts out the Flames near where it
-    lands; a noisemaker (amber tip) makes noise where it lands for a
-    while; a rope bolt (the shaft wound with rope) that lands on a
-    surface tagged Wood hangs a pooled ClimbableRope to the ground or a
-    longest length, and is lost on anything else.
+[x] Five bolt kinds, each with its own model so the loaded one can be
+    told at a glance, at most three of each carried: water (blue tip)
+    puts out the Flames near where it lands; a noisemaker (amber tip)
+    makes noise where it lands for a while; a rope bolt (the shaft
+    wound with rope) hangs a pooled ClimbableRope to the ground or a
+    longest length; a stun bolt (black tip) to a guard's head stuns it
+    for 10s; a sleep dart (short, green flights) anywhere on a guard
+    knocks it out 10s later.
+[x] Where a bolt lands: water and noisemaker bolts are used up on
+    whatever they hit; the rest stick only into static geometry whose
+    SurfaceTag holds a bolt (Wood, Plaster, Carpet, Grass) and bounce
+    off everything else, a guard included, as a real physics object
+    (CrossbowBolt) until they settle.
+[x] Picking up: a stun bolt, or a sleep dart that hit no guard, goes
+    straight back into the inventory when a hand points at it and
+    grips. Never carried.
+[x] What holds a rope: it bears weight only where the surface's
+    SurfaceTag has Supports Rope Bolt ticked; elsewhere the bolt still
+    sticks, but pulls out and the rope falls when the player takes
+    hold. A rope bolt is never recovered.
 [x] Ammunition: shots use PlayerInventory's bolt counts.
-[ ] Try and tune in the headset: the wheel (its grab ball, the step
-    angle, the hand's pose on it - a wheelProfile - and the one-frame
-    lag of the snapped hand), each bolt kind's effect, the rope a rope
-    bolt hangs.
+[x] The wheel and all five bolt kinds, working in the headset.
+[ ] Check in the headset: a hand on a rope bolt's rope sits as it does
+    on a placed rope (both use the RopeGrip profile).
+[ ] Tune in the headset: the wheel (its grab ball, the step angle, the
+    hand's pose on it - a wheelProfile - and the one-frame lag of the
+    snapped hand), a bolt's bounce and the reach for picking one up.
 [ ] Bolt pickups in the level.
 [ ] Shot and impact sounds, a splash, and the noisemaker's sound.
 Lockpicking:
@@ -268,8 +288,8 @@ Lockpicking:
 [x] Chests (Chest, ChestLid): the same lock kinds as doors, picked or
     opened with a key through the same locks; unlocked, a hand takes
     the front of the lid and lifts it. Chest Test Area builder.
-[ ] Try and tune in the headset: chests - the lid's lift, the hand's
-    pose on it, picking and unlocking one.
+[x] Chests, working in the headset.
+[ ] Tune in the headset: the lid's lift and the hand's pose on it.
 [ ] A chest's inside, and loot in it.
 [ ] The "lockpick hold" finger pose (Phase 7 - the hand on a pick uses a
     copy of the rope grip).
@@ -318,13 +338,22 @@ Behaviour (explicit state machine - keep it readable and debuggable):
     seen when lost; back to Search when lost for a few seconds.
 [x] Catch: within catch range while chasing, LevelManager.Caught().
 [x] Knocked out: the agent, colliders and component switch off and the
-    guard lies flat. It stays down for the whole slice.
+    guard lies flat, until an awake guard that sees it walks over and
+    wakes it; it then searches round where it lay.
+[x] Stunned (a stun bolt to the head): stops dead, seeing and hearing
+    nothing, for 10s, then searches. A blackjack blow from any side
+    takes a stunned guard down.
+[x] Sedated (a sleep dart anywhere): carries on as it was, and is
+    knocked out 10s later.
+[x] Hit by a bolt that does nothing to it: suspicious, then searches
+    where the bolt was shot from.
 [x] Return to patrol after a search, taking the route up at its nearest
     point.
-[ ] Try and tune in the headset: suspicion and search as they look, how
-    easily footsteps are heard (one step of about 0.45 loudness makes a
-    guard suspicious), the sight numbers, the chase and catch range, a
-    second guard finding a body.
+[x] Working in the headset: the blackjack takedown, the bump from
+    behind, a second guard finding a body.
+[ ] Tune in the headset: suspicion and search as they look, how easily
+    footsteps are heard (one step of about 0.45 loudness makes a guard
+    suspicious), the sight numbers, the chase and catch range.
 Body dragging:
 [ ] KO'd guard has a grab handle (collar/shoulder). The player grabs it and
     the body follows the hand along the ground (kinematic follow with
@@ -416,7 +445,10 @@ Tools:
 Phase 8 - Level: the docks warehouse
 ------------------------------------
 [x] The smithy: a building made from code as level buildings could be
-    (TeaLeaf > Build Smithy).
+    (TeaLeaf > Build Smithy), and the first in the game's art style:
+    storybook-crooked shapes with the gameplay surfaces kept true, and
+    painted textures.
+[ ] Restyle the other test areas, the props and the guard to match.
 Design (on paper first):
 [ ] Layout sketch with a critical path and at least one alternate route per
     area. Each beat below should teach or test one mechanic, roughly in
@@ -459,7 +491,8 @@ Greybox build:
 [ ] Small props (bottles, coins, crates) are on Interactable, not
     Environment, so that layer can be given a nearer cull distance than
     walls if profiling asks for it.
-[ ] Tag surfaces (SurfaceType), RopeTarget beams, ClimbableEdges, ladders.
+[ ] Tag surfaces (SurfaceType, and Supports Rope Bolt where a rope
+    bolt's rope should hold), ClimbableEdges, ladders.
 [ ] Place the sound rooms and portals, with each room's reverb and
     ambience, and a SoundLoop on each torch and fire.
 [ ] Place the LightSources, each with its visible Unity light.

@@ -12,6 +12,10 @@ namespace Inventory
         // Sticks where it lands and makes noise, to draw guards.
         Noisemaker,
         // Sticks into wood and hangs a rope to climb.
-        Rope
+        Rope,
+        // Stuns a guard it hits on the head, for a while.
+        Stun,
+        // A dart: knocks out a guard it hits anywhere, after a wait.
+        Sleep
     }
 }

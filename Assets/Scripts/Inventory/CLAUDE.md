@@ -6,8 +6,9 @@ loaded when working in this folder. Keep it up to date with every change to thes
 like the root file.
 
 Phase 4 of `Assets/DEVROADMAP.txt`. **Built and working in the headset:** the pack, loot, the
-worth coins, the inventory data, keys and the keyring. **Not built:** bolt pickups, and any
-showing of the bolt counts (the crossbow uses them: `Scripts/Player/CLAUDE.md`). **Not yet
+worth coins, the inventory data, keys and the keyring. **Not built:** bolt pickups placed in the
+level, and any showing of the bolt counts (the crossbow uses them, and puts a shot bolt
+picked up again back: `Scripts/Player/CLAUDE.md`). **Not yet
 tried in the headset:** the gold number.
 
 ## The design
@@ -131,10 +132,13 @@ right of the door leaf from the player's side, clockwise if on the left.
   `LevelManager.SetObjectiveCarried(true)` - ending the level stays the level manager's
   business); tools owned (`Owns(tool)`, `GiveTool(tool)`; starting set from `ownsBlackjack`
   / `ownsCrossbow`); bolt counts (`GetBoltCount(bolt)`, `AddBolts(bolt, count)`,
-  `TryUseBolt(bolt)`; starting counts from three fields). **`Changed`** (a plain C#
+  `TryUseBolt(bolt)`, `TryAddBolt(bolt)` - one picked up off the floor, false if full;
+  starting counts from one field per kind, `waterBolts` to `sleepBolts`, 0 by default;
+  **at most `maxBoltsPerKind` (3) of any kind**, which the starting counts and
+  `AddBolts()` are cut down to). **`Changed`** (a plain C#
   instance event) is raised after any change. No `Update()`.
 - **`ToolType`** (`Blackjack`, `Crossbow`) and **`BoltType`** (`Water`, `Noisemaker`,
-  `Rope`) — enums. Add values at the end, no explicit numbers (`BoltType` is an array
+  `Rope`, `Stun`, `Sleep`) — enums. Add values at the end, no explicit numbers (`BoltType` is an array
   index). The lockpicks aren't a `ToolType`: they're always worn on the back of a hand.
 
 ## Debug

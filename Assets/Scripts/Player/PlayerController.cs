@@ -365,12 +365,6 @@ namespace Player
                 if (_hasCrossbow) {
                     playerCrossbow.Tick();
                 }
-
-                // 4a (continued). The compass coming out - after the grab
-                // systems too, for the same reason: a grab always wins.
-                if (_hasCompass) {
-                    playerCompass.Tick();
-                }
             }
 
             // 4b. Mantling - after climbing, so it sees this frame's grips.
@@ -539,10 +533,10 @@ namespace Player
                 playerCrossbow.TickHeld(canAim);
             }
 
-            // The compass, placed on the hand visual holding it, and put
-            // away when that hand lets go.
+            // The compass, placed on the wrist of the hand visual that
+            // wears it.
             if (_hasCompass) {
-                playerCompass.TickHeld();
+                playerCompass.Tick();
             }
         }
     }

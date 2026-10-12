@@ -1,3 +1,4 @@
+using Interaction;
 using UnityEditor;
 using UnityEngine;
 
@@ -15,6 +16,9 @@ namespace Player
     /// </summary>
     public static class PlayerHandTools
     {
+        // The hand snap profile every rope uses.
+        private const string RopeProfilePath = "Assets/Data/RopeGrip.asset";
+
         [MenuItem("TeaLeaf/Add Hand Tools To Player")]
         internal static void Add()
         {
@@ -30,8 +34,37 @@ namespace Player
             added += Ensure<PlayerBlackjack>(hands.gameObject);
             added += Ensure<PlayerCompass>(hands.gameObject);
 
+            SetRopeProfile(hands.GetComponent<PlayerCrossbow>());
+
             Debug.Log($"PlayerHandTools: added {added} component(s) to '{hands.name}'.", hands);
             Selection.activeGameObject = hands.gameObject;
+        }
+
+        /// <summary>
+        /// Gives the crossbow's rope bolt ropes the same hand snap profile
+        /// as every other rope, if it has none: without one a hand takes
+        /// the rope's bare grip frame, turned differently from a hand on a
+        /// placed rope. Through SerializedObject, since the field is
+        /// private, which also records the change for undo.
+        /// </summary>
+        private static void SetRopeProfile(PlayerCrossbow crossbow)
+        {
+            SerializedObject serialized = new(crossbow);
+            SerializedProperty profile = serialized.FindProperty("ropeProfile");
+
+            if (profile.objectReferenceValue != null) {
+                return;
+            }
+
+            HandSnapProfile rope = AssetDatabase.LoadAssetAtPath<HandSnapProfile>(RopeProfilePath);
+
+            if (rope == null) {
+                Debug.LogWarning($"PlayerHandTools: couldn't load {RopeProfilePath} - set the crossbow's Rope Profile by hand.", crossbow);
+                return;
+            }
+
+            profile.objectReferenceValue = rope;
+            serialized.ApplyModifiedProperties();
         }
 
         /// <summary>

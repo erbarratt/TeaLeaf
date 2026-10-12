@@ -22,6 +22,7 @@ namespace Core
         Water,
         Tile,
         Grass,
-        Gravel
+        Gravel,
+        Plaster
     }
 }

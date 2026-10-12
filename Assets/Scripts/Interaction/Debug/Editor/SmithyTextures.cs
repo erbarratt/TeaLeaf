@@ -22,9 +22,18 @@ namespace Interaction
     /// beams are real geometry, and an extra texture read on every pixel
     /// of the biggest surfaces isn't worth it on Quest.
     ///
+    /// The look is painted, not photographed: every surface is built up
+    /// from flat "dabs" of colour like the marks of a broad brush (see
+    /// Dabs()), in a grimy, washed-out palette whose shadows are cool
+    /// (blue-green greys) and whose lights are warm (ochres) - see
+    /// Tone() - and the top edge of each stone, tile and plank is painted
+    /// lighter and its bottom darker, as if lit from above.
+    ///
     /// Assets are only made if missing, so anything retouched by hand (or
     /// a material retuned in the Inspector) is kept. Delete a file to have
-    /// it made again. Materials use URP's Simple Lit shader with the shine
+    /// it made again, or use TeaLeaf > Repaint Smithy Textures to paint
+    /// all five textures again over the old ones (the materials are
+    /// kept). Materials use URP's Simple Lit shader with the shine
     /// switched off (iron apart): the cheapest lit shader that reads a
     /// texture.
     ///
@@ -60,6 +69,12 @@ namespace Interaction
 
         private const int Size = 512;
 
+        // How strongly each normal map's bumps stand out (0 = the
+        // texture has no normal map).
+        private const float StoneBump = 5f;
+        private const float TilesBump = 6f;
+        private const float PlanksBump = 4f;
+
         // Paints one pixel: u and v run 0-1 across and up the texture.
         // height (0-1) is only used by textures with a normal map.
         private delegate void Painter(float u, float v, out Color color, out float height);
@@ -82,14 +97,69 @@ namespace Interaction
             Materials materials = new() {
                 Plaster = GetMaterial("Plaster", PaintPlaster, 0f),
                 Timber = GetMaterial("Timber", PaintTimber, 0f),
-                Stone = GetMaterial("Stone", PaintStone, 5f),
-                Tiles = GetMaterial("RoofTiles", PaintTiles, 6f),
-                Planks = GetMaterial("Planks", PaintPlanks, 4f),
+                Stone = GetMaterial("Stone", PaintStone, StoneBump),
+                Tiles = GetMaterial("RoofTiles", PaintTiles, TilesBump),
+                Planks = GetMaterial("Planks", PaintPlanks, PlanksBump),
                 Iron = GetIronMaterial()
             };
 
             _cracks = null;
             return materials;
+        }
+
+        /// <summary>
+        /// Menu command: paints all five textures again, over the PNG
+        /// files already there. The materials are untouched and keep
+        /// pointing at the same files, so the building in the scene
+        /// changes at once.
+        /// </summary>
+        [MenuItem("TeaLeaf/Repaint Smithy Textures")]
+        private static void Repaint()
+        {
+            if (!EditorUtility.DisplayDialog(
+                "Smithy textures",
+                $"Paint the smithy's five textures again, overwriting the PNG files in {TextureFolder}? Any retouching done by hand is lost. The materials are kept.",
+                "Repaint",
+                "Cancel")) {
+                return;
+            }
+
+            EnsureFolder(TextureFolder);
+
+            _cracks = DrawCracks();
+
+            PaintTexture("Plaster", PaintPlaster, 0f);
+            PaintTexture("Timber", PaintTimber, 0f);
+            PaintTexture("Stone", PaintStone, StoneBump);
+            PaintTexture("RoofTiles", PaintTiles, TilesBump);
+            PaintTexture("Planks", PaintPlanks, PlanksBump);
+
+            _cracks = null;
+        }
+
+        /// <summary>
+        /// Where a texture's colour picture is saved.
+        /// </summary>
+        private static string ColourPath(string name)
+        {
+            return $"{TextureFolder}/Smithy{name}.png";
+        }
+
+        /// <summary>
+        /// Where a texture's normal map is saved.
+        /// </summary>
+        private static string NormalPath(string name)
+        {
+            return $"{TextureFolder}/Smithy{name}_Normal.png";
+        }
+
+        /// <summary>
+        /// Paints one texture's colour picture and (if bumpStrength is
+        /// above 0) its normal map, and saves them.
+        /// </summary>
+        private static void PaintTexture(string name, Painter painter, float bumpStrength)
+        {
+            Paint(painter, bumpStrength, ColourPath(name), bumpStrength > 0f ? NormalPath(name) : null);
         }
 
         /// <summary>
@@ -105,12 +175,12 @@ namespace Interaction
                 return material;
             }
 
-            string colourPath = $"{TextureFolder}/Smithy{name}.png";
-            string normalPath = $"{TextureFolder}/Smithy{name}_Normal.png";
+            string colourPath = ColourPath(name);
+            string normalPath = NormalPath(name);
             bool hasNormal = bumpStrength > 0f;
 
             if (!File.Exists(colourPath) || (hasNormal && !File.Exists(normalPath))) {
-                Paint(painter, bumpStrength, colourPath, hasNormal ? normalPath : null);
+                PaintTexture(name, painter, bumpStrength);
             }
 
             material = new Material(Shader.Find(ShaderName)) { name = $"Smithy{name}" };
@@ -325,23 +395,102 @@ namespace Interaction
             return (value % period + period) % period;
         }
 
+        // ---- Brushwork ----
+
+        /// <summary>
+        /// Brush dabs: the texture is cut into irregular patches, each
+        /// one flat tone (0-1), like marks left by a loaded brush. One
+        /// random point is dropped in every square of a grid cellsU
+        /// across and cellsV up, and a pixel belongs to whichever point
+        /// is nearest - so the patches are the areas nearest each point
+        /// (a Voronoi pattern). Different numbers across and up stretch
+        /// the dabs into strokes. The grid wraps, so the texture tiles.
+        /// </summary>
+        private static float Dabs(float u, float v, int cellsU, int cellsV, int seed)
+        {
+            float x = u * cellsU;
+            float y = v * cellsV;
+            int cellX = Mathf.FloorToInt(x);
+            int cellY = Mathf.FloorToInt(y);
+
+            float nearest = float.MaxValue;
+            float tone = 0f;
+
+            // The nearest point can only be in this square or one of the
+            // eight round it.
+            for (int dy = -1; dy <= 1; dy++) {
+                for (int dx = -1; dx <= 1; dx++) {
+                    int gridX = cellX + dx;
+                    int gridY = cellY + dy;
+                    int wrappedX = Wrap(gridX, cellsU);
+                    int wrappedY = Wrap(gridY, cellsV);
+
+                    float pointX = gridX + Hash(wrappedX, wrappedY, seed);
+                    float pointY = gridY + Hash(wrappedX, wrappedY, seed + 1);
+                    float distance = (pointX - x) * (pointX - x) + (pointY - y) * (pointY - y);
+
+                    if (distance < nearest) {
+                        nearest = distance;
+                        tone = Hash(wrappedX, wrappedY, seed + 2);
+                    }
+                }
+            }
+
+            return tone;
+        }
+
+        /// <summary>
+        /// A brushed surface, 0-1: broad dabs with smaller ones worked
+        /// over them. The place each pixel looks the dabs up from is
+        /// nudged by smooth noise first, which bends the dabs' straight
+        /// edges into something a hand might have made.
+        /// </summary>
+        private static float Brushed(float u, float v, int cellsU, int cellsV, int seed)
+        {
+            float nudgedU = u + (ValueNoise(u, v, cellsU * 2, cellsV * 2, seed + 40) - 0.5f) * 0.6f / cellsU;
+            float nudgedV = v + (ValueNoise(u, v, cellsU * 2, cellsV * 2, seed + 41) - 0.5f) * 0.6f / cellsV;
+
+            float broad = Dabs(nudgedU, nudgedV, cellsU, cellsV, seed);
+            float fine = Dabs(nudgedU, nudgedV, cellsU * 3, cellsV * 3, seed + 7);
+            return broad * 0.65f + fine * 0.35f;
+        }
+
+        /// <summary>
+        /// A colour for a tone (0 = darkest, 1 = lightest) from three
+        /// paints: shadow up to middle over the first half, middle up to
+        /// light over the second. Giving the shadow a cool colour and the
+        /// light a warm one - rather than one colour made darker and
+        /// lighter - is what makes a surface look painted.
+        /// </summary>
+        private static Color Tone(Color shadow, Color middle, Color light, float tone)
+        {
+            tone = Mathf.Clamp01(tone);
+
+            return tone < 0.5f
+                ? Color.Lerp(shadow, middle, tone * 2f)
+                : Color.Lerp(middle, light, tone * 2f - 1f);
+        }
+
         // ---- Painters ----
 
         /// <summary>
-        /// Limewashed plaster: off-white, with large soft blotches, a fine
-        /// grain, brownish stains in patches and a few hairline cracks.
+        /// Old plaster: a dirty cream brushed on in broad dabs, greenish
+        /// grey in its shadows, with brown grime in patches and a few
+        /// hairline cracks.
         /// </summary>
         private static void PaintPlaster(float u, float v, out Color color, out float height)
         {
-            float blotch = Layered(u, v, 4, 4, 4, 11);
-            float grain = Layered(u, v, 48, 48, 2, 23);
-            float stain = Mathf.SmoothStep(0.55f, 0.8f, Layered(u, v, 3, 3, 3, 37));
+            float brush = Brushed(u, v, 5, 5, 11);
+            float blotch = Layered(u, v, 3, 3, 3, 17);
+            float grime = Mathf.SmoothStep(0.5f, 0.8f, Layered(u, v, 3, 3, 3, 37));
 
-            Color clean = new(0.80f, 0.77f, 0.70f);
-            Color stained = new(0.58f, 0.52f, 0.42f);
+            color = Tone(
+                new Color(0.33f, 0.36f, 0.33f),
+                new Color(0.60f, 0.58f, 0.49f),
+                new Color(0.79f, 0.75f, 0.63f),
+                0.25f + 0.45f * brush + 0.3f * blotch);
 
-            color = Color.Lerp(clean, stained, stain * 0.45f);
-            color *= 0.86f + 0.2f * blotch + 0.08f * (grain - 0.5f);
+            color = Color.Lerp(color, new Color(0.30f, 0.27f, 0.20f), grime * 0.5f);
 
             int x = Mathf.Min((int)(u * Size), Size - 1);
             int y = Mathf.Min((int)(v * Size), Size - 1);
@@ -388,21 +537,24 @@ namespace Interaction
         }
 
         /// <summary>
-        /// Dark oak beams: grain running along u (the beam's length), from
-        /// noise stretched long and thin, with a few darker streaks.
+        /// Weathered oak beams: long brush strokes and grain running
+        /// along u (the beam's length), near black in the shadows and a
+        /// worn warm brown in the lights, with a few darker streaks.
         /// </summary>
         private static void PaintTimber(float u, float v, out Color color, out float height)
         {
+            float brush = Brushed(u, v, 2, 10, 13);
             float grain = Layered(u, v, 3, 40, 3, 5);
             float streak = ValueNoise(u, v, 2, 90, 9);
             streak = streak * streak * streak;
-            float patch = Layered(u, v, 2, 3, 2, 13);
 
-            Color dark = new(0.13f, 0.085f, 0.055f);
-            Color light = new(0.29f, 0.20f, 0.13f);
+            color = Tone(
+                new Color(0.07f, 0.065f, 0.06f),
+                new Color(0.21f, 0.16f, 0.12f),
+                new Color(0.40f, 0.31f, 0.21f),
+                0.15f + 0.5f * brush + 0.35f * grain);
 
-            color = Color.Lerp(dark, light, grain * 0.7f + patch * 0.3f);
-            color *= 1f - 0.45f * streak;
+            color *= 1f - 0.4f * streak;
             height = 0f;
         }
 
@@ -455,14 +607,27 @@ namespace Interaction
             float tone = Hash(row, block, 61);
             float warmth = Hash(row, block, 67);
             float mottle = Layered(u, v, 24, 24, 3, 71);
+            float brush = Brushed(u, v, 8, 10, 73);
             float moss = Mathf.SmoothStep(0.58f, 0.75f, Layered(u, v, 3, 3, 4, 83)) * (0.4f + 0.6f * mottle);
 
-            Color stone = Color.Lerp(new Color(0.30f, 0.30f, 0.29f), new Color(0.50f, 0.49f, 0.46f), tone);
-            stone = Color.Lerp(stone, new Color(0.44f, 0.37f, 0.28f), warmth > 0.75f ? 0.5f : 0f);
-            stone *= 0.8f + 0.4f * mottle;
-            stone = Color.Lerp(stone, new Color(0.22f, 0.30f, 0.12f), moss * 0.7f);
+            // Each block its own tone, brushed: blue-grey in the
+            // shadows, a warm grey in the lights; the odd block ochre.
+            Color stone = Tone(
+                new Color(0.16f, 0.19f, 0.21f),
+                new Color(0.36f, 0.38f, 0.37f),
+                new Color(0.60f, 0.58f, 0.51f),
+                0.15f + 0.45f * tone + 0.4f * brush);
 
-            Color mortar = new Color(0.20f, 0.19f, 0.17f) * (0.8f + 0.4f * mottle);
+            stone = Color.Lerp(stone, new Color(0.45f, 0.36f, 0.24f), warmth > 0.75f ? 0.5f : 0f);
+            stone = Color.Lerp(stone, new Color(0.20f, 0.27f, 0.14f), moss * 0.5f);
+
+            // Painted light: v runs up the wall, so the top of a block
+            // is where inRow nears 1. Lighter there, darker at its foot.
+            float lit = Mathf.SmoothStep(0.72f, 0.95f, inRow);
+            float shaded = 1f - Mathf.SmoothStep(0.05f, 0.3f, inRow);
+            stone *= 1f + 0.25f * lit - 0.25f * shaded;
+
+            Color mortar = new Color(0.11f, 0.11f, 0.10f) * (0.8f + 0.4f * mottle);
 
             color = Color.Lerp(mortar, stone, isStone);
             height = isStone * (0.55f + 0.3f * bevel) + mottle * 0.15f;
@@ -510,11 +675,26 @@ namespace Interaction
             shade *= Mathf.Lerp(1f, 0.75f, Mathf.SmoothStep(0.93f, 1f, inRow));
 
             float tone = Hash(row, column, 91);
-            float soot = Hash(row, column, 97) < 0.12f ? 0.7f : 1f;
             float mottle = Layered(u, v, 32, 32, 3, 101);
+            float brush = Brushed(u, v, 10, 8, 103);
 
-            Color tile = Color.Lerp(new Color(0.42f, 0.13f, 0.09f), new Color(0.60f, 0.23f, 0.14f), tone);
-            tile *= soot * (0.82f + 0.36f * mottle);
+            // Each tile its own tone, brushed: a dull rust red, nearly
+            // black in the shadows. About one tile in seven is a
+            // replacement in grey slate.
+            Color tile = Tone(
+                new Color(0.17f, 0.10f, 0.10f),
+                new Color(0.40f, 0.19f, 0.14f),
+                new Color(0.62f, 0.34f, 0.22f),
+                0.1f + 0.5f * tone + 0.4f * brush);
+
+            if (Hash(row, column, 97) < 0.15f) {
+                tile = Color.Lerp(tile, new Color(0.27f, 0.26f, 0.30f), 0.7f);
+            }
+
+            // Painted light: a lighter band just above the tile's thick
+            // bottom edge, which catches the light.
+            float lip = Mathf.SmoothStep(0.76f, 0.88f, inRow) * (1f - Mathf.SmoothStep(0.9f, 0.96f, inRow));
+            tile *= 1f + 0.3f * lip;
 
             color = tile * shade * Mathf.Lerp(0.45f, 1f, gap);
             height = inRow * gap * 0.85f + mottle * 0.1f;
@@ -540,8 +720,19 @@ namespace Interaction
             float grain = Layered(u, v + Hash(plank, 1, 111), 48, 4, 3, 113);
             float groove = Mathf.SmoothStep(0f, 0.05f, Mathf.Min(inPlank, 1f - inPlank));
 
-            Color wood = Color.Lerp(new Color(0.24f, 0.16f, 0.10f), new Color(0.36f, 0.25f, 0.15f), tone);
-            wood *= 0.78f + 0.44f * grain;
+            // Long strokes down each plank, from a different place in
+            // each as the grain is.
+            float brush = Brushed(u, v + Hash(plank, 2, 111), 12, 3, 117);
+
+            Color wood = Tone(
+                new Color(0.10f, 0.085f, 0.07f),
+                new Color(0.27f, 0.20f, 0.14f),
+                new Color(0.46f, 0.36f, 0.24f),
+                0.1f + 0.3f * tone + 0.3f * brush + 0.3f * grain);
+
+            // Painted light: one edge of every plank a little lighter.
+            float edgeLight = Mathf.SmoothStep(0.05f, 0.12f, inPlank) * (1f - Mathf.SmoothStep(0.12f, 0.3f, inPlank));
+            wood *= 1f + 0.2f * edgeLight;
 
             color = wood * Mathf.Lerp(0.3f, 1f, groove);
             height = groove * 0.8f + grain * 0.2f;

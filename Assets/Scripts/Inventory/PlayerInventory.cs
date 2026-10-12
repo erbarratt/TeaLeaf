@@ -27,6 +27,12 @@ namespace Inventory
         [SerializeField] private int waterBolts;
         [SerializeField] private int noisemakerBolts;
         [SerializeField] private int ropeBolts;
+        [SerializeField] private int stunBolts;
+        [SerializeField] private int sleepBolts;
+
+        // The most bolts of any one kind the player can carry. The
+        // starting counts above are cut down to it.
+        [SerializeField] private int maxBoltsPerKind = 3;
 
         // How many kinds of tool and bolt there are, counted once from the
         // enums rather than written as numbers that could fall behind.
@@ -68,6 +74,12 @@ namespace Inventory
             _boltCounts[(int)BoltType.Water] = waterBolts;
             _boltCounts[(int)BoltType.Noisemaker] = noisemakerBolts;
             _boltCounts[(int)BoltType.Rope] = ropeBolts;
+            _boltCounts[(int)BoltType.Stun] = stunBolts;
+            _boltCounts[(int)BoltType.Sleep] = sleepBolts;
+
+            for (int i = 0; i < _boltCounts.Length; i++) {
+                _boltCounts[i] = Mathf.Clamp(_boltCounts[i], 0, maxBoltsPerKind);
+            }
         }
 
         private void OnDestroy()
@@ -147,12 +159,29 @@ namespace Inventory
         }
 
         /// <summary>
-        /// Adds bolts of one kind (a pickup in the level, later).
+        /// Adds bolts of one kind (a pickup in the level, later), up to
+        /// the most that can be carried.
         /// </summary>
         public void AddBolts(BoltType bolt, int count)
         {
-            _boltCounts[(int)bolt] += count;
+            _boltCounts[(int)bolt] = Mathf.Min(_boltCounts[(int)bolt] + count, maxBoltsPerKind);
             Changed?.Invoke();
+        }
+
+        /// <summary>
+        /// Adds one bolt of a kind - one picked up off the floor. False,
+        /// and nothing added, if the player already carries the most
+        /// they can of it.
+        /// </summary>
+        public bool TryAddBolt(BoltType bolt)
+        {
+            if (_boltCounts[(int)bolt] >= maxBoltsPerKind) {
+                return false;
+            }
+
+            _boltCounts[(int)bolt]++;
+            Changed?.Invoke();
+            return true;
         }
 
         /// <summary>

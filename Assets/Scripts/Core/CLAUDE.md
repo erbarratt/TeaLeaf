@@ -234,7 +234,7 @@ night. The player's side (`Player.PlayerVisibility`) is in `Scripts/Player/CLAUD
   `flameVisual` object. `Extinguish()` (with an optional `extinguishCue`), `Relight()`,
   `IsLit`, `startsLit`. Self-registering static list; **`Flame.ExtinguishNear(point,
   radius)`** puts out every lit one within the radius (distance checks only) and returns
-  how many - what the water bolt calls. No `Update()`. Not yet tried in the headset.
+  how many - what the water bolt calls. No `Update()`.
 - The Sound Test House has three sources with matching point lights (Hall torch, Kitchen
   torch, Lounge lamp at 0.7); moonlight reaches the Yard and the roofless upper floor; the
   Store is dark behind its closed door.
@@ -245,7 +245,7 @@ What a floor is made of, for footsteps and landings - the player's
 (`Player.PlayerFootsteps`, see `Scripts/Player/CLAUDE.md`), guards' later.
 
 - **`SurfaceType`** (enum) — `Stone`, `Wood`, `Carpet`, `Metal`, `Water`, `Tile`, `Grass`,
-  `Gravel`. `Stone` is first, so it's what anything untagged is: only floors that differ need
+  `Gravel`, `Plaster`. `Stone` is first, so it's what anything untagged is: only floors that differ need
   a tag. **Add new values at the end** - tags and `SurfaceSounds` entries are serialized as
   the number.
 - **`SurfaceTag`** — data-only component holding a `SurfaceType`, on the collider's object or
@@ -253,7 +253,12 @@ What a floor is made of, for footsteps and landings - the player's
   `SurfaceTag.Of(collider)` walks up the hierarchy with `TryGetComponent` and returns `Stone`
   if there is none - called only when a foot comes down, never per frame.
   `SurfaceTag.TryFindBelow(from, distance, layers, out surface)` is the shared floor lookup:
-  one ray straight down (triggers ignored), false on a miss.
+  one ray straight down (triggers ignored), false on a miss. `SurfaceTag.Find(collider)`
+  is the same walk returning the tag itself, or null. **Crossbow bolts:**
+  `SurfaceTag.HoldsBolt(surface)` says which kinds a bolt sticks into - `Wood`, `Carpet`,
+  `Grass`, `Plaster`; it bounces off the rest, so off everything untagged - and the tag's
+  **`supportsRopeBolt`** toggle (off by default) says whether a rope bolt stuck there
+  bears a climber's weight (see the crossbow in `Scripts/Player/CLAUDE.md`).
 - **`SurfaceSounds`** (ScriptableObject, Create > TeaLeaf > Surface Sounds) — one entry per
   surface: a footstep `SoundCue`. `GetFootstep(surface)` indexes a lookup array built on
   first use (rebuilt after an Inspector edit); a surface with no cue uses Stone's.

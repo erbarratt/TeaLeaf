@@ -115,8 +115,8 @@ silently reformat) existing code that doesn't yet match:
   followed by `{` on the next line. Don't unify these to one style.
 - **UI draws after everything else:** in-world UI (hand reticles, the mantle arrow, any
   markers) renders last and on top, never hidden by world geometry or the hands. (Things
-  held in a hand - the pack, the compass - are objects, not markers: they are depth-tested
-  like the hand they sit on.) Build its materials with `OverlayMaterial.Create()` (`Scripts/Core`; the
+  held in or worn on a hand - the pack, the compass - are objects, not markers: they are
+  depth-tested like the hand they sit on.) Build its materials with `OverlayMaterial.Create()` (`Scripts/Core`; the
   project's `TeaLeaf/Overlay` shader - Overlay queue, `ZTest Always`, stereo-safe) rather
   than a depth-tested shader. Built-in shaders can't do this (see `Scripts/Player/CLAUDE.md`).
 - **Debug scripts:** always in a system-specific `Debug` subfolder (`Scripts/Player/Debug`,
@@ -226,7 +226,8 @@ behaviour. The current order is:
    `playerKeys.Tick()` — take the keyring from the pack, put it in a lock, take hold of
    the key (skipped likewise, and if the rig has no `PlayerKeys`). Then
    `playerCrossbow.TickWheel()` — the other hand taking the crossbow's wheel (its ray on
-   the wheel and grip held, like a prop) - and `playerBlackjack.Tick()` — drawing the
+   the wheel and grip held, like a prop), and either hand picking up a bolt its ray is on -
+   and `playerBlackjack.Tick()` — drawing the
    blackjack at the chest (taken by reaching); both skipped likewise, and if the rig has
    no `PlayerCrossbow` / `PlayerBlackjack`.
 4. `playerClimbing.Tick()` — grab/release, zip line slide, climb movement (skipped while
@@ -239,8 +240,7 @@ behaviour. The current order is:
    last of the three, a hand does one of them; skipped if the rig has no `PlayerHandDoors`);
    then `playerCrossbow.Tick()` — the crossbow becoming active or stopping (also skipped
    while mantling; after every grab system, so a grab always wins over it; skipped if the
-   rig has no `PlayerCrossbow`); then `playerCompass.Tick()` — the compass coming out (the
-   same, for a rig with a `PlayerCompass`);
+   rig has no `PlayerCrossbow`);
    then `playerMantling.Tick()` — detects a possible mantle (arrow), starts one on a stick push, or
    advances the one in progress. **While `IsMantling`, the frame stops here**: the mantle has
    already positioned the rig directly (CharacterController disabled), so only `TickState()`,
@@ -285,8 +285,8 @@ behaviour. The current order is:
    but a launch already under way still finishes). Then `playerPack.TickHeld()`, then
    `playerCrossbow.TickHeld(canAim)` — the crossbow's wheel, arc and shot and its bolts in
    flight (bolts keep flying on every path; nothing is aimed or shot when `canAim` is
-   false). Then `playerCompass.TickHeld()` — the compass placed on the hand visual holding
-   it, and put away when that grip is let go (every path). (`TickHeldProps()` runs all of
+   false). Then `playerCompass.Tick()` — the compass placed on the wrist of the hand visual
+   that wears it (every path; skipped if the rig has no `PlayerCompass`). (`TickHeldProps()` runs all of
    8a.)
    8b. `playerHandInteraction.TickReticles()` — after grabs and hand visuals, so a hand that
    grabbed this frame already hides its reticle.
@@ -326,8 +326,9 @@ Player                 [Player layer] CharacterController, PlayerTracking, Playe
       Crossbow Arc           (made at runtime by PlayerCrossbow)
       Blackjack              (made at runtime by PlayerBlackjack; inactive here, moved
                              onto a hand visual while drawn)
-      Compass                (made at runtime by PlayerCompass; placed on a hand visual
-                             each frame while out, never its child)
+      Compass                (made at runtime by PlayerCompass; placed each frame on the
+                             wrist of the hand visual the lockpicks are on, never its
+                             child)
       Left Hand        [PlayerHands] tracked controller - Tracked Pose Driver (Tracking/LeftHand*)
         Left Hand Visual   (hand.fbx instance, Animator)
           Lockpicks        (made at runtime by PlayerLockpicking, on the left hand visual
@@ -342,7 +343,7 @@ Player                 [Player layer] CharacterController, PlayerTracking, Playe
 ```
 
 **A hand does one thing at a time** (climbing, carrying, a door, the lockpicks, the keys,
-holding the pack, the crossbow active or its wheel, the blackjack, the compass):
+holding the pack, the crossbow active or its wheel, the blackjack):
 before a hand system takes a hand it asks `PlayerHandState.IsBusyExcept()` whether another
 has it, rather than checking the other systems itself. A new hand system is added there,
 once - see `Assets/Scripts/Player/CLAUDE.md`.
@@ -427,7 +428,9 @@ fails and restarts. The mechanics:
   up/down cue). No third-party audio package is installed; Steam Audio is the fallback if
   up/down turns out to matter. Detail in `Assets/Scripts/Core/CLAUDE.md`.
 - **Guard AI:** patrol → suspicion → search → chase → catch (no combat). Knockout state;
-  guards react to finding bodies. A first guard is built (`AI.Guard`, patrol and catch seen working, the rest untried): a
+  **a knocked-out guard can always be woken by an awake one** that sees it and walks
+  over. **A guard hit by a bolt that does nothing to it becomes suspicious and searches
+  where it was shot from.** A first guard is built (`AI.Guard`, working in the headset): a
   state machine driven by one detection meter that sight fills (by the player's
   `Visibility`, distance and how much of them shows) and noises add to; it walks on a
   baked NavMesh, looks a few times a second rather than every frame, and ends the level
@@ -439,13 +442,15 @@ fails and restarts. The mechanics:
   (kept across level restarts) stops one repeating until its whole pool has been heard.
   Several guard voices, each with its own pools. Other guards don't react to idle chatter
   (sound only, no noise event); two-guard conversations may come later.
-- **Weapons:** the blackjack and the hand crossbow; there is no weapon menu. **The
+- **Weapons:** the blackjack and the hand crossbow; there is no weapon menu. **Nobody
+  dies, guard or player: every weapon's effect is non-fatal**, and the player is
+  dissuaded from aggression towards the guards. **The
   blackjack is drawn from the chest**: a hand that is empty, close to the chest and has its
   palm towards it draws the blackjack by pressing grip, and holds it while grip is held;
   letting go puts it away (it is not dropped). Either hand. **A swing that brings its head
   against a guard's head knocks the guard out if the guard isn't chasing and the player is
   behind it**; otherwise the guard turns on the player. Built (`PlayerBlackjack`,
-  `AI.Guard.TryKnockOut()`), not yet tried.
+  `AI.Guard.TryKnockOut()`), working in the headset.
   **The crossbow is always mounted on the back of one hand**, as the lockpicks are on the
   other: the right hand for a right-handed player (`PlayerInputXR.IsLeftHanded` swaps the
   two). It becomes active when grip is pressed on that hand while it is empty, its ray is
@@ -454,21 +459,31 @@ fails and restarts. The mechanics:
   much flatter and longer: a bolt's speed comes from a **range** set in the editor (how
   far it carries over level ground at the best angle), worked out once at load. **The
   trigger shoots on the press** (a throw is on the release). It is clockwork: it winds
-  itself, ready again after a short wait. **Three kinds of bolt**, each with its own
+  itself, ready again after a short wait. **Five kinds of bolt**, each with its own
   model and each shot using one from `PlayerInventory`: **water** (blue tip) puts out
   every `Core.Flame` near where it lands; a **noisemaker** makes noise where it lands for
-  a while; a **rope** bolt (shaft wound with rope) that lands in wood hangs a rope to
-  climb. **The kind is chosen by gripping the wheel at the back of the crossbow with the
-  other hand and turning it.** Built (`PlayerCrossbow`), greybox, not yet tried in the
+  a while; a **rope** bolt (shaft wound with rope) hangs a rope to climb from where it
+  sticks; a **stun** bolt (black tip) that hits a guard's head leaves it stunned for 10s,
+  after which it comes round and searches; a **sleep dart** that hits a guard anywhere
+  knocks it out 10s later. **At most three of each kind are carried.** Water and
+  noisemaker bolts are used up where they land. **The rest stick only into surfaces
+  tagged as holding a bolt** (wood, plaster, carpet, grass) **and bounce off everything
+  else**, a guard included - a bounced bolt is a real physics object until it settles.
+  **A stun bolt, or a sleep dart that hit no guard, is picked up again** by pointing at
+  it and gripping: it goes straight back into the inventory, never carried. A rope bolt
+  is never recovered, and its rope only bears weight where the surface's `SurfaceTag`
+  has **Supports Rope Bolt** ticked: elsewhere the bolt still sticks, but pulls out and
+  the rope falls as soon as the player takes hold. **The kind is chosen by gripping the wheel at the back of the crossbow with the
+  other hand and turning it.** Built (`PlayerCrossbow`), greybox, working in the
   headset.
 - **Fires can be put out:** a torch or fire carries a `Core.Flame`, which switches its
   gameplay light, its visible light, its flame and its sound off together.
 - **Chests** (`Interaction.Chest`, `ChestLid`): the same lock kinds as doors (none, simple
   = pickable, keyed), through the same `PickableLock` / `KeyLock`. Once unlocked by any
   means, a hand takes the front of the lid and lifts it open.
-- **The compass** (`PlayerCompass`) is the player's readout; there is no wrist display. A
-  hand that is empty, pointing at nothing it could grab and palm up brings it out by
-  pressing grip, and it stays while grip is held. A disc: a rim fixed to the hand, a dial
+- **The compass** (`PlayerCompass`) is the player's readout, **always worn on the back of
+  the wrist of the hand the lockpicks are on**, a little further up the arm than they
+  are: it is looked at like a watch, takes no input and never makes its hand busy. A disc: a rim fixed to the hand, a dial
   inside it that stays turned to the world with a triangle at each of north, east, south
   and west (**north is world +Z**; its triangle is bigger), a **light gem** in the middle
   showing `PlayerVisibility`, and **an arrow outside the rim for each of the last few
@@ -480,7 +495,7 @@ fails and restarts. The mechanics:
 - **Controls:** left stick moves; right stick turns, up mantles, **down toggles crouch**;
   grip grabs; trigger aims a throw; **A jumps**; **B is the universal cancel** (an aimed
   throw, for now); grip with the palm down brings the crossbow up and the trigger then
-  shoots; grip with the palm up brings the compass out; grip at the chest, palm to the
+  shoots; grip at the chest, palm to the
   chest, draws the blackjack; grip over a shoulder brings the pack out; **a click of the
   left stick toggles sprint**; X, Y, Menu and the right stick's
   click are unassigned.
@@ -502,7 +517,7 @@ fails and restarts. The mechanics:
   lock. All built. **One coin level is worth one gold piece**: a piece of loot is worth
   one, two or three gold, and the pack's gold is shown as a number (TextMeshPro).
   **Handedness** is one setting, `PlayerInputXR.leftHanded`: off, the lockpicks are on
-  the left hand and the crossbow on the right; on, the other way round. The pack and
+  the left hand (the compass with them) and the crossbow on the right; on, the other way round. The pack and
   keyring work in either hand, and the lock puzzle itself is never mirrored. Detail in `Assets/Scripts/Inventory/CLAUDE.md`.
 - **Throwing is both aimed and physical** (both built, in `PlayerHandThrowing` and
   `PlayerHandHolding`). Grip picks an object up. Aimed, for accuracy: holding that hand's
@@ -522,8 +537,19 @@ fails and restarts. The mechanics:
   and the moon, a disc where the Directional Light shines from, its cratered face painted
   into a small texture at level load. A picture only: it lights nothing. Detail in
   `Assets/Scripts/Core/CLAUDE.md`.
-- **Art:** greybox only (ProBuilder/primitives); out of scope: settings/main menu, save/load,
-  final art, combat, fall damage and health.
+- **Art:** the slice is to look like a finished game, not a greybox. **Shapes are
+  storybook-crooked**: half-timbered houses that lean storey by storey, swept roofs with
+  flared eaves, bowed timbers, staggered chimneys. **Surfaces are painted, in the manner
+  of Dishonored**: broad brush dabs, a grimy washed-out palette with cool shadows and warm
+  lights, light painted onto edges. **What the player stands on, holds or opens stays
+  true** - floors flat, ledges and rails level and straight, ladders straight, door hinges
+  upright: the crookedness is in the silhouette. Architecture is built from code by the
+  editor builders (one mesh per material, textures painted in code and saved as PNGs,
+  which can be replaced by sourced ones); organic models (the guard, hands, hero props)
+  come from outside. The Smithy is the first building in the style
+  (`Assets/Scripts/Interaction/CLAUDE.md`); the other test areas, the props and the guard
+  are still greybox. Out of scope: settings/main menu, save/load, combat, fall damage and
+  health.
 
 ### Planned systems
 

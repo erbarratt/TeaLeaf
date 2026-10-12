@@ -6,6 +6,85 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-11 and 12 (five bolt kinds, guards stunned and woken, the compass on the wrist, the Smithy in the art style)
+--------------------------------------------------------------------------------------------------------------------
+- Tried in the headset and working: the blackjack takedown and the
+  bump from behind, a second guard finding a body, the crossbow's
+  wheel and all five bolt kinds, the compass, chests, and the pack in
+  the right hand.
+- Two more bolt kinds, after the rope bolt on the wheel: the stun bolt
+  (black tip) and the sleep dart (half length, green flights).
+  PlayerInventory has stunBolts and sleepBolts, and at most three of
+  any kind are carried. A stun bolt to a guard's head stuns it for
+  10s (Guard.Stun): it stops dead, even in a chase, sees and hears
+  nothing, its head turns violet, and it searches round where it
+  stands when it comes round. A blackjack blow from any side takes a
+  stunned guard down. A sleep dart anywhere on a guard knocks it out
+  10s later (Guard.Sedate); until then it carries on as it was.
+- A guard's head sphere is inside its body capsule, so a bolt's ray
+  always finds the body first: a second ray against the head collider
+  alone (Guard.IsHeadOnLine) says whether the bolt's line runs on
+  through the head.
+- A bolt that does nothing to the guard it hits (water, noisemaker,
+  rope, a stun bolt to the body) makes it suspicious, and it searches
+  where the bolt was shot from (Guard.HitByBolt). A chasing, stunned or
+  knocked-out guard ignores it.
+- A knocked-out guard can always be woken: a guard that sees the body
+  walks to it, stands over it for wakeTime (3s), and the body gets up
+  and searches round where it lay. One guard goes to a body at a time.
+  A body is still only seen lying in enough light.
+- Where a bolt lands. Water and noisemaker bolts are used up on
+  whatever they hit. Stun, sleep and rope bolts stick only into static
+  geometry whose SurfaceTag is a kind that holds a bolt (Wood, Carpet,
+  Grass and the new Plaster type; untagged is Stone, so nothing holds
+  a bolt unless it is tagged) and bounce off everything else, a guard
+  included.
+- A bolt that bounces is a real physics object for as long as it
+  takes to settle (CrossbowBolt, a component on each pooled bolt): a
+  Rigidbody leaving at 0.8 m/s level, straight back the way it came,
+  turning end over end. At rest it is kinematic with its solid
+  collider off, so it touches nothing.
+- A stun bolt at rest, and a sleep dart that hit no guard, are picked
+  up by pointing at them and gripping: straight back into the
+  inventory, never carried.
+- SurfaceTag has a Supports Rope Bolt toggle. A rope bolt sticks into
+  anything that holds a bolt, and its rope bears weight only where the
+  toggle is on; elsewhere the bolt pulls out and the rope falls the
+  moment a hand takes hold (PlayerClimbing.Release(climbable)).
+- The compass is always worn, on the back of the wrist of the hand the
+  lockpicks are on, a little further up the arm. It takes no input and
+  never makes its hand busy, so it is not a HandUse and has one Tick().
+- The art style, and the Smithy as the first building in it: shapes
+  storybook-crooked, surfaces painted in the manner of Dishonored,
+  and whatever is stood on, held or opened kept true. The Smithy is
+  written square and upright and pushed out of true by a warp
+  (BuildingMesh.Warp): a lean and a twist per height that never change
+  a height and move everything at one height alike, so floors, rails,
+  sills and ridges stay level. Swept roofs with flared eaves, gables
+  as pointed arches, wandering and bowed timber, a chimney stacked
+  askew. The five textures are repainted as brush dabs in shadow,
+  middle and light tones (TeaLeaf > Repaint Smithy Textures).
+- Bug: a bounced bolt fell far too slowly and didn't tumble. Its heavy
+  "landed" damping came on at its first touch of anything, and a bolt
+  starts its tumble touching what it bounced off. Fixed: the damping
+  comes on only at a touch on an upward-facing surface.
+- Bug: a bounced bolt moved jerkily. Its Rigidbody wasn't on
+  Interpolate (physics steps at 50Hz, the headset draws faster).
+  Fixed: Interpolate while tumbling, None at rest.
+- Bug: a hand on a rope bolt's rope was turned differently from a hand
+  on a placed rope. PlayerCrossbow's ropeProfile was empty in the
+  scene, so its ropes used the bare grip frame without the RopeGrip
+  profile's offsets. Fixed: the scene's crossbow has RopeGrip.asset,
+  and TeaLeaf > Add Hand Tools To Player sets it when it is empty. Not
+  yet checked in the headset.
+- Learned: a component made from code has none of the asset
+  references a placed one gets in the Inspector. Anything it needs
+  from an asset has to be handed to it, and an empty hand-over fails
+  quietly as a fallback that looks nearly right.
+- Learned: a rule keyed on "the first collision" is wrong for anything
+  that starts out touching what it has just hit.
+
+
 2026-10-10, seventh part (the blackjack's chest box, guards and what is behind them)
 -----------------------------------------------------------------------------------
 - The blackjack is drawn inside a box at the chest

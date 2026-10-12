@@ -22,6 +22,8 @@ namespace Interaction
     /// Matrix moves and turns everything added after it's set, so a part
     /// (a wall, a ladder) can be written in its own simple coordinates.
     /// Texture coordinates are worked out before the matrix is applied.
+    /// Warp then pushes every point out of true, so a building written
+    /// square and upright comes out leaning.
     ///
     /// Faces are flat-shaded: no points are shared between faces, so every
     /// edge is a hard one. In an Editor folder, so never in a build.
@@ -43,6 +45,15 @@ namespace Interaction
         /// </summary>
         public Matrix4x4 Matrix { get; set; } = Matrix4x4.identity;
 
+        /// <summary>
+        /// Pushes the building out of true: every point is passed through
+        /// this after Matrix has placed it, and goes where it returns.
+        /// Null (the default) leaves points where they are. Texture
+        /// coordinates are worked out before it, so a texture leans with
+        /// its wall instead of sliding across it.
+        /// </summary>
+        public System.Func<Vector3, Vector3> Warp { get; set; }
+
         public bool IsEmpty => _vertices.Count == 0;
 
         public BuildingMesh(float tileSize)
@@ -59,6 +70,29 @@ namespace Interaction
         /// </summary>
         public void Polygon(Vector3 normal, Vector3 uAxis, Vector3 vAxis, params Vector3[] points)
         {
+            AddFace(normal, uAxis, vAxis, points, null);
+        }
+
+        /// <summary>
+        /// A Polygon() whose texture coordinates are given rather than
+        /// worked out: one per corner, in metres (they are divided by the
+        /// tile size here). For a surface that curves, where the texture
+        /// has to follow the curve - a swept roof's tiles are placed by
+        /// how far down the curve they are, not by where they are in
+        /// space. uAxis and vAxis still say which way the texture runs,
+        /// for the normal map.
+        /// </summary>
+        public void MappedPolygon(Vector3 normal, Vector3 uAxis, Vector3 vAxis, Vector3[] points, Vector2[] metres)
+        {
+            AddFace(normal, uAxis, vAxis, points, metres);
+        }
+
+        /// <summary>
+        /// Adds one face: what Polygon() and MappedPolygon() share.
+        /// metres is null for texture coordinates taken from the axes.
+        /// </summary>
+        private void AddFace(Vector3 normal, Vector3 uAxis, Vector3 vAxis, Vector3[] points, Vector2[] metres)
+        {
             int first = _vertices.Count;
 
             Vector3 worldNormal = Matrix.MultiplyVector(normal).normalized;
@@ -70,10 +104,38 @@ namespace Interaction
             Vector4 tangent = new(worldTangent.x, worldTangent.y, worldTangent.z, handedness);
 
             for (int i = 0; i < points.Length; i++) {
-                _vertices.Add(Matrix.MultiplyPoint3x4(points[i]));
-                _normals.Add(worldNormal);
+                Vector3 placed = Matrix.MultiplyPoint3x4(points[i]);
+                _vertices.Add(Warp != null ? Warp(placed) : placed);
                 _tangents.Add(tangent);
-                _uvs.Add(new Vector2(Vector3.Dot(points[i], uAxis), Vector3.Dot(points[i], vAxis)) / _tileSize);
+
+                Vector2 uv = metres != null
+                    ? metres[i]
+                    : new Vector2(Vector3.Dot(points[i], uAxis), Vector3.Dot(points[i], vAxis));
+                _uvs.Add(uv / _tileSize);
+            }
+
+            // A warped face no longer faces quite the way it was asked
+            // to, so its normal is measured from where its corners ended
+            // up: adding the cross product of each pair of neighbouring
+            // corners gives a vector square to the face (Newell's
+            // method), which works for any number of corners.
+            if (Warp != null) {
+                Vector3 measured = Vector3.zero;
+
+                for (int i = 0; i < points.Length; i++) {
+                    Vector3 a = _vertices[first + i];
+                    Vector3 b = _vertices[first + (i + 1) % points.Length];
+                    measured += Vector3.Cross(a, b);
+                }
+
+                if (measured.sqrMagnitude > 1e-12f) {
+                    measured.Normalize();
+                    worldNormal = Vector3.Dot(measured, worldNormal) < 0f ? -measured : measured;
+                }
+            }
+
+            for (int i = 0; i < points.Length; i++) {
+                _normals.Add(worldNormal);
             }
 
             // Unity draws the side of a triangle its corners go clockwise
@@ -138,6 +200,83 @@ namespace Interaction
             Vector3 across = Vector3.Cross(depthAxis, along).normalized;
 
             OrientedBox((from + to) * 0.5f, along, across, depthAxis, new Vector3(length, width, depth));
+        }
+
+        /// <summary>
+        /// A beam that bows: like Beam(), but its middle is pushed bow
+        /// metres sideways (square to both the beam and depthAxis; a
+        /// negative bow goes the other way), in a smooth curve cut into
+        /// pieces straight lengths. For hand-hewn timber that was never
+        /// straight.
+        /// </summary>
+        public void BentBeam(Vector3 from, Vector3 to, float width, float depth, Vector3 depthAxis, float bow, int pieces = 4)
+        {
+            Vector3 along = to - from;
+            float length = along.magnitude;
+
+            if (length < 0.0001f) {
+                return;
+            }
+
+            Vector3 across = Vector3.Cross(depthAxis, along / length).normalized;
+            Vector3[] centres = new Vector3[pieces + 1];
+
+            for (int i = 0; i <= pieces; i++) {
+                float t = i / (float)pieces;
+
+                // 4t(1 - t) is 0 at both ends and 1 in the middle.
+                centres[i] = Vector3.Lerp(from, to, t) + across * (bow * 4f * t * (1f - t));
+            }
+
+            PolyBeam(centres, width, depth, depthAxis);
+        }
+
+        /// <summary>
+        /// A beam that follows a line of points, each straight piece
+        /// meeting the next in a clean corner (the cut between two pieces
+        /// is square to the average of their directions), so nothing
+        /// overlaps and nothing gapes. Every piece must be square to
+        /// depthAxis, as for Beam().
+        /// </summary>
+        public void PolyBeam(Vector3[] centres, float width, float depth, Vector3 depthAxis)
+        {
+            int count = centres.Length;
+
+            if (count < 2) {
+                return;
+            }
+
+            Vector3 half = depthAxis * (depth * 0.5f);
+            Vector3[] left = new Vector3[count];
+            Vector3[] right = new Vector3[count];
+
+            for (int i = 0; i < count; i++) {
+                // The line's direction here: from the point before to
+                // the point after (or just the one piece, at an end).
+                Vector3 direction = (centres[Mathf.Min(i + 1, count - 1)] - centres[Mathf.Max(i - 1, 0)]).normalized;
+                Vector3 side = Vector3.Cross(depthAxis, direction).normalized * (width * 0.5f);
+
+                left[i] = centres[i] - side;
+                right[i] = centres[i] + side;
+            }
+
+            for (int i = 0; i < count - 1; i++) {
+                Vector3 run = (centres[i + 1] - centres[i]).normalized;
+                Vector3 sideways = Vector3.Cross(depthAxis, run).normalized;
+
+                Polygon(depthAxis, run, sideways, left[i] + half, left[i + 1] + half, right[i + 1] + half, right[i] + half);
+                Polygon(-depthAxis, run, sideways, left[i] - half, left[i + 1] - half, right[i + 1] - half, right[i] - half);
+                Polygon(-sideways, run, depthAxis, left[i] - half, left[i + 1] - half, left[i + 1] + half, left[i] + half);
+                Polygon(sideways, run, depthAxis, right[i] - half, right[i + 1] - half, right[i + 1] + half, right[i] + half);
+            }
+
+            // The two cut ends.
+            Vector3 startRun = (centres[1] - centres[0]).normalized;
+            Vector3 endRun = (centres[count - 1] - centres[count - 2]).normalized;
+            int last = count - 1;
+
+            Polygon(-startRun, Vector3.Cross(depthAxis, startRun).normalized, depthAxis, left[0] - half, left[0] + half, right[0] + half, right[0] - half);
+            Polygon(endRun, Vector3.Cross(depthAxis, endRun).normalized, depthAxis, left[last] - half, left[last] + half, right[last] + half, right[last] - half);
         }
 
         /// <summary>

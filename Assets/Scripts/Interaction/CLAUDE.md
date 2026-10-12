@@ -341,7 +341,7 @@ the lock's face seen from the player's side, in degrees clockwise from 12.**
 - **Not built / stand-ins:** the "lockpick hold" finger pose (`LockpickHold` is a copy of
   `RopeGrip`); real sounds.
 
-## Chests (not yet tried in the headset)
+## Chests
 
 A chest has a lock like a door's - none, simple (picked) or keyed - through the same
 `PickableLock` / `KeyLock`, given the chest instead of a door. Locked, the lid won't move;
@@ -380,8 +380,8 @@ unlocked by any means, a hand takes the front of the lid and lifts. The player's
 ## Smithy building
 
 Menu **TeaLeaf > Build Smithy**: a half-timbered blacksmith's house, 10m ahead of the main
-camera, front towards it. A building made as a game asset rather than greybox cubes. Three
-files in `Interaction/Debug/Editor`:
+camera, front towards it. The first building in the game's art style (root `CLAUDE.md`,
+"Art") and the pattern for the rest. Three files in `Interaction/Debug/Editor`:
 
 - **`BuildingMesh`** — collects flat faces into one mesh per material. `Polygon(normal,
   uAxis, vAxis, points)` is the base: UV = the point's distance along the two axes in
@@ -391,25 +391,53 @@ files in `Interaction/Debug/Editor`:
   depthAxis)` (grain along its length), `Prism` (a convex outline pushed through a
   thickness), `Cylinder` (flat-sided, with an outline of heights and radii). `Matrix`
   places everything added next (UVs are taken before it). Flat-shaded. `WriteTo(mesh)`.
+  **For the crooked style:** `Warp` (a `Func<Vector3, Vector3>`, null = off) moves every
+  point after `Matrix`; UVs are taken before it and a warped face's normal is measured from
+  its warped corners. `PolyBeam(centres, width, depth, depthAxis)` is a beam along a line
+  of points with mitred joints; `BentBeam(from, to, width, depth, depthAxis, bow)` a beam
+  bowed sideways by `bow` at its middle (built on `PolyBeam`). `MappedPolygon(...)` is a
+  `Polygon` with its texture coordinates given in metres, for curved surfaces.
 - **`SmithyTextures`** — paints five tiling 512 textures in code (wrapping value noise) and
-  saves them as PNGs in `Assets/Art/Textures/Smithy`: plaster (blotches, stains, hairline
-  cracks), timber (grain along u), stone (six courses of uneven blocks, moss), roof tiles
-  (8 rows of 10; **v runs down the roof**), planks (six across u). Stone, tiles and planks
+  saves them as PNGs in `Assets/Art/Textures/Smithy`: plaster (dabs, grime, hairline
+  cracks), timber (strokes and grain along u), stone (six courses of uneven blocks, moss),
+  roof tiles (8 rows of 10, the odd slate one; **v runs down the roof**), planks (six
+  across u). **Painted look:** `Dabs()` (a wrapping Voronoi pattern: flat patches of tone,
+  stretched into strokes by unequal cell counts), `Brushed()` (two sizes of dabs, looked up
+  through a noise nudge so their edges bend) and `Tone()` (shadow / middle / light paints:
+  cool shadows, warm lights); stones, tiles and planks have a lighter top edge and darker
+  foot painted in. Stone, tiles and planks
   also get a normal map from a painted height; plaster and timber don't. Materials in
   `Assets/Art/Materials/Smithy`: URP **Simple Lit**, highlights off; iron is a colour with a
   dull shine. **Assets are only made if missing** - delete one to remake it; hand edits are
-  kept. `…TileSize` constants are the metres one repeat covers.
+  kept. **TeaLeaf > Repaint Smithy Textures** paints the five PNGs again over the old ones
+  (materials kept). `…TileSize` constants are the metres one repeat covers.
 - **`SmithyBuilding`** — the building. **Six materials, one mesh each** (saved in
   `Assets/Art/Models/Smithy`, overwritten by a rebuild): six draw calls. Each part object
   is Static, on Environment, with a non-convex `MeshCollider` of the same mesh and a
-  `SurfaceTag` (wood, tile, metal). Stone ground floor (6 x 5m, 0.4m walls, forge arch
+  `SurfaceTag` (wood, tile, metal, plaster; none with `supportsRopeBolt` ticked). Stone ground floor (6 x 5m, 0.4m walls, forge arch
   with hearth, open doorway, barred window, buttress); upper floor jettied 0.3m at front
-  and sides, timber-framed plaster with a window in each wall; 48° tiled roof, ridge along
-  X, with a cross gable over the front left; ridge caps; chimney; a 12° lean-to awning over
-  the forge; barrels, anvil, workbench, tool rail. **Hollow**: ground room, an inside ladder
+  and sides, timber-framed plaster with a window in each wall; tiled roof (48° on average),
+  ridge along X, with a cross gable over the front left; ridge caps; chimney; a 12° lean-to
+  awning over the forge; barrels, anvil, workbench, tool rail. **Hollow**: ground room, an inside ladder
   through a floor hatch, upper room with open windows; the attic is closed. Where roof
   slopes cross, nothing is trimmed - the hidden parts overlap inside. Beams of different
   kinds stand different distances proud so overlapping ones never share a face.
+  **Crooked, with the gameplay surfaces true:** the building is written square and upright
+  and `Warp()` pushes it out of true - per height, a sideways lean and a twist about the
+  building's middle, blended between the entries of `_warpHeights` / `_warpLean` /
+  `_warpTwist` (the ground fixed, the floor slab moved in one piece). **The warp never
+  changes a height and moves everything at one height alike**, so floors, rails, sills and
+  ridges stay level, flat and straight and only walls and posts lean. `Ledge()` warps each
+  edge's lip and adds the twist to its yaw; `BuildLadder()` warps a ladder's two ends and
+  builds a straight ladder between them with the warp off (its mantle landing is warped
+  and converted to the ladder's own space). Keep to this for anything new that is stood on
+  or held. Roof slopes are swept (`RoofRun()` / `RoofSection()`: steeper at the ridge,
+  flared eaves; `RoofBow`, `EaveReach`, `RoofPieces` strips, tiles mapped by distance down
+  the curve) and the gables are pointed arches of level bands that follow the same curve;
+  the awning is a flat slab. Studs wander and bow (`Jitter()`, seeded by `CrookedSeed`, so
+  a rebuild is identical), braces and corner posts bow, rafters follow the sweep, the
+  chimney is four blocks stacked askew with two pots. Rails and plates (the ledges) are
+  straight boxes.
   **Climbables** (under `Climbables`; edges through `TestGeometry.Edge()` with
   `TightOverhang`): per upper wall the jetty beam, sill rail (split round the window) and
   head rail (grab only) and the window's sill (two-sided, mantled into crouched); the

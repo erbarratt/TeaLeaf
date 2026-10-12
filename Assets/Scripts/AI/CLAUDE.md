@@ -4,13 +4,13 @@ Detail for the guards. The root `CLAUDE.md` holds the project rules, the physics
 the slice design; this file is loaded when working in this folder. Keep it up to date with
 every change to these systems, like the root file.
 
-Phase 6 of `Assets/DEVROADMAP.txt`. **Built and set up in the scene; patrolling and catching seen in the headset, the rest not yet
-tried**: a guard that patrols, sees, hears, becomes suspicious, searches, chases, catches,
+Phase 6 of `Assets/DEVROADMAP.txt`. **Built, set up in the scene and working in the headset**: a guard that patrols, sees, hears, becomes suspicious, searches, chases, catches,
 notices bodies and can be knocked out. Every number is a first guess.
 
 ## The guard
 
-- **`GuardState`** (enum) — `Patrol`, `Suspicious`, `Search`, `Chase`, `KnockedOut`.
+- **`GuardState`** (enum) — `Patrol`, `Suspicious`, `Search`, `Chase`, `Stunned`,
+  `KnockedOut`. **Nothing kills a guard**: every weapon stuns or knocks out.
 - **`Guard`** (on the guard's root, `[RequireComponent(NavMeshAgent)]`; `INoiseListener`,
   `IDebugDrawable`) — the whole guard: an explicit state machine (a switch on `State`),
   its senses and its sounds. **It has its own `Update()`**: guards aren't part of the
@@ -62,24 +62,53 @@ notices bodies and can be knocked out. Every number is a first guess.
     look while they are seen, not per frame. **Caught** = seen, within `catchRange` (1.1m,
     level) and on the same floor: `LevelManager.Caught()`. Unseen for `chaseLostTime` (4s)
     it searches from where it last saw them.
+  - **Bolts** (called by `Player.PlayerCrossbow`, which holds the two times). `Guard.FindByBody(collider)` (a static dictionary) is how a bolt finds the
+    guard whose body it hit. **`IsHeadOnLine(from, direction, distance)`** - one
+    `Collider.Raycast` against the head collider alone: the head sphere is inside the
+    body capsule, so a bolt's ray always finds the body first, and this asks whether its
+    line runs on through the head. **`Stun(seconds)`**: from any state but knocked out,
+    a chase included - `Stunned`: the agent stopped dead, no looking (so no sight, bump or
+    body finding), noises ignored, no footsteps; a second stun starts the wait again.
+    When it runs out (`TickStunned()`) the meter goes to `investigateThreshold` and the
+    guard **searches round where it stands** (it doesn't know where the bolt came from),
+    with the look timer started afresh. **`Sedate(seconds)`** (a sleep dart): not a
+    state - a timer counted down at the top of `Update()` whatever the guard is doing,
+    stunned included, and `KnockOut()` when it runs out; the guard doesn't notice the
+    dart, and a second dart doesn't restart the wait. **`HitByBolt(shotFrom)`** - any
+    other bolt that hits a guard (water, noisemaker, rope, a stun bolt to the body): the
+    meter goes up to `investigateThreshold` and where the bolt was shot from becomes the
+    stimulus - on patrol it becomes Suspicious (which, with the meter that high, ends in
+    a search there), in a search the search moves there; nothing to a guard chasing,
+    stunned or down.
   - **Knocking out:** `TryKnockOut(attackerPosition)` (called by `Player.PlayerBlackjack`)
-    - the guard goes down only if it isn't chasing and the attacker is behind it (the dot
+    - the guard goes down if it is stunned (from any side), or if it isn't chasing and
+    the attacker is behind it (the dot
     product of its facing and the level direction from attacker to guard is at least
     `behindDot` 0.2); otherwise it turns on them (Chase). `KnockOut()`: agent off, both
     colliders off, the `visual` laid flat, the component disabled (so no more looking,
-    hearing or `Update()`). It stays down. `Guard.FindByHead(collider)` (a static
+    hearing or `Update()`). It stays down until another guard wakes it. `Guard.FindByHead(collider)` (a static
     dictionary) is how the blackjack finds the guard a head collider belongs to.
   - **Bodies:** in each look, a knocked-out guard that is in view and lying in at least
-    `bodyLightThreshold` (0.15) of light (`Core.SceneLight.LevelAt()`) is found once: the
-    finder barks and searches there, and every guard's searches are longer from then on
-    (a static flag, cleared when the scene's last guard is destroyed).
+    `bodyLightThreshold` (0.15) of light (`Core.SceneLight.LevelAt()`) is found: the
+    finder barks and goes to it (a Search whose first place is the body), and every
+    guard's searches are longer from then on (a static flag, cleared when the scene's
+    last guard is destroyed). **A knocked-out guard can always be woken by one that is
+    awake**, however it was knocked out: arrived within `WakeReach`
+    (1.5m), the finder faces it for `wakeTime` (3s, `TickWaking()`), then `WakeUp()`
+    undoes `KnockOut()` - component, agent and colliders back on, the `visual` stood up
+    at the pose saved in `Awake()`, senses started afresh - and the woken guard searches
+    round where it lay; the finder carries on with its own search. One guard goes to a
+    body at a time: the body's `_isBodyFound` is the claim, given up
+    (`DropWakeTarget()`, in `SetState()` and `BeginSearchAt()`) whenever the finder
+    changes state or its search moves elsewhere, so the body can be found again. A body
+    the finder can't walk to within reach stays claimed and is never woken.
   - **Sounds:** footsteps through `Core.SurfaceSounds.PlayStep()` on the floor under it,
     one per `walkStride` (1.4m) or `runStride` (1.8m), **sound only** (noise scale 0).
     Barks (`suspiciousBark`, `searchBark`, `gaveUpBark`, `spottedBark`, `foundBodyBark`)
     played from the head, sound only. Both show on the player's compass.
   - **State tint:** `stateRenderer` (the head, on the test guard) is tinted by state
     through a property block, on a change only - grey patrol, yellow suspicious, orange
-    search, red chase, dark knocked out - until there are animations.
+    search, red chase, violet stunned, dark knocked out - until there are animations.
   - **The level ending** (`LevelManager.State` not `Playing`) stops it where it is.
   - Gizmo: the view cone's edges in the state's colour and a line above the head as long
     as the meter is full; selected, the close range and a line to the stimulus.
@@ -130,5 +159,5 @@ notices bodies and can be knocked out. Every number is a first guess.
 Dragging and hiding a knocked-out guard; voice lines that don't repeat (the barks are one
 placeholder grunt cue), idle chatter and several voices; a humanoid model and animations;
 doors on the NavMesh and guards opening them; guards thinking less often when far from the
-player beyond the sight cut-off; any reaction to a fire going out or to a bolt hitting
-them; guards telling each other anything.
+player beyond the sight cut-off; any reaction to a fire going out, or to a
+sleep dart before it works; anything to show a guard has a dart in it; guards telling each other anything.

@@ -11,7 +11,7 @@ namespace AI
     /// sound, and goes after them. There is no fighting - a guard that
     /// reaches the player has caught them, and the level restarts.
     ///
-    /// Everything it does is one of five states (GuardState), and the
+    /// Everything it does is one of six states (GuardState), and the
     /// whole behaviour is a switch on that:
     /// - Patrol: walks its PatrolRoute, or stands at its post.
     /// - Suspicious: stops and turns towards what it half saw or heard.
@@ -22,7 +22,14 @@ namespace AI
     /// - Chase: has seen the player and runs at them; close enough, the
     ///   player is caught. If it loses them for long enough it searches
     ///   where it last saw them.
-    /// - KnockedOut: down, for good.
+    /// - Stunned: hit on the head by a stun bolt. It stands where it is,
+    ///   seeing and hearing nothing, and when it comes round it searches.
+    /// - KnockedOut: down, until another guard sees it lying there,
+    ///   walks over and wakes it.
+    ///
+    /// Nothing kills a guard. A sleep dart is not a state: the guard
+    /// carries on with whatever it was doing, and a timer knocks it out
+    /// when it runs down.
     ///
     /// What moves it between them is one number, the detection meter
     /// (0-1). Seeing the player fills it - faster the better lit they
@@ -168,6 +175,9 @@ namespace AI
         // another guard.
         [SerializeField] private float bodyLightThreshold = 0.15f;
 
+        // Seconds a guard spends over a knocked-out guard to wake it.
+        [SerializeField] private float wakeTime = 3f;
+
         [Header("Sounds")]
 
         // Its footsteps, by the floor it's on. Optional (empty = silent).
@@ -206,21 +216,28 @@ namespace AI
         // be caught, in metres (not through a floor).
         private const float CatchHeight = 1.5f;
 
+        // How near a guard must get to a knocked-out guard to wake it,
+        // in metres, level.
+        private const float WakeReach = 1.5f;
+
         private static readonly int _baseColorId = Shader.PropertyToID("_BaseColor");
 
         private static readonly Color _patrolColor = new(0.45f, 0.5f, 0.6f, 1f);
         private static readonly Color _suspiciousColor = new(1f, 0.9f, 0.2f, 1f);
         private static readonly Color _searchColor = new(1f, 0.55f, 0.1f, 1f);
         private static readonly Color _chaseColor = new(1f, 0.15f, 0.1f, 1f);
+        private static readonly Color _stunnedColor = new(0.7f, 0.3f, 1f, 1f);
         private static readonly Color _knockedOutColor = new(0.15f, 0.15f, 0.18f, 1f);
 
         // Every guard in the scene, knocked out or not; each by its root
-        // object (to tell a guard's own sounds from the player's) and by
-        // its head collider (for the blackjack). They add and remove
-        // themselves, so nothing searches the scene.
+        // object (to tell a guard's own sounds from the player's), by
+        // its head collider (for the blackjack) and by its body collider
+        // (for bolts). They add and remove themselves, so nothing
+        // searches the scene.
         private static readonly List<Guard> _all = new();
         private static readonly Dictionary<Transform, Guard> _byRoot = new();
         private static readonly Dictionary<Collider, Guard> _byHead = new();
+        private static readonly Dictionary<Collider, Guard> _byBody = new();
 
         // True once any guard has found a body: every search is longer.
         private static bool _isAlerted;
@@ -267,6 +284,13 @@ namespace AI
         // Chase: seconds since the player was last seen.
         private float _lostTimer;
 
+        // Stunned: seconds until it comes round.
+        private float _stunTimer;
+
+        // A sleep dart: seconds until it knocks the guard out. 0 = none
+        // in it.
+        private float _sleepTimer;
+
         // Footsteps: where it was last frame, the distance walked since
         // the last step, the last surface found, and its heel-and-toe
         // pattern.
@@ -275,8 +299,19 @@ namespace AI
         private SurfaceType _lastSurface;
         private HeelAndToeCadence _cadence;
 
-        // True once this body has been found by another guard.
+        // True while another guard is on its way to wake this body, so
+        // no second guard sets off for it.
         private bool _isBodyFound;
+
+        // The knocked-out guard this one is going to wake, and seconds
+        // left over it once there.
+        private Guard _wakeTarget;
+        private float _wakeTimer;
+
+        // How the drawn parts sat before it was laid down, to stand it
+        // up again.
+        private Vector3 _visualPosition;
+        private Quaternion _visualRotation;
 
         /// What it's doing.
         public GuardState State { get; private set; } = GuardState.Patrol;
@@ -296,6 +331,15 @@ namespace AI
         public static Guard FindByHead(Collider collider)
         {
             return _byHead.TryGetValue(collider, out Guard guard) ? guard : null;
+        }
+
+        /// <summary>
+        /// The guard whose body a collider is, or null - for bolts, whose
+        /// rays find the body. A dictionary lookup, no GetComponent.
+        /// </summary>
+        public static Guard FindByBody(Collider collider)
+        {
+            return _byBody.TryGetValue(collider, out Guard guard) ? guard : null;
         }
 
         /// <summary>
@@ -332,6 +376,10 @@ namespace AI
             _postRotation = transform.rotation;
             _lastPosition = transform.position;
 
+            if (visual != null) {
+                visual.GetLocalPositionAndRotation(out _visualPosition, out _visualRotation);
+            }
+
             // Each guard starts its looking at a different moment, so
             // they never all look in the same frame.
             _lookTimer = Random.Range(0f, lookInterval);
@@ -342,6 +390,10 @@ namespace AI
 
             if (headCollider != null) {
                 _byHead[headCollider] = this;
+            }
+
+            if (bodyCollider != null) {
+                _byBody[bodyCollider] = this;
             }
         }
 
@@ -375,6 +427,10 @@ namespace AI
                 _byHead.Remove(headCollider);
             }
 
+            if (bodyCollider != null) {
+                _byBody.Remove(bodyCollider);
+            }
+
             // The last guard of a scene going puts the alert back, so a
             // restarted level starts calm.
             if (_all.Count == 0) {
@@ -394,6 +450,23 @@ namespace AI
             }
 
             float deltaTime = Time.deltaTime;
+
+            // A sleep dart works whatever the guard is doing, stunned
+            // included.
+            if (_sleepTimer > 0f) {
+                _sleepTimer -= deltaTime;
+
+                if (_sleepTimer <= 0f) {
+                    KnockOut();
+                    return;
+                }
+            }
+
+            // Stunned: no looking, no walking, only the wait.
+            if (State == GuardState.Stunned) {
+                TickStunned(deltaTime);
+                return;
+            }
 
             _lookTimer -= deltaTime;
 
@@ -566,7 +639,7 @@ namespace AI
 
         /// <summary>
         /// Notices a knocked-out guard lying in view and in enough light:
-        /// goes to search there, and from then on every guard searches
+        /// goes to it to wake it, and from then on every guard searches
         /// for longer.
         /// </summary>
         private void LookForBodies(Vector3 eyePosition)
@@ -591,6 +664,11 @@ namespace AI
 
                 Bark(foundBodyBark);
                 EnterSearch(false);
+
+                // Set after the search has begun: beginning one drops
+                // whichever body it was going to before.
+                _wakeTarget = other;
+                _wakeTimer = wakeTime;
                 return;
             }
         }
@@ -601,11 +679,11 @@ namespace AI
         /// A noise has reached this guard (NoiseSystem): it adds to the
         /// meter by how loud it was here, and is somewhere to look.
         /// Another guard's noises are ignored, and so is everything
-        /// during a chase.
+        /// during a chase or while stunned.
         /// </summary>
         public void OnNoiseHeard(in Noise noise, float loudness, Vector3 heardFrom)
         {
-            if (State == GuardState.Chase || State == GuardState.KnockedOut) {
+            if (State == GuardState.Chase || State == GuardState.Stunned || State == GuardState.KnockedOut) {
                 return;
             }
 
@@ -767,6 +845,7 @@ namespace AI
         /// </summary>
         private void BeginSearchAt(Vector3 place)
         {
+            DropWakeTarget();
             _searchOrigin = place;
             _searchPointsDone = 0;
             _isLookingAbout = false;
@@ -783,6 +862,11 @@ namespace AI
             }
 
             if (!HasArrived()) {
+                return;
+            }
+
+            // At a knocked-out guard: wakes it before anything else.
+            if (_wakeTarget != null && TickWaking(deltaTime)) {
                 return;
             }
 
@@ -816,6 +900,51 @@ namespace AI
 
             if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, SampleDistance, NavMesh.AllAreas)) {
                 GoTo(hit.position);
+            }
+        }
+
+        /// <summary>
+        /// Standing over the knocked-out guard it came for: after the
+        /// wake time, that guard gets up. Returns whether it is still
+        /// busy with it.
+        /// </summary>
+        private bool TickWaking(float deltaTime)
+        {
+            Guard body = _wakeTarget;
+            Vector3 toBody = body.transform.position - transform.position;
+            toBody.y = 0f;
+
+            // As near as it can get and still out of reach (the body is
+            // somewhere it can't walk to): it gives the body up. The
+            // body stays marked as found, or every guard that saw it
+            // would set off for it again at each look.
+            if (toBody.sqrMagnitude > WakeReach * WakeReach) {
+                _wakeTarget = null;
+                return false;
+            }
+
+            FaceTowards(body.transform.position, deltaTime);
+            _wakeTimer -= deltaTime;
+
+            if (_wakeTimer > 0f) {
+                return true;
+            }
+
+            _wakeTarget = null;
+            body.WakeUp();
+            return false;
+        }
+
+        /// <summary>
+        /// Gives up the body it was going to wake, if any, leaving it
+        /// for any guard to find again. Called on every change of state
+        /// and whenever a search moves somewhere else.
+        /// </summary>
+        private void DropWakeTarget()
+        {
+            if (_wakeTarget != null) {
+                _wakeTarget._isBodyFound = false;
+                _wakeTarget = null;
             }
         }
 
@@ -878,13 +1007,115 @@ namespace AI
             }
         }
 
+        // ---- Bolts -------------------------------------------------------
+
+        /// <summary>
+        /// Whether a line passes through this guard's head: one ray
+        /// tested against the head's collider alone. The head is inside
+        /// the body's capsule, so a bolt's own ray always finds the body
+        /// first; this asks whether it was on its way through the head.
+        /// </summary>
+        public bool IsHeadOnLine(Vector3 from, Vector3 direction, float distance)
+        {
+            return headCollider != null && headCollider.Raycast(new Ray(from, direction), out _, distance);
+        }
+
+        /// <summary>
+        /// Hit by a bolt that does nothing to it (water, a noisemaker,
+        /// a rope bolt, a stun bolt to the body): it knows it was shot
+        /// at and roughly where from. On patrol it stops and turns that
+        /// way, then goes to search there; already searching, the search
+        /// moves there. Nothing new to a guard that is chasing, stunned
+        /// or down.
+        /// </summary>
+        public void HitByBolt(Vector3 shotFrom)
+        {
+            if (State == GuardState.Chase || State == GuardState.Stunned || State == GuardState.KnockedOut) {
+                return;
+            }
+
+            _stimulus = shotFrom;
+            Detection = Mathf.Max(Detection, investigateThreshold);
+
+            switch (State) {
+                case GuardState.Patrol:
+                    // The meter is high enough that the suspicion ends
+                    // in a search, not a shrug.
+                    EnterSuspicious();
+                    break;
+
+                case GuardState.Suspicious:
+                    _peakMeter = Mathf.Max(_peakMeter, Detection);
+                    break;
+
+                case GuardState.Search:
+                    BeginSearchAt(shotFrom);
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// A stun bolt to the head: the guard stops whatever it was
+        /// doing - a chase included - and stands senseless for this many
+        /// seconds, then searches. Stunned again meanwhile, the wait
+        /// starts again.
+        /// </summary>
+        public void Stun(float seconds)
+        {
+            if (State == GuardState.KnockedOut) {
+                return;
+            }
+
+            SetState(GuardState.Stunned);
+            Stop();
+
+            // Stopped dead, not left to slow down from a run.
+            if (_agent.isOnNavMesh) {
+                _agent.velocity = Vector3.zero;
+            }
+
+            _stunTimer = seconds;
+            _isPlayerSeen = false;
+        }
+
+        private void TickStunned(float deltaTime)
+        {
+            _stunTimer -= deltaTime;
+
+            if (_stunTimer > 0f) {
+                return;
+            }
+
+            // Comes round knowing something happened but not where from:
+            // it searches round where it stands. The look timer starts
+            // afresh, or the first look would count the whole stun as
+            // time spent seeing (or not seeing) the player.
+            _stimulus = transform.position;
+            Detection = investigateThreshold;
+            _lastLookTime = Time.time;
+            _lookTimer = lookInterval;
+            EnterSearch(true);
+        }
+
+        /// <summary>
+        /// A sleep dart, anywhere on the body: the guard carries on as
+        /// it was, and is knocked out after this many seconds. A second
+        /// dart doesn't start the wait again.
+        /// </summary>
+        public void Sedate(float seconds)
+        {
+            if (State != GuardState.KnockedOut && _sleepTimer <= 0f) {
+                _sleepTimer = Mathf.Max(seconds, 0.01f);
+            }
+        }
+
         // ---- Knocking out ------------------------------------------------
 
         /// <summary>
         /// A blow to the head from attackerPosition. It knocks the guard
-        /// out only if the guard isn't already chasing and the attacker
-        /// is behind it; otherwise the guard turns on them. Returns
-        /// whether it went down.
+        /// out if the guard is stunned, or if it isn't already chasing
+        /// and the attacker is behind it; otherwise the guard turns on
+        /// them. Returns whether it went down.
         /// </summary>
         public bool TryKnockOut(Vector3 attackerPosition)
         {
@@ -899,7 +1130,9 @@ namespace AI
 
             bool isBehind = Vector3.Dot(transform.forward, fromAttacker.normalized) >= behindDot;
 
-            if (State != GuardState.Chase && isBehind) {
+            // A stunned guard can't turn on anyone: it goes down from any
+            // side.
+            if (State == GuardState.Stunned || (State != GuardState.Chase && isBehind)) {
                 KnockOut();
                 return true;
             }
@@ -913,14 +1146,15 @@ namespace AI
         }
 
         /// <summary>
-        /// Down for good: it stops, its colliders go (so it can be
-        /// stepped over), it lies down, and the component switches off -
-        /// no more looking, hearing or Update().
+        /// Down: it stops, its colliders go (so it can be stepped over),
+        /// it lies down, and the component switches off - no more
+        /// looking, hearing or Update() until another guard wakes it.
         /// </summary>
         private void KnockOut()
         {
             SetState(GuardState.KnockedOut);
             Detection = 0f;
+            _sleepTimer = 0f;
             _agent.enabled = false;
 
             if (bodyCollider != null) {
@@ -937,6 +1171,40 @@ namespace AI
             }
 
             enabled = false;
+        }
+
+        /// <summary>
+        /// Woken by another guard: everything KnockOut() switched off
+        /// comes back, it stands up, and it searches round where it lay.
+        /// </summary>
+        private void WakeUp()
+        {
+            _isBodyFound = false;
+            enabled = true;
+            _agent.enabled = true;
+
+            if (bodyCollider != null) {
+                bodyCollider.enabled = true;
+            }
+
+            if (headCollider != null) {
+                headCollider.enabled = true;
+            }
+
+            if (visual != null) {
+                visual.SetLocalPositionAndRotation(_visualPosition, _visualRotation);
+            }
+
+            // Its senses start afresh: the time it lay there isn't time
+            // spent looking, or walked.
+            _lastLookTime = Time.time;
+            _lookTimer = lookInterval;
+            _lastPosition = transform.position;
+            _isPlayerSeen = false;
+
+            _stimulus = transform.position;
+            Detection = investigateThreshold;
+            EnterSearch(true);
         }
 
         // ---- Moving ------------------------------------------------------
@@ -1003,6 +1271,7 @@ namespace AI
         /// </summary>
         private void SetState(GuardState state)
         {
+            DropWakeTarget();
             State = state;
 
             if (stateRenderer == null) {
@@ -1013,6 +1282,7 @@ namespace AI
                 GuardState.Suspicious => _suspiciousColor,
                 GuardState.Search => _searchColor,
                 GuardState.Chase => _chaseColor,
+                GuardState.Stunned => _stunnedColor,
                 GuardState.KnockedOut => _knockedOutColor,
                 _ => _patrolColor
             };
@@ -1099,6 +1369,7 @@ namespace AI
                 GuardState.Suspicious => _suspiciousColor,
                 GuardState.Search => _searchColor,
                 GuardState.Chase => _chaseColor,
+                GuardState.Stunned => _stunnedColor,
                 _ => _patrolColor
             };
 

@@ -12,7 +12,10 @@ namespace AI
         Search,
         // Has seen the player and is running at them.
         Chase,
-        // Knocked out. It stays down.
+        // Hit on the head by a stun bolt: stands senseless for a while,
+        // then searches.
+        Stunned,
+        // Knocked out. It stays down until another guard wakes it.
         KnockedOut
     }
 }

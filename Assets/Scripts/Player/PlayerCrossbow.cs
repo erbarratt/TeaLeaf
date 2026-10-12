@@ -1,3 +1,4 @@
+using AI;
 using Core;
 using Interaction;
 using Inventory;
@@ -23,13 +24,29 @@ namespace Player
     /// trigger shoots - on the press, not the release. The crossbow is
     /// clockwork: it winds itself again, and is ready after a short wait.
     ///
-    /// There are three kinds of bolt (Inventory.BoltType), each with its
+    /// There are five kinds of bolt (Inventory.BoltType), each with its
     /// own look, and each shot uses one of that kind from the player's
-    /// inventory:
+    /// inventory. None of them kills:
     /// - Water puts out any fire (Core.Flame) near where it lands.
     /// - A noisemaker sticks where it lands and makes noise for a while,
     ///   to draw guards.
     /// - A rope bolt that lands in wood hangs a rope to climb.
+    /// - A stun bolt (black tip) that hits a guard on the head leaves it
+    ///   stunned for a while; then it comes round and searches.
+    /// - A sleep dart that hits a guard anywhere knocks it out after a
+    ///   wait.
+    ///
+    /// Water and noisemaker bolts are used up where they land. The rest
+    /// stick into what holds a bolt (wood, plaster, carpet, grass - see
+    /// Core.SurfaceTag.HoldsBolt()) and bounce off everything else, a
+    /// guard included: a bolt that bounces becomes a real physics object
+    /// for as long as it takes to fall and settle. A stun bolt, or a
+    /// sleep dart that missed, can then be picked up again - a hand
+    /// points at it and grips, and it goes straight back into the
+    /// inventory. A rope bolt never can: stuck in something marked as
+    /// supporting one, its rope is climbed as usual; stuck in anything
+    /// else, it pulls out and the rope falls as soon as a hand takes
+    /// hold.
     /// The kind is chosen with the wheel at the back of the crossbow: the
     /// other hand points at it (the reticle shows), grips, and turns.
     ///
@@ -40,8 +57,8 @@ namespace Player
     /// created or destroyed while playing.
     ///
     /// Lives on the Hands object. No Update(): PlayerController calls
-    /// TickWheel() (the other hand taking the wheel) before the grab
-    /// systems, Tick() (becoming active, and stopping) after them, and
+    /// TickWheel() (the other hand taking the wheel, and either hand
+    /// picking a bolt up) before the grab systems, Tick() (becoming active, and stopping) after them, and
     /// TickHeld() (the wheel, the arc, shooting, and bolts in flight)
     /// after the hand visuals are placed.
     /// </summary>
@@ -59,6 +76,10 @@ namespace Player
 
         // Optional: a rig with no haptics still shoots.
         [SerializeField] private PlayerHaptics playerHaptics;
+
+        // Optional: tells when a hand has taken hold of a rope that
+        // won't bear weight, and makes it let go.
+        [SerializeField] private PlayerClimbing playerClimbing;
 
         [Header("Where It Sits")]
 
@@ -147,11 +168,21 @@ namespace Player
 
         [Header("Bolt Kinds")]
 
-        // Each kind's colour: water's tip, the noisemaker's tip, and the
-        // rope wound round a rope bolt's shaft.
+        // Each kind's colour: water's tip, the noisemaker's tip, the
+        // rope wound round a rope bolt's shaft, the stun bolt's tip and
+        // the sleep dart's flights.
         [SerializeField] private Color waterColor = new(0.2f, 0.55f, 1f, 1f);
         [SerializeField] private Color noisemakerColor = new(1f, 0.75f, 0.15f, 1f);
         [SerializeField] private Color ropeColor = new(0.75f, 0.62f, 0.4f, 1f);
+        [SerializeField] private Color stunColor = new(0.04f, 0.04f, 0.05f, 1f);
+        [SerializeField] private Color sleepColor = new(0.3f, 0.8f, 0.35f, 1f);
+
+        // Stun: seconds a guard hit on the head stays stunned.
+        [SerializeField] private float stunTime = 10f;
+
+        // Sleep dart: seconds after it hits a guard before the guard is
+        // knocked out.
+        [SerializeField] private float sleepDelay = 10f;
 
         // Water: every fire within this many metres of where it lands
         // goes out.
@@ -166,10 +197,8 @@ namespace Player
         [SerializeField] private float noiseDuration = 12f;
         [SerializeField] private SoundCue noiseCue;
 
-        // Rope: how many ropes can hang at once (the oldest is reused),
-        // the longest a rope can be, what counts as ground beneath it,
-        // how thick it's drawn, and how a hand grips it.
-        [SerializeField] private int ropeCount = 2;
+        // Rope: the longest a rope can be, what counts as ground beneath
+        // it, how thick it's drawn, and how a hand grips it.
         [SerializeField] private float ropeMaxLength = 8f;
         [SerializeField] private LayerMask ropeGroundLayers;
         [SerializeField] private float ropeThickness = 0.025f;
@@ -198,16 +227,34 @@ namespace Player
 
         [Header("Bolts")]
 
-        // How many bolts exist: the most that can be in flight or lying
-        // where they landed at once. The oldest is reused after that.
-        [SerializeField] private int boltCount = 8;
-
         // A bolt: a long thin box, in metres.
         [SerializeField] private float boltLength = 0.2f;
         [SerializeField] private float boltThickness = 0.008f;
 
-        // Seconds a bolt lies where it landed before it's put away.
+        // Seconds a bolt that can't be picked up again (a rope bolt with
+        // no rope on it) lies where it ended up before it's put away.
         [SerializeField] private float boltLifetime = 30f;
+
+        [Header("Bolts That Bounce Off")]
+
+        // How fast a bolt comes back off what it hit, level, in metres a
+        // second, and how fast it turns end over end, in radians a
+        // second. Small: it drops near where it struck.
+        [SerializeField] private float reboundSpeed = 0.8f;
+        [SerializeField] private float reboundSpin = 3f;
+
+        // How hard a bounced bolt is slowed once it first touches
+        // something on its way down - its movement and its turning. High,
+        // so it stops where it comes down instead of skittering away.
+        [SerializeField] private float landedDamping = 6f;
+        [SerializeField] private float landedAngularDamping = 8f;
+
+        [Header("Picking Bolts Up")]
+
+        // The radius of the ball round a bolt that a hand ray can
+        // target, in metres: much bigger than the bolt, so it's easy to
+        // aim at on the floor.
+        [SerializeField] private float pickupRadius = 0.08f;
 
         [Header("Haptics")]
 
@@ -223,18 +270,69 @@ namespace Player
         [SerializeField] private float wheelAmplitude = 0.5f;
         [SerializeField] private float wheelDuration = 0.04f;
 
+        // A bolt picked up.
+        [SerializeField] private float pickupAmplitude = 0.4f;
+        [SerializeField] private float pickupDuration = 0.04f;
+
+        // Where a pooled bolt is in its life.
+        private enum BoltState
+        {
+            // Put away: not in the world.
+            Away,
+            // Being moved along its arc.
+            Flying,
+            // Bounced off something: physics has it until it settles.
+            Tumbling,
+            // Stuck in a surface, or lying where it settled.
+            Resting
+        }
+
         // Seconds after which a bolt that has hit nothing is put away,
         // as a multiple of the time it takes to reach the range.
         private const float FlightTimeMargin = 1.5f;
 
         // How many kinds of bolt there are (Inventory.BoltType).
-        private const int BoltKinds = 3;
+        private const int BoltKinds = 5;
 
         // How far past where a bolt is due to land its last ray reaches,
         // in metres, to be sure of finding what it landed on.
         private const float LandingProbe = 0.05f;
 
+        // How far on from where a bolt hit a guard's body its line is
+        // followed to see whether it runs through the head, in metres: a
+        // little more than the body is wide.
+        private const float HeadProbe = 0.7f;
+
+        // How many bolts exist. The player carries three of each of the
+        // five kinds at most, so this many can never all be in the world
+        // at once.
+        private const int BoltPoolSize = 16;
+
+        // How many ropes can hang at once: one per rope bolt carried.
+        private const int RopePoolSize = 3;
+
+        // A rope shorter than this isn't hung (a rope bolt shot into the
+        // floor), in metres.
+        private const float MinRopeLength = 0.5f;
+
+        // Seconds after which a bounced bolt is taken as settled wherever
+        // it is, in case it never comes to rest.
+        private const float TumbleTimeout = 5f;
+
+        // How far a bolt's point is held off a surface as it starts to
+        // tumble, in metres, so it doesn't start inside it.
+        private const float TumbleClearance = 0.01f;
+
+        // What a tumbling bolt weighs, in kilograms.
+        private const float BoltMass = 0.05f;
+
         private bool _hasHaptics;
+        private bool _hasClimbing;
+
+        // Grip last frame, per hand: a bolt is picked up on the frame
+        // grip is pressed.
+        private bool _wasLeftGripping;
+        private bool _wasRightGripping;
 
         // Which hand wears the crossbow, and that hand's visual.
         private bool _isLeftHand;
@@ -303,16 +401,21 @@ namespace Player
         private float _wheelTurnSinceClick;
         private bool _wheelNeedsRegrip;
 
-        // The pool of bolts. For each: its object and its mesh; its kind;
-        // whether it's in flight; where and how fast it left, how long it
-        // has flown and when it lands; whether it lands on something, and
-        // where; once landed, how much longer it lies there; and for a
-        // noisemaker, how much longer it sounds and when it next does.
+        // The pool of bolts. For each: its object, its mesh and its
+        // physics parts; its kind; where it is in its life; where and how
+        // fast it left, how long it has flown (or tumbled) and when it
+        // lands; whether it lands on something, and where; at rest, how
+        // much longer before it's put away (0 = it stays); for a
+        // noisemaker, how much longer it sounds and when it next does;
+        // and which rope hangs from it (-1 = none).
         private Transform _boltRoot;
         private Transform[] _bolts;
         private MeshFilter[] _boltFilters;
+        private CrossbowBolt[] _boltParts;
         private BoltType[] _boltTypes;
-        private bool[] _isFlying;
+        private BoltState[] _boltStates;
+        private int[] _boltRopes;
+        private PhysicsMaterial _boltPhysicsMaterial;
         private Vector3[] _boltStarts;
         private Vector3[] _boltVelocities;
         private float[] _boltTimes;
@@ -324,10 +427,19 @@ namespace Player
         private float[] _boltNextNoises;
         private int _nextBolt;
 
-        // The pool of ropes a rope bolt hangs, and each one's visible
-        // rope (a box stretched to its length).
+        // The pool of ropes a rope bolt hangs. For each: the rope, its
+        // grab volume and its visible rope (a box stretched to its
+        // length); the bolt it hangs from (-1 = none); whether what the
+        // bolt is in bears weight; where its top was and how long it was
+        // when hung; and how long it has been falling (-1 = it isn't).
         private ClimbableRope[] _ropes;
+        private Collider[] _ropeColliders;
         private Transform[] _ropeVisuals;
+        private int[] _ropeBolts;
+        private bool[] _ropeHolds;
+        private Vector3[] _ropeTops;
+        private float[] _ropeLengths;
+        private float[] _ropeFallTimes;
         private int _nextRope;
 
         /// True while that hand has the crossbow active, or is the other
@@ -349,6 +461,7 @@ namespace Player
             playerInput = GetComponentInParent<PlayerInputXR>();
             playerTracking = GetComponentInParent<PlayerTracking>();
             playerHaptics = GetComponentInParent<PlayerHaptics>();
+            playerClimbing = GetComponentInParent<PlayerClimbing>();
             playerHandInteraction = GetComponent<PlayerHandInteraction>();
             playerHandVisuals = GetComponent<PlayerHandVisuals>();
             arcLayers = DefaultArcLayers();
@@ -381,8 +494,13 @@ namespace Player
                 playerHaptics = GetComponentInParent<PlayerHaptics>();
             }
 
-            // Looked up once, so the per-frame code tests a plain bool.
+            if (playerClimbing == null) {
+                playerClimbing = GetComponentInParent<PlayerClimbing>();
+            }
+
+            // Looked up once, so the per-frame code tests plain bools.
             _hasHaptics = playerHaptics != null;
+            _hasClimbing = playerClimbing != null;
 
             if (arcLayers.value == 0) {
                 arcLayers = DefaultArcLayers();
@@ -473,6 +591,10 @@ namespace Player
                 Destroy(_material);
             }
 
+            if (_boltPhysicsMaterial != null) {
+                Destroy(_boltPhysicsMaterial);
+            }
+
             if (_boltRoot != null) {
                 Destroy(_boltRoot.gameObject);
             }
@@ -497,9 +619,11 @@ namespace Player
 
         /// <summary>
         /// Makes one bolt mesh per kind, so the kind loaded can be told at
-        /// a glance. Every bolt is a thin shaft along Z; water and the
-        /// noisemaker have a fat coloured tip, and the rope bolt has rope
-        /// wound round the back half of its shaft.
+        /// a glance. Every bolt is a thin shaft along Z; water, the
+        /// noisemaker and the stun bolt have a fat coloured tip, the rope
+        /// bolt has rope wound round the back half of its shaft, and the
+        /// sleep dart is half the length with coloured flights at the
+        /// back.
         /// </summary>
         private void BuildBoltMeshes()
         {
@@ -523,6 +647,21 @@ namespace Player
             rope.Box(Vector3.zero, shaft, Quaternion.identity, metalColor);
             rope.Box(new Vector3(0f, 0f, -boltLength * 0.2f), new Vector3(wound, wound, boltLength * 0.5f), Quaternion.identity, ropeColor);
             _boltMeshes[(int)BoltType.Rope] = rope.ToMesh("Rope Bolt");
+
+            LockMeshBuilder stun = new();
+            stun.Box(Vector3.zero, shaft, Quaternion.identity, metalColor);
+            stun.Box(tipCentre, tipSize, Quaternion.identity, stunColor);
+            _boltMeshes[(int)BoltType.Stun] = stun.ToMesh("Stun Bolt");
+
+            // The dart: the front half of a shaft, so its point is where
+            // every other bolt's is, with two crossed flights at its back.
+            LockMeshBuilder sleep = new();
+            float flight = boltThickness * 3f;
+            Vector3 flightCentre = new(0f, 0f, flight * 0.5f);
+            sleep.Box(new Vector3(0f, 0f, boltLength * 0.25f), new Vector3(boltThickness, boltThickness, boltLength * 0.5f), Quaternion.identity, metalColor);
+            sleep.Box(flightCentre, new Vector3(flight, boltThickness * 0.5f, flight), Quaternion.identity, sleepColor);
+            sleep.Box(flightCentre, new Vector3(boltThickness * 0.5f, flight, flight), Quaternion.identity, sleepColor);
+            _boltMeshes[(int)BoltType.Sleep] = sleep.ToMesh("Sleep Dart");
         }
 
         /// <summary>
@@ -593,17 +732,36 @@ namespace Player
         /// <summary>
         /// Makes the pool of bolts, once, under one object at the scene
         /// root (a bolt in flight mustn't move with the player), all
-        /// switched off until shot.
+        /// switched off until shot. Each has what it needs to bounce - a
+        /// Rigidbody and a solid box on the Projectile layer, both idle
+        /// until it does - and, on a child on the Interactable layer
+        /// (which hand rays look at), the trigger ball it's picked up by.
         /// </summary>
         private void BuildBolts()
         {
-            int count = Mathf.Max(boltCount, 1);
+            int count = BoltPoolSize;
+            int projectileLayer = LayerMask.NameToLayer("Projectile");
+            int interactableLayer = LayerMask.NameToLayer("Interactable");
+
+            // No bounce and plenty of grip: a bolt that comes down stays
+            // down.
+            _boltPhysicsMaterial = new PhysicsMaterial("Crossbow Bolt") {
+                bounciness = 0f,
+                dynamicFriction = 0.8f,
+                staticFriction = 0.9f,
+                bounceCombine = PhysicsMaterialCombine.Minimum
+            };
+
+            // Fatter than the shaft: very thin boxes rest badly.
+            float solidThickness = Mathf.Max(boltThickness * 2.5f, 0.02f);
 
             _boltRoot = new GameObject("Crossbow Bolts").transform;
             _bolts = new Transform[count];
             _boltFilters = new MeshFilter[count];
+            _boltParts = new CrossbowBolt[count];
             _boltTypes = new BoltType[count];
-            _isFlying = new bool[count];
+            _boltStates = new BoltState[count];
+            _boltRopes = new int[count];
             _boltStarts = new Vector3[count];
             _boltVelocities = new Vector3[count];
             _boltTimes = new float[count];
@@ -616,8 +774,38 @@ namespace Player
 
             for (int i = 0; i < count; i++) {
                 GameObject bolt = MakePart($"Bolt {i}", _boltMeshes[0], _boltRoot, out _boltFilters[i]);
+
+                if (projectileLayer >= 0) {
+                    bolt.layer = projectileLayer;
+                }
+
+                Rigidbody body = bolt.AddComponent<Rigidbody>();
+                body.isKinematic = true;
+                body.useGravity = false;
+                body.mass = BoltMass;
+
+                BoxCollider solid = bolt.AddComponent<BoxCollider>();
+                solid.size = new Vector3(solidThickness, solidThickness, boltLength);
+                solid.sharedMaterial = _boltPhysicsMaterial;
+
+                GameObject grab = new("Bolt Grab");
+
+                if (interactableLayer >= 0) {
+                    grab.layer = interactableLayer;
+                }
+
+                grab.transform.SetParent(bolt.transform, false);
+
+                SphereCollider ball = grab.AddComponent<SphereCollider>();
+                ball.isTrigger = true;
+                ball.radius = pickupRadius;
+
+                _boltParts[i] = bolt.AddComponent<CrossbowBolt>();
+                _boltParts[i].SetUp(i, body, solid, ball, landedDamping, landedAngularDamping);
+
                 bolt.SetActive(false);
                 _bolts[i] = bolt.transform;
+                _boltRopes[i] = -1;
             }
         }
 
@@ -630,7 +818,7 @@ namespace Player
         /// </summary>
         private void BuildRopes()
         {
-            int count = Mathf.Max(ropeCount, 1);
+            int count = RopePoolSize;
             int climbableLayer = LayerMask.NameToLayer("Climbable");
 
             LockMeshBuilder builder = new();
@@ -638,7 +826,13 @@ namespace Player
             _ropeMesh = builder.ToMesh("Bolt Rope");
 
             _ropes = new ClimbableRope[count];
+            _ropeColliders = new Collider[count];
             _ropeVisuals = new Transform[count];
+            _ropeBolts = new int[count];
+            _ropeHolds = new bool[count];
+            _ropeTops = new Vector3[count];
+            _ropeLengths = new float[count];
+            _ropeFallTimes = new float[count];
 
             for (int i = 0; i < count; i++) {
                 GameObject ropeObject = new($"Bolt Rope {i}");
@@ -655,6 +849,9 @@ namespace Player
 
                 _ropeVisuals[i] = MakePart("Rope", _ropeMesh, ropeObject.transform, out _).transform;
                 _ropes[i] = rope;
+                _ropeColliders[i] = ropeObject.GetComponent<CapsuleCollider>();
+                _ropeBolts[i] = -1;
+                _ropeFallTimes[i] = -1f;
                 ropeObject.SetActive(false);
             }
         }
@@ -684,10 +881,13 @@ namespace Player
         /// shows it), it's free, and grip is held - then its hand visual
         /// snaps onto the wheel. It keeps hold until grip is let go.
         /// Called by PlayerController after the hand rays and before the
-        /// other grab systems.
+        /// other grab systems. Also where either hand picks a bolt up.
         /// </summary>
         public void TickWheel()
         {
+            TickPickup(true);
+            TickPickup(false);
+
             bool isOtherLeft = !_isLeftHand;
             bool isGrabbing = isOtherLeft ? playerInput.IsLeftGrabbing : playerInput.IsRightGrabbing;
 
@@ -725,6 +925,55 @@ namespace Player
 
             WheelSnap().Snap(WheelSnapPose(isOtherLeft));
             Pulse(isOtherLeft, wheelAmplitude, wheelDuration);
+        }
+
+        /// <summary>
+        /// One hand picking a bolt up: on the frame its grip is pressed,
+        /// free, with its ray on a bolt at rest, the bolt goes straight
+        /// back into the inventory and is put away - it is never carried,
+        /// so it never touches anything. With no room for it (the player
+        /// already carries the most of that kind) it stays where it is,
+        /// and the hand feels only a faint tap.
+        /// </summary>
+        private void TickPickup(bool isLeftHand)
+        {
+            bool isGripping = isLeftHand ? playerInput.IsLeftGrabbing : playerInput.IsRightGrabbing;
+            bool wasGripping = isLeftHand ? _wasLeftGripping : _wasRightGripping;
+
+            if (isLeftHand) {
+                _wasLeftGripping = isGripping;
+            } else {
+                _wasRightGripping = isGripping;
+            }
+
+            if (!isGripping || wasGripping || playerHandState.IsBusyExcept(isLeftHand, HandUse.Crossbow)) {
+                return;
+            }
+
+            IHandTarget target = isLeftHand ? playerHandInteraction.LeftTarget : playerHandInteraction.RightTarget;
+
+            if (target is not CrossbowBolt part) {
+                return;
+            }
+
+            int index = part.Index;
+
+            if (_boltStates[index] != BoltState.Resting) {
+                return;
+            }
+
+            // A scene with no inventory has unlimited bolts: the bolt is
+            // simply cleared away.
+            PlayerInventory inventory = PlayerInventory.Instance;
+
+            if (inventory != null && !inventory.TryAddBolt(_boltTypes[index])) {
+                Pulse(isLeftHand, emptyAmplitude, emptyDuration);
+                return;
+            }
+
+            PutAway(index);
+            ShowLoadedBolt();
+            Pulse(isLeftHand, pickupAmplitude, pickupDuration);
         }
 
         /// <summary>
@@ -814,7 +1063,8 @@ namespace Player
                 _wheelTurnSinceClick -= direction * wheelStepAngle;
                 _selected = (BoltType)(((int)_selected + direction + BoltKinds) % BoltKinds);
 
-                // A third of a turn of the wheel per kind.
+                // The wheel shows a full turn shared out between the
+                // kinds.
                 _wheel.localRotation = Quaternion.Euler(0f, 0f, (int)_selected * (360f / BoltKinds));
 
                 ShowLoadedBolt();
@@ -920,6 +1170,7 @@ namespace Player
             float deltaTime = Time.deltaTime;
 
             TickBolts(deltaTime);
+            TickRopes(deltaTime);
 
             // The clockwork winding: when it's done, the next bolt shows
             // on the stock.
@@ -998,11 +1249,10 @@ namespace Player
                 return;
             }
 
-            int index = _nextBolt;
-            _nextBolt = (_nextBolt + 1) % _bolts.Length;
+            int index = TakeBoltSlot();
 
             _boltTypes[index] = _selected;
-            _isFlying[index] = true;
+            _boltStates[index] = BoltState.Flying;
             _boltStarts[index] = start;
             _boltVelocities[index] = velocity;
             _boltTimes[index] = 0f;
@@ -1025,9 +1275,114 @@ namespace Player
         }
 
         /// <summary>
-        /// Moves every bolt in flight along its arc; counts down the ones
-        /// lying where they landed, and puts them away when their time is
-        /// up; and sounds the noisemakers.
+        /// The pooled bolt to shoot next, cleared out ready: one that is
+        /// put away and silent if there is one (there always should be -
+        /// see BoltPoolSize); failing that one lying about that can't be
+        /// picked up; failing that, simply the next in turn.
+        /// </summary>
+        private int TakeBoltSlot()
+        {
+            int count = _bolts.Length;
+            int chosen = -1;
+
+            for (int i = 0; i < count && chosen < 0; i++) {
+                int index = (_nextBolt + i) % count;
+
+                if (_boltStates[index] == BoltState.Away && _boltNoiseTimes[index] <= 0f) {
+                    chosen = index;
+                }
+            }
+
+            for (int i = 0; i < count && chosen < 0; i++) {
+                int index = (_nextBolt + i) % count;
+
+                if (_boltStates[index] == BoltState.Resting && !CanBePickedUp(_boltTypes[index])) {
+                    chosen = index;
+                }
+            }
+
+            if (chosen < 0) {
+                chosen = _nextBolt;
+            }
+
+            _nextBolt = (chosen + 1) % count;
+            PutAway(chosen);
+            return chosen;
+        }
+
+        /// <summary>
+        /// Whether a bolt of this kind that ends up lying or stuck
+        /// somewhere can be picked up and shot again: a stun bolt always,
+        /// a sleep dart that hit no guard (one that did never gets this
+        /// far). Water and noisemakers are used up where they land, and a
+        /// rope bolt is never recovered.
+        /// </summary>
+        private static bool CanBePickedUp(BoltType kind)
+        {
+            return kind == BoltType.Stun || kind == BoltType.Sleep;
+        }
+
+        /// <summary>
+        /// Takes a bolt out of the world: out of physics, no longer a
+        /// hand target, unhooked from any rope hanging from it (the rope
+        /// stays), and switched off. A noisemaker's sounding isn't
+        /// touched - it carries on from where the bolt was.
+        /// </summary>
+        private void PutAway(int index)
+        {
+            _boltStates[index] = BoltState.Away;
+            _boltRestTimes[index] = 0f;
+            _boltParts[index].EndTumble();
+            _boltParts[index].SetTargetable(false);
+            _bolts[index].gameObject.SetActive(false);
+
+            int rope = _boltRopes[index];
+
+            if (rope >= 0) {
+                _boltRopes[index] = -1;
+                _ropeBolts[rope] = -1;
+            }
+        }
+
+        /// <summary>
+        /// A bolt comes to rest - stuck where it hit, or settled after
+        /// bouncing off. One that can be picked up becomes a hand target
+        /// and stays; any other is put away after a while.
+        /// </summary>
+        private void Rest(int index)
+        {
+            bool canBePickedUp = CanBePickedUp(_boltTypes[index]);
+
+            _boltStates[index] = BoltState.Resting;
+            _boltParts[index].EndTumble();
+            _boltParts[index].SetTargetable(canBePickedUp);
+            _boltRestTimes[index] = canBePickedUp ? 0f : boltLifetime;
+        }
+
+        /// <summary>
+        /// Hands a bolt to physics: pulled back along its own length
+        /// first, so its point is just clear of what it hit rather than
+        /// buried in it, then set moving. From here it falls and settles
+        /// by itself (CrossbowBolt), and TickBolts() waits for that.
+        /// </summary>
+        private void Tumble(int index, Vector3 velocity, Vector3 angularVelocity)
+        {
+            Transform bolt = _bolts[index];
+
+            bolt.position -= bolt.forward * (boltLength * 0.5f + TumbleClearance);
+
+            _boltStates[index] = BoltState.Tumbling;
+            _boltTimes[index] = 0f;
+            _boltRestTimes[index] = 0f;
+            _boltParts[index].SetTargetable(false);
+            _boltParts[index].BeginTumble(velocity, angularVelocity);
+        }
+
+        /// <summary>
+        /// Moves every bolt in flight along its arc; waits for the ones
+        /// that bounced off something to settle; counts down the ones at
+        /// rest that can't be picked up, and puts them away when their
+        /// time is up; and sounds the noisemakers.
         /// </summary>
         private void TickBolts(float deltaTime)
         {
@@ -1036,7 +1391,17 @@ namespace Player
             for (int i = 0; i < _bolts.Length; i++) {
                 Transform bolt = _bolts[i];
 
-                if (!_isFlying[i]) {
+                if (_boltStates[i] == BoltState.Tumbling) {
+                    _boltTimes[i] += deltaTime;
+
+                    if (_boltParts[i].HasSettled || _boltTimes[i] >= TumbleTimeout) {
+                        Rest(i);
+                    }
+
+                    continue;
+                }
+
+                if (_boltStates[i] != BoltState.Flying) {
                     TickLandedBolt(i, bolt, deltaTime);
                     continue;
                 }
@@ -1048,8 +1413,7 @@ namespace Player
                 // The end of the arc worked out when it was shot: where it
                 // was going to land, or nowhere.
                 if (hasArrived && !_boltLands[i]) {
-                    _isFlying[i] = false;
-                    bolt.gameObject.SetActive(false);
+                    PutAway(i);
                     continue;
                 }
 
@@ -1079,10 +1443,8 @@ namespace Player
                 _boltTimes[i] = time;
 
                 if (hasArrived) {
-                    _isFlying[i] = false;
-                    _boltRestTimes[i] = boltLifetime;
                     PlayCue(impactCue, next);
-                    Land(i, bolt, next, heading, landedOn);
+                    Land(i, next, heading, landedOn);
                 }
             }
         }
@@ -1090,60 +1452,219 @@ namespace Player
         /// <summary>
         /// A bolt has landed: what its kind does there.
         /// </summary>
-        private void Land(int index, Transform bolt, Vector3 point, Vector3 heading, Collider landedOn)
+        private void Land(int index, Vector3 point, Vector3 heading, Collider landedOn)
         {
-            switch (_boltTypes[index]) {
-                case BoltType.Water:
-                    // Every fire close by goes out.
-                    Flame.ExtinguishNear(point, waterRadius);
-                    break;
+            BoltType kind = _boltTypes[index];
 
-                case BoltType.Noisemaker:
-                    // Sounds at once, then every so often for a while.
-                    _boltNoiseTimes[index] = noiseDuration;
-                    _boltNextNoises[index] = 0f;
-                    break;
+            // A guard's body: a dictionary lookup, no GetComponent.
+            Guard guard = landedOn != null ? Guard.FindByBody(landedOn) : null;
 
-                case BoltType.Rope:
-                    // Only wood holds it. Anything else, and the bolt is
-                    // lost.
-                    if (landedOn != null && SurfaceTag.Of(landedOn) == SurfaceType.Wood) {
-                        HangRope(point - heading * LandingProbe);
-                    } else {
-                        _boltRestTimes[index] = 0f;
-                        bolt.gameObject.SetActive(false);
-                    }
-
-                    break;
+            if (guard != null && HitGuard(index, guard, point, heading)) {
+                return;
             }
+
+            // Water and noisemakers are used up where they land, whatever
+            // that is, with their effect set off.
+            if (kind == BoltType.Water) {
+                Flame.ExtinguishNear(point, waterRadius);
+                PutAway(index);
+                return;
+            }
+
+            if (kind == BoltType.Noisemaker) {
+                // Sounds at once, then every so often for a while, from
+                // where the bolt was.
+                PutAway(index);
+                _boltNoiseTimes[index] = noiseDuration;
+                _boltNextNoises[index] = 0f;
+                return;
+            }
+
+            // The rest stick or bounce. Only level geometry that says it
+            // holds a bolt does: not a guard, and not anything that moves
+            // (a door, a prop), which would leave the bolt hanging in the
+            // air behind it.
+            SurfaceTag surface = guard == null && landedOn != null && landedOn.attachedRigidbody == null
+                ? SurfaceTag.Find(landedOn)
+                : null;
+
+            if (surface != null && SurfaceTag.HoldsBolt(surface.Surface)) {
+                Rest(index);
+
+                if (kind == BoltType.Rope) {
+                    HangRope(index, point - heading * LandingProbe, surface.SupportsRopeBolt);
+                }
+
+                return;
+            }
+
+            Rebound(index, heading);
+        }
+
+        /// <summary>
+        /// A bolt has hit a guard. A stun bolt to the head stuns it and
+        /// a sleep dart anywhere puts it to sleep after a wait; any
+        /// other hit does nothing to the guard but tell it that it was
+        /// shot at, and where from. Returns whether that is the end of
+        /// the bolt: only a sleep dart, which stays in the guard. The
+        /// rest go on to be used up or to bounce off.
+        /// </summary>
+        private bool HitGuard(int index, Guard guard, Vector3 point, Vector3 heading)
+        {
+            BoltType kind = _boltTypes[index];
+
+            if (kind == BoltType.Sleep) {
+                guard.Sedate(sleepDelay);
+                PutAway(index);
+                return true;
+            }
+
+            // The head is inside the body, which is what the bolt's ray
+            // found: its line is followed on from just short of there to
+            // see whether it runs through the head.
+            if (kind == BoltType.Stun && guard.IsHeadOnLine(point - heading * LandingProbe, heading, HeadProbe)) {
+                guard.Stun(stunTime);
+            } else {
+                guard.HitByBolt(_boltStarts[index]);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// A bolt bounces off what it hit: it becomes a physics object
+        /// with a little speed straight back the way it came, level, and
+        /// a slow end-over-end turn, and drops from there.
+        /// </summary>
+        private void Rebound(int index, Vector3 heading)
+        {
+            Vector3 back = -heading;
+            back.y = 0f;
+
+            // Shot straight down (or up): no way back to speak of, so it
+            // just drops.
+            back = back.sqrMagnitude > 0.0001f ? back.normalized : Vector3.zero;
+
+            Tumble(index, back * reboundSpeed, Vector3.Cross(Vector3.up, back) * reboundSpin);
         }
 
         /// <summary>
         /// Hangs the next rope in the pool (the oldest, if all are out)
-        /// from a point, down to the ground beneath it or to its longest.
+        /// from a rope bolt stuck at a point, down to the ground beneath
+        /// it or to its longest. holds is whether what the bolt is in
+        /// bears a climber's weight; a rope that doesn't looks the same,
+        /// and comes away when a hand takes hold (TickRopes()). No rope
+        /// is hung with too little drop beneath the bolt for one.
         /// </summary>
-        private void HangRope(Vector3 top)
+        private void HangRope(int boltIndex, Vector3 top, bool holds)
         {
-            int index = _nextRope;
-            _nextRope = (_nextRope + 1) % _ropes.Length;
-
             // How far down the ground is: one ray, straight down.
             float length = Physics.Raycast(top, Vector3.down, out RaycastHit ground, ropeMaxLength, ropeGroundLayers, QueryTriggerInteraction.Ignore)
                 ? ground.distance
                 : ropeMaxLength;
+
+            if (length < MinRopeLength) {
+                return;
+            }
+
+            int index = _nextRope;
+            _nextRope = (_nextRope + 1) % _ropes.Length;
+
+            // A rope being reused takes its old bolt with it.
+            if (_ropeBolts[index] >= 0) {
+                PutAway(_ropeBolts[index]);
+            }
 
             ClimbableRope rope = _ropes[index];
             rope.transform.SetPositionAndRotation(top, Quaternion.identity);
             rope.gameObject.SetActive(true);
             rope.SetLength(length);
 
+            // Its grab volume is off if it was last seen falling.
+            _ropeColliders[index].enabled = true;
+
             // The rope seen: the metre-long box, stretched to the length.
             _ropeVisuals[index].localScale = new Vector3(1f, rope.Length, 1f);
+
+            _ropeBolts[index] = boltIndex;
+            _ropeHolds[index] = holds;
+            _ropeTops[index] = top;
+            _ropeLengths[index] = rope.Length;
+            _ropeFallTimes[index] = -1f;
+
+            // The bolt stays for as long as its rope does.
+            _boltRopes[boltIndex] = index;
+            _boltRestTimes[boltIndex] = 0f;
         }
 
         /// <summary>
-        /// A bolt lying where it landed: a noisemaker sounds, and any
-        /// bolt is put away when its time is up.
+        /// The ropes: one that won't bear weight comes away the moment a
+        /// hand takes hold of it, and one that has come away falls - its
+        /// top drops under gravity and the rope gathers on the ground
+        /// beneath, until there is none left and it is put away.
+        /// </summary>
+        private void TickRopes(float deltaTime)
+        {
+            for (int i = 0; i < _ropes.Length; i++) {
+                ClimbableRope rope = _ropes[i];
+
+                if (!rope.gameObject.activeSelf) {
+                    continue;
+                }
+
+                if (_ropeFallTimes[i] < 0f) {
+                    // The same object, not merely an equal one: is a hand
+                    // on this rope?
+                    if (!_ropeHolds[i] && _hasClimbing && (ReferenceEquals(playerClimbing.LeftGrabbed, rope) || ReferenceEquals(playerClimbing.RightGrabbed, rope))) {
+                        DropRope(i);
+                    }
+
+                    continue;
+                }
+
+                _ropeFallTimes[i] += deltaTime;
+
+                // How far something falls from rest in a time: half
+                // gravity x the time squared.
+                float fallen = 0.5f * Physics.gravity.magnitude * _ropeFallTimes[i] * _ropeFallTimes[i];
+                float remaining = _ropeLengths[i] - fallen;
+
+                if (remaining <= 0f) {
+                    _ropeFallTimes[i] = -1f;
+                    rope.gameObject.SetActive(false);
+                    continue;
+                }
+
+                rope.transform.position = _ropeTops[i] + Vector3.down * fallen;
+                _ropeVisuals[i].localScale = new Vector3(1f, remaining, 1f);
+            }
+        }
+
+        /// <summary>
+        /// A rope comes away from what its bolt was stuck in: the hands
+        /// on it are made to let go, it can no longer be grabbed, it
+        /// starts to fall, and its bolt drops out as a physics object.
+        /// </summary>
+        private void DropRope(int index)
+        {
+            playerClimbing.Release(_ropes[index]);
+
+            _ropeColliders[index].enabled = false;
+            _ropeFallTimes[index] = 0f;
+
+            int bolt = _ropeBolts[index];
+
+            if (bolt >= 0) {
+                _ropeBolts[index] = -1;
+                _boltRopes[bolt] = -1;
+                Tumble(bolt, Vector3.zero, Vector3.zero);
+            }
+        }
+
+        /// <summary>
+        /// A bolt not in flight: a noisemaker (already put away) sounds
+        /// from where it landed, and a bolt at rest that can't be picked
+        /// up is put away when its time is up.
         /// </summary>
         private void TickLandedBolt(int index, Transform bolt, float deltaTime)
         {
@@ -1161,8 +1682,7 @@ namespace Player
                 _boltRestTimes[index] -= deltaTime;
 
                 if (_boltRestTimes[index] <= 0f) {
-                    _boltNoiseTimes[index] = 0f;
-                    bolt.gameObject.SetActive(false);
+                    PutAway(index);
                 }
             }
         }
