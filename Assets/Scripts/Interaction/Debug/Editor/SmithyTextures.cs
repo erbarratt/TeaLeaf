@@ -31,7 +31,7 @@ namespace Interaction
     ///
     /// Assets are only made if missing, so anything retouched by hand (or
     /// a material retuned in the Inspector) is kept. Delete a file to have
-    /// it made again, or use TeaLeaf > Repaint Smithy Textures to paint
+    /// it made again, or use TeaLeaf > Dev Room > Repaint Smithy Textures to paint
     /// all five textures again over the old ones (the materials are
     /// kept). Materials use URP's Simple Lit shader with the shine
     /// switched off (iron apart): the cheapest lit shader that reads a
@@ -113,7 +113,7 @@ namespace Interaction
         /// pointing at the same files, so the building in the scene
         /// changes at once.
         /// </summary>
-        [MenuItem("TeaLeaf/Repaint Smithy Textures")]
+        [MenuItem("TeaLeaf/Dev Room/Repaint Smithy Textures")]
         private static void Repaint()
         {
             if (!EditorUtility.DisplayDialog(

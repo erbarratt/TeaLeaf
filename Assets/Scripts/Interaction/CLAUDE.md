@@ -265,7 +265,7 @@ its own side whatever the lock. The player's half is `Player.PlayerHandDoors` (s
 - **Hand pose:** the handle's profile is `Assets/Data/DoorHandle.asset`, a **copy of
   `BottleHold`** (same finger pose) - a stand-in; tune its offsets in the headset, and give
   it a pose of its own if the bottle's looks wrong.
-- **`DoorTestArea`** (`Interaction/Debug/Editor`, menu **TeaLeaf > Build Door Test Area**) —
+- **`DoorTestArea`** (`Interaction/Debug/Editor`, menu **TeaLeaf > Dev Room > Build Door Test Area**) —
   a 7m wall (Static, Environment) 2.5m ahead of the main camera with three 0.9 x 2.1m
   doorways: no lock, simple lock (starts locked), keyed lock (starts locked). Each door is
   an unscaled root on the hinge with a kinematic Rigidbody, a leaf, and a handle 1m up with
@@ -287,8 +287,9 @@ its own side whatever the lock. The player's half is `Player.PlayerHandDoors` (s
   - **Added if missing:** `PlayerHandDoors`, `PlayerLockpicking` and `PlayerKeys` on the
     Hands object; `PlayerBodyPushing` and `PlayerKeyholes` on the Player root; the pack and
     inventory (through `Inventory.LootTestProps.EnsurePlayerComponents()`); and a **`Big
-    Lock`** object (`BigLock` + `BigLockDebug`) at the scene root - outside the test area,
-    so a rebuild keeps its tuning - with `Assets/Data/LockpickHold.asset` (a copy of
+    Lock`** object (`BigLock` + `BigLockDebug`) under the `Gameplay` root (made too if
+    missing; it must keep unit scale, since the big lock's parts inherit it) - outside
+    the test area, so a rebuild keeps its tuning - with `Assets/Data/LockpickHold.asset` (a copy of
     `RopeGrip`, a stand-in) and the placeholder impact cue for picking and unlocking.
     `PlayerKeys`' hand pose on the key is `DoorHandle.asset`, a stand-in.
 
@@ -388,7 +389,7 @@ unlocked by any means, a hand takes the front of the lid and lifts. The player's
   lid), with the chest's axes. Short reach, like a door handle. `Chest` (found on a
   parent), `snapProfile`; `GetGripPoint()`, `GetSnapPose(isLeftHand)` (on the grip point,
   facing into the chest, turned with the lid; called every frame it is held).
-- **`ChestTestArea`** (`Interaction/Debug/Editor`, menu **TeaLeaf > Build Chest Test
+- **`ChestTestArea`** (`Interaction/Debug/Editor`, menu **TeaLeaf > Dev Room > Build Chest Test
   Area**; not in the scene) — three chests on stands 1.5m ahead of the main camera, fronts
   towards it: no lock, simple lock and keyed lock (key id `green`; a green key on a stand
   to the right), each a root with a `Body` box, a `Lid` on the top back edge with a `Lid
@@ -401,7 +402,7 @@ unlocked by any means, a hand takes the front of the lid and lifts. The player's
 
 ## Smithy building
 
-Menu **TeaLeaf > Build Smithy**: a half-timbered blacksmith's house, 10m ahead of the main
+Menu **TeaLeaf > Dev Room > Build Smithy**: a half-timbered blacksmith's house, 10m ahead of the main
 camera, front towards it. The first building in the game's art style (root `CLAUDE.md`,
 "Art") and the pattern for the rest. Three files in `Interaction/Debug/Editor`:
 
@@ -431,7 +432,7 @@ camera, front towards it. The first building in the game's art style (root `CLAU
   also get a normal map from a painted height; plaster and timber don't. Materials in
   `Assets/Art/Materials/Smithy`: URP **Simple Lit**, highlights off; iron is a colour with a
   dull shine. **Assets are only made if missing** - delete one to remake it; hand edits are
-  kept. **TeaLeaf > Repaint Smithy Textures** paints the five PNGs again over the old ones
+  kept. **TeaLeaf > Dev Room > Repaint Smithy Textures** paints the five PNGs again over the old ones
   (materials kept). `…TileSize` constants are the metres one repeat covers.
 - **`SmithyBuilding`** — the building. **Six materials, one mesh each** (saved in
   `Assets/Art/Models/Smithy`, overwritten by a rebuild): six draw calls. Each part object

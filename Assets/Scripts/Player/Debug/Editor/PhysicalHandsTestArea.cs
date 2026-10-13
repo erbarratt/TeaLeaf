@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Player
 {
     /// <summary>
-    /// Editor menu command (TeaLeaf > Build Physical Hands Test Area) that
+    /// Editor menu command (TeaLeaf > Dev Room > Build Physical Hands Test Area) that
     /// builds a greybox row of test pieces for the physical hands - one piece
     /// per awkward case the hand sweep has to handle, at exact sizes (the
     /// narrow gap must be narrower than the hand, the thin panel thinner than
@@ -32,7 +32,7 @@ namespace Player
         /// <summary>
         /// Builds the test area, replacing an existing one (after asking).
         /// </summary>
-        [MenuItem("TeaLeaf/Build Physical Hands Test Area")]
+        [MenuItem("TeaLeaf/Dev Room/Build Physical Hands Test Area")]
         private static void Build()
         {
             int environment = LayerMask.NameToLayer(EnvironmentLayerName);

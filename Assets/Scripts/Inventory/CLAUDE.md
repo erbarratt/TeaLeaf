@@ -33,7 +33,8 @@ right of the door leaf from the player's side, clockwise if on the left.
 
 ## The pack
 
-- **`Pack`** — the physical pack and what's in it. One in the scene, built in `Awake()` from
+- **`Pack`** — the physical pack and what's in it. One in the scene, saved as a child of
+  the Player root and active (the lookup skips an inactive one), built in `Awake()` from
   its own fields; `Player.PlayerPack` finds it (or makes one with defaults) and puts it on
   whichever hand brings it out (x scale -1 under the mirrored right hand visual, so the
   pack itself is never mirrored). Own axes: X to the player's right, Y up the board, Z away from the player;
@@ -145,12 +146,12 @@ right of the door leaf from the player's side, clockwise if on the left.
 
 - **`InventoryDebug`** (`Inventory/Debug`, on the Player root) — logs the whole inventory
   to the Console on each `Changed`. The only place the gold's exact amount shows.
-- **`LootTestProps`** (`Inventory/Debug/Editor`, menu **TeaLeaf > Add Loot Test Props**) —
+- **`LootTestProps`** (`Inventory/Debug/Editor`, menu **TeaLeaf > Dev Room > Add Loot Test Props**) —
   a table 1.2m ahead of and 1.7m to the right of the main camera with more loot than the
   pack holds: four coins (gold, 1 each), four purses (one coin), three goblets (two
   coins), two candlesticks (two coins), a crown (three coins) and
   an idol (three coins, the objective), in `Assets/Art/Materials/LootGold.mat`. Props are made by
   `Player.GrabbableTestProps.MakeGrabbable()` plus a `Loot`. Adds `PlayerInventory` and
   `InventoryDebug` to the Player root and `PlayerPack` to the Hands object, and makes a
-  **`Pack`** object at the scene root (outside the test props, so a rebuild keeps its
-  tuning), each only if missing.
+  **`Pack`** object as a child of the Player root (outside the test props, so a rebuild
+  keeps its tuning), each only if missing.

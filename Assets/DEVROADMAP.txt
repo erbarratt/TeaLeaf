@@ -65,9 +65,9 @@ these; the fuller form is in the root CLAUDE.md ("Performance rules").
   game must not depend on a full-screen effect or on the camera depth or
   opaque texture (an optional one that can be switched off is allowed
   once measured), no parallax occlusion on surfaces that fill the view,
-  as little see-through overdraw as possible. The procedural cobblestone
-  and brick shaders are acceptable, subject to measuring. 4x MSAA is
-  wanted.
+  as little see-through overdraw as possible. The procedural cobblestone,
+  brick and water shaders are acceptable, subject to measuring. 4x MSAA
+  is wanted.
 - Light is baked where it can be; realtime lights are few and
   short-ranged. Torches may cast realtime shadows from moving things,
   with the level's shadows baked, as a quality setting that can be
@@ -447,7 +447,7 @@ Tools:
 Phase 8 - Level: the docks warehouse
 ------------------------------------
 [x] The smithy: a building made from code as level buildings could be
-    (TeaLeaf > Build Smithy), and the first in the game's art style:
+    (TeaLeaf > Dev Room > Build Smithy), and the first in the game's art style:
     storybook-crooked shapes with the gameplay surfaces kept true, and
     painted textures.
 [ ] Restyle the other test areas, the props and the guard to match.
@@ -482,17 +482,32 @@ Design (on paper first):
     areas can be seen. The interior and the docks should rarely be on
     screen together.
 Greybox build:
+[x] Level building guidelines (Assets/Scenes/CLAUDE.md): hierarchy,
+    naming, collision, layers, static flags, LODs, lighting, culling,
+    sound and a review checklist, measured against a shipped VR
+    stealth level.
+[x] TeaLeaf > Make Environment Variants: prefab variants for static
+    pieces in bulk, on the Environment layer and marked Static, named
+    TL_. 237 made from the village pack.
+[x] Collision helpers: RampCollider (a flight of steps as one wedge)
+    and the barrels' shared baked collider (BarrelCollider).
+[x] A PlayerBlocker layer for invisible boxes only the player's body
+    collides with.
 [ ] Build by hand in the editor from prefab variants of the Astrofish
     packs (Assets/Prefabs), at true VR scale (door heights 2.1m,
     ceilings, catwalk rail heights, ledge heights tested at 1.2-2m).
     Each variant holds what the game adds: Static and the Environment
     layer, a collider, a SurfaceTag, scripts such as Door or Ladder.
-[ ] Mark everything that never moves Static (nothing in the scene is but
-    the smithy and the door test wall, and the other test-area builders
-    don't set it), on the Environment layer, with a small number of
-    shared materials - one material and one colour-swatch texture can
-    cover the greybox. Box/capsule colliders where they fit; mesh
+    Started in Main.unity: dock sections, foundations and floors in
+    Sector 1.
+[ ] Give the variants their colliders and SurfaceTags (the bulk tool
+    adds neither). Box/capsule colliders where they fit; mesh
     colliders only where the shape needs one.
+[ ] Keep to a small number of shared materials.
+[ ] Player blockers round clutter, across gaps that look closed and
+    along the level's edge.
+[ ] Harbour water: try the TeaLeaf/Water shader in the headset, on
+    tiled default Planes with no collider.
 [ ] Small props (bottles, coins, crates) are on Interactable, not
     Environment, so that layer can be given a nearer cull distance than
     walls if profiling asks for it.
@@ -589,8 +604,10 @@ Phase 10 - Performance pass (PCVR target rig)
     [ ] Switch off the features nothing uses (additional-light shadows
         until torches need them, light cookies, reflection probe
         blending) and choose between Forward and Forward+.
-    [ ] 4x MSAA at render scale 1.0; come down only if the frame time
-        says so.
+    [x] 4x MSAA at render scale 1.0 set in PC_RPAsset, with the moon's
+        shadow map at 4096 over 30m.
+    [ ] Measure both on the target rig; come down only if the frame
+        time says so.
     [ ] Dynamic resolution as the safety net for heavy moments.
     [ ] Environment and prop materials are URP Lit (full PBR). Compare
         Simple Lit and Baked Lit once lighting is baked.

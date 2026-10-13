@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Player
 {
     /// <summary>
-    /// Editor menu command (TeaLeaf > Add Hand Tools To Player) that adds
+    /// Editor menu command (TeaLeaf > Dev Room > Add Hand Tools To Player) that adds
     /// the crossbow, the blackjack and the compass to the player's Hands
     /// object - each only if it's missing. Each one's Reset() fills in
     /// its own references, and PlayerController and PlayerHandState find
@@ -19,7 +19,7 @@ namespace Player
         // The hand snap profile every rope uses.
         private const string RopeProfilePath = "Assets/Data/RopeGrip.asset";
 
-        [MenuItem("TeaLeaf/Add Hand Tools To Player")]
+        [MenuItem("TeaLeaf/Dev Room/Add Hand Tools To Player")]
         internal static void Add()
         {
             PlayerHandVisuals hands = Object.FindFirstObjectByType<PlayerHandVisuals>();

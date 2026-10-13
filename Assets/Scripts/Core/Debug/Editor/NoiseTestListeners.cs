@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Core
 {
     /// <summary>
-    /// Editor menu command (TeaLeaf > Add Noise Test Listeners) that puts a
+    /// Editor menu command (TeaLeaf > Dev Room > Add Noise Test Listeners) that puts a
     /// few NoiseListenerDebug cubes in the scene - stand-in guards' ears for
     /// testing the noise system. They stand in a line ahead of the player,
     /// at ear height, at distances chosen against NoiseDebug's 8m test
@@ -27,7 +27,7 @@ namespace Core
         /// <summary>
         /// Builds the listeners, replacing existing ones (after asking).
         /// </summary>
-        [MenuItem("TeaLeaf/Add Noise Test Listeners")]
+        [MenuItem("TeaLeaf/Dev Room/Add Noise Test Listeners")]
         private static void Build()
         {
             GameObject existing = GameObject.Find(RootName);

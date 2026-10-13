@@ -10,8 +10,8 @@ light, the procedural night sky, the level surface shaders and the shared debug 
 ## Render settings
 
 - **PC** (`Assets/Settings/PC_RPAsset.asset` and `PC_Renderer.asset`, the `PC` quality level,
-  the default for Standalone): no depth texture, no opaque texture, HDR off, MSAA off (4x is
-  wanted - not yet set), render scale 1; main light shadows 2048, 50m, **two cascades, hard
+  the default for Standalone): no depth texture, no opaque texture, HDR off, 4x MSAA
+  (unmeasured), render scale 1; main light shadows 4096, 30m, **two cascades, hard
   edges** (soft shadows off); the renderer's **ambient occlusion feature is switched off**
   (`m_Active: 0` - still listed, not removed); no volume profile; rendering mode 2 (to be
   checked in the Inspector: it appears to be Forward+). Additional-light shadows, light
@@ -102,8 +102,8 @@ Flat).
 
 ## Level surface shaders
 
-- **`TeaLeaf/Cobblestone`** (`Assets/Art/Shaders/Cobblestone.shader`; not in `Resources`, a
-  material references it: `Assets/Materials/Cobblestone.mat`) — a cobbled floor with no
+- **`TeaLeaf/Cobblestone`** (`Assets/Art/Shaders/Cobblestone.shader`; not in `Resources`; no
+  material uses it at present, and one made for it lives in `Assets/Art/Materials`) — a cobbled floor with no
   textures: rounded irregular stones, each a colour from a range, a separate gap colour, no
   repeat, the same cobble size on any object, everything tunable. **Don't rename existing
   properties** (the material stores its tuned values by property name).
@@ -174,6 +174,45 @@ Flat).
   `_MortarColor`. **Direction**: on a wall, u runs along the wall and level
   (`cross(up, normal)`), v straight up; a surface facing mostly up or down uses world X/Z.
   Bricks don't wrap round a corner between two walls. About 6 hashes a pixel.
+- **`TeaLeaf/Water`** (`Assets/Art/Shaders/Water.shader`; material
+  `Assets/Art/Materials/TeaLeaf_Water.mat`; **not yet confirmed in the headset**) — harbour water at night: opaque (Geometry queue), world-space, no
+  textures but an optional foam mask. It never reads the camera's depth or opaque texture:
+  no see-through shallows, no refraction, no depth-found foam. **Don't rename existing
+  properties.**
+  - **Swell, per vertex**: three sine waves (`_WaveA/B/C`: direction in degrees, length m,
+    crest height m, speed m/s) move each vertex **up and down only**, so the water's edge
+    stays put against a wall; the slope is worked out with the height and gives the vertex
+    normal. `Swell()`/`SwellPositionWS()` are in the `HLSLINCLUDE` block and every pass uses
+    them. Something that floats must work the same sum out on the CPU from the material's
+    wave values and `Time.time` (not built).
+  - **The mesh** must be level, face up, and have vertices across it: Unity's default
+    Plane (10m, a vertex every metre), tiled rather than scaled - the pattern is in world
+    space, so tiles join. A wave needs at least four vertices along its length.
+  - **Ripples, per pixel**: two layers of value noise with exact derivatives
+    (`RippleNoise()`, 4 hashes each), the second turned 37 degrees, 0.45 of the size
+    (`_RippleSize`) and half the height (`_RippleHeight`), sliding across the first. Their
+    coordinates are made per vertex. They only add to the slope the normal is made from.
+    Each layer fades out by ripples per pixel (`_FadeStart`/`_FadeEnd`), and the glint is
+    spread wider where they have faded.
+  - **Lighting is its own**, not URP's Blinn-Phong: `_WaterColor` lit by probe ambient
+    (`SampleSH` straight up, per vertex) and each light's Lambert, plus `_HorizonColor`
+    by Fresnel (`_FresnelPower`; a fixed colour, no reflection probe), plus a Blinn-Phong
+    glint per light (`_GlintColor`, `_GlintStrength`, `_Smoothness`) that `_GlintHardness`
+    squeezes into hard-edged dabs. Main light with shadows (the glint stops in a shadow),
+    additional lights per pixel through `LIGHT_LOOP_BEGIN` (Forward+ or not), shadowmask
+    from the probes, fog. **No screen-space derivative inside the light loop** (it doesn't
+    compile in a loop of varying length). No lightmap or probe-volume variants.
+  - **Foam** (`_FOAM` toggle, off): `_FoamMask`, a top-down texture laid over the world
+    rectangle `_FoamArea` (centre X, centre Z, size X, size Z), white at the wall fading to
+    black; foam is drawn where the mask, scaled by the ripples (`_FoamBreakup`) and a slow
+    per-vertex sine (`_FoamLap`, `_FoamLapSpeed`), passes one half. Matt: no reflection or
+    glint. Import the mask with Clamp and a black border.
+  - **Passes**: ForwardLit, DepthOnly, DepthNormals. No ShadowCaster (water casts none) and
+    no Meta pass. SRP Batcher compatible, stereo instanced.
+  - **In a level**: on `Environment`, **no collider** (the bed below it has one), Cast
+    Shadows off, not Contribute GI.
+  - **Cost**: 8 hashes a pixel, one texture read with Foam on, one `pow` a light.
+    Unmeasured.
 - **`TeaLeaf/DoorLeaf`** (`Assets/Art/Shaders/DoorLeaf.shader`; a material references it) —
   a door leaf with a keyhole opening cut out of it, for `Interaction.DoorKeyhole` (see
   `Scripts/Interaction/CLAUDE.md`). A flat `_BaseColor` (no texture), Blinn-Phong, the same
@@ -242,7 +281,8 @@ night. The player's side (`Player.PlayerVisibility`) is in `Scripts/Player/CLAUD
 ## Surfaces
 
 What a floor is made of, for footsteps and landings - the player's
-(`Player.PlayerFootsteps`, see `Scripts/Player/CLAUDE.md`), guards' later.
+(`Player.PlayerFootsteps`, see `Scripts/Player/CLAUDE.md`), guards' later - the ramp
+that stands in for a flight of steps, and the barrels' shared collision shape.
 
 - **`SurfaceType`** (enum) — `Stone`, `Wood`, `Carpet`, `Metal`, `Water`, `Tile`, `Grass`,
   `Gravel`, `Plaster`. `Stone` is first, so it's what anything untagged is: only floors that differ need
@@ -279,6 +319,51 @@ What a floor is made of, for footsteps and landings - the player's
   a credit, and a toe sounds when the credit reaches a target re-picked at random in
   0.5-1.5, spending 1 - the average is the ratio, with no long runs either way (not a
   per-step dice roll).
+- **`RampCollider`** — the collision for a flight of steps: one convex `MeshCollider`
+  holding a six-corner wedge, so the player walks up a smooth ramp rather than each step.
+  `[RequireComponent(MeshCollider)]`, on an empty child of the steps' prefab variant, at
+  the foot of the first step in the middle of its width, on `Environment` (the
+  `SurfaceTag` on it or a parent). **Own axes:** X across the steps, Y up, +Z up the
+  flight - the slope starts on the floor at the object's position and reaches `height` at
+  `length` along Z, `width` centred on X; the wedge is solid (sides, back and bottom too),
+  so it suits free-standing steps. Sizes are in the object's own units: keep it at scale
+  1. **The mesh is never saved**: `Rebuild()` makes it from the three sizes in `Awake()`
+  (once, at load) and in `OnValidate()` (scene load and Inspector edits, so editor bakes
+  such as the NavMesh see it), reusing one `Mesh` per component; it sets the collider's
+  mesh and `convex` itself. No gizmo of its own: the `MeshCollider` draws the wedge when
+  selected.
+- **`BarrelCollider`** — the tuning tool for a barrel's collision, **not a runtime
+  collider builder**: a twelve-sided shape of four rings (`bottomRim`, `lowerBelly`,
+  `upperBelly`, `topRim`, each a `height` above the object and a `radius`), baked to one
+  mesh asset that every barrel's convex `MeshCollider` shares, so the shape is cooked at
+  import and nothing is built at load. `[RequireComponent(MeshCollider)]`, on a
+  `BarrelCollider` child of the `Prefabs/Containers/Barrel` variant (which replaces the
+  pack's own collision child), at the middle of the barrel's base, on `Environment` with a
+  Wood `SurfaceTag`; local +Y up the barrel, scale 1. **The collider only changes on a
+  bake**: right-click > **Bake To Mesh Asset** writes the mesh to `meshAssetPath`
+  (`Assets/Art/Colliders/BarrelCollider.asset`), filling the existing asset in again
+  rather than replacing it, and assigns it to its own `MeshCollider`. The numbers are
+  shown as a yellow outline while selected (`IDebugDrawable` through `DebugLines`, **not
+  registered** with `DebugDrawRegistry`: it is a Scene view tool, and registering would
+  cost every barrel something at runtime). Everything but the outline is
+  `#if UNITY_EDITOR`; no `Awake()` or `Update()` - it stays on the prefab only to keep
+  the numbers. **Other barrel prefabs get a plain convex `MeshCollider` with the baked
+  mesh, no `BarrelCollider`.** Convex, so a ring narrower than the line between its
+  neighbours is bridged over.
+- **`EnvironmentVariants`** (`Core/Editor`, menu **TeaLeaf > Make Environment Variants**)
+  — makes the prefab variants for static level geometry in bulk. Select pack prefabs, or
+  folders holding them, in the Project window and run it: each gets a variant in
+  `Assets/Prefabs/Environment/<category>/` under the pack's name with a leading
+  `Medieval_` swapped for `TL_` (other names are kept), with every object in it
+  (LOD meshes and collision children too) on `Environment` and marked Static (Contribute
+  GI, Occluder, Occludee, Batching, Reflection Probe). The category is the pack folder the
+  prefab is in, or that folder's parent when it is only the pack's prefabs folder
+  (`Walls/Prfbs` gives `Walls`; the pack's `Masonary` is filed as `Masonry`). **A pack
+  prefab that already has a variant anywhere under `Assets/Prefabs` is skipped** - found
+  from the variants themselves, so one that was renamed or moved still counts - so it can
+  be run again without overwriting hand work. It adds no colliders, `SurfaceTag`s or
+  scripts. **Not for things that move**: doors, and foliage that sways, get their variants
+  by hand.
 
 ## Noise and sound
 
@@ -484,10 +569,10 @@ the player truthfully where it is, on stereo headphones.
   Console entry: the listener's room, voices playing, the spatialiser, the room's reverb,
   every loop (room, path, muffle, loudness, voice) and each emitter's room, range, straight
   and path distance, muffle, heard-from point and played/not.
-- **`NoiseTestListeners`** (`Core/Debug/Editor`, menu **TeaLeaf > Add Noise Test
+- **`NoiseTestListeners`** (`Core/Debug/Editor`, menu **TeaLeaf > Dev Room > Add Noise Test
   Listeners**) adds three collider-less listener cubes under one root, 3m, 6m and 12m ahead
   of the main camera at ear height.
-- **`SoundTestArea`** (`Core/Debug/Editor`, menu **TeaLeaf > Build Sound Test Area**; not in
+- **`SoundTestArea`** (`Core/Debug/Editor`, menu **TeaLeaf > Dev Room > Build Sound Test Area**; not in
   the scene) builds three 4m rooms in a row at (-14, 0, 4), no ceilings: A (doorway to
   outside + doorway to B), B, and C behind a solid wall with a closed portal from B (the
   thin-wall case), with rooms, portals, listener cubes and two emitters. Its helpers
@@ -495,7 +580,7 @@ the player truthfully where it is, on stereo headphones.
   reused by the test house. `EnsureSceneObjects()` makes sure the scene has a `Sound Player`
   object (with the wind as its outside ambience if it has none) and the Debug object a
   `SoundDebug`. Uses `Player.TestGeometry` (editor-only).
-- **`SoundTestHouse`** (`Core/Debug/Editor`, menu **TeaLeaf > Build Sound Test House**) — a
+- **`SoundTestHouse`** (`Core/Debug/Editor`, menu **TeaLeaf > Dev Room > Build Sound Test House**) — a
   two-storey 12m x 8m house with its own ground, at (-36, 0, 12); a rebuild keeps where the
   old one was moved to. Ground floor: Hall (front door, a 35° stair ramp up its left wall),
   Kitchen, Store (behind a closed-door portal and a door slab) and Lounge (closed "window"
@@ -511,7 +596,7 @@ the player truthfully where it is, on stereo headphones.
   Footstep surfaces: upper floor and stairs tagged Wood, and 2cm floor coverings tagged
   Carpet (Lounge), Tile (Kitchen), Metal (Store) and, across the Yard, Water, Gravel and
   Grass; the Hall and the Yard's edges are untagged stone.
-- **`PlaceholderSounds`** (`Core/Debug/Editor`, menu **TeaLeaf > Create Placeholder Sounds**)
+- **`PlaceholderSounds`** (`Core/Debug/Editor`, menu **TeaLeaf > Dev Room > Create Placeholder Sounds**)
   — generated stand-in `.wav` files in `Assets/Audio/Placeholder` and cues in `Assets/Data`.
   Existing files are kept. Cues: `FootstepPlaceholder` (stone; range 25m, noise 6m),
   `ImpactPlaceholder` (35m, 10m), `CreakPlaceholder` (`CreakCuePath`; volume 0.6, range 20m,

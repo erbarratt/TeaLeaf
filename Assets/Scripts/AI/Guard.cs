@@ -400,7 +400,7 @@ namespace AI
         private void Start()
         {
             if (!_agent.isOnNavMesh) {
-                Debug.LogWarning($"Guard '{name}' isn't on a NavMesh, so it can't walk. Bake one (TeaLeaf > Set Up Test Guard).", this);
+                Debug.LogWarning($"Guard '{name}' isn't on a NavMesh, so it can't walk. Bake one (TeaLeaf > Dev Room > Set Up Test Guard).", this);
             }
 
             EnterPatrol();

@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Core
 {
     /// <summary>
-    /// Editor menu command (TeaLeaf > Build Sound Test Area) that builds a
+    /// Editor menu command (TeaLeaf > Dev Room > Build Sound Test Area) that builds a
     /// greybox row of three rooms for testing how sound travels through
     /// SoundRooms and SoundPortals, with a NoiseListenerDebug cube in each
     /// place worth listening from and two SoundEmitterDebug cubes that play
@@ -45,7 +45,7 @@ namespace Core
         /// <summary>
         /// Builds the test area, replacing an existing one (after asking).
         /// </summary>
-        [MenuItem("TeaLeaf/Build Sound Test Area")]
+        [MenuItem("TeaLeaf/Dev Room/Build Sound Test Area")]
         private static void Build()
         {
             int environment = LayerMask.NameToLayer(EnvironmentLayerName);

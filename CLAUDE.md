@@ -54,7 +54,7 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
   (`NoiseSystem`, `SoundCue`, `SoundRoom`, `SoundPortal`, `SoundPropagation`, `SoundPlayer`,
   `SoundLoop`, `SoundLoopPlayer`, `ListenerReverb`, `RoomAmbience`, `ReverbSettings`,
   `SpatialVoice`), the render settings, surfaces (`SurfaceType`, `SurfaceTag`,
-  `SurfaceSounds`), gameplay light (`SceneLight`, `Moonlight`, `LightSource`, `Flame`), the
+  `SurfaceSounds`, `RampCollider`, `BarrelCollider`, `EnvironmentVariants`), gameplay light (`SceneLight`, `Moonlight`, `LightSource`, `Flame`), the
   procedural night sky (`ProceduralSky`, `MoonSurfaceBuilder`), the level surface shaders,
   and shared debug drawing (`DebugLines`, `IDebugDrawable`, `InHeadsetGizmos`).
 - **`Assets/Scripts/Inventory/CLAUDE.md`** — what the player owns and carries: the pack
@@ -63,6 +63,10 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
 
 - **`Assets/Scripts/AI/CLAUDE.md`** — the guards (`Guard`, `GuardState`, `PatrolRoute`),
   the NavMesh and how it is baked, and the test guard's set-up.
+- **`Assets/Scenes/CLAUDE.md`** — the level building guidelines: how a level's hierarchy,
+  collision, layers, static flags, lighting, culling and sound are laid out, measured
+  against a shipped VR stealth level, and the checklist for reviewing a scene. Read it
+  before building, changing or reviewing level geometry.
 
 A new system folder (`UI`) gets its own `CLAUDE.md` when its first system lands. Read
 the relevant one before changing a system you haven't read this session, even when working
@@ -144,7 +148,7 @@ block, and Phases 6, 8 and 10).
   *depend* on a full-screen or post-process effect, or on the camera depth or opaque
   texture: an optional one that can be switched off is allowed once measured. No parallax
   occlusion on surfaces that fill the view. The procedural surface shaders (cobblestone,
-  brick) are acceptable, subject to measuring. Keep transparent overdraw small; UI and
+  brick, water) are acceptable, subject to measuring. Keep transparent overdraw small; UI and
   markers stay simple unlit shapes. 4x MSAA is wanted (thin edges shimmer in a headset
   without it).
 - **Shaders:** the cheapest lit model that does the job; SRP Batcher compatible
@@ -339,8 +343,9 @@ Player                 [Player layer] CharacterController, PlayerTracking, Playe
                            into a lock while in use)
           Crossbow         (made at runtime by PlayerCrossbow, on the hand visual the
                            lockpicks are not on: the right for a right-handed player)
-          Pack             (Inventory.Pack - a scene-root object moved by PlayerPack onto
-                           whichever hand visual brings it out; active only while out)
+          Pack             (Inventory.Pack - saved as a child of the Player root, moved by
+                           PlayerPack onto whichever hand visual brings it out; active
+                           only while out)
         Left Hand Reticle
       Right Hand       [PlayerHands] same, visual mirrored (scale.x -1)
 ```
@@ -384,15 +389,20 @@ follow) are kept in case untracked hands are hidden later.
 
 ### Physics layers
 
-User layers 6-13: `Environment` (static world geometry), `Player` (the CharacterController
+User layers 6-14: `Environment` (static world geometry), `Player` (the CharacterController
 object, the Player root), `PlayerHands` (Left/Right Hand objects), `Interactable` (grabbables,
 doors, loot, locks), `Climbable` (`ClimbableEdge`s, ladders, ropes), `Guard` (body capsule),
-`GuardHead` (blackjack target), `Projectile` (bolts). Unassigned objects stay on `Default`,
+`GuardHead` (blackjack target), `Projectile` (bolts), `PlayerBlocker` (invisible boxes only
+the player's body collides with). Unassigned objects stay on `Default`,
 which still collides with everything. Collision matrix pairs that are ON among these:
 Environment with Environment/Player/PlayerHands/Interactable/Guard/Projectile;
 Player-Interactable; Player-Guard; PlayerHands-Interactable; Interactable with
-Interactable/Guard/Projectile; Guard-Projectile. Everything else is off (notably
-Player-PlayerHands, and Climbable with everything - it's a grab volume, not geometry). **A
+Interactable/Guard/Projectile; Guard-Projectile; Player-PlayerBlocker. Everything else is off
+(notably Player-PlayerHands, and Climbable with everything - it's a grab volume, not
+geometry). **`PlayerBlocker` collides with `Player` and nothing else, and no query mask
+includes it**: hands, carried and thrown props, bolts, guards, hand rays, light rays and
+guard sight all pass through a blocker. A new query's mask must leave it out. How blockers
+are used is in `Assets/Scenes/CLAUDE.md`. **A
 prop being carried is moved onto `PlayerHands`** (and back when dropped; it's also a child of
 the hand visual while carried), so the body doesn't collide with it and hand rays, the hand
 sweep and light rays ignore it. **A door** is on `Interactable` (its leaf and its handle's
@@ -556,11 +566,13 @@ fails and restarts. The mechanics:
   prefab variant of a pack prefab** holding what the game adds - Static and the
   `Environment` layer, a collider, a `SurfaceTag` where it is walked on or shot at, and
   scripts such as `Door` or `Ladder` - and levels are built from those variants, never
-  straight from the pack. The packs' materials are URP Lit and their textures are
+  straight from the pack. **TeaLeaf > Make Environment Variants** makes the variants for
+  static pieces in bulk from the pack prefabs or folders selected in the Project window
+  (`Environment` layer and Static set; see `Assets/Scripts/Core/CLAUDE.md`). The packs' materials are URP Lit and their textures are
   imported at 2048 at most; keep both so. Their demo scenes, skyboxes, lighting
   settings, post effects and `SimpleCameraController` are not used. Organic models (the
-  guard, hands, hero props) come from outside. The test areas in `Main.unity` are the
-  exception: they are built from code by the TeaLeaf menu's editor builders, the Smithy
+  guard, hands, hero props) come from outside. The test areas are the
+  exception: they are built from code by the TeaLeaf > Dev Room menu's editor builders, the Smithy
   textured (`Assets/Scripts/Interaction/CLAUDE.md`) and the rest greybox, as are the
   props and the guard.
   Out of scope: settings/main menu, save/load, combat, fall damage and health.
@@ -575,13 +587,20 @@ other system fades out or reloads the scene itself.
 ### Scenes
 
 `Assets/Scenes/Main.unity` is the sole scene in the project, and the only scene in the build
-list. Its test areas are built from the **TeaLeaf** menu (editor scripts in each system's
-`Debug/Editor`) and can be rebuilt at any time: the Sound Test House, the Grabbable Test
-Props, the Door Test Area (which also sets up lockpicking, including a `Big Lock` object at
-the scene root, and a keyed door), the Chest Test Area and the Smithy (a textured,
-climbable blacksmith's house). A `Test Guard` patrols the Sound Test House, on a NavMesh
-baked from the Environment layer (`NavMesh` object at the scene root; **TeaLeaf > Set Up
-Test Guard** rebuilds both, and must be run again after level geometry changes).
-The menu has builders for other test areas (locomotion course, town, sound test area, noise
-listeners, physical hands) that are not in the scene: don't assume one is there. **TeaLeaf > Add Hand Tools To Player** adds the crossbow, blackjack and compass
+list. **It holds the start of the docks level**, built by hand from the `Assets/Prefabs`
+variants and laid out as `Assets/Scenes/CLAUDE.md` describes (`Environment`, `Gameplay`
+and `Sound` roots, with `Sector 1` the only sector), beside the Player, `Level Manager`,
+`Sound Player` and Debug objects. So far it is
+dock sections, foundations and floors: **no guard, no NavMesh, no sound rooms and no test
+area is in the scene**. Test areas are built from the **TeaLeaf > Dev Room** submenu
+(editor scripts in each system's `Debug/Editor`; the test-area builders and set-up
+commands are all there, and tools for building real levels sit directly in the
+**TeaLeaf** menu) and can be built at any time: the Sound Test House, the Grabbable Test
+Props, the Door Test Area (which also sets up lockpicking, including a `Big Lock` object
+under the `Gameplay` root, and a keyed door), the Chest Test Area, the Smithy (a textured,
+climbable blacksmith's house), a locomotion course, a town, a sound test area, noise
+listeners and a physical hands area. **TeaLeaf > Dev Room > Set Up Test Guard** puts a
+`Test Guard` on the Sound Test House's path and bakes a NavMesh from the Environment layer
+(`NavMesh` object at the scene root; run it again after level geometry changes). Don't
+assume any of them is there. **TeaLeaf > Dev Room > Add Hand Tools To Player** adds the crossbow, blackjack and compass
 components to the `Hands` object if they are missing.

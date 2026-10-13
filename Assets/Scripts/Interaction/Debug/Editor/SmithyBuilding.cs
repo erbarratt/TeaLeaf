@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Interaction
 {
     /// <summary>
-    /// Editor menu command (TeaLeaf > Build Smithy) that builds a
+    /// Editor menu command (TeaLeaf > Dev Room > Build Smithy) that builds a
     /// half-timbered blacksmith's house in front of the main camera: a
     /// stone ground floor with a forge arch and a doorway, a jettied
     /// (overhanging) timber-framed upper floor with plaster panels, a
@@ -180,7 +180,7 @@ namespace Interaction
         // The source of the timber's unevenness - see Jitter().
         private static System.Random _random;
 
-        [MenuItem("TeaLeaf/Build Smithy")]
+        [MenuItem("TeaLeaf/Dev Room/Build Smithy")]
         private static void Build()
         {
             int environment = LayerMask.NameToLayer("Environment");

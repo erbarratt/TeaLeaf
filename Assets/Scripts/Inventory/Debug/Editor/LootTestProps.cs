@@ -7,7 +7,7 @@ using UnityEngine;
 namespace Inventory
 {
     /// <summary>
-    /// Editor menu command (TeaLeaf > Add Loot Test Props) that puts a
+    /// Editor menu command (TeaLeaf > Dev Room > Add Loot Test Props) that puts a
     /// table of loot in front and to the right of the main camera (beside
     /// the Grabbable Test Props' table, if that's there), for testing the
     /// pack. More than the pack can hold, so it has to be chosen between:
@@ -35,7 +35,7 @@ namespace Inventory
         private const string GoldMaterialPath = "Assets/Art/Materials/LootGold.mat";
         private const string BottleProfilePath = "Assets/Data/BottleHold.asset";
 
-        [MenuItem("TeaLeaf/Add Loot Test Props")]
+        [MenuItem("TeaLeaf/Dev Room/Add Loot Test Props")]
         private static void Build()
         {
             int environment = LayerMask.NameToLayer("Environment");
@@ -187,10 +187,11 @@ namespace Inventory
         /// InventoryDebug next to PlayerController (on the Player root),
         /// PlayerPack next to PlayerHandHolding (on the Hands object), and
         /// the scene's one Pack object - each only if missing. The pack
-        /// sits at the scene's root, not under the test props, so
+        /// is a child of the Player root, not of the test props, so
         /// rebuilding them keeps any tuning done to it (at run time it's
-        /// moved onto the left hand). The sound of something going in is
-        /// the placeholder footstep, as a soft stand-in.
+        /// moved onto the hand that brings it out). The sound of
+        /// something going in is the placeholder footstep, as a soft
+        /// stand-in.
         /// </summary>
         internal static void EnsurePlayerComponents()
         {
@@ -219,6 +220,13 @@ namespace Inventory
 
             if (pack == null) {
                 GameObject packObject = new("Pack");
+
+                // Under the Player root; left at the scene's root if the
+                // scene has no player (warned about above).
+                if (player != null) {
+                    packObject.transform.SetParent(player.transform, false);
+                }
+
                 Undo.RegisterCreatedObjectUndo(packObject, "Add Loot Test Props");
                 pack = packObject.AddComponent<Pack>();
             }

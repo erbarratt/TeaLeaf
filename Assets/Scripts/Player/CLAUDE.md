@@ -172,7 +172,9 @@ the template's keyboard and gamepad bindings.
   `Lerp(slowestStepScale (0.4), 1, speed fraction)`, where the speed is the average over the
   stride (distance / time spent moving, `_timeSinceStep`) against the gait's full speed
   (`MoveSpeed`, or `SprintSpeed` when sprinting; crouch moves at walk speed). So loudness to
-  guards = the surface cue's noise radius x stance x speed. The surface is found only when a
+  guards = the surface cue's noise radius x stance x speed. **A slow crouched step is
+  silent**: while `CrouchWalking`, a step whose speed fraction is under `silentCrouchSpeed`
+  (0.3; 0 = off) plays no sound and emits no noise, though its stride is still used up. The surface is found only when a
   sound is made: one ray down from 0.3m above the capsule's bottom (`groundLayers`,
   Environment + Interactable; `SurfaceTag.TryFindBelow()`); a miss reuses the last surface.
   **A landing is the surface's step sound played loud, twice** (no separate landing cue): on
@@ -343,7 +345,7 @@ compass is only worn: it never has a hand.
   rewritten each frame of aiming (unused dots collapsed to a point), and its bounds are huge
   so they never need recalculating. `OnDestroy()` removes the root object, the mesh and the
   materials.
-- **`GrabbableTestProps`** (`Debug/Editor`, menu **TeaLeaf > Add Grabbable Test Props**) — a
+- **`GrabbableTestProps`** (`Debug/Editor`, menu **TeaLeaf > Dev Room > Add Grabbable Test Props**) — a
   table 1.2m ahead of the main camera with a cube, a bottle and a crate, each a
   Rigidbody + `Grabbable` + `ImpactNoise` (placeholder impact cue and surface sounds, from
   `Core.PlaceholderSounds`' paths) on Interactable, Rigidbody on `Interpolate`. The cube and
@@ -694,7 +696,7 @@ compass is only worn: it never has a hand.
     and `arrowMaxSize` by loudness. The points are in the world, so the arrows go round
     the compass as the player turns. Loops and ambience raise no arrows.
   - A worn object like the lockpicks, depth-tested, not an overlay marker.
-- **`PlayerHandTools`** (`Debug/Editor`, menu **TeaLeaf > Add Hand Tools To Player**) —
+- **`PlayerHandTools`** (`Debug/Editor`, menu **TeaLeaf > Dev Room > Add Hand Tools To Player**) —
   adds `PlayerCrossbow`, `PlayerBlackjack` and `PlayerCompass` to the `Hands` object, each
   only if missing, and sets the crossbow's `ropeProfile` to `RopeGrip.asset` if it is
   empty.
@@ -1014,12 +1016,12 @@ systems in Play Mode — not part of the runtime gameplay path. The in-headset g
   climbable as its setup checks expect: trigger volumes on Climbable, larger than the solid
   part, colliders set up before the component is added, with its
   `LedgeGrip`/`LadderRung`/`RopeGrip` profile.
-- **`PhysicalHandsTestArea`** (menu **TeaLeaf > Build Physical Hands Test Area**; not in the
+- **`PhysicalHandsTestArea`** (menu **TeaLeaf > Dev Room > Build Physical Hands Test Area**; not in the
   scene) — a greybox row at (4.5, 0, -5.5), facing the spawn: an inside corner, a 2cm thin
   panel (tunnelling, far-side push-out, snap-back), a table with a static 0.3m crate on
   Interactable, a pillar, a 5cm gap between two blocks (narrower than the 7cm hand), a 45°
   slope and a round post.
-- **`LocomotionTestCourse`** (menu **TeaLeaf > Build Locomotion Test Course**; not in the
+- **`LocomotionTestCourse`** (menu **TeaLeaf > Dev Room > Build Locomotion Test Course**; not in the
   scene) — a row 10m in front of the spawn (root at (12, 0, 10), turned 180°): a 1.3m chest
   ledge, a 2.3m above-head ledge, a 1.1m low shelf under a ceiling (mantle ends crouched), a
   4m tower with a ladder (mantles from its top rung) and a 3.7m rope sharing a top edge that
@@ -1028,7 +1030,7 @@ systems in Play Mode — not part of the runtime gameplay path. The in-headset g
   posts 2.2m up (one sagging 0.3m via an `endPoint` child, one straight level zip line) and
   an angled zip line from above the tower down 9m behind the row. Each rope has a visible
   cylinder per piece of its curve (`AddVisibleRope()`). Sizes come from the player settings.
-- **`TownTestArea`** (menu **TeaLeaf > Build Town Test Area**; not in the scene) — a greybox
+- **`TownTestArea`** (menu **TeaLeaf > Dev Room > Build Town Test Area**; not in the scene) — a greybox
   town square (root at (0, 0, -35), behind the spawn): six flat-roofed two-storey houses,
   each from a `BuildingSpec` (size, optional tower, terrace, balcony, door position) in its
   own frame (front outer face at z = 0 facing +Z, turned to face the square), four

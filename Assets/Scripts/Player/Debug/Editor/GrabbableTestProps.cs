@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Player
 {
     /// <summary>
-    /// Editor menu command (TeaLeaf > Add Grabbable Test Props) that puts a
+    /// Editor menu command (TeaLeaf > Dev Room > Add Grabbable Test Props) that puts a
     /// table with three props on it in front of the main camera, for
     /// testing picking up, carrying and dropping: a small cube, a bottle
     /// (a body cylinder with a neck cylinder on top) and a crate. Each is a
@@ -34,7 +34,7 @@ namespace Player
         private const float BottleNeckDiameter = 0.03f;
         private const float BottleNeckHeight = 0.08f;
 
-        [MenuItem("TeaLeaf/Add Grabbable Test Props")]
+        [MenuItem("TeaLeaf/Dev Room/Add Grabbable Test Props")]
         private static void Build()
         {
             int environment = LayerMask.NameToLayer("Environment");

@@ -12,7 +12,7 @@ namespace Core
     /// each kind (Assets/Data). They're ordinary assets - swap the clips in
     /// a cue for real recordings later and everything using the cue follows.
     ///
-    /// Menu: TeaLeaf > Create Placeholder Sounds (also run by the sound test
+    /// Menu: TeaLeaf > Dev Room > Create Placeholder Sounds (also run by the sound test
     /// area builder). Existing files are kept, so tuning a cue in the
     /// Inspector survives; delete a file to have it made again.
     ///
@@ -36,7 +36,7 @@ namespace Core
         /// <summary>
         /// Makes any placeholder clips and cues that don't exist yet.
         /// </summary>
-        [MenuItem("TeaLeaf/Create Placeholder Sounds")]
+        [MenuItem("TeaLeaf/Dev Room/Create Placeholder Sounds")]
         public static void Create()
         {
             Directory.CreateDirectory(ClipFolder);

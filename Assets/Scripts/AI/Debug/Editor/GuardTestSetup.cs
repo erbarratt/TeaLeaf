@@ -10,7 +10,7 @@ using UnityEngine.SceneManagement;
 namespace AI
 {
     /// <summary>
-    /// Editor menu command (TeaLeaf > Set Up Test Guard) that puts a
+    /// Editor menu command (TeaLeaf > Dev Room > Set Up Test Guard) that puts a
     /// greybox guard in the scene and bakes the NavMesh it walks on.
     ///
     /// With a Sound Test House in the scene, the guard patrols the route
@@ -55,7 +55,7 @@ namespace AI
         private const float HeadHeight = 1.65f;
         private const float HeadRadius = 0.14f;
 
-        [MenuItem("TeaLeaf/Set Up Test Guard")]
+        [MenuItem("TeaLeaf/Dev Room/Set Up Test Guard")]
         private static void Build()
         {
             int guardLayer = LayerMask.NameToLayer("Guard");
@@ -128,13 +128,13 @@ namespace AI
         }
 
         /// <summary>
-        /// Editor menu command (TeaLeaf > Check Test Guard Route): asks
+        /// Editor menu command (TeaLeaf > Dev Room > Check Test Guard Route): asks
         /// the baked NavMesh for a path between each pair of route points
         /// in turn and logs what it finds - so a point that's off the
         /// NavMesh, or a stretch that can't be walked (a doorway too
         /// narrow, stairs too steep), shows up without playing.
         /// </summary>
-        [MenuItem("TeaLeaf/Check Test Guard Route")]
+        [MenuItem("TeaLeaf/Dev Room/Check Test Guard Route")]
         private static void CheckRoute()
         {
             GameObject routeObject = GameObject.Find(RouteName);

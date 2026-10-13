@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Player
 {
     /// <summary>
-    /// Editor menu command (TeaLeaf > Build Locomotion Test Course) that
+    /// Editor menu command (TeaLeaf > Dev Room > Build Locomotion Test Course) that
     /// builds a greybox course for every traversal case in Phase 1: ledges
     /// at chest height and above the head, a mantle into a low-clearance
     /// shelf, a 4m ladder and rope up one tower, walking and sprinting jump
@@ -58,7 +58,7 @@ namespace Player
         /// <summary>
         /// Builds the course, replacing an existing one (after asking).
         /// </summary>
-        [MenuItem("TeaLeaf/Build Locomotion Test Course")]
+        [MenuItem("TeaLeaf/Dev Room/Build Locomotion Test Course")]
         private static void Build()
         {
             int environment = LayerMask.NameToLayer(EnvironmentLayerName);

@@ -63,6 +63,12 @@ namespace Player
         // to move.
         [SerializeField, Range(0f, 1f)] private float slowestStepScale = 0.4f;
 
+        // Crouched, a step taken slower than this makes no sound and no
+        // noise at all. A fraction of full speed (0.3 = the stick under
+        // a third of the way), measured as the average over the stride.
+        // 0 = every crouched step sounds.
+        [SerializeField, Range(0f, 1f)] private float silentCrouchSpeed = 0.3f;
+
         [Header("Landing")]
 
         // The fall speed, in metres per second, of a standard landing:
@@ -195,6 +201,13 @@ namespace Player
             // stays even whatever the frame rate.
             _distanceSinceStep -= gait.stride;
             _timeSinceStep = 0f;
+
+            // A slow enough crouched step is silent, to the player and to
+            // guards. The stride is still used up above, so speeding up
+            // doesn't sound a step straight away.
+            if (playerLocomotion.MovementState == MovementState.CrouchWalking && speedFraction < silentCrouchSpeed) {
+                return;
+            }
 
             // PlayStep() plays the surface's audio, emits its noise, and
             // adds the toe sound on a heel-and-toe surface.

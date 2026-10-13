@@ -6,6 +6,84 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-12, third part, and 13 (level building guidelines, environment variants, the docks level started, water shader)
+-----------------------------------------------------------------------------------------------------------------------
+- Not tried in the headset: the water shader, the silent crouched
+  step, 4x MSAA and the sharper moon shadows.
+- Assets/Scenes/CLAUDE.md holds the level building guidelines: how a
+  level's hierarchy, naming, collision, layers, static flags, LODs,
+  lighting, culling and sound are laid out, and a checklist for
+  reviewing a scene. They are measured against the prologue of Thief
+  VR: Legacy of Shadow (72m x 42m, 3,345 renderers in about 50 static
+  batches, 165 materials, 10,718 box colliders against 7 mesh
+  colliders, one realtime light), with the places TeaLeaf differs on
+  purpose listed at the end.
+- Main.unity holds the start of the docks level, built by hand from
+  the Assets/Prefabs variants in the guidelines' hierarchy: an
+  Environment root (Sectors with Global and Sector 1, and Player
+  Blockers), a Gameplay root and a Sound root. So far dock sections,
+  foundations and floors. No test area, guard, NavMesh or sound room
+  is in the scene; the test areas are built from the menu when wanted.
+- The test-area builders and set-up commands are in a TeaLeaf > Dev
+  Room submenu. Tools for building real levels sit directly in the
+  TeaLeaf menu.
+- TeaLeaf > Make Environment Variants makes the prefab variants for
+  static level pieces in bulk from the pack prefabs or folders
+  selected in the Project window: each goes in
+  Assets/Prefabs/Environment/(category) with every object in it on
+  the Environment layer and marked Static. A pack prefab that already
+  has a variant anywhere under Assets/Prefabs is skipped, so it can
+  be run again over hand work. 237 variants made, in 13 categories.
+- The game's variants are named TL_ where the pack's are Medieval_:
+  the tool swaps the prefix, and the 237 variants, the names stored
+  inside them and the 42 pieces placed in the scene are renamed.
+  Renaming a prefab and its .meta together outside Unity keeps its
+  GUID, so nothing placed loses its prefab.
+- A PlayerBlocker layer (14) for invisible boxes only the player's
+  body collides with: it collides with Player and nothing else and is
+  in no query mask, so hands, props, bolts, guards, hand rays, light
+  rays and guard sight all pass through. They wrap clutter the body
+  would catch on, close gaps and stop the body leaving the level. A
+  blocker doesn't stop a mantle or a climb.
+- RampCollider: the collision for a flight of steps, one convex
+  six-corner wedge from a width, a height and a length, so the player
+  walks up a smooth ramp. The mesh is never saved: it is made at load
+  and when the numbers are edited.
+- BarrelCollider: a twelve-sided shape of four rings, tuned on the
+  Prefabs/Containers/Barrel variant against a yellow outline and
+  baked to one mesh asset (Assets/Art/Colliders/BarrelCollider.asset)
+  that every barrel's convex MeshCollider shares. Nothing is built at
+  load.
+- The Pack is saved as a child of the Player root, and the Big Lock
+  under the Gameplay root; the test builders put them there.
+- TeaLeaf/Water (Assets/Art/Shaders/Water.shader, material
+  TeaLeaf_Water): opaque harbour water at night that never reads the
+  camera's depth or opaque texture. Three sine waves move each vertex
+  up and down only, so the water's edge stays put against a wall; two
+  layers of value-noise ripples per pixel add to the normal; the
+  colour goes to a fixed horizon colour by Fresnel; each light gives
+  a hard-edged glint; an optional painted foam mask is laid over a
+  world rectangle.
+- A slow crouched step is silent: PlayerFootsteps skips a step, sound
+  and noise both, when the player is crouch-walking and the average
+  speed over the stride is under silentCrouchSpeed (0.3 of full
+  speed; 0 = off). The stride is still used up, so speeding up
+  doesn't sound a step straight away. Slowest Step Scale only makes
+  slow steps quieter, and never silent above a standstill.
+- PC render settings: 4x MSAA, and the moon's shadow map at 4096 over
+  30m (two cascades, hard edges). Unmeasured on the target rig.
+- A first ground material, MudGround
+  (Assets/Art/Materials/Environment/Ground), with no textures
+  assigned yet. Materials live in
+  Assets/Art/Materials; no material uses the cobblestone or brick
+  shader.
+- Learned: a flat floor wants one BoxCollider, not the default
+  Plane's MeshCollider.
+- Learned: a prefab variant stores its own name inside the file as
+  well as in its filename, and a piece placed in a scene stores its
+  name again there, so a rename has three places to reach.
+
+
 2026-10-12, second part (level art from bought packs, doors on pack prefabs)
 ----------------------------------------------------------------------------
 - Tried in the headset and working: a door made from a pack prefab,

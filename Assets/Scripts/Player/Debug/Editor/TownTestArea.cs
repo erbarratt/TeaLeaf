@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Player
 {
     /// <summary>
-    /// Editor menu command (TeaLeaf > Build Town Test Area) that builds a
+    /// Editor menu command (TeaLeaf > Dev Room > Build Town Test Area) that builds a
     /// greybox town square of six flat-roofed, mud-brick style houses - big
     /// shapes only, modelled on a two-storey Gulf house: a single-storey
     /// block with a roof parapet, an optional two-storey tower over part or
@@ -217,7 +217,7 @@ namespace Player
         /// <summary>
         /// Builds the town, replacing an existing one (after asking).
         /// </summary>
-        [MenuItem("TeaLeaf/Build Town Test Area")]
+        [MenuItem("TeaLeaf/Dev Room/Build Town Test Area")]
         private static void Build()
         {
             _environment = LayerMask.NameToLayer(EnvironmentLayerName);

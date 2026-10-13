@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Core
 {
     /// <summary>
-    /// Editor menu command (TeaLeaf > Build Sound Test House) that builds a
+    /// Editor menu command (TeaLeaf > Dev Room > Build Sound Test House) that builds a
     /// greybox two-storey house with a walled yard: a fuller test of
     /// SoundRooms and SoundPortals than the three-room Sound Test Area,
     /// with the cases a real level has - several rooms deep, a floor above,
@@ -69,7 +69,7 @@ namespace Core
         /// <summary>
         /// Builds the house, replacing an existing one (after asking).
         /// </summary>
-        [MenuItem("TeaLeaf/Build Sound Test House")]
+        [MenuItem("TeaLeaf/Dev Room/Build Sound Test House")]
         private static void Build()
         {
             int environment = LayerMask.NameToLayer(EnvironmentLayerName);
@@ -283,7 +283,7 @@ namespace Core
 
         /// <summary>
         /// The route a guard walks through the house (points only: TeaLeaf >
-        /// Set Up Test Guard puts a guard on it), and the knock in the Store.
+        /// Dev Room > Set Up Test Guard puts a guard on it), and the knock in the Store.
         /// </summary>
         private static void BuildEmitters(Transform parent, SoundCue impactCue)
         {

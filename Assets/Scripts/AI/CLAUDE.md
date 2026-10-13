@@ -4,7 +4,7 @@ Detail for the guards. The root `CLAUDE.md` holds the project rules, the physics
 the slice design; this file is loaded when working in this folder. Keep it up to date with
 every change to these systems, like the root file.
 
-Phase 6 of `Assets/DEVROADMAP.txt`. **Built, set up in the scene and working in the headset**: a guard that patrols, sees, hears, becomes suspicious, searches, chases, catches,
+Phase 6 of `Assets/DEVROADMAP.txt`. **Built and working in the headset** (no guard is in `Main.unity` at present; the test guard is set up from the menu): a guard that patrols, sees, hears, becomes suspicious, searches, chases, catches,
 notices bodies and can be knocked out. Every number is a first guess.
 
 ## The guard
@@ -129,7 +129,7 @@ notices bodies and can be knocked out. Every number is a first guess.
 - **The NavMesh is baked in the editor** by a `NavMeshSurface` (the AI Navigation package)
   on a `NavMesh` object at the scene root: every physics collider on the **Environment**
   layer. The data is `Assets/Scenes/Main-NavMesh.asset`. **Bake again after changing
-  level geometry** (TeaLeaf > Set Up Test Guard does it).
+  level geometry** (TeaLeaf > Dev Room > Set Up Test Guard does it).
 - **Doors aren't in the NavMesh**: they are on Interactable, so a guard walks through a
   shut door.
 
@@ -143,12 +143,12 @@ notices bodies and can be knocked out. Every number is a first guess.
   makes it Suspicious, so a guard standing still near a walking player is usually
   listening, not broken. Left alone it walks the whole test route (checked by playing the
   scene headless: about 40s from the Bedroom to the Hall).
-- **`GuardTestSetup`** (`AI/Debug/Editor`, menu **TeaLeaf > Set Up Test Guard**) — makes
+- **`GuardTestSetup`** (`AI/Debug/Editor`, menu **TeaLeaf > Dev Room > Set Up Test Guard**) — makes
   the `Test Guard` and bakes the NavMesh. With a Sound Test House in the scene the guard
   patrols a `Test Guard Route` copied from the house's `Guard Path` (Bedroom, Landing,
   stairs, Hall, Kitchen, there and back); without one it stands 4m ahead of the camera.
   The guard gets a `GuardDebug`. Also runs **Add Hand Tools To
-  Player** and gives the blackjack the placeholder impact cue. **TeaLeaf > Check Test
+  Player** and gives the blackjack the placeholder impact cue. **TeaLeaf > Dev Room > Check Test
   Guard Route** asks the NavMesh for a path between each pair of route points and logs any
   that fail. Both have command-line entry points (`BuildInBatch()`, `CheckRouteInBatch()`)
   for `Unity.exe -batchmode -quit -projectPath ... -executeMethod AI.GuardTestSetup.…`,

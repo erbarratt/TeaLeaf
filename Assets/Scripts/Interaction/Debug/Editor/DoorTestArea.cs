@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Interaction
 {
     /// <summary>
-    /// Editor menu command (TeaLeaf > Build Door Test Area) that puts a
+    /// Editor menu command (TeaLeaf > Dev Room > Build Door Test Area) that puts a
     /// wall with three doors in it in front of the main camera, one of
     /// each kind of lock: no lock, a simple lock (starts locked) and a
     /// keyed lock (starts locked). In Play Mode, right-click a Door
@@ -38,6 +38,10 @@ namespace Interaction
     public static class DoorTestArea
     {
         private const string RootName = "Door Test Area";
+
+        // The scene root the big lock is kept under (the level's
+        // gameplay objects; see Assets/Scenes/CLAUDE.md).
+        private const string GameplayRootName = "Gameplay";
 
         private const string HandleProfilePath = "Assets/Data/DoorHandle.asset";
         private const string BottleProfilePath = "Assets/Data/BottleHold.asset";
@@ -100,7 +104,7 @@ namespace Interaction
         private const string PickProfilePath = "Assets/Data/LockpickHold.asset";
         private const string RopeProfilePath = "Assets/Data/RopeGrip.asset";
 
-        [MenuItem("TeaLeaf/Build Door Test Area")]
+        [MenuItem("TeaLeaf/Dev Room/Build Door Test Area")]
         private static void Build()
         {
             int environment = LayerMask.NameToLayer("Environment");
@@ -717,8 +721,9 @@ namespace Interaction
         /// next to PlayerHandVisuals (on the Hands object) if it's missing
         /// - its Reset() fills in its references - and makes the scene's
         /// one Big Lock object (BigLock, with its debug view) if there
-        /// isn't one. The big lock sits at the scene's root, not under the
-        /// test area, so rebuilding the area keeps any tuning done to it.
+        /// isn't one. The big lock is a child of the Gameplay root (made
+        /// too if it's missing), not of the test area, so rebuilding the
+        /// area keeps any tuning done to it.
         /// </summary>
         internal static void EnsureLockpicking(SoundCue cue)
         {
@@ -738,7 +743,16 @@ namespace Interaction
             BigLock bigLock = Object.FindFirstObjectByType<BigLock>();
 
             if (bigLock == null) {
+                // The leading slash asks for a root object of that name.
+                GameObject gameplayRoot = GameObject.Find("/" + GameplayRootName);
+
+                if (gameplayRoot == null) {
+                    gameplayRoot = new(GameplayRootName);
+                    Undo.RegisterCreatedObjectUndo(gameplayRoot, "Build Door Test Area");
+                }
+
                 GameObject lockObject = new("Big Lock");
+                lockObject.transform.SetParent(gameplayRoot.transform, false);
                 Undo.RegisterCreatedObjectUndo(lockObject, "Build Door Test Area");
                 bigLock = lockObject.AddComponent<BigLock>();
                 lockObject.AddComponent<BigLockDebug>();

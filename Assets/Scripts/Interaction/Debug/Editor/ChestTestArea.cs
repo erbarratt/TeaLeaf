@@ -6,7 +6,7 @@ using UnityEngine;
 namespace Interaction
 {
     /// <summary>
-    /// Editor menu command (TeaLeaf > Build Chest Test Area) that puts
+    /// Editor menu command (TeaLeaf > Dev Room > Build Chest Test Area) that puts
     /// three chests in front of the main camera, one of each kind of
     /// lock: no lock, a simple lock (starts locked; pick it) and a keyed
     /// lock (starts locked; its green key is on a stand beside it).
@@ -50,7 +50,7 @@ namespace Interaction
         // The key id the keyed chest asks for and the green test key has.
         private const string TestKeyId = "green";
 
-        [MenuItem("TeaLeaf/Build Chest Test Area")]
+        [MenuItem("TeaLeaf/Dev Room/Build Chest Test Area")]
         private static void Build()
         {
             int environment = LayerMask.NameToLayer("Environment");

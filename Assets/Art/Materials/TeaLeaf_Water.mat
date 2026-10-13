@@ -1,0 +1,57 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: TeaLeaf_Water
+  m_Shader: {fileID: 4800000, guid: 541786f9395cc974c94d34c0a02cfbea, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _FoamMask:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _FadeEnd: 0.5
+    - _FadeStart: 0.15
+    - _Foam: 0
+    - _FoamBreakup: 0.6
+    - _FoamLap: 0.3
+    - _FoamLapSpeed: 0.8
+    - _FoamSoftness: 0.08
+    - _FresnelPower: 4
+    - _GlintHardness: 0.6
+    - _GlintStrength: 2.86
+    - _RippleDirection: 30
+    - _RippleHeight: 0.023
+    - _RippleSize: 0.45
+    - _RippleSpeed: 0.25
+    - _Smoothness: 0.75
+    m_Colors:
+    - _FoamArea: {r: 0, g: 0, b: 100, a: 100}
+    - _FoamColor: {r: 0.5, g: 0.54999995, b: 0.58, a: 1}
+    - _GlintColor: {r: 0.8, g: 0.85, b: 0.9, a: 1}
+    - _HorizonColor: {r: 0.14391243, g: 0.16936633, b: 0.20754719, a: 1}
+    - _WaterColor: {r: 0.07035422, g: 0.12436811, b: 0.16037738, a: 1}
+    - _WaveA: {r: 20, g: 9, b: 0.05, a: 1.1}
+    - _WaveB: {r: 75, g: 6, b: 0.03, a: 0.9}
+    - _WaveC: {r: -40, g: 4, b: 0.015, a: 0.7}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1
