@@ -525,12 +525,14 @@ Lighting:
     as a small number of mixed lights (baked lights can't be turned off
     by a water bolt). Keep realtime lights per view low and ranges
     short.
-    [ ] The moon. It never moves, so its light and shadows on the level
-        can be baked. To try first: the Directional Light as Mixed,
-        lighting mode Shadowmask - the level's shadows come from the
-        lightmap, and only moving things (guards, props, hands) are
-        drawn into a small, short-distance shadow map. Fully realtime,
-        as now, redraws the whole level into the shadow map each frame.
+    [x] The moon: a Mixed Directional Light, lighting mode Shadowmask
+        (plain, not Distance Shadowmask) - the level's shadows come from
+        the lightmap, and only moving things (guards, props, hands) are
+        drawn into the shadow map (2048, 25m).
+    [x] The pack's own point lights (in the buildings, the lampposts and
+        the tower bridge's torch) Baked.
+    [ ] Look over the bake in the headset: leaks, blotches, probe-lit
+        pieces that stand out, moving things' shadows on the baked level.
     [ ] Torches. A realtime point light with no shadows shines through
         walls, while the gameplay light (LightSource) is blocked by
         them. The plan (untested): Mixed lights in Shadowmask mode with
@@ -546,14 +548,17 @@ Lighting:
     [ ] Keep the lights reaching any one object few (URP Forward drops
         the extra ones, and they pop). Keep torch ranges short and don't
         merge the level into a few huge meshes - or test Forward+.
-    [ ] Light probes along every route the player, guards and props
-        use; one baked reflection probe, or none.
+    [x] Light probes over every floor (TeaLeaf > Place Light Probes),
+        and small pieces lit by them rather than lightmapped (TeaLeaf >
+        Set Small Pieces To Light Probes).
+    [ ] One baked reflection probe, or none.
     [ ] A Meta pass for the cobblestone and brick shaders, so a lightmap
         bake can see their colours.
 [ ] Make sure visible light matches the gameplay light (SceneLight) -
     the player must be able to trust what they see. Every mesh that
     casts a shadow has a collider on Environment or Interactable.
-[ ] Occlusion culling bake; split the level into chunks that cull cleanly.
+[x] Occlusion culling bake (rebake with the lighting).
+[ ] Split the level into chunks that cull cleanly.
 [ ] Set the camera's far clip plane to a little more than the longest
     view in the level (the sky doesn't depend on it; it is 200m now).
 [ ] If profiling asks for it: light distance haze (URP's built-in fog,
@@ -604,8 +609,8 @@ Phase 10 - Performance pass (PCVR target rig)
     [ ] Switch off the features nothing uses (additional-light shadows
         until torches need them, light cookies, reflection probe
         blending) and choose between Forward and Forward+.
-    [x] 4x MSAA at render scale 1.0 set in PC_RPAsset, with the moon's
-        shadow map at 4096 over 30m.
+    [x] Render scale 1.0 in PC_RPAsset, MSAA at 2x (4x is the aim), the
+        moon's shadow map at 2048 over 25m.
     [ ] Measure both on the target rig; come down only if the frame
         time says so.
     [ ] Dynamic resolution as the safety net for heavy moments.
@@ -617,9 +622,12 @@ Phase 10 - Performance pass (PCVR target rig)
         Parallax; the cobbles' 5x5 search is the heavy one. If they cost
         too much, bake each pattern into textures at level load (as the
         moon's face is) and keep the same material settings.
-    [ ] Main light shadows: distance 50m at 1024 with one cascade is
-        both costly and blurry; with baked level shadows (Phase 8) it
-        only has to cover moving things near the player - try 10-15m.
+    [ ] Main light shadows cover only moving things near the player
+        (level shadows baked): try 10-15m on the target rig.
+    [ ] Batching: the docks draw in about 216 batches with the GPU
+        Resident Drawer on. Compare it against static batching (GPU
+        Resident Drawer off) on CPU and GPU frame time, not the batch
+        count. LOD Bias in the PC quality level is 2: try 1.
     [ ] Torch shadows from moving things (Phase 8): what each costs,
         and how many can be on at once.
     [ ] Quality settings for weaker and stronger machines: at least

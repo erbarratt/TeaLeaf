@@ -56,6 +56,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2641947444693842151, guid: cda0e74a5ab70fa46801bae3140d27ef, type: 3}
+      propertyPath: m_ReceiveGI
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 3822245152772447678, guid: cda0e74a5ab70fa46801bae3140d27ef, type: 3}
       propertyPath: m_Name
       value: TL_PortchColumn_Small
@@ -75,6 +79,10 @@ PrefabInstance:
     - target: {fileID: 4866520535410012248, guid: cda0e74a5ab70fa46801bae3140d27ef, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 6759678227109690861, guid: cda0e74a5ab70fa46801bae3140d27ef, type: 3}
+      propertyPath: m_ReceiveGI
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 6759678227111879471, guid: cda0e74a5ab70fa46801bae3140d27ef, type: 3}
       propertyPath: m_Layer

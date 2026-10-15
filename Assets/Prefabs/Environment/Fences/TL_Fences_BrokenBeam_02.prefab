@@ -56,6 +56,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 7009073944607066957, guid: 6c08df0feee8cd8439d0aee79d4c4ed9, type: 3}
+      propertyPath: m_ReceiveGI
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 8141096677096990018, guid: 6c08df0feee8cd8439d0aee79d4c4ed9, type: 3}
       propertyPath: m_Name
       value: TL_Fences_BrokenBeam_02

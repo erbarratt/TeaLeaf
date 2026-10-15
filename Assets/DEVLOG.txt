@@ -6,6 +6,61 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-15 (baked lighting, light probes, batches from about 6,000 to 216)
+-------------------------------------------------------------------------
+- Not tried in the headset: any of the bake.
+- The docks drew about 6,000 batches in Play Mode's Stats, with only 50
+  "saved by batching". The scene's 486 prefab instances hold about
+  4,500 renderers and 1,614 LOD groups but only 29 materials: the
+  Astrofish buildings are put together from hundreds of kit pieces
+  (TL_Building_House_VLarge alone is 599 renderers). The moon was a
+  realtime light casting shadows over 50m, so every piece was drawn
+  again into each shadow cascade, and 29 realtime point lights came in
+  with the pack's buildings and lampposts.
+- Now the moon is a Mixed Directional Light with the lighting mode
+  Shadowmask, and the PC quality level uses plain Shadowmask rather
+  than Distance Shadowmask: the level's shadows are baked, and only
+  moving things go into the shadow map (2048 over 25m). Every pack
+  point light in the scene is Baked. Lighting settings are in
+  Assets/Settings/Docks Lighting.lighting (GPU lightmapper, 10
+  texels/m, 2048 maps, Non-Directional, AO); two lightmaps with their
+  shadowmasks, about 85 MB, in Assets/Scenes/Main. Occlusion culling
+  is baked too.
+- After the bake: about 216 batches, with triangles and vertices down
+  too.
+- TeaLeaf > Set Small Pieces To Light Probes: every static piece in
+  the Environment variants whose longest side is under 1m, or whose
+  middle side is under 0.15m (a rod: rails, beams, brackets), takes
+  its baked light from light probes rather than a lightmap, stored as
+  an override on the variant, nested pack pieces included. Thin flat
+  pieces (floors, roofs, wall panels) keep their lightmaps. Make
+  Environment Variants does the same to each new variant.
+- TeaLeaf > Place Light Probes fills one Light Probe Group at
+  Environment/Sectors/Global/Lighting/Light Probes: a 2.5m grid over
+  the Environment colliders, every floor in each column found by rays
+  straight down, a probe 0.5m and 2m above each floor. A probe is left
+  out if it touches geometry, has a ceiling below it, or is shut
+  inside a building with no interior (rays out from it that hit the
+  inside of a mesh collider first, with back faces on). Rerun it and
+  rebake after the layout changes.
+- Level building carried on: cliff rock, door and narrow wooden steps
+  variants, a Rectangle Door, and buildings placed on the docks.
+- Learned: Stats' "saved by batching" only counts static and dynamic
+  batching, never the SRP Batcher or the GPU Resident Drawer, so in
+  URP it says little - judge by frame time. Ticking GPU instancing on
+  a material does nothing while the SRP Batcher is on (it takes
+  priority) or the GPU Resident Drawer is (it instances by itself).
+  Distance Shadowmask still draws static objects into the realtime
+  shadow map within the shadow distance; plain Shadowmask doesn't. In
+  URP the shadow distance that counts is the pipeline asset's, not the
+  quality level's.
+- Learned: a prefab instance override on an object inside a nested
+  prefab targets a file ID worked out from the nesting: (the nested
+  instance's PrefabInstance ID XOR the object's ID in its own prefab),
+  with the top bit cleared, repeated down each level. Used to set the
+  scene's lights to Baked with Unity closed.
+
+
 2026-10-12, third part, and 13 (level building guidelines, environment variants, the docks level started, water shader)
 -----------------------------------------------------------------------------------------------------------------------
 - Not tried in the headset: the water shader, the silent crouched

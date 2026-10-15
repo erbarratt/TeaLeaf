@@ -591,7 +591,8 @@ list. **It holds the start of the docks level**, built by hand from the `Assets/
 variants and laid out as `Assets/Scenes/CLAUDE.md` describes (`Environment`, `Gameplay`
 and `Sound` roots, with `Sector 1` the only sector), beside the Player, `Level Manager`,
 `Sound Player` and Debug objects. So far it is
-dock sections, foundations and floors: **no guard, no NavMesh, no sound rooms and no test
+dock sections, foundations, floors and buildings, with its lighting baked (Shadowmask), a
+light probe group and an occlusion bake (see `Assets/Scripts/Core/CLAUDE.md`): **no guard, no NavMesh, no sound rooms and no test
 area is in the scene**. Test areas are built from the **TeaLeaf > Dev Room** submenu
 (editor scripts in each system's `Debug/Editor`; the test-area builders and set-up
 commands are all there, and tools for building real levels sit directly in the

@@ -8,6 +8,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 136616779730792190, guid: bf092b899a887c046a5b5bfc69d854df, type: 3}
+      propertyPath: m_ReceiveGI
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 608872753853039193, guid: bf092b899a887c046a5b5bfc69d854df, type: 3}
       propertyPath: m_Name
       value: TL_IronFixtures_Lamp
@@ -100,6 +104,10 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 5678393915847272503, guid: bf092b899a887c046a5b5bfc69d854df, type: 3}
+      propertyPath: m_ReceiveGI
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 5678393915849471731, guid: bf092b899a887c046a5b5bfc69d854df, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -115,6 +123,10 @@ PrefabInstance:
     - target: {fileID: 6118326358649998916, guid: bf092b899a887c046a5b5bfc69d854df, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 7623196048103765100, guid: bf092b899a887c046a5b5bfc69d854df, type: 3}
+      propertyPath: m_ReceiveGI
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 9054671523399806874, guid: bf092b899a887c046a5b5bfc69d854df, type: 3}
       propertyPath: m_Layer

@@ -19,6 +19,11 @@ namespace Core
     /// is left alone, so running this again never overwrites work done
     /// on a variant by hand. The pack's own prefabs are never changed.
     ///
+    /// Small pieces (nails, brackets, rails, fixtures) are set to take
+    /// their baked light from light probes rather than a lightmap. A
+    /// second command (TeaLeaf > Set Small Pieces To Light Probes) does
+    /// the same to every variant that already exists.
+    ///
     /// In an Editor folder, so it never ends up in a build.
     /// </summary>
     public static class EnvironmentVariants
@@ -42,6 +47,15 @@ namespace Core
             StaticEditorFlags.OccludeeStatic |
             StaticEditorFlags.BatchingStatic |
             StaticEditorFlags.ReflectionProbeStatic;
+
+        // A piece is lit by light probes instead of a lightmap when its longest
+        // side is under SmallPieceSize, or when it is a rod - its two shorter
+        // sides both under ThinPieceWidth (rails, beams, brackets). Lightmap
+        // texels spent on these are wasted and bleed at their edges; probes
+        // light them as well. Thin flat pieces (floors, roofs, wall panels)
+        // keep their lightmaps: only the middle side is checked for thinness.
+        private const float SmallPieceSize = 1f;
+        private const float ThinPieceWidth = 0.15f;
 
         // The packs keep their prefabs in a folder with one of these names, inside
         // the folder that says what they are (Walls/Prfbs, Roofs/Prbs, ...).
@@ -115,10 +129,105 @@ namespace Core
                     GameObjectUtility.SetStaticEditorFlags(child.gameObject, StaticFlags);
                 }
 
+                SetSmallPiecesToLightProbes(instance);
                 PrefabUtility.SaveAsPrefabAsset(instance, variantPath);
             } finally {
                 UnityEngine.Object.DestroyImmediate(instance);
             }
+        }
+
+        /// <summary>
+        /// Editor menu command: goes through every prefab under
+        /// Assets/Prefabs/Environment and sets its small static pieces to
+        /// be lit by light probes. Each prefab is opened as if for editing,
+        /// changed and saved, so on a variant the change is stored as an
+        /// override - including on pieces inside nested pack prefabs. A
+        /// prefab with nothing to change isn't saved.
+        /// </summary>
+        [MenuItem("TeaLeaf/Set Small Pieces To Light Probes")]
+        internal static void SetSmallPiecesToLightProbesInVariants()
+        {
+            if (!AssetDatabase.IsValidFolder(EnvironmentRoot)) {
+                Debug.LogWarning($"EnvironmentVariants: there is no '{EnvironmentRoot}' folder.");
+                return;
+            }
+
+            int prefabsChanged = 0;
+            int piecesChanged = 0;
+
+            foreach (string guid in AssetDatabase.FindAssets("t:Prefab", new[] { EnvironmentRoot })) {
+                string path = AssetDatabase.GUIDToAssetPath(guid);
+                GameObject root = PrefabUtility.LoadPrefabContents(path);
+
+                try {
+                    int changed = SetSmallPiecesToLightProbes(root);
+
+                    if (changed > 0) {
+                        PrefabUtility.SaveAsPrefabAsset(root, path);
+                        prefabsChanged++;
+                        piecesChanged += changed;
+                    }
+                } finally {
+                    PrefabUtility.UnloadPrefabContents(root);
+                }
+            }
+
+            AssetDatabase.SaveAssets();
+            Debug.Log($"EnvironmentVariants: set {piecesChanged} small piece(s) in {prefabsChanged} prefab(s) to light probes.");
+        }
+
+        /// <summary>
+        /// Sets every small piece under root to take its baked light from
+        /// light probes (Receive Global Illumination: Light Probes) and
+        /// returns how many were changed. Only static pieces that
+        /// contribute to the bake are looked at, so anything that moves
+        /// is left alone.
+        /// </summary>
+        private static int SetSmallPiecesToLightProbes(GameObject root)
+        {
+            int changed = 0;
+
+            foreach (MeshRenderer meshRenderer in root.GetComponentsInChildren<MeshRenderer>(true)) {
+                if (meshRenderer.receiveGI == ReceiveGI.LightProbes) {
+                    continue;
+                }
+
+                StaticEditorFlags flags = GameObjectUtility.GetStaticEditorFlags(meshRenderer.gameObject);
+
+                if ((flags & StaticEditorFlags.ContributeGI) == 0) {
+                    continue;
+                }
+
+                if (!meshRenderer.TryGetComponent(out MeshFilter meshFilter) || meshFilter.sharedMesh == null) {
+                    continue;
+                }
+
+                if (!IsSmallPiece(meshFilter.sharedMesh.bounds.size, meshRenderer.transform.lossyScale)) {
+                    continue;
+                }
+
+                meshRenderer.receiveGI = ReceiveGI.LightProbes;
+                changed++;
+            }
+
+            return changed;
+        }
+
+        /// <summary>
+        /// Whether a piece is small enough to be lit by light probes: its
+        /// longest side under SmallPieceSize, or its middle side under
+        /// ThinPieceWidth (a rod). Measured on the mesh's own axes times
+        /// the object's scale, so a rail laid at an angle measures as thin.
+        /// </summary>
+        private static bool IsSmallPiece(Vector3 meshSize, Vector3 scale)
+        {
+            float x = Mathf.Abs(meshSize.x * scale.x);
+            float y = Mathf.Abs(meshSize.y * scale.y);
+            float z = Mathf.Abs(meshSize.z * scale.z);
+            float longest = Mathf.Max(x, Mathf.Max(y, z));
+            float shortest = Mathf.Min(x, Mathf.Min(y, z));
+            float middle = x + y + z - longest - shortest;
+            return longest < SmallPieceSize || middle < ThinPieceWidth;
         }
 
         /// <summary>

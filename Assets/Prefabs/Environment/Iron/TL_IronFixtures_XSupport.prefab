@@ -48,6 +48,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 4377049556629563430, guid: 62d0ca75eb0e64e4c8fab155c930ebe9, type: 3}
+      propertyPath: m_ReceiveGI
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 6285702588458946098, guid: 62d0ca75eb0e64e4c8fab155c930ebe9, type: 3}
       propertyPath: m_Name
       value: TL_IronFixtures_XSupport

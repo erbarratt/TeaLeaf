@@ -10,13 +10,26 @@ light, the procedural night sky, the level surface shaders and the shared debug 
 ## Render settings
 
 - **PC** (`Assets/Settings/PC_RPAsset.asset` and `PC_Renderer.asset`, the `PC` quality level,
-  the default for Standalone): no depth texture, no opaque texture, HDR off, 4x MSAA
-  (unmeasured), render scale 1; main light shadows 4096, 30m, **two cascades, hard
-  edges** (soft shadows off); the renderer's **ambient occlusion feature is switched off**
+  the default for Standalone): no depth texture, no opaque texture, HDR off, 2x MSAA
+  (unmeasured; 4x is the aim), render scale 1, lens flares off, SRP Batcher on, GPU
+  Resident Drawer on (Instanced); main light shadows 2048, 25m, **two cascades, hard
+  edges** (soft shadows off) - with the level's shadows baked they cover only moving
+  things; the renderer's **ambient occlusion feature is switched off**
   (`m_Active: 0` - still listed, not removed); no volume profile; rendering mode 2 (to be
   checked in the Inspector: it appears to be Forward+). Additional-light shadows, light
   cookies and reflection probe blending are still enabled and unused. The Main Camera has
   post-processing off.
+- **Baked lighting** (`Main.unity`): the moon (`Moon and Sky`) is a **Mixed** Directional
+  Light and the lighting mode is **Shadowmask** - plain Shadowmask in the `PC` quality
+  level, not Distance Shadowmask, so static pieces are never drawn into the realtime
+  shadow map; their shadows come from the bake. Every point light in the pack's prefabs
+  (buildings, lampposts, the tower bridge's torch) is overridden to **Baked** in the scene.
+  Settings asset `Assets/Settings/Docks Lighting.lighting` (GPU lightmapper, 10 texels/m,
+  2048 maps, Non-Directional, AO); the bake's output is in `Assets/Scenes/Main/` (two
+  lightmaps with shadowmasks, about 85 MB, plus the occlusion data). Small pieces and
+  everything that moves are lit by the light probes (`EnvironmentVariants`,
+  `LightProbePlacer`, below). Moving, adding or removing a static piece, or changing a
+  light, needs Place Light Probes run again and a rebake.
 - The Main Camera's far clip plane is 200m (the sky is drawn at the far plane whatever its
   distance; `Moonlight.maxDistance` is a physics ray, unrelated).
 
@@ -363,7 +376,26 @@ that stands in for a flight of steps, and the barrels' shared collision shape.
   from the variants themselves, so one that was renamed or moved still counts - so it can
   be run again without overwriting hand work. It adds no colliders, `SurfaceTag`s or
   scripts. **Not for things that move**: doors, and foliage that sways, get their variants
-  by hand.
+  by hand. **Small pieces are lit by light probes**: every static (Contribute GI) mesh
+  renderer whose longest side is under 1m, or whose middle side is under 0.15m (a rod:
+  rails, beams, brackets), gets Receive Global Illumination: Light Probes, measured on the
+  mesh's own bounds times the object's scale (`SmallPieceSize`, `ThinPieceWidth`); thin
+  flat pieces (floors, roofs, wall panels) keep their lightmaps. New variants get it as
+  they are made; **TeaLeaf > Set Small Pieces To Light Probes** applies it to every prefab
+  already under `Assets/Prefabs/Environment` (opened with `LoadPrefabContents`, saved only
+  if something changed, so on a variant it is an override, nested pack pieces included).
+  Pieces already on probes, and non-static ones, are left alone.
+- **`LightProbePlacer`** (`Core/Editor`, menu **TeaLeaf > Place Light Probes**) — fills the
+  level's one `LightProbeGroup`, at `Environment/Sectors/Global/Lighting/Light Probes`
+  (made, with any missing groups on the way, if absent). A grid every 2.5m (`Spacing`) over
+  the box round every Environment collider; in each column, rays straight down find every
+  floor (normal y at least 0.7, so ramps count and walls don't; a floor within 0.5m below
+  the last gives nothing), and a probe goes 0.5m and 2m above each (`_heights`). A probe is
+  left out if it is within 0.15m of geometry, if anything lies between it and its floor (a
+  low ceiling), or if at least three of six rays out from it first hit the inside of a mesh
+  collider (back faces on: shut inside a building with no interior). Each run replaces the
+  group's probes (undoable); rerun after layout changes, then rebake. Environment layer only,
+  so it also fills spaces the player can't reach (a sea bed under the water).
 
 ## Noise and sound
 

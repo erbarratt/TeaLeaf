@@ -45,6 +45,7 @@ Environment
       Lighting
         Baked         fill lights that only exist for the bake
         Gameplay Lights   the lamps and torches the player sees and can put out
+        Light Probes      the level's one light probe group (TeaLeaf > Place Light Probes)
       VFX
     <Sector name>     one per part of the level that can be culled as a whole
       Geometry        buildings and structure, one group per building
