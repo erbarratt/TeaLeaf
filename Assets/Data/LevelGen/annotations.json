@@ -3379,6 +3379,39 @@
             "note": ""
         },
         {
+            "guid": "451e590e5ad1c074c885c9558ec05d50",
+            "name": "TL_PlasterWalls_A_MidColumn",
+            "path": "Assets/Prefabs/Environment/Walls/TL_PlasterWalls_A_MidColumn.prefab",
+            "category": "column",
+            "fronts": [
+                {
+                    "x": 1,
+                    "y": 0,
+                    "z": 0
+                },
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 0.534,
+            "height": 3.026,
+            "depth": 0.442,
+            "connections": [],
+            "styles": [
+                "plaster",
+                "plaster-masonry",
+                "plaster-planks"
+            ],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "excluded": false,
+            "verified": true,
+            "note": ""
+        },
+        {
             "guid": "38c6d4b6b858f9c47a0375ef3136a76e",
             "name": "TL_PlasterWalls_A_PlanksHalf",
             "path": "Assets/Prefabs/Environment/Walls/TL_PlasterWalls_A_PlanksHalf.prefab",

@@ -528,8 +528,10 @@ Greybox build:
             buildings.
         [x] Storey beams between common-height storeys; jettied upper
             storeys on supports; walls scaled to fit their module.
-        [ ] 5b: bends and frontage ends (outer corners, side returns,
-            the length left at a frontage's end).
+        [x] 5b: bends and frontage ends: corners at bends and street
+            corners (outer corner piece or column), side returns, the
+            length left at a frontage's end, jettied storeys closed at
+            run ends.
         [ ] 5d: lots' whole buildings.
         [ ] Roofs.
     [ ] Stage 6: placement report.

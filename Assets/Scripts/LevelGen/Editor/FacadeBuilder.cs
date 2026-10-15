@@ -55,9 +55,15 @@ namespace LevelGen
     /// A street end that meets no other street is closed by a facade across
     /// it (StoreyPlan.DeadEnds), built the same way along one run.
     ///
-    /// Not yet (stage 5b on): the corner pieces at bends and frontage ends,
-    /// half walls, the extension at a frontage's end, and side walls at a
-    /// bend or a frontage's end.
+    /// Corners (stage 5b): every frontage is laid out before any is built.
+    /// On the inside of a bend the last module may overrun, hidden behind the
+    /// next run. On the outside of a bend, and where two frontages of
+    /// different streets meet at a street corner, each side is carried
+    /// storey by storey to where the lines meet (a scaled plain wall) and the
+    /// joint is covered by an outer corner piece (near a right angle) or a
+    /// column. A frontage end at a junction that meets no other frontage
+    /// turns a one-module side return into the branching street. The length
+    /// left at a frontage's end extends its last building.
     /// </summary>
     internal static class FacadeBuilder
     {
@@ -109,6 +115,55 @@ namespace LevelGen
             // front of the back line (0 where none was placed). Shared by
             // copies of the spot, so the storeys' build fills it in.
             public float[] Reach;
+            // Its index among its building's spec modules, or -1 for a module
+            // the generator added (filling a frontage's end, an inside bend's
+            // overrun, a side return).
+            public int ModuleIndex;
+            // Whether a corner joint closes its run's start or end here, so
+            // nothing else needs to.
+            public bool JoinedStart;
+            public bool JoinedEnd;
+        }
+
+        /// <summary>
+        /// A frontage laid out but not yet built: its runs, modules,
+        /// buildings and columns, and whether a street branches off at its
+        /// first or last point (on its side).
+        /// </summary>
+        private class Frontage
+        {
+            public string Label;
+            public StreetSpec Street;
+            public FrontageSpec Spec;
+            public List<Run> Runs;
+            public List<ModuleSpot> Spots;
+            public List<Building> Buildings;
+            public List<Column> Columns;
+            public float WallSetback;
+            public bool LeftToRight;
+            public bool BranchAtStart;
+            public bool BranchAtEnd;
+        }
+
+        /// <summary>
+        /// One end of a run of modules: the frontage, the module at that end
+        /// and whether it is the run's start (else its end).
+        /// </summary>
+        private struct RunEnd
+        {
+            public Frontage Frontage;
+            public int Spot;
+            public bool AtStart;
+        }
+
+        /// <summary>
+        /// A corner where two runs' ends meet on the outside: a bend in one
+        /// frontage, or two frontages at a street corner.
+        /// </summary>
+        private struct Joint
+        {
+            public RunEnd A;
+            public RunEnd B;
         }
 
         /// <summary>
@@ -176,10 +231,34 @@ namespace LevelGen
                 }
             }
 
+            // Every frontage is laid out first, so corners can join frontages
+            // of different streets, then the corners found, then all built.
+            List<Frontage> frontages = new();
+
             foreach (StreetSpec street in spec.streets) {
                 foreach (FrontageSpec frontage in street.frontages) {
-                    BuildFrontage(street, frontage, spec.streets, styles, plan, settings, random, placer, parent, log);
+                    Frontage laid = LayFrontage(street, frontage, spec.streets, styles, plan, settings, random, placer, parent, log);
+
+                    if (laid != null) {
+                        frontages.Add(laid);
+                    }
                 }
+            }
+
+            List<Joint> joints = FindJoints(frontages, spec.streets, settings, log);
+
+            foreach (Frontage frontage in frontages) {
+                BuildFrontage(frontage, settings, random, placer, log);
+            }
+
+            HashSet<string> missing = new();
+
+            foreach (Joint joint in joints) {
+                BuildJoint(joint, settings, random, placer, missing);
+            }
+
+            foreach (string message in missing) {
+                log.Add(message);
             }
 
             foreach (StoreyPlan.DeadEnd deadEnd in plan.DeadEnds) {
@@ -188,11 +267,12 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// Builds one frontage: lays out every building's modules along its
-        /// runs, chooses the columns, builds the buildings, then fills the
-        /// columns' steps.
+        /// Lays one frontage out: every building's modules along its runs
+        /// (with an overrun module where a run ends on the inside of a bend),
+        /// the length left at its end, and its columns. Null if it can't be
+        /// built (logged).
         /// </summary>
-        private static void BuildFrontage(StreetSpec street, FrontageSpec frontage, List<StreetSpec> streets, Dictionary<string, BuildingStyle> styles,
+        private static Frontage LayFrontage(StreetSpec street, FrontageSpec frontage, List<StreetSpec> streets, Dictionary<string, BuildingStyle> styles,
             StoreyPlan plan, GeneratorSettings settings, System.Random random, PiecePlacer placer, Transform parent, List<string> log)
         {
             string label = $"Street '{street.id}', {frontage.side} frontage {frontage.from}-{frontage.to}";
@@ -200,14 +280,14 @@ namespace LevelGen
 
             if (sideSign == 0f || frontage.from < 0 || frontage.to >= street.points.Count || frontage.from >= frontage.to) {
                 log.Add($"{label} not built: it isn't a stretch of the street on a side.");
-                return;
+                return null;
             }
 
             List<Run> runs = Runs(street, frontage, sideSign, streets, settings);
 
             if (runs.Count == 0) {
                 log.Add($"{label} not built: no stretch of its edge is long enough.");
-                return;
+                return null;
             }
 
             // Seen from the street, a left frontage's buildings run left to
@@ -219,7 +299,6 @@ namespace LevelGen
             List<Building> buildings = new();
             int runIndex = 0;
             float position = 0f;
-            int pieces = placer.Placed;
 
             // Where every module stands, in order along the street.
             for (int b = 0; b < frontage.buildings.Count; b++) {
@@ -244,11 +323,12 @@ namespace LevelGen
 
                 for (int k = 0; k < spec.widthModules; k++) {
                     if (position + ground.ModuleSpacing > runs[runIndex].Length + settings.SizeTolerance && runIndex < runs.Count - 1) {
-                        runIndex++;
-                        position = 0f;
+                        NextRun(spots, runs, ref runIndex, ref position, buildings.Count, levels.Count, settings);
                     }
 
-                    spots.Add(new ModuleSpot { Run = runIndex, Position = position, Building = buildings.Count, Reach = new float[levels.Count] });
+                    spots.Add(new ModuleSpot {
+                        Run = runIndex, Position = position, Building = buildings.Count, Reach = new float[levels.Count], ModuleIndex = k
+                    });
                     position += ground.ModuleSpacing;
                 }
 
@@ -263,17 +343,578 @@ namespace LevelGen
                 });
             }
 
-            List<Column> columns = SplitColumns(spots, buildings, MaxColumnDepth(buildings, settings), settings, random);
-
-            for (int b = 0; b < buildings.Count; b++) {
-                List<ModuleSpot> own = spots.FindAll(spot => spot.Building == b);
-                BuildBuilding(buildings[b], own, runs, wallSetback, leftToRight, settings, random, placer, $"{label}, building {b}", log);
+            if (buildings.Count == frontage.buildings.Count) {
+                ExtendLastBuilding(spots, buildings, runs, runIndex, position, plan.DeadEnds.Exists(end => end.Street == street && end.Point == frontage.to),
+                    settings);
             }
 
-            FillSides(spots, columns, buildings, runs, wallSetback, settings, random, placer, label, log);
-            int stepped = columns.FindAll(column => column.Depth != 0f).Count;
-            log.Add($"{label}: {buildings.Count} building(s), {runs.Count} run(s), {columns.Count} column(s) ({stepped} off the line), "
-                + $"{placer.Placed - pieces} piece(s).");
+            if (spots.Count == 0) {
+                log.Add($"{label} not built: no building could be laid.");
+                return null;
+            }
+
+            List<Column> columns = SplitColumns(spots, buildings, MaxColumnDepth(buildings, settings), settings, random);
+            EdgeLine(street, frontage.from, sideSign, settings, out _, out _, out _, out Vector2 firstOutward);
+            EdgeLine(street, frontage.to - 1, sideSign, settings, out _, out _, out _, out Vector2 lastOutward);
+
+            return new Frontage {
+                Label = label,
+                Street = street,
+                Spec = frontage,
+                Runs = runs,
+                Spots = spots,
+                Buildings = buildings,
+                Columns = columns,
+                WallSetback = wallSetback,
+                LeftToRight = leftToRight,
+                BranchAtStart = LayoutSpecValidator.BranchWidth(street, frontage.from, firstOutward, streets, settings) > 0f,
+                BranchAtEnd = LayoutSpecValidator.BranchWidth(street, frontage.to, lastOutward, streets, settings) > 0f
+            };
+        }
+
+        /// <summary>
+        /// Builds a laid-out frontage: its buildings, then the side walls
+        /// between its columns (and the ends of its jettied storeys that no
+        /// corner closes).
+        /// </summary>
+        private static void BuildFrontage(Frontage frontage, GeneratorSettings settings, System.Random random, PiecePlacer placer, List<string> log)
+        {
+            int pieces = placer.Placed;
+
+            for (int b = 0; b < frontage.Buildings.Count; b++) {
+                List<ModuleSpot> own = frontage.Spots.FindAll(spot => spot.Building == b);
+                BuildBuilding(frontage.Buildings[b], own, frontage.Runs, frontage.WallSetback, frontage.LeftToRight, settings, random, placer,
+                    $"{frontage.Label}, building {b}", log);
+            }
+
+            FillSides(frontage.Spots, frontage.Columns, frontage.Buildings, frontage.Runs, frontage.WallSetback, settings, random, placer, frontage.Label, log);
+            int stepped = frontage.Columns.FindAll(column => column.Depth != 0f).Count;
+            log.Add($"{frontage.Label}: {frontage.Buildings.Count} building(s), {frontage.Runs.Count} run(s), {frontage.Columns.Count} column(s) "
+                + $"({stepped} off the line), {placer.Placed - pieces} piece(s).");
+        }
+
+        /// <summary>
+        /// Every corner where runs meet on the outside: each bend of a
+        /// frontage that turns away from its street, and each pair of
+        /// frontage ends of different streets at a junction that can meet at
+        /// a street corner (each carried no further than CornerMaxReach, the
+        /// shortest pairs first). A frontage end at a junction left unpaired
+        /// turns a side return into the branching street, joined to it.
+        /// Marks the ends that are joined. Logs a line with the counts.
+        /// </summary>
+        private static List<Joint> FindJoints(List<Frontage> frontages, List<StreetSpec> streets, GeneratorSettings settings, List<string> log)
+        {
+            List<Joint> joints = new();
+            int bends = 0;
+
+            foreach (Frontage frontage in frontages) {
+                for (int r = 0; r + 1 < frontage.Runs.Count; r++) {
+                    int a = frontage.Spots.FindLastIndex(spot => spot.Run == r);
+                    int b = frontage.Spots.FindIndex(spot => spot.Run == r + 1);
+
+                    if (a < 0 || b < 0 || InsideBend(frontage.Runs, r)) {
+                        continue;
+                    }
+
+                    joints.Add(Join(new RunEnd { Frontage = frontage, Spot = a }, new RunEnd { Frontage = frontage, Spot = b, AtStart = true }));
+                    bends++;
+                }
+            }
+
+            // The frontage ends that stop at a junction.
+            List<RunEnd> ends = new();
+
+            foreach (Frontage frontage in frontages) {
+                if (frontage.BranchAtStart) {
+                    ends.Add(new RunEnd { Frontage = frontage, Spot = 0, AtStart = true });
+                }
+
+                if (frontage.BranchAtEnd) {
+                    ends.Add(new RunEnd { Frontage = frontage, Spot = frontage.Spots.Count - 1 });
+                }
+            }
+
+            List<(float reach, int a, int b)> pairs = new();
+
+            for (int i = 0; i < ends.Count; i++) {
+                for (int j = i + 1; j < ends.Count; j++) {
+                    if (ends[i].Frontage.Street == ends[j].Frontage.Street || !Meet(ends[i], 0f, ends[j], 0f, out float reachA, out float reachB, out _)) {
+                        continue;
+                    }
+
+                    if (reachA >= -settings.SizeTolerance && reachB >= -settings.SizeTolerance && reachA <= settings.CornerMaxReach
+                        && reachB <= settings.CornerMaxReach) {
+                        pairs.Add((reachA + reachB, i, j));
+                    }
+                }
+            }
+
+            pairs.Sort((x, y) => x.reach.CompareTo(y.reach));
+            bool[] used = new bool[ends.Count];
+            int corners = 0;
+
+            foreach ((float _, int a, int b) in pairs) {
+                if (used[a] || used[b]) {
+                    continue;
+                }
+
+                used[a] = used[b] = true;
+                joints.Add(Join(ends[a], ends[b]));
+                corners++;
+            }
+
+            int returns = 0;
+
+            for (int i = 0; i < ends.Count; i++) {
+                if (!used[i] && AddSideReturn(ends[i], streets, settings, out RunEnd turned)) {
+                    joints.Add(Join(ends[i], turned));
+                    returns++;
+                }
+            }
+
+            log.Add($"Corners: {bends} bend(s), {corners} street corner(s), {returns} side return(s).");
+            return joints;
+        }
+
+        /// <summary>
+        /// A joint between two run ends, marking both as joined.
+        /// </summary>
+        private static Joint Join(RunEnd a, RunEnd b)
+        {
+            Mark(a);
+            Mark(b);
+            return new Joint { A = a, B = b };
+        }
+
+        /// <summary>
+        /// Marks a run end as closed by a corner.
+        /// </summary>
+        private static void Mark(RunEnd end)
+        {
+            ModuleSpot spot = end.Frontage.Spots[end.Spot];
+
+            if (end.AtStart) {
+                spot.JoinedStart = true;
+            } else {
+                spot.JoinedEnd = true;
+            }
+
+            end.Frontage.Spots[end.Spot] = spot;
+        }
+
+        /// <summary>
+        /// Where a run end's line, at a depth forward of the street edge,
+        /// starts: the end of its module (its run's start or end side), the
+        /// way out of the run from there, the run and the position along it.
+        /// </summary>
+        private static void EndLine(RunEnd end, float depth, out Vector2 point, out Vector2 outward, out Run run, out float position)
+        {
+            ModuleSpot spot = end.Frontage.Spots[end.Spot];
+            run = end.Frontage.Runs[spot.Run];
+            position = end.AtStart ? spot.Position : spot.Position + end.Frontage.Buildings[spot.Building].Ground.ModuleSpacing;
+            outward = end.AtStart ? -run.Along : run.Along;
+            point = run.Start + run.Along * position + run.Front * depth;
+        }
+
+        /// <summary>
+        /// Where two run ends' lines (each at a depth forward of its street
+        /// edge) meet: how far each must be carried out of its end to reach
+        /// that point (below 0 if it is behind the end), and the point. False
+        /// for (nearly) parallel lines.
+        /// </summary>
+        private static bool Meet(RunEnd a, float depthA, RunEnd b, float depthB, out float reachA, out float reachB, out Vector2 point)
+        {
+            EndLine(a, depthA, out Vector2 pointA, out Vector2 outA, out _, out _);
+            EndLine(b, depthB, out Vector2 pointB, out Vector2 outB, out _, out _);
+            reachB = 0f;
+            point = pointA;
+
+            if (!Intersect(pointA, outA, pointB, outB, out reachA)) {
+                return false;
+            }
+
+            point = pointA + outA * reachA;
+            reachB = Vector2.Dot(point - pointB, outB);
+            return true;
+        }
+
+        /// <summary>
+        /// A side return for a frontage end at a junction that meets no other
+        /// frontage: a new run of one added module along the branching
+        /// street's near edge, from where the frontage's line meets that edge,
+        /// facing into the branching street (its last building's, its
+        /// column's height and on the line). The branching street is the
+        /// widest leaving the junction towards the frontage's side, as for the
+        /// run's end. False if there is none or the lines don't meet ahead of
+        /// the end.
+        /// </summary>
+        private static bool AddSideReturn(RunEnd end, List<StreetSpec> streets, GeneratorSettings settings, out RunEnd turned)
+        {
+            turned = default;
+            Frontage frontage = end.Frontage;
+            Vector2 junction = Ground(frontage.Street.points[end.AtStart ? frontage.Spec.from : frontage.Spec.to]);
+            EndLine(end, 0f, out Vector2 point, out Vector2 outward, out Run run, out float position);
+            float bestReach = float.MaxValue;
+            Run best = default;
+
+            foreach (StreetSpec other in streets) {
+                if (other == frontage.Street) {
+                    continue;
+                }
+
+                for (int j = 0; j < other.points.Count; j++) {
+                    if ((Ground(other.points[j]) - junction).magnitude > settings.JunctionDistance) {
+                        continue;
+                    }
+
+                    for (int n = j - 1; n <= j + 1; n += 2) {
+                        if (n < 0 || n >= other.points.Count) {
+                            continue;
+                        }
+
+                        Vector2 leaving = Ground(other.points[n]) - junction;
+
+                        if (leaving.magnitude < settings.MinSegmentLength || Vector2.Dot(leaving.normalized, -run.Front) <= settings.BranchDot) {
+                            continue;
+                        }
+
+                        Vector2 along = leaving.normalized;
+                        Vector2 normal = new(-along.y, along.x);
+                        float halfWidth = other.SegmentWidth(Mathf.Min(j, n)) * 0.5f;
+
+                        // The edge on either side: the nearer one ahead of the end.
+                        for (int sign = -1; sign <= 1; sign += 2) {
+                            Vector2 edge = junction + normal * (sign * halfWidth);
+
+                            if (!Intersect(point, outward, edge, along, out float reach) || reach < -settings.SizeTolerance || reach >= bestReach) {
+                                continue;
+                            }
+
+                            bestReach = reach;
+                            best = new Run {
+                                Start = point + outward * reach,
+                                Along = along,
+                                Length = 0f,
+                                Front = -normal * sign,
+                                StartHeight = Height(run, position),
+                                EndHeight = Height(run, position)
+                            };
+                        }
+                    }
+                }
+            }
+
+            if (bestReach > settings.CornerMaxReach) {
+                return false;
+            }
+
+            ModuleSpot spot = frontage.Spots[end.Spot];
+            Building building = frontage.Buildings[spot.Building];
+            best.Length = building.Ground.ModuleSpacing;
+            frontage.Runs.Add(best);
+            frontage.Columns.Add(new Column { First = frontage.Spots.Count, Last = frontage.Spots.Count, Depth = 0f });
+            frontage.Spots.Add(new ModuleSpot {
+                Run = frontage.Runs.Count - 1,
+                Position = 0f,
+                Depth = 0f,
+                Building = spot.Building,
+                Column = frontage.Columns.Count - 1,
+                Storeys = spot.Storeys,
+                Reach = new float[building.Levels.Count],
+                ModuleIndex = -1
+            });
+            turned = new RunEnd { Frontage = frontage, Spot = frontage.Spots.Count - 1, AtStart = true };
+            return true;
+        }
+
+        /// <summary>
+        /// Builds a corner: each side carried to where the two lines meet,
+        /// storey by storey, then the joint covered (from the first side).
+        /// </summary>
+        private static void BuildJoint(Joint joint, GeneratorSettings settings, System.Random random, PiecePlacer placer, HashSet<string> missing)
+        {
+            BuildCornerSide(joint.A, joint.B, true, settings, random, placer, missing);
+            BuildCornerSide(joint.B, joint.A, false, settings, random, placer, missing);
+        }
+
+        /// <summary>
+        /// One side of a corner, storey by storey (each storey's line at its
+        /// column's depth plus its building's jetty, meeting the other side's
+        /// storey at the same index, or its top storey): a filler carries the
+        /// storey from its end to the meeting point - a plain wall of the
+        /// storey's height scaled to the length (the nearest in width), with a
+        /// foundation under the ground storey, the beam band below and the
+        /// jetty supports under the first upper storey scaled the same way. A
+        /// storey above the other side's top is closed by side walls facing
+        /// out of the corner; any other storey (on the covering side) gets the
+        /// cover over the joint (PlaceCover). Under "Corner" of its building.
+        /// </summary>
+        private static void BuildCornerSide(RunEnd me, RunEnd other, bool cover, GeneratorSettings settings, System.Random random, PiecePlacer placer,
+            HashSet<string> missing)
+        {
+            Frontage frontage = me.Frontage;
+            ModuleSpot spot = frontage.Spots[me.Spot];
+            Building building = frontage.Buildings[spot.Building];
+            ModuleSpot otherSpot = other.Frontage.Spots[other.Spot];
+            Building otherBuilding = other.Frontage.Buildings[otherSpot.Building];
+            float otherTop = Top(otherBuilding, otherSpot.Storeys);
+            float setback = frontage.WallSetback;
+            Transform group = Group(building.Group, "Corner");
+            PieceAnnotation previous = null;
+
+            for (int s = 0; s < spot.Storeys; s++) {
+                int otherStorey = Mathf.Min(s, otherSpot.Storeys - 1);
+                float depth = spot.Depth + StoreyJetty(building, s);
+                float otherDepth = otherSpot.Depth + StoreyJetty(otherBuilding, otherStorey);
+
+                if (!Meet(me, depth, other, otherDepth, out float reach, out _, out Vector2 point) || reach < -settings.SizeTolerance) {
+                    continue;
+                }
+
+                reach = Mathf.Max(0f, reach);
+                EndLine(me, depth, out _, out Vector2 outward, out Run run, out float position);
+                StoreyLevel level = building.Levels[s];
+                float from = me.AtStart ? position - reach : position;
+                float height = Height(run, position);
+
+                if (reach > settings.SizeTolerance) {
+                    PlaceFiller(building, s, spot, run, from, reach, depth, setback, settings, random, placer, group, missing);
+                }
+
+                if (level.Base + level.Style.StoreySpacing > otherTop + settings.SizeTolerance) {
+                    // Above the other side: closed by itself, facing out of
+                    // the corner from its back line back past its own line.
+                    List<PieceAnnotation> choices = SideWallChoices(building, s, building);
+
+                    if (choices.Count == 0) {
+                        missing.Add($"No side wall of the height of style '{level.Style.Name}' to close a corner.");
+                        continue;
+                    }
+
+                    Vector2 onEnd = run.Start + run.Along * (me.AtStart ? from : from + reach);
+                    float length = Mathf.Max(level.Style.ModuleSpacing, depth - spot.Depth + setback);
+                    LaySideStorey(building, s, choices, ref previous, onEnd, run, depth - setback, length, height, outward, false, settings, random,
+                        placer, group);
+                } else if (cover && s < otherSpot.Storeys) {
+                    Run otherRun = other.Frontage.Runs[otherSpot.Run];
+                    PlaceCover(level, otherBuilding.Levels[otherStorey].Style, point, height + level.Base, run.Front, otherRun.Front, settings, random,
+                        placer, group, missing);
+                }
+            }
+        }
+
+        /// <summary>
+        /// A corner's filler for one storey: from along the run for a length,
+        /// at the storey's depth. Its wall is a plain wall of the storey's
+        /// height (borrowed as for side walls), the one nearest the length in
+        /// width, scaled to it; the ground storey gets a foundation under it,
+        /// a storey above a beam band the band's beams, and a jettied
+        /// building's first upper storey a jetty support, each scaled to the
+        /// length.
+        /// </summary>
+        private static void PlaceFiller(Building building, int storey, ModuleSpot spot, Run run, float from, float length, float depth, float setback,
+            GeneratorSettings settings, System.Random random, PiecePlacer placer, Transform group, HashSet<string> missing)
+        {
+            StoreyLevel level = building.Levels[storey];
+            float middle = from + length * 0.5f;
+            float width = length + settings.WallOverlap;
+            List<PieceAnnotation> choices = SideWallChoices(building, storey, building);
+
+            if (choices.Count == 0) {
+                missing.Add($"No plain wall of the height of style '{level.Style.Name}' to fill a corner.");
+            } else {
+                PieceAnnotation wall = Nearest(choices, width);
+                ModuleSpot filler = spot;
+                filler.Position = from;
+                filler.Depth = depth;
+                PlaceWall(wall, level.Style, run, filler, length, level.Base, setback, settings.WallOverlap, placer, group, width);
+            }
+
+            if (storey == 0) {
+                PieceAnnotation foundation = Nearest(building.Ground.Pieces("foundation"), length);
+
+                if (foundation != null) {
+                    PlaceInRun(foundation, placer, run, middle, depth + settings.FoundationFrontOffset, false, settings.FoundationHeight, true,
+                        length / foundation.width, 1f, group);
+                }
+            }
+
+            if (level.BeamHeight > 0f) {
+                PieceAnnotation beam = PiecePlacer.Pick(building.Levels[storey - 1].Style.Pieces("beam"), null, random);
+
+                if (beam != null) {
+                    PlaceInRun(beam, placer, run, middle, depth - setback, true, level.BeamBottom, false, width / beam.width,
+                        level.BeamHeight / beam.height, group);
+                }
+            }
+
+            if (storey == 1 && building.Jetty > 0f) {
+                PieceAnnotation support = Nearest(building.Jetties, width);
+                PlaceInRun(support, placer, run, middle, spot.Depth - setback + spot.Reach[0], true, level.Base, true, width / support.width, 1f, group);
+            }
+        }
+
+        /// <summary>
+        /// The piece whose width is nearest a length (null for none).
+        /// </summary>
+        private static PieceAnnotation Nearest(IReadOnlyList<PieceAnnotation> pieces, float width)
+        {
+            PieceAnnotation nearest = null;
+
+            foreach (PieceAnnotation piece in pieces) {
+                if (nearest == null || Mathf.Abs(piece.width - width) < Mathf.Abs(nearest.width - width)) {
+                    nearest = piece;
+                }
+            }
+
+            return nearest;
+        }
+
+        /// <summary>
+        /// A piece facing the run's street, centred at middle along it and
+        /// scaled along its width and height: the back (backOnLine) or front of
+        /// its render box on the line line forward of the street edge, and the
+        /// top (fromTop) or bottom of it height above the street.
+        /// </summary>
+        private static void PlaceInRun(PieceAnnotation piece, PiecePlacer placer, Run run, float middle, float line, bool backOnLine, float height,
+            bool fromTop, float widthScale, float heightScale, Transform group)
+        {
+            CatalogueEntry entry = placer.Entry(piece);
+
+            if (entry == null || piece.fronts.Count != 1) {
+                return;
+            }
+
+            Vector3 pieceFront = piece.fronts[0];
+            Vector3 pieceRight = Vector3.Cross(Vector3.up, -pieceFront);
+            Vector3 centre = (entry.renderMin + entry.renderMax) * 0.5f;
+            Vector3 local = pieceRight * Vector3.Dot(centre, pieceRight)
+                + (backOnLine ? -pieceFront * Extent(entry, -pieceFront) : pieceFront * Extent(entry, pieceFront))
+                + Vector3.up * (fromTop ? entry.renderMax.y : entry.renderMin.y);
+            Vector2 onLine = run.Start + run.Along * middle + run.Front * line;
+
+            placer.PlaceAt(piece, local, new Vector3(onLine.x, Height(run, middle) + height, onLine.y), Yaw(Level(run.Front)) - Yaw(pieceFront),
+                PieceScale(piece, widthScale, heightScale), group);
+        }
+
+        /// <summary>
+        /// The cover over a corner's joint for one storey, at the point where
+        /// the two lines meet: within CornerAngleTolerance of a right angle an
+        /// outer corner piece, its outer edge on the point (FaceClearance out)
+        /// and turned to sit between the two facades, else a column piece,
+        /// the middle of its front there facing between them. From the
+        /// storey's style, else the other side's, of the storey's height
+        /// (scaled to it as walls are); none is logged in missing.
+        /// </summary>
+        private static void PlaceCover(StoreyLevel level, BuildingStyle otherStyle, Vector2 point, float height, Vector2 frontA, Vector2 frontB,
+            GeneratorSettings settings, System.Random random, PiecePlacer placer, Transform group, HashSet<string> missing)
+        {
+            bool corner = Mathf.Abs(Vector2.Angle(frontA, frontB) - 90f) <= settings.CornerAngleTolerance;
+            string category = corner ? "outer-corner" : "column";
+            int fronts = corner ? 2 : 1;
+            float target = level.Style.ModuleHeight;
+            List<PieceAnnotation> choices = new List<PieceAnnotation>(level.Style.Pieces(category)).FindAll(piece =>
+                piece.fronts.Count == fronts && level.Style.Fits(piece.height, target));
+
+            if (choices.Count == 0) {
+                choices = new List<PieceAnnotation>(otherStyle.Pieces(category)).FindAll(piece => piece.fronts.Count == fronts && level.Style.Fits(piece.height, target));
+            }
+
+            PieceAnnotation cover = PiecePlacer.Pick(choices, null, random);
+            CatalogueEntry entry = cover != null ? placer.Entry(cover) : null;
+
+            if (entry == null) {
+                missing.Add($"No usable {category} piece of the height of style '{level.Style.Name}' (or '{otherStyle.Name}'): those corner joints are left bare.");
+                return;
+            }
+
+            Vector2 between = (frontA + frontB).normalized;
+            Vector3 local;
+            Vector3 facing;
+
+            if (corner) {
+                Vector3 front0 = cover.fronts[0];
+                Vector3 front1 = cover.fronts[1];
+                local = front0 * Extent(entry, front0) + front1 * Extent(entry, front1) + Vector3.up * entry.renderMin.y;
+                facing = front0 + front1;
+            } else {
+                Vector3 front = cover.fronts[0];
+                Vector3 right = Vector3.Cross(Vector3.up, -front);
+                Vector3 centre = (entry.renderMin + entry.renderMax) * 0.5f;
+                local = right * Vector3.Dot(centre, right) + front * Extent(entry, front) + Vector3.up * entry.renderMin.y;
+                facing = front;
+            }
+
+            Vector2 at = point + between * FaceClearance;
+            placer.PlaceAt(cover, local, new Vector3(at.x, height, at.y), Yaw(Level(between)) - Yaw(facing),
+                new Vector3(1f, level.Style.FitScale(cover.height, target), 1f), group);
+        }
+
+        /// <summary>
+        /// Moves the laying of modules on to the next run. Where the run ends
+        /// on the inside of a bend with length left, an added module of the
+        /// building being laid goes there first: its overrun stands behind the
+        /// next run's walls, so the corner is closed.
+        /// </summary>
+        private static void NextRun(List<ModuleSpot> spots, List<Run> runs, ref int runIndex, ref float position, int building, int levels,
+            GeneratorSettings settings)
+        {
+            if (InsideBend(runs, runIndex) && runs[runIndex].Length - position > settings.SizeTolerance) {
+                spots.Add(new ModuleSpot { Run = runIndex, Position = position, Building = building, Reach = new float[levels], ModuleIndex = -1 });
+            }
+
+            runIndex++;
+            position = 0f;
+        }
+
+        /// <summary>
+        /// Whether a run and the next meet on the inside of a bend (the next
+        /// heads into the street the run faces), where the walls can overlap
+        /// behind their fronts; else they meet on the outside.
+        /// </summary>
+        private static bool InsideBend(List<Run> runs, int run)
+        {
+            return run + 1 < runs.Count && Vector2.Dot(runs[run + 1].Along, runs[run].Front) > 0f;
+        }
+
+        /// <summary>
+        /// The length left at a frontage's end, after its buildings: its last
+        /// building goes on along the runs with whole modules while they fit
+        /// (moving to the next run as the buildings do). At a dead end one
+        /// more module is added if any length is left, its overrun standing
+        /// behind the dead end's facade, so the frontage always meets it.
+        /// Elsewhere what is left under a module is filled by its corner.
+        /// </summary>
+        private static void ExtendLastBuilding(List<ModuleSpot> spots, List<Building> buildings, List<Run> runs, int runIndex, float position,
+            bool deadEnd, GeneratorSettings settings)
+        {
+            if (buildings.Count == 0) {
+                return;
+            }
+
+            int last = buildings.Count - 1;
+            float spacing = buildings[last].Ground.ModuleSpacing;
+            int levels = buildings[last].Levels.Count;
+
+            while (true) {
+                bool fits = position + spacing <= runs[runIndex].Length + settings.SizeTolerance;
+
+                if (!fits && runIndex < runs.Count - 1) {
+                    NextRun(spots, runs, ref runIndex, ref position, last, levels, settings);
+                    continue;
+                }
+
+                if (!fits && !(deadEnd && runs[runIndex].Length - position > settings.SizeTolerance)) {
+                    return;
+                }
+
+                spots.Add(new ModuleSpot { Run = runIndex, Position = position, Building = last, Reach = new float[levels], ModuleIndex = -1 });
+                position += spacing;
+
+                if (!fits) {
+                    return;
+                }
+            }
         }
 
         /// <summary>
@@ -329,7 +970,7 @@ namespace LevelGen
             List<ModuleSpot> spots = new();
 
             for (int k = 0; k < spec.widthModules; k++) {
-                spots.Add(new ModuleSpot { Run = 0, Position = k * ground.ModuleSpacing, Storeys = levels.Count, Reach = new float[levels.Count] });
+                spots.Add(new ModuleSpot { Run = 0, Position = k * ground.ModuleSpacing, Storeys = levels.Count, Reach = new float[levels.Count], ModuleIndex = k });
             }
 
             BuildBuilding(building, spots, runs, Setback(new[] { spec }, styles, placer), true, settings, random, placer, label, log);
@@ -684,6 +1325,23 @@ namespace LevelGen
                 FillSide(b, columns[b.Column], a, -run.Along, onJoin, height, run, buildings, wallSetback, settings, random, placer, $"Side {i}", missing);
             }
 
+            // A run's two ends (a frontage's ends and its bends) meet no
+            // column of the run: a jettied storey there is closed by itself.
+            for (int i = 0; i < spots.Count; i++) {
+                ModuleSpot spot = spots[i];
+                Building building = buildings[spot.Building];
+                Run run = runs[spot.Run];
+
+                if ((i == 0 || spots[i - 1].Run != spot.Run) && !spot.JoinedStart) {
+                    CloseJetty(spot, building, run, -run.Along, spot.Position, wallSetback, settings, random, placer, $"End {i}", missing);
+                }
+
+                if ((i == spots.Count - 1 || spots[i + 1].Run != spot.Run) && !spot.JoinedEnd) {
+                    CloseJetty(spot, building, run, run.Along, spot.Position + building.Ground.ModuleSpacing, wallSetback, settings, random, placer,
+                        $"End {i} far", missing);
+                }
+            }
+
             foreach (string style in missing) {
                 log.Add($"{label}: no side wall of the height of style '{style}' (in it, the neighbouring column's style or the storeys above); "
                     + "those side walls are left out. Tag a plain wall of that height with the style in Review Pieces.");
@@ -741,37 +1399,12 @@ namespace LevelGen
                 // recess they start just behind the face of this column's
                 // front wall beside the join, covering its end.
                 float start = depth - wallSetback + (backOnJoin ? Mathf.Max(0f, spot.Reach[s] - FaceClearance) : 0f);
-                float laid = 0f;
+                group ??= Group(building.Group, name);
+                float thickness = LaySideStorey(building, s, choices, ref previous, onJoin, run, start, length, height, face, backOnJoin, settings, random,
+                    placer, group);
 
-                // The beam band below this storey, the same length and the
-                // same way round as its side walls, so it closes the gap
-                // between them and the storey below.
-                if (level.BeamHeight > 0f) {
-                    group ??= Group(building.Group, name);
-                    LaySideBeams(building.Levels[s - 1].Style.Pieces("beam"), onJoin, run, start, length, height + level.BeamBottom, level.BeamHeight, face,
-                        backOnJoin, settings, random, placer, group);
-                }
-
-                // End to end, until the length is covered.
-                while (laid < length - settings.SizeTolerance) {
-                    PieceAnnotation wall = PiecePlacer.Pick(choices, previous, random);
-                    float step = wall.width - settings.WallOverlap;
-
-                    if (step <= 0f) {
-                        break;
-                    }
-
-                    previous = wall;
-                    group ??= Group(building.Group, name);
-                    Vector2 corner = onJoin + run.Front * (start - laid);
-                    float heightScale = level.Style.FitScale(wall.height, level.Style.ModuleHeight);
-                    float thickness = PlaceSideWall(wall, corner, height + level.Base, heightScale, face, -run.Front, backOnJoin, placer, group);
-
-                    if (s == 0 && laid == 0f) {
-                        groundThickness = backOnJoin ? thickness : 0f;
-                    }
-
-                    laid += step;
+                if (s == 0) {
+                    groundThickness = backOnJoin ? thickness : 0f;
                 }
             }
 
@@ -790,6 +1423,86 @@ namespace LevelGen
                 group ??= Group(building.Group, name);
                 Vector2 corner = onJoin + run.Front * (spot.Depth + settings.FoundationFrontOffset) + face * (groundThickness + settings.FoundationFrontOffset);
                 PlaceSideFoundation(foundation, corner, height + settings.FoundationHeight, face, -run.Front, placer, group);
+            }
+        }
+
+        /// <summary>
+        /// One storey's side walls along a run back from a join (or a run's
+        /// end): the beam band below it, if it has one, the same length and
+        /// the same way round, so it closes the gap to the storey below; then
+        /// walls from choices end to end from start until length is covered,
+        /// never the piece before, each scaled in height to the storey.
+        /// Returns the first wall's thickness (0 if none was placed).
+        /// </summary>
+        private static float LaySideStorey(Building building, int storey, List<PieceAnnotation> choices, ref PieceAnnotation previous, Vector2 onJoin,
+            Run run, float start, float length, float height, Vector2 face, bool backOnJoin, GeneratorSettings settings, System.Random random,
+            PiecePlacer placer, Transform group)
+        {
+            StoreyLevel level = building.Levels[storey];
+            float first = 0f;
+            float laid = 0f;
+
+            if (level.BeamHeight > 0f) {
+                LaySideBeams(building.Levels[storey - 1].Style.Pieces("beam"), onJoin, run, start, length, height + level.BeamBottom, level.BeamHeight,
+                    face, backOnJoin, settings, random, placer, group);
+            }
+
+            while (laid < length - settings.SizeTolerance) {
+                PieceAnnotation wall = PiecePlacer.Pick(choices, previous, random);
+                float step = wall.width - settings.WallOverlap;
+
+                if (step <= 0f) {
+                    break;
+                }
+
+                previous = wall;
+                Vector2 corner = onJoin + run.Front * (start - laid);
+                float heightScale = level.Style.FitScale(wall.height, level.Style.ModuleHeight);
+                float thickness = PlaceSideWall(wall, corner, height + level.Base, heightScale, face, -run.Front, backOnJoin, placer, group);
+
+                if (laid == 0f) {
+                    first = thickness;
+                }
+
+                laid += step;
+            }
+
+            return first;
+        }
+
+        /// <summary>
+        /// Closes a jettied building's upper storeys at a run's end (a
+        /// frontage's end or a bend), where no column of the run stands
+        /// beside it: each storey above the ground gets side walls facing out
+        /// of the end, from its back line back past its column's own line (a
+        /// module, or the jetty plus the walls' setback if longer), with the
+        /// beam band below it as at a join. Under "End <name>" of its building.
+        /// </summary>
+        private static void CloseJetty(ModuleSpot spot, Building building, Run run, Vector2 face, float position, float wallSetback,
+            GeneratorSettings settings, System.Random random, PiecePlacer placer, string name, HashSet<string> missing)
+        {
+            if (building.Jetty <= 0f) {
+                return;
+            }
+
+            Vector2 onEnd = run.Start + run.Along * position;
+            float height = Height(run, position);
+            Transform group = null;
+            PieceAnnotation previous = null;
+
+            for (int s = 1; s < spot.Storeys; s++) {
+                StoreyLevel level = building.Levels[s];
+                List<PieceAnnotation> choices = SideWallChoices(building, s, building);
+
+                if (choices.Count == 0) {
+                    missing.Add(level.Style.Name);
+                    continue;
+                }
+
+                float start = spot.Depth + building.Jetty - wallSetback;
+                float length = Mathf.Max(level.Style.ModuleSpacing, building.Jetty + wallSetback);
+                group ??= Group(building.Group, name);
+                LaySideStorey(building, s, choices, ref previous, onEnd, run, start, length, height, face, false, settings, random, placer, group);
             }
         }
 
@@ -921,7 +1634,10 @@ namespace LevelGen
             IReadOnlyList<PieceAnnotation> filled = filler != null ? new[] { filler } : null;
 
             for (int k = 0; k < spots.Count; k++) {
-                int fromLeft = leftToRight ? k : spots.Count - 1 - k;
+                // Counted over the spec's modules (seen from the street), so
+                // modules the generator added never take or move the spec's door.
+                int index = spots[k].ModuleIndex;
+                int fromLeft = index < 0 ? -1 : leftToRight ? index : spec.widthModules - 1 - index;
                 // Both drawn for every module, so the sequence doesn't depend
                 // on which styles have door or window walls.
                 bool doorDrawn = random.NextDouble() < settings.GroundDoorShare;
@@ -1037,13 +1753,14 @@ namespace LevelGen
         /// wall, or null.
         /// </summary>
         private static GameObject PlaceWall(PieceAnnotation piece, BuildingStyle style, Run run, ModuleSpot spot, float spacing, float storeyBase,
-            float wallSetback, float wallOverlap, PiecePlacer placer, Transform group)
+            float wallSetback, float wallOverlap, PiecePlacer placer, Transform group, float fitWidth = 0f)
         {
             if (piece.fronts.Count != 1 || !Connection(piece, "left", out Vector3 left)) {
                 return null;
             }
 
-            float widthScale = style.FitScale(piece.width, style.ModuleWidth);
+            // A corner's filler gives its own width, to scale the wall to.
+            float widthScale = fitWidth > 0f ? fitWidth / piece.width : style.FitScale(piece.width, style.ModuleWidth);
             float heightScale = style.FitScale(piece.height, style.ModuleHeight);
             float width = piece.width * widthScale;
 

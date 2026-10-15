@@ -60,6 +60,12 @@ namespace LevelGen
         [Tooltip("Where the storeys below and above a joint both have beam pieces, a band of beams lies between their walls; this is how far the beams overlap the walls below and above them (each). The storeys above stand higher by the beam's height less twice this.")]
         [SerializeField, Range(0f, 0.2f)] private float storeyBeamOverlap = 0.04f;
 
+        [Header("Corners")]
+        [Tooltip("Where two facades meet on the outside of a bend or at a street corner, a joint within this many degrees of a right angle is covered by the style's outer corner piece (turned to sit between the two); any other joint by a column piece over the seam.")]
+        [SerializeField, Range(0f, 45f)] private float cornerAngleTolerance = 20f;
+        [Tooltip("Two frontages' ends at a junction are joined at a street corner only if each needs carrying no further than this to meet the other; otherwise each turns a side return into the branching street.")]
+        [SerializeField, Range(1f, 20f)] private float cornerMaxReach = 8f;
+
         [Header("Jetties")]
         [Tooltip("The chance that a facade building's upper storeys jut out over the street (by the depth of the jetty piece, about 1.5m), carried on jetty supports - where it has an upper storey and a jetty piece fits its ground storey's module. Higher for more jettied buildings, lower for fewer.")]
         [SerializeField, Range(0f, 1f)] private float jettyShare = 0.3f;
@@ -147,6 +153,8 @@ namespace LevelGen
         internal float UpperWindowShare => upperWindowShare;
         internal float StoreyBeamOverlap => storeyBeamOverlap;
         internal float JettyShare => jettyShare;
+        internal float CornerAngleTolerance => cornerAngleTolerance;
+        internal float CornerMaxReach => cornerMaxReach;
         internal float WindowInsertShare => windowInsertShare;
         internal float WindowInsertMaxMargin => windowInsertMaxMargin;
         internal float WindowInsertDepth => windowInsertDepth;

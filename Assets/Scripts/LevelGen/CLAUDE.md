@@ -109,7 +109,7 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   `foundationHeight` (0.3m: how far the foundations' tops stand above the street, set
   apart from the walls),
   `foundationFrontOffset` (0.1m: how far their fronts stand out past the walls' front
-  line), `groundDoorShare` (0.1), `groundWindowShare` (0.3), `upperWindowShare` (0.4), `storeyBeamOverlap` (4cm), `jettyShare` (0.3: buildings whose upper storeys jut out), `maxStoreyWidthMismatch` (0.3m: how far a storey's module width may differ from the ground storey's). **Columns:** `columnWidthMin` / `Max` (1-2 modules), `columnShare` (0.15: off the line), `columnMinRunModules` (6), `columnDepthMin` / `Max` (0.3-0.8m), `columnOutShare` (0.5), `columnHeightShare` (0.3: taller or lower than the building), `columnStoreyVariation` (1 storey). **Window inserts:** `windowInsertShare` (1), `windowInsertMaxMargin` (0.45m), `windowInsertDepth` (0m). **Side walls:** `sideWallMultiplier` (0-5, 1). **Layout checks:** `overlapTolerance` (5cm),
+  line), `groundDoorShare` (0.1), `groundWindowShare` (0.3), `upperWindowShare` (0.4), `storeyBeamOverlap` (4cm), `jettyShare` (0.3: buildings whose upper storeys jut out), `cornerAngleTolerance` (20°), `cornerMaxReach` (8m), `maxStoreyWidthMismatch` (0.3m: how far a storey's module width may differ from the ground storey's). **Columns:** `columnWidthMin` / `Max` (1-2 modules), `columnShare` (0.15: off the line), `columnMinRunModules` (6), `columnDepthMin` / `Max` (0.3-0.8m), `columnOutShare` (0.5), `columnHeightShare` (0.3: taller or lower than the building), `columnStoreyVariation` (1 storey). **Window inserts:** `windowInsertShare` (1), `windowInsertMaxMargin` (0.45m), `windowInsertDepth` (0m). **Side walls:** `sideWallMultiplier` (0-5, 1). **Layout checks:** `overlapTolerance` (5cm),
   `minSegmentLength` (0.1m), `junctionDistance` (0.1m), `branchAngle` (17.5°).
   **Ground tiles:** `groundOverlap` (3cm), `groundTileTurns` (on), `groundSlideMin` /
   `Max` (0.2-0.8 of a tile), `minTileCoverage` (0.1m). **Decking:** `deckingOverlap`
@@ -147,14 +147,15 @@ can't fill, and any overlap, is shown in the report rather than hidden.
    Built in steps, each testable alone:
    - **5a** the straight runs: foundations and storeys of wall modules along each
      frontage, broken at bends (built; `FacadeBuilder`, below).
-   - **5b** bends and ends: **a facade breaks at a bend** and goes on along the next
-     segment's edge in that segment's frame, with an **outer corner piece over the
-     joint** on the outside of the bend (the corners' arms, about 1.2m, also hide what
-     doesn't fit a whole module before the bend; a longer leftover gets a half wall
-     first); on the inside the walls overlap behind their fronts. The outer corner and
-     short side return where a frontage ends at a branching street. **The length left
-     at a frontage's end extends its last building**: whole modules, then a half
-     module, the rest hidden by the end corner or side return.
+   - **5b** bends and ends (built; Corners, below): **a facade breaks at a bend** and
+     goes on along the next segment's edge in that segment's frame; on the inside the
+     walls overlap behind their fronts, on the outside each side is carried to where
+     the lines meet and **the joint is covered** - an outer corner piece near a right
+     angle, else a column. **Two frontages of different streets meet at a street
+     corner** the same way; a frontage end at a junction that meets none turns a
+     one-module side return into the branching street. **The length left at a
+     frontage's end extends its last building** with whole modules; at a dead end one
+     more closes it.
    - **5c** the side walls where a taller column stands beside a lower one, along a
      straight run (built, with the columns; at a bend or a frontage's end they
      wait for 5b).
@@ -171,13 +172,18 @@ can't fill, and any overlap, is shown in the report rather than hidden.
 - **Runs:** one straight run per segment along the frontage's street edge (the middle
   line pushed out by half the segment's width). On the inside of a bend a run stops
   where it meets the neighbouring segment's edge (line intersection); on the outside
-  the runs leave a gap (5b's corner); at a frontage's ends a run stops half a
+  the runs leave a gap (closed by a corner); at a frontage's ends a run stops half a
   branching street's width short (`LayoutSpecValidator.BranchWidth`, shared). The
   buildings are laid module after module from the frontage's first point at the
   ground storey's `ModuleSpacing`; a module that would pass its run's end (beyond
-  `sizeTolerance`) starts the next run. Seen from the street a left frontage runs left
-  to right along the street, a right frontage right to left, so `doorModule` (counted
-  from the left) is mirrored on a right frontage.
+  `sizeTolerance`) starts the next run. **The length left after the buildings**
+  (`ExtendLastBuilding`): the last building goes on with whole modules while they fit,
+  moving to the next run as above; where the frontage ends at a dead end (one
+  `StoreyPlan.DeadEnds` closes), one more module is added if any length is left, its
+  overrun behind the dead end's facade, so the frontage always meets it. Seen from the
+  street a left frontage runs left to right along the street, a right frontage right
+  to left, so `doorModule` (counted from the left over the spec's `widthModules`, so the
+  added modules never move it) is mirrored on a right frontage.
 - **Depth:** all of a frontage's walls line up by their back planes, on a back line set
   back from the street edge by the deepest any of its usable walls reaches in front
   of its `left` connection point (render box front less the back plane), so that
@@ -227,7 +233,7 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   storey** on each storey's depth (column depth plus jetty), so a jettied storey beside
   one that isn't is a step, closed by walls from the jettied side; a step's walls are a
   module long, or longer when the step is deeper (its depth plus the walls' setback).
-  Only a ground-storey step (a column's) gets a side foundation. Dead ends are never
+  Only a ground-storey step (a column's) gets a side foundation. **A jettied storey at a run's end** (a frontage's end or a bend, where no column of the run stands beside it) **is closed by itself** (`CloseJetty`, under `Building <i>/End <n>/`): side walls facing out of the end from its back line back past its column's own line, a module or the jetty plus the setback if longer, with the beam band below as at a join. Dead ends are never
   jettied.
 - **Storey beams:** where two storeys' styles both have usable `beam` pieces
   (`PlasterWalls_A_MidBeam`, tagged with the common-height plaster styles; wall-tall,
@@ -311,8 +317,41 @@ can't fill, and any overlap, is shown in the report rather than hidden.
     behind the front walls it would stand out past every front wall shallower than the
     deepest.
   - Under `Building <i>/Side <n>/` of the column's building, `n` the join's module
-    index. Joins across a bend and a frontage's two ends get none yet (5b). Dead ends
+    index. Run ends a corner closes get none; a jettied storey at any other run end is closed (Jetties, above). Dead ends
     are one column.
+- **Corners** (stage 5b): `FacadeBuilder.Build` lays every frontage out first
+  (`LayFrontage`: modules, the end's extension, columns), then finds the corners
+  (`FindJoints`), then builds the frontages, then the corners (`BuildJoint`).
+  - **Inside a bend** (the next run heads into the street the run faces,
+    `InsideBend`) the runs stop where the edges meet, as before, and the building
+    being laid gets an added module where length is left: its overrun stands behind
+    the next run's walls.
+  - **Outside a bend**, and at **a street corner** - two frontage ends of different
+    streets at a junction (each stops half the other street's width short), paired
+    where each needs carrying no more than `cornerMaxReach`, shortest pairs first -
+    **each side is carried storey by storey to where the two lines meet** (each
+    storey's line at its column's depth plus its building's jetty, meeting the other
+    side's storey of the same index, or its top storey): a **filler** of a plain wall
+    of the storey's height (borrowed as for side walls) nearest the length in width,
+    scaled to it, with a foundation under the ground storey, the band's beam below a
+    banded storey and a jetty support under a jettied first storey, all scaled to the
+    length (`PlaceFiller`, `PlaceInRun`).
+  - **The joint is covered** (`PlaceCover`, from the first side's storey style, else
+    the other's, of the storey's height and scaled to it): within
+    `cornerAngleTolerance` of a right angle an **outer corner piece**, its outer edge
+    on the meeting point (`FaceClearance` out) and turned to sit between the two
+    facades; otherwise a **`column`** piece over the seam (the plaster styles'
+    `PlasterWalls_A_MidColumn`, to be reviewed in Review Pieces as a `column` tagged
+    with the plaster styles). A style with neither is logged and the seam left bare.
+  - A storey standing above the other side's top is **closed by side walls** facing
+    out of the corner instead (`LaySideStorey`).
+  - **Side return:** a frontage end at a junction that pairs with none gets a new
+    run of one added module along the branching street's near edge (the widest
+    street leaving the junction towards the frontage's side), from where the
+    frontage's line meets it, facing into that street; the end and the return are
+    joined as a corner (`AddSideReturn`). The return's far end stays open.
+  - Joined run ends are marked (`ModuleSpot.JoinedStart` / `JoinedEnd`) so nothing
+    else closes them. Pieces under `Building <i>/Corner/`.
 - **Dead ends:** a street end with no other street's point within `junctionDistance`
   is closed by a facade across it (`StoreyPlan.DeadEnds`, made after the frontages'
   rolls and before the lots; built after the frontages, under

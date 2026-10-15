@@ -6,6 +6,39 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-15 (level generator: corners and frontage ends, stage 5b)
+-----------------------------------------------------------------
+- Jettied buildings at a frontage's end or a bend were left open at
+  the side: side walls were only placed where two columns meet along
+  one run. A jettied storey at a run's end now closes itself with side
+  walls running back from behind its front walls (CloseJetty), unless a
+  corner closes it.
+- Frontages stopped short of the dead-end facades: the length left
+  after a frontage's buildings was never filled. The last building now
+  goes on with whole modules, and at a dead end one more module closes
+  the gap, its overrun hidden behind the dead end's facade. The spec's
+  door is counted over the spec's modules, so added modules never move
+  it.
+- Stage 5b, corners: every frontage is laid out before any is built,
+  so frontages of different streets can be joined. Inside a bend the
+  last module overruns, hidden behind the next run. Outside a bend, and
+  where two frontages of different streets meet at a street corner,
+  each side is carried storey by storey to where the facades meet by a
+  plain wall scaled to the length (with a scaled foundation, beam and
+  jetty support), and the joint is covered: the style's outer corner
+  piece within cornerAngleTolerance of a right angle, turned to sit
+  between the two, else a column (PlasterWalls_A_MidColumn, reviewed as
+  the plaster styles' column). A storey above the other side's top is
+  closed by side walls instead. A frontage end at a junction that meets
+  no other frontage turns a one-module side return into the branching
+  street.
+- The pack's corner pieces are all right angles while streets bend at
+  any angle (the example's bend is 37 degrees), which is why shallow
+  joints take a column rather than a corner.
+- Tested in the editor: corners, side returns, jetty ends and the
+  dead-end fill all work. Next: lots' whole buildings (5d), then roofs.
+
+
 2026-10-15 (level generator: layout specs, streets, facades)
 ------------------------------------------------------------
 - Stage 3, layout specs (Assets/Data/LevelGen/Layouts, LayoutSpec):
