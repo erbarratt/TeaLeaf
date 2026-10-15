@@ -6,6 +6,69 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-15 (level generator: layout specs, streets, facades)
+------------------------------------------------------------
+- Stage 3, layout specs (Assets/Data/LevelGen/Layouts, LayoutSpec):
+  streets as polylines with frontages (side, from, to, buildings) and
+  lots. A spec names building styles, never pieces: a style is a tag
+  on piece annotations, set in Review Pieces (StyleRules suggests them
+  from the pack's wall families). TeaLeaf > Level Gen > Validate Layout
+  Spec checks a spec against the styles' usable pieces. Every tunable
+  value lives in one asset, GeneratorSettings.
+- Stage 4, streets: cobbles laid on one grid per connected street area
+  (each tile turned from the one before, rows slid, tiles overlapping),
+  wooden decking per segment; each segment's width varied at random.
+- Storeys (StoreyPlan): a building's styles listed ground up, the last
+  repeating; the count rolled between min and max storeys with a bias.
+  Facades floated off the street until the ground storey's base got its
+  own height (groundStoreyHeight), apart from the foundations'.
+- Stage 5a, facades (FacadeBuilder): each frontage laid module by
+  module along the street edge, broken at bends; walls line up by their
+  back planes on a line set back by the deepest wall, so its trim just
+  reaches the edge. Door, window and plain walls chosen at random,
+  never the same piece twice running; window inserts fill wall holes
+  by size; a street end meeting no other street is closed by a facade.
+- Columns: every building is cut into columns of a few modules, each
+  with its own depth (inset or outset) and storey count around the
+  building's. Side walls fill every step and every height difference,
+  between columns and between buildings, storey by storey.
+- Side walls stuck out past the facade: they started on the front line
+  and were placed by their connection point, but most front walls stand
+  well behind that line, and some pieces' trim reaches past the point.
+  They now start behind the front walls and are placed by their render
+  box. An inset column's walls stand in the recess, backed against the
+  neighbouring column's end, starting just behind that column's wall
+  face (recorded per module and storey as the walls are placed) and
+  running back through the inset's front walls.
+- Side walls are plain walls of any width that fit the storey's
+  height, never one that shows a window or door (new annotation flag
+  showsOpening: the blind window walls and the masonry door halves). A
+  style with none borrows from the neighbouring column's style or the
+  storeys above, else it is logged.
+- Walls within wallScaleLimit (12%) of their module are scaled in width
+  and height to fit it exactly. That gave plaster-masonry and wall-tall
+  usable plain walls. masonry-door had none at any scale, and is not a
+  style of its own: its door walls are part of plaster-masonry.
+- groundStoreyOnly was false on every piece, StoneWindowBase included;
+  set again. New flag fillsStorey: MasonaryWall fills its whole ground
+  storey but the spec's door.
+- Storey beams: MidBeam (category beam, tagged with the three plaster
+  styles) sits in a band of its own between common-height storeys,
+  overlapping the walls by storeyBeamOverlap; side walls get beams too,
+  so the band leaves no gap.
+- Jetties: at jettyShare a building's upper storeys jut out by the
+  depth of the jetty supports (ShortBoardPlanks_Supports, category
+  jetty, about 1.58m); the first stands on the supports' deck in place
+  of a beam band. Side walls work on each storey's depth, so a jettied
+  storey beside one that isn't is closed like any step.
+- Learned: work out a piece's placement from its render box, not its
+  annotated points, wherever it must not show past something; and give
+  a rule (window-free, fills the storey, ground only) as a flag on the
+  piece in Review Pieces rather than in code.
+- Not yet tested in the editor: the latest side wall, beam and jetty
+  placement. Next: bends and frontage ends (5b), then lots and roofs.
+
+
 2026-10-15 (level generator: prefab catalogue and piece review)
 ---------------------------------------------------------------
 - Started the level generator (Assets/Scripts/LevelGen, editor only,

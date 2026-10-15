@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0fa074b1d092590408767974d5900e18, type: 3}
+  m_Name: GeneratorSettings
+  m_EditorClassIdentifier: Assembly-CSharp-Editor::LevelGen.GeneratorSettings
+  wallOverlap: 0.04
+  fullSizeShare: 0.75
+  sizeTolerance: 0.0801
+  wallScaleLimit: 0.12
+  streetWidth: 5
+  streetWidthVariance: 1
+  minStreetWidth: 2
+  minStoreys: 2
+  maxStoreys: 3
+  storeyBias: 0
+  lotNeighbourDistance: 15
+  lotStoreyBias: 0
+  groundStoreyHeight: 0.163
+  foundationHeight: 0.3
+  foundationFrontOffset: 0.1
+  groundDoorShare: 0
+  groundWindowShare: 0.054
+  upperWindowShare: 0.4
+  windowInsertShare: 1
+  windowInsertMaxMargin: 0.45
+  windowInsertDepth: 0.107
+  columnWidthMin: 1
+  columnWidthMax: 2
+  columnShare: 0.15
+  columnMinRunModules: 6
+  columnDepthMin: 0.3
+  columnDepthMax: 1.093
+  columnOutShare: 0.5
+  columnHeightShare: 0.3
+  columnStoreyVariation: 1
+  sideWallMultiplier: 1
+  maxStoreyWidthMismatch: 0.3
+  overlapTolerance: 0.05
+  minSegmentLength: 0.1
+  junctionDistance: 0.1
+  branchAngle: 17.5
+  groundOverlap: 0.1582
+  groundTileTurns: 1
+  groundSlideMin: 0.2
+  groundSlideMax: 0.8
+  minTileCoverage: 0.1
+  deckingOverlap: 0.03
+  deckingQuarterTurn: 0
+  deckingSlideMin: 0
+  deckingSlideMax: 0

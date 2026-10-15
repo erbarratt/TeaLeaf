@@ -511,10 +511,27 @@ Greybox build:
     [x] Stage 2: annotations and the Review Pieces window.
     [ ] Review and verify the pieces (open: WallsTall_CornerNarrow's
         arm point, Steps Full Width's ramp running along -X).
-    [ ] Stage 3: layout spec format and validation.
-    [ ] Stage 4: streets and ground.
+    [x] Stage 3: layout spec format and validation (TeaLeaf > Level Gen
+        > Validate Layout Spec), building styles as tags on pieces,
+        GeneratorSettings for every tunable value.
+    [x] Stage 4: streets and ground: cobbles on one grid per street
+        area, decking per segment, segment widths varied.
     [ ] Stage 5: buildings from parts, the roof kit, the Generated
         hierarchy and regeneration.
+        [x] 5a: straight runs of facades: foundations, storeys of wall
+            modules (door, window and plain walls), window inserts,
+            dead ends closed by a facade.
+        [x] Columns: every building cut into columns, each with its
+            own depth (inset / outset) and storey count.
+        [x] 5c: side walls where columns step in or out or stand
+            taller than their neighbour, inside a building and between
+            buildings.
+        [x] Storey beams between common-height storeys; jettied upper
+            storeys on supports; walls scaled to fit their module.
+        [ ] 5b: bends and frontage ends (outer corners, side returns,
+            the length left at a frontage's end).
+        [ ] 5d: lots' whole buildings.
+        [ ] Roofs.
     [ ] Stage 6: placement report.
 [ ] Give the variants their colliders and SurfaceTags (the bulk tool
     adds neither). Box/capsule colliders where they fit; mesh

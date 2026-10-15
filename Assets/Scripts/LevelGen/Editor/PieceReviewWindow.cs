@@ -12,7 +12,7 @@ namespace LevelGen
     /// scanner suggested, and saving it to annotations.json.
     ///
     /// The left side lists the catalogue, filtered by folder, suggested
-    /// orientation, flag, status and name. Choosing a piece puts a copy of
+    /// orientation, flag, style, status and name. Choosing a piece puts a copy of
     /// it in the open scene, high above the level, and frames it in the
     /// Scene view, where Handles draw its pivot, render box (white), collider
     /// box (green), back plane (cyan), walking surface (pale green), openings
@@ -49,6 +49,7 @@ namespace LevelGen
         [SerializeField] private string folderFilter = "";
         [SerializeField] private string orientationFilter = "";
         [SerializeField] private string flagFilter = "";
+        [SerializeField] private string styleFilter = "";
         [SerializeField] private int statusFilter = 1;
         [SerializeField] private string search = "";
 
@@ -59,6 +60,9 @@ namespace LevelGen
         private string[] _folderOptions;
         private string[] _orientationOptions;
         private string[] _flagOptions;
+        private string[] _styleOptions;
+        // Every style any annotation has, offered as a toggle on each piece.
+        private readonly SortedSet<string> _knownStyles = new(StringComparer.Ordinal);
         private string[] _categoryLabels;
         private string _loadError;
         private int _orphans;
@@ -172,6 +176,7 @@ namespace LevelGen
             _folderOptions = WithAll(folders);
             _orientationOptions = WithAll(orientations);
             _flagOptions = WithAll(flags);
+            RebuildStyles();
             _categoryLabels = new string[PieceAnnotation.Categories.Length];
 
             for (int i = 0; i < _categoryLabels.Length; i++) {
@@ -190,6 +195,22 @@ namespace LevelGen
             List<string> options = new() { "All" };
             options.AddRange(values);
             return options.ToArray();
+        }
+
+        /// <summary>
+        /// Gathers every style the annotations use, for the style toggles and
+        /// the style filter.
+        /// </summary>
+        private void RebuildStyles()
+        {
+            _knownStyles.Clear();
+            _knownStyles.UnionWith(StyleRules.All);
+
+            foreach (PieceAnnotation piece in _annotations.pieces) {
+                _knownStyles.UnionWith(piece.styles);
+            }
+
+            _styleOptions = WithAll(_knownStyles);
         }
 
         /// <summary>
@@ -218,6 +239,12 @@ namespace LevelGen
                 }
 
                 _byGuid.TryGetValue(entry.guid, out PieceAnnotation piece);
+
+                // A piece not looked at yet is filtered by its suggested styles.
+                if (styleFilter != "" && !(piece != null ? piece.styles : StyleRules.Suggest(entry.name)).Contains(styleFilter)) {
+                    continue;
+                }
+
                 bool excluded = piece != null && piece.excluded;
                 bool verified = piece != null && piece.verified && !excluded;
 
@@ -423,6 +450,7 @@ namespace LevelGen
             folderFilter = FilterPopup("Folder", folderFilter, _folderOptions);
             orientationFilter = FilterPopup("Suggested", orientationFilter, _orientationOptions);
             flagFilter = FilterPopup("Flag", flagFilter, _flagOptions);
+            styleFilter = FilterPopup("Style", styleFilter, _styleOptions);
             statusFilter = EditorGUILayout.Popup("Show", statusFilter, _statusNames);
             search = EditorGUILayout.TextField("Name", search);
 
@@ -574,6 +602,7 @@ namespace LevelGen
             int category = Mathf.Max(0, Array.IndexOf(PieceAnnotation.Categories, piece.category));
             category = EditorGUILayout.Popup("Category", category, _categoryLabels);
             piece.category = PieceAnnotation.Categories[category];
+            DrawStyles(piece);
 
             EditorGUILayout.BeginHorizontal();
             EditorGUILayout.PrefixLabel("Front");
@@ -633,6 +662,12 @@ namespace LevelGen
             }
 
             piece.note = EditorGUILayout.DelayedTextField("Note", piece.note);
+            piece.groundStoreyOnly = EditorGUILayout.Toggle(new GUIContent("Ground Storey Only", "The generator places this wall only on a building's ground storey."),
+                piece.groundStoreyOnly);
+            piece.showsOpening = EditorGUILayout.Toggle(new GUIContent("Shows Opening", "A plain wall showing a window or door (a blind window, half a door): never used as a side wall."),
+                piece.showsOpening);
+            piece.fillsStorey = EditorGUILayout.Toggle(new GUIContent("Fills Storey", "A plain wall that, on a storey whose style offers it, stands at every module but the spec's door: no other walls, random doors or window walls."),
+                piece.fillsStorey);
             piece.excluded = EditorGUILayout.Toggle("Excluded", piece.excluded);
             piece.verified = EditorGUILayout.Toggle("Verified", piece.verified);
 
@@ -666,6 +701,69 @@ namespace LevelGen
             }
 
             EditorGUILayout.EndHorizontal();
+        }
+
+        /// <summary>
+        /// The piece's styles: a toggle for every style already in use (one
+        /// click to put a piece in a style) and a field that adds a new one
+        /// when Enter is pressed in it. Called inside DrawAnnotation's change
+        /// check, so a change is stored with the rest (the delayed field
+        /// counts as a change when it hands its text over).
+        /// </summary>
+        private void DrawStyles(PieceAnnotation piece)
+        {
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.PrefixLabel("Styles");
+            EditorGUILayout.BeginVertical();
+            EditorGUILayout.BeginHorizontal();
+            int inRow = 0;
+
+            foreach (string style in _knownStyles) {
+                // A few toggles to a row, so a long list wraps.
+                if (inRow == 4) {
+                    EditorGUILayout.EndHorizontal();
+                    EditorGUILayout.BeginHorizontal();
+                    inRow = 0;
+                }
+
+                bool had = piece.styles.Contains(style);
+                bool on = GUILayout.Toggle(had, style, EditorStyles.miniButton, GUILayout.MinWidth(70f));
+
+                if (on && !had) {
+                    piece.styles.Add(style);
+                    piece.styles.Sort(StringComparer.Ordinal);
+                } else if (!on && had) {
+                    piece.styles.Remove(style);
+                }
+
+                inRow++;
+            }
+
+            EditorGUILayout.EndHorizontal();
+            // A delayed field hands its text over only when Enter is pressed in
+            // it (or it loses focus), which is when the new style is added.
+            // The button is only a cue: clicking it takes the focus away.
+            EditorGUILayout.BeginHorizontal();
+            string typed = EditorGUILayout.DelayedTextField("");
+            GUILayout.Button("Add style", GUILayout.Width(80f));
+            EditorGUILayout.EndHorizontal();
+            EditorGUILayout.EndVertical();
+            EditorGUILayout.EndHorizontal();
+
+            string added = PieceAnnotation.NormaliseStyle(typed);
+
+            if (added == "") {
+                return;
+            }
+
+            if (!piece.styles.Contains(added)) {
+                piece.styles.Add(added);
+                piece.styles.Sort(StringComparer.Ordinal);
+            }
+
+            if (_knownStyles.Add(added)) {
+                _styleOptions = WithAll(_knownStyles);
+            }
         }
 
         /// <summary>

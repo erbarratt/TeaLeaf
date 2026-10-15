@@ -22,7 +22,10 @@ namespace LevelGen
     {
         // Bumped when the format changes, so the later stages can refuse an
         // old file rather than misread it.
-        public const int CurrentFormat = 1;
+        public const int CurrentFormat = 2;
+        // Format 1 is format 2 without styles, so it is read as it is and
+        // written back as format 2 with the next change.
+        private const int UpgradableFormat = 1;
 
         internal const string AnnotationsPath = PrefabCatalogueScanner.DataFolder + "/annotations.json";
 
@@ -42,11 +45,12 @@ namespace LevelGen
 
             PieceAnnotations annotations = JsonUtility.FromJson<PieceAnnotations>(File.ReadAllText(AnnotationsPath));
 
-            if (annotations == null || annotations.format != CurrentFormat) {
+            if (annotations == null || (annotations.format != CurrentFormat && annotations.format != UpgradableFormat)) {
                 Debug.LogWarning($"PieceAnnotations: '{AnnotationsPath}' is not format {CurrentFormat}; it is left as it is.");
                 return null;
             }
 
+            annotations.format = CurrentFormat;
             return annotations;
         }
 
@@ -80,7 +84,7 @@ namespace LevelGen
         internal static readonly string[] Categories = {
             "", "wall", "door-wall", "window-wall", "outer-corner", "inner-corner",
             "foundation", "foundation-corner", "floor", "ground", "steps", "column", "beam",
-            "roof", "detail"
+            "roof", "detail", "window", "jetty"
         };
 
         public string guid;
@@ -98,7 +102,22 @@ namespace LevelGen
         public float height;
         public float depth;
         public List<ConnectionPoint> connections = new();
+        // The building styles the piece belongs to (e.g. "plaster"), which a
+        // layout spec names per storey or street. A piece can be in several:
+        // a foundation is tagged with every style that stands on it.
+        public List<string> styles = new();
 
+        // Placed only on a building's ground storey (a wall too heavy or
+        // grand for an upper one), whatever its style allows.
+        public bool groundStoreyOnly;
+        // A plain wall that shows a window or door (a blind window, framed but
+        // not see through, or half a door): never used where a wall must be
+        // plain, such as a side wall.
+        public bool showsOpening;
+        // A plain wall that, on a storey whose style offers it, stands at
+        // every module but the spec's door (e.g. the masonry ground storey's
+        // MasonaryWall).
+        public bool fillsStorey;
         public bool excluded;
         public bool verified;
         public string note = "";
@@ -106,7 +125,8 @@ namespace LevelGen
         /// <summary>
         /// A first annotation for a piece, filled in from what the catalogue
         /// measured: its suggested category, front(s) (measured, or +Z
-        /// assumed), module size and connection points. Never verified.
+        /// assumed), styles (by name, StyleRules), module size and connection
+        /// points. Never verified.
         /// </summary>
         internal static PieceAnnotation Suggest(CatalogueEntry entry)
         {
@@ -114,8 +134,12 @@ namespace LevelGen
                 guid = entry.guid,
                 name = entry.name,
                 path = entry.path,
-                category = Array.IndexOf(Categories, entry.suggestedCategory) >= 0 ? entry.suggestedCategory : "",
+                // A window insert (Windows folder) measures as a detail; it
+                // is the window category the generator puts into wall holes.
+                category = entry.suggestedCategory == "detail" && entry.folder.EndsWith("/Windows", StringComparison.Ordinal) ? "window"
+                    : Array.IndexOf(Categories, entry.suggestedCategory) >= 0 ? entry.suggestedCategory : "",
                 fronts = new List<Vector3>(entry.suggestedFronts),
+                styles = StyleRules.Suggest(entry.name),
                 // The generator never places a piece with gameplay scripts, and
                 // an assembly only once it is taken in by hand.
                 excluded = entry.flags.Contains(PrefabCatalogueScanner.FlagGameplayScripts)
@@ -230,6 +254,15 @@ namespace LevelGen
         private static float Along(Vector3 extents, Vector3 axis)
         {
             return Mathf.Abs(extents.x * axis.x) + Mathf.Abs(extents.y * axis.y) + Mathf.Abs(extents.z * axis.z);
+        }
+
+        /// <summary>
+        /// A style name as it is stored: trimmed, lower case, with spaces
+        /// as hyphens, so "Plaster A" and "plaster-a" are one style.
+        /// </summary>
+        internal static string NormaliseStyle(string style)
+        {
+            return string.Join("-", style.Trim().ToLowerInvariant().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries));
         }
 
         /// <summary>
