@@ -1,0 +1,113 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3005059024126716125
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 133347790273939705}
+  m_Layer: 0
+  m_Name: Sound
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &133347790273939705
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3005059024126716125}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 6950383527390965577}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &6884809130001431297
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6950383527390965577}
+  - component: {fileID: 6042789282853053535}
+  m_Layer: 0
+  m_Name: Sound Player
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6950383527390965577
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6884809130001431297}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: -1.71035, y: 0, z: -2.37227}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 133347790273939705}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &6042789282853053535
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6884809130001431297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b93ac5da851d0714e899f5107de15fab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Core.SoundPlayer
+  listener: {fileID: 0}
+  voiceCount: 16
+  falloffSharpness: 3
+  muffledCutoff: 600
+  muffledVolume: 0.5
+  spatialiserMode: 1
+  spatialiser:
+    volume: 1
+    headRadius: 0.0875
+    timeDifference: 1
+    farEarVolume: 0.7
+    nearEarVolume: 1.15
+    shadowCutoff: 1500
+    shadowAmount: 0.85
+    rearCutoff: 3500
+    rearAmount: 0.6
+    rearVolume: 0.9
+  spatialiseAfterMuffle: 0
+  loopVoiceCount: 8
+  loopCheckInterval: 0.2
+  loopFarCheckInterval: 1
+  loopEaseTime: 0.25
+  loopFadeTime: 0.4
+  reverb: 1
+  outsideReverb:
+    level: 0.35
+    decayTime: 1.2
+    damping: 0.6
+    size: 20
+  reverbBlendTime: 0.6
+  reverbAmount: 1
+  outsideAmbience: {fileID: 11400000, guid: d0caedbf1b9cc2b47ab9b4423c4c63cb, type: 2}
+  outsideAmbienceVolume: 0.187
+  ambienceFadeTime: 1.5
+  listenerCheckInterval: 0.5
