@@ -67,6 +67,9 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
   collision, layers, static flags, lighting, culling and sound are laid out, measured
   against a shipped VR stealth level, and the checklist for reviewing a scene. Read it
   before building, changing or reviewing level geometry.
+- **`Assets/Scripts/LevelGen/CLAUDE.md`** — the level generator (being built): the prefab
+  catalogue and its annotations, the layout spec a written brief is turned into, street
+  and building placement, regeneration and the placement report.
 
 A new system folder (`UI`) gets its own `CLAUDE.md` when its first system lands. Read
 the relevant one before changing a system you haven't read this session, even when working
@@ -556,12 +559,15 @@ fails and restarts. The mechanics:
   of Dishonored**: broad brush dabs, a grimy washed-out palette with cool shadows and warm
   lights, light painted onto edges. **What the player stands on, holds or opens stays
   true** - floors flat, ledges and rails level and straight, ladders straight, door hinges
-  upright: the crookedness is in the silhouette. **Levels and prefabs are built by hand
-  in the editor from the bought Astrofish Games packs** in `Assets/ASTROFISH_GAMES`:
+  upright: the crookedness is in the silhouette. **Levels and prefabs are built from the
+  bought Astrofish Games packs** in `Assets/ASTROFISH_GAMES`:
   `STYLZ_MVillage` (medieval village: walls, roofs, doors, windows, steps, bridges,
   fences, foliage, terrain), `DETAILED_MCastle` (castle, cliff rock) and
-  `DETAILED_FantasyMarkets` (market stalls and goods). **Level art is not built from
-  code: don't propose an editor builder for it.** The pack folder is git-ignored and its
+  `DETAILED_FantasyMarkets` (market stalls and goods). **Level art is placed by hand or
+  by the level generator (`Assets/Scripts/LevelGen`), and by nothing else**: the
+  generator lays out streets and buildings from real `Assets/Prefabs` variants under its
+  own root, and everything else - set dressing, lighting, gameplay - is placed by hand.
+  Don't propose any other editor builder for level art. The pack folder is git-ignored and its
   own prefabs are left untouched; **the game's prefabs live in `Assets/Prefabs`, each a
   prefab variant of a pack prefab** holding what the game adds - Static and the
   `Environment` layer, a collider, a `SurfaceTag` where it is walked on or shot at, and
@@ -580,7 +586,9 @@ fails and restarts. The mechanics:
 ### Planned systems
 
 `Assets/Scripts/UI` is an empty placeholder folder. Future systems land in their folder
-following the same one-class, one-responsibility pattern (UI: menus).
+following the same one-class, one-responsibility pattern (UI: menus). The level generator
+(`Assets/Scripts/LevelGen`) is being built in stages; its `CLAUDE.md` holds the design and
+which stages exist.
 Ending the level always goes through `LevelManager` (`Caught()`, `SetObjectiveCarried()`): no
 other system fades out or reloads the scene itself.
 

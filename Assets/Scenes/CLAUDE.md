@@ -49,6 +49,8 @@ Environment
       VFX
     <Sector name>     one per part of the level that can be culled as a whole
       Geometry        buildings and structure, one group per building
+        Generated     what the level generator owns (LevelGen.GeneratedRoot); replaced
+                      on every regeneration, so nothing hand-placed goes inside it
   Player Blockers     (see below)
   Occlusion           hand-placed culling areas
 Gameplay

@@ -6,6 +6,79 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-15 (level generator: prefab catalogue and piece review)
+---------------------------------------------------------------
+- Started the level generator (Assets/Scripts/LevelGen, editor only,
+  namespace LevelGen): it will build a level's streets and buildings
+  from the Assets/Prefabs variants, from a layout spec JSON that
+  Claude writes from a written brief in the conversation (no API call
+  from the editor). Its design, rules and six stages are in
+  LevelGen/CLAUDE.md. Decided: buildings from component parts only,
+  never the pack's ready-made buildings or storeys (Building_Exteriors
+  and Building_Layers are left out); lights inside placed prefabs
+  turned off on the instance; layouts need not follow a world grid
+  (streets are polylines at any angle, each lot has its own origin and
+  yaw, and pieces fit on a grid only within one frame); only pieces
+  verified by eye are placed. The root CLAUDE.md's level art rule and
+  Scenes/CLAUDE.md (a Generated group under a sector's Geometry) were
+  updated to match.
+- Stage 1, TeaLeaf > Level Gen > Scan Prefab Catalogue: every prefab
+  under Assets/Prefabs/Environment is opened in a preview scene,
+  measured and unloaded unsaved, into Assets/Data/LevelGen/
+  catalogue.json (188 pieces): render and collider boxes, pivot,
+  hierarchy, components, LODs, triangles, materials, lights, and flags
+  for anything to look at by eye. Rewritten only when its text
+  changes, so rescanning unchanged prefabs leaves it alone.
+- The front is worked out from the geometry, never the name
+  (WallOrientation): the pack's walls have a detailed front and a back
+  that is one flat plane, so of a slab's two big sides the busier is
+  the front, and the flat back plane gives the module's true size and
+  its left/right/top/bottom connection points. Corners show the
+  pattern along both level axes. The pack is consistent: every piece
+  faces +Z, so +Z is taken as the front wherever the geometry gives
+  none, and a front-not-plus-z flag marks the few that disagree
+  (Platforms_SideWall, SideWall_Half_02, PortchStraight_Extension).
+- PieceShape suggests a category and more points: wall openings from
+  gaps in the back plane on a 5cm grid (a door reaches the base, a
+  window doesn't), outer or inner corners with a point at each arm's
+  free end, columns and beams by proportion, detail for the window and
+  door inserts and iron fixtures, roof for the roof kit. WalkSurface
+  measures floors by their colliders, not their meshes, so floors laid
+  by them make one even walking surface: the height holding most of
+  the upward collider area, with a point at the middle of each edge.
+  Each RampCollider gives the steps a foot and a top point.
+- Stage 2, TeaLeaf > Level Gen > Review Pieces: a window listing the
+  catalogue (filtered by folder, orientation, flag, status, name). A
+  chosen piece is put in the open scene 300m up as a never-saved copy
+  with its lights off, framed in the Scene view, with Handles showing
+  its pivot, boxes, back plane, walking surface, openings, ramps,
+  fronts and connection points (the chosen point can be dragged).
+  Fields prefilled from the catalogue; Enter accepts and moves on.
+  Annotations go to Assets/Data/LevelGen/annotations.json, keyed by
+  GUID, apart from the catalogue so a rescan never overwrites them.
+  Review started (two pieces).
+- Found in the prefabs: wall pivots sit at the left end of the base
+  (seen from in front); window inserts and doors are pivoted at their
+  centre; roof tiles hang 2.1m below their pivot. The window walls
+  without holes (WindowBase, PlanksWindow, WallTall_*WindowBase,
+  CellarWindow) frame blind windows on purpose. Platforms_Steps_Wide
+  is off the Environment layer and three steps/door variants aren't
+  batching-static (left as they are).
+- Bugs: the first scan took in Assets/Prefabs/Core (the Player, Level
+  Manager and other scene objects) - the scan is now limited to
+  Environment. Thin posts measured as corners and support pieces as
+  floors until columns were tested before corners and a floor needed
+  90% of its collider tops at one height.
+- Learned: JsonUtility writes a float's full double expansion (0.3 as
+  0.30000001192092898), so the files' numbers are rewritten to three
+  decimals. Mesh.AcquireReadOnlyMeshData reads meshes that aren't
+  Read/Write in the editor, leaving import settings alone. A mirrored
+  matrix turns a triangle's winding round, so its normal must be
+  flipped back. In an EditorWindow, anything that changes what is
+  drawn partway through an OnGUI pass needs GUIUtility.ExitGUI(), or
+  the layout and the event disagree.
+
+
 2026-10-15 (baked lighting, light probes, batches from about 6,000 to 216)
 -------------------------------------------------------------------------
 - Not tried in the headset: any of the bake.

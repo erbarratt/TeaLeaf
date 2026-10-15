@@ -1,0 +1,112 @@
+{
+    "format": 1,
+    "pieces": [
+        {
+            "guid": "7b736e48341652d4da323aa07eba9984",
+            "name": "TL_PlasterWalls_A_Cross",
+            "path": "Assets/Prefabs/Environment/Walls/TL_PlasterWalls_A_Cross.prefab",
+            "category": "wall",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 2.988,
+            "height": 3.013,
+            "depth": 0.638,
+            "connections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": -0.005,
+                        "y": -0.046,
+                        "z": -0.32
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -2.993,
+                        "y": -0.046,
+                        "z": -0.32
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": -1.499,
+                        "y": 2.968,
+                        "z": -0.32
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": -1.499,
+                        "y": -0.046,
+                        "z": -0.32
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "excluded": false,
+            "verified": true,
+            "note": ""
+        },
+        {
+            "guid": "1b27e73e2aaa5de4983a8ce03e943d8c",
+            "name": "TL_PlasterWalls_A_MidBeam",
+            "path": "Assets/Prefabs/Environment/Walls/TL_PlasterWalls_A_MidBeam.prefab",
+            "category": "",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 3.038,
+            "height": 0.381,
+            "depth": 0.464,
+            "connections": [
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0,
+                        "y": 0.183,
+                        "z": 0
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                }
+            ],
+            "excluded": false,
+            "verified": false,
+            "note": ""
+        }
+    ]
+}

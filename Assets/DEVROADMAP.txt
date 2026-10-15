@@ -500,6 +500,22 @@ Greybox build:
     layer, a collider, a SurfaceTag, scripts such as Door or Ladder.
     Started in Main.unity: dock sections, foundations and floors in
     Sector 1.
+[ ] Level generator (Assets/Scripts/LevelGen; design in its CLAUDE.md):
+    streets and buildings from the prefab variants, from a layout spec
+    written from a brief. Set dressing, lighting and gameplay stay by
+    hand.
+    [x] Stage 1: prefab catalogue scanner (TeaLeaf > Level Gen > Scan
+        Prefab Catalogue): measurements, front from geometry (+Z
+        assumed where none), category, openings, corners, floors by
+        their colliders, ramps.
+    [x] Stage 2: annotations and the Review Pieces window.
+    [ ] Review and verify the pieces (open: WallsTall_CornerNarrow's
+        arm point, Steps Full Width's ramp running along -X).
+    [ ] Stage 3: layout spec format and validation.
+    [ ] Stage 4: streets and ground.
+    [ ] Stage 5: buildings from parts, the roof kit, the Generated
+        hierarchy and regeneration.
+    [ ] Stage 6: placement report.
 [ ] Give the variants their colliders and SurfaceTags (the bulk tool
     adds neither). Box/capsule colliders where they fit; mesh
     colliders only where the shape needs one.
