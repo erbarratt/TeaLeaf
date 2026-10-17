@@ -23,7 +23,11 @@ light, the procedural night sky, the level surface shaders and the shared debug 
   Light and the lighting mode is **Shadowmask** - plain Shadowmask in the `PC` quality
   level, not Distance Shadowmask, so static pieces are never drawn into the realtime
   shadow map; their shadows come from the bake. Every point light in the pack's prefabs
-  (buildings, lampposts, the tower bridge's torch) is overridden to **Baked** in the scene.
+  (buildings, lampposts, the tower bridge's torch) is overridden to **Baked** in the scene
+  - the `TL_Lampost` variant's own light is **Mixed** (Indirect Multiplier 0, soft
+  shadows, 5m) with a `LightSource` and a `Flame`, the level generator's gameplay lamp
+  (`Assets/Scripts/LevelGen/CLAUDE.md`), and `Main.unity`'s three instances override
+  it to Baked while keeping the `LightSource` and `Flame`.
   Settings asset `Assets/Settings/Docks Lighting.lighting` (GPU lightmapper, 10 texels/m,
   2048 maps, Non-Directional, AO); the bake's output is in `Assets/Scenes/Main/` (two
   lightmaps with shadowmasks, about 85 MB, plus the occlusion data). Small pieces and

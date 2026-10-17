@@ -126,6 +126,10 @@ namespace LevelGen
         // modules, corner fillers and side walls - is that one (e.g.
         // wall-tall's WindowBase and StoneWindowBase).
         public bool onePerStorey;
+        // A window insert whose panes glow as if lit from behind (a lit
+        // material): put into a share of the window holes filled
+        // (GeneratorSettings.LitWindowShare), the unlit inserts in the rest.
+        public bool lit;
         public bool excluded;
         public bool verified;
         public string note = "";

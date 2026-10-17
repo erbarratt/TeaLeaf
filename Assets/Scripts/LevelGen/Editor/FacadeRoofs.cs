@@ -160,6 +160,111 @@ namespace LevelGen
         }
 
         /// <summary>
+        /// Gives each building one colour, walls and roof together: the
+        /// plain one (ColourVariants.Default: the maintainer's unsuffixed
+        /// copy of each piece's material, else the piece's own) or a colour
+        /// variant (ColourVariants: a material under Assets/Art/Materials or
+        /// Assets/Prefabs named after a piece's material with a colour
+        /// suffix), chosen at random, that every
+        /// piece under the building's group (walls, beams, side walls,
+        /// corners, dressing) and its roof group takes for each of its
+        /// materials that has that variant. Run last of all, over every
+        /// frontage, lot and dead end. Buildings joined by corners are one
+        /// building to the eye, so each such set (CornerLeaders) takes one
+        /// colour, chosen from the variants of every member's materials and
+        /// applied to them all. One draw is made per building whether or not
+        /// there are variants (a set uses its first building's), so no other
+        /// draw moves when variant materials are added. Logs the colours
+        /// used (per building), and any material met that has variants but
+        /// none for a colour chosen (the one to clone).
+        /// </summary>
+        private static void ColourBuildings(List<Frontage> frontages, List<Joint> joints, System.Random random, List<string> log)
+        {
+            Dictionary<Building, Building> leaders = CornerLeaders(frontages, joints);
+            // Every building's own groups (its facade group and, if it got
+            // a roof, its roof group - Child() would make an empty one),
+            // and each set's, by its first building.
+            Dictionary<Building, List<Transform>> sets = new();
+            Dictionary<Building, int> members = new();
+
+            foreach (Frontage frontage in frontages) {
+                foreach (Building building in frontage.Buildings) {
+                    Building first = leaders[building];
+
+                    if (!sets.TryGetValue(first, out List<Transform> groups)) {
+                        sets[first] = groups = new List<Transform>();
+                        members[first] = 0;
+                    }
+
+                    members[first]++;
+                    groups.Add(building.Group);
+                    Transform roofOwner = _roofParent.Find(building.Group.parent.name);
+                    Transform roof = roofOwner?.Find(building.Group.name);
+
+                    if (roof != null) {
+                        groups.Add(roof);
+                    }
+                }
+            }
+
+            ColourVariants variants = new();
+            HashSet<string> missing = new();
+            Dictionary<string, int> used = new();
+            int plain = 0;
+
+            foreach (Frontage frontage in frontages) {
+                foreach (Building building in frontage.Buildings) {
+                    double draw = random.NextDouble();
+
+                    if (leaders[building] != building) {
+                        continue;
+                    }
+
+                    List<Transform> groups = sets[building];
+                    List<string> suffixes = variants.Suffixes(groups);
+
+                    if (suffixes.Count == 0) {
+                        plain += members[building];
+                        continue;
+                    }
+
+                    string suffix = suffixes[Mathf.Min((int)(draw * suffixes.Count), suffixes.Count - 1)];
+
+                    foreach (Transform group in groups) {
+                        variants.Apply(group, suffix, missing);
+                    }
+
+                    used[suffix] = used.TryGetValue(suffix, out int count) ? count + members[building] : members[building];
+                }
+            }
+
+            if (used.Count == 0) {
+                return;
+            }
+
+            List<string> parts = new();
+
+            foreach (KeyValuePair<string, int> pair in used) {
+                parts.Add($"{pair.Key} x{pair.Value}");
+            }
+
+            parts.Sort();
+            string line = $"Building colours: {string.Join(", ", parts)}";
+
+            if (plain > 0) {
+                line += $"; {plain} building(s) with no variant";
+            }
+
+            if (missing.Count > 0) {
+                List<string> names = new(missing);
+                names.Sort();
+                line += $"; no variant for some colours: {string.Join(", ", names)}";
+            }
+
+            log.Add(line + ".");
+        }
+
+        /// <summary>
         /// The middle of a lot's footprint (the mean of its sides' starts);
         /// zero for a facade.
         /// </summary>

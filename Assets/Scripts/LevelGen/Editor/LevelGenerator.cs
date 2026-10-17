@@ -26,11 +26,17 @@ namespace LevelGen
     /// Built so far: every street segment's width (LayoutSpec.ResolveWidths,
     /// during validation), every building's storey count (StoreyPlan, logged),
     /// the streets' ground (StreetGround), the facades, lots, dead ends and
-    /// their roofs (FacadeBuilder; roofs under a Roofs object of their own).
+    /// their roofs (FacadeBuilder; roofs under a Roofs object of their own),
+    /// then the foundations' and the walkways' colliders merged into as few boxes
+    /// as possible (MergedColliders).
     /// A street the generator can't lay is skipped and logged, so the ground
     /// can be tried while the buildings' styles are still being reviewed.
-    /// Last the street test (StreetTest): a ball down every street that must
-    /// touch no wall, logged as an error if one does.
+    /// Then the street test (StreetTest): a ball down every street that must
+    /// touch no wall, logged as an error if one does. Last of all, always,
+    /// the roof cull (RoofCull): every roof piece a probe walking the
+    /// streets high above them can't see is removed; then the roof pieces
+    /// left that face the void beyond the level lose their colliders
+    /// (RoofEdgeColliders).
     /// </summary>
     internal static class LevelGenerator
     {
@@ -115,10 +121,22 @@ namespace LevelGen
             Transform roofs = new GameObject("Roofs").transform;
             roofs.SetParent(rootObject.transform, false);
             FacadeBuilder.Build(spec, styles, annotations, plan, settings, random, placer, facades, lots, roofs, log);
+            // Every foundation and walkway placed, the street test then checks
+            // the boxes that replace their colliders.
+            MergedColliders.RunFoundations(rootObject.transform, annotations, settings, log);
+            MergedColliders.RunWalkways(rootObject.transform, settings, log);
 
             // The street test: a ball down every street must touch nothing built.
             List<string> test = new();
-            bool valid = StreetTest.Run(spec, StreetSteps.Find(spec.streets, styles, placer, settings), plan, rootObject.transform, streets, settings, test);
+            List<StreetSteps.Flight> flights = StreetSteps.Find(spec.streets, styles, placer, settings);
+            bool valid = StreetTest.Run(spec, flights, plan, rootObject.transform, streets, settings, test);
+
+            // Always last of everything built: the roofs no one in the
+            // streets can see are taken out.
+            RoofCull.Run(spec, flights, plan, roofs, settings, log);
+            // Then the roofs left that face the void beyond the level lose
+            // their colliders.
+            RoofEdgeColliders.Run(roofs, settings, log);
 
             // The report on the result: its markers go on the root, before
             // the fingerprint is taken.

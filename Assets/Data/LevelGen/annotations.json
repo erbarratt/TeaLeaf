@@ -6687,6 +6687,92 @@
             "note": ""
         },
         {
+            "guid": "935713b5efbc06d44baa416488d2481a",
+            "name": "TL_Window_A_Lit",
+            "path": "Assets/Prefabs/Environment/Windows/TL_Window_A_Lit.prefab",
+            "category": "window",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 1.964,
+            "height": 2.004,
+            "depth": 0.388,
+            "connections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.982,
+                        "y": -1.001,
+                        "z": -0.17
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.982,
+                        "y": -1.001,
+                        "z": -0.17
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0,
+                        "y": 1.003,
+                        "z": -0.17
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0,
+                        "y": -1.001,
+                        "z": -0.17
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [
+                "masonry-cellar",
+                "masonry-woodlarge",
+                "plaster",
+                "plaster-masonry",
+                "plaster-planks",
+                "wall-tall"
+            ],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "excluded": false,
+            "verified": true,
+            "note": "",
+            "lit": true
+        },
+        {
             "guid": "f288df8eeedb8464da2b3e07efefc578",
             "name": "TL_Window_B",
             "path": "Assets/Prefabs/Environment/Windows/TL_Window_B.prefab",
@@ -6770,6 +6856,92 @@
             "excluded": false,
             "verified": true,
             "note": ""
+        },
+        {
+            "guid": "76d594a333ad05f4fba430e1b5784721",
+            "name": "TL_Window_B_Lit",
+            "path": "Assets/Prefabs/Environment/Windows/TL_Window_B_Lit.prefab",
+            "category": "window",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 1.932,
+            "height": 1.882,
+            "depth": 0.336,
+            "connections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.951,
+                        "y": -0.942,
+                        "z": -0.16
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.981,
+                        "y": -0.942,
+                        "z": -0.16
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": -0.015,
+                        "y": 0.94,
+                        "z": -0.16
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": -0.015,
+                        "y": -0.942,
+                        "z": -0.16
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [
+                "masonry-cellar",
+                "masonry-woodlarge",
+                "plaster",
+                "plaster-masonry",
+                "plaster-planks",
+                "wall-tall"
+            ],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "excluded": false,
+            "verified": true,
+            "note": "",
+            "lit": true
         },
         {
             "guid": "bbb8f4bf084456340b696a91ee73847b",
@@ -6857,6 +7029,92 @@
             "note": ""
         },
         {
+            "guid": "f65ca1d3882122c4f8d8af6f2c53ead8",
+            "name": "TL_Window_C_Lit",
+            "path": "Assets/Prefabs/Environment/Windows/TL_Window_C_Lit.prefab",
+            "category": "window",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 1.566,
+            "height": 1.927,
+            "depth": 0.417,
+            "connections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.785,
+                        "y": -0.965,
+                        "z": -0.21
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.781,
+                        "y": -0.965,
+                        "z": -0.21
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0.002,
+                        "y": 0.963,
+                        "z": -0.21
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0.002,
+                        "y": -0.965,
+                        "z": -0.21
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [
+                "masonry-cellar",
+                "masonry-woodlarge",
+                "plaster",
+                "plaster-masonry",
+                "plaster-planks",
+                "wall-tall"
+            ],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "excluded": false,
+            "verified": true,
+            "note": "",
+            "lit": true
+        },
+        {
             "guid": "f544b6bd73c4ce84f96a991423b64b85",
             "name": "TL_Window_D",
             "path": "Assets/Prefabs/Environment/Windows/TL_Window_D.prefab",
@@ -6940,6 +7198,92 @@
             "excluded": false,
             "verified": true,
             "note": ""
+        },
+        {
+            "guid": "bfbf778395ad0af4ea70d34a7b1e0289",
+            "name": "TL_Window_D_Lit",
+            "path": "Assets/Prefabs/Environment/Windows/TL_Window_D_Lit.prefab",
+            "category": "window",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 1.72,
+            "height": 1.836,
+            "depth": 0.412,
+            "connections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.861,
+                        "y": -0.916,
+                        "z": -0.17
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.859,
+                        "y": -0.916,
+                        "z": -0.17
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0.001,
+                        "y": 0.921,
+                        "z": -0.17
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0.001,
+                        "y": -0.916,
+                        "z": -0.17
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [
+                "masonry-cellar",
+                "masonry-woodlarge",
+                "plaster",
+                "plaster-masonry",
+                "plaster-planks",
+                "wall-tall"
+            ],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "excluded": false,
+            "verified": true,
+            "note": "",
+            "lit": true
         }
     ]
 }

@@ -583,7 +583,10 @@ fails and restarts. The mechanics:
   straight from the pack. **TeaLeaf > Make Environment Variants** makes the variants for
   static pieces in bulk from the pack prefabs or folders selected in the Project window
   (`Environment` layer and Static set; see `Assets/Scripts/Core/CLAUDE.md`). The packs' materials are URP Lit and their textures are
-  imported at 2048 at most; keep both so. Their demo scenes, skyboxes, lighting
+  imported at 2048 at most; keep both so. **The project's own copies and colour
+  variants of pack materials** (`<material>_<suffix>`, which the level generator draws
+  from) **and the lit window material live in `Assets/Art/Materials/Environment`**; the
+  packs' own materials are left as they are. Their demo scenes, skyboxes, lighting
   settings, post effects and `SimpleCameraController` are not used. Organic models (the
   guard, hands, hero props) come from outside. The test areas are the
   exception: they are built from code by the TeaLeaf > Dev Room menu's editor builders, the Smithy

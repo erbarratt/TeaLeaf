@@ -37,46 +37,25 @@ namespace LevelGen
 
             foreach (StreetSpec street in spec.streets) {
                 List<string> blockers = new();
-                float travelled = 0f;
 
-                for (int i = 0; i + 1 < street.points.Count; i++) {
-                    Vector2 a = Ground(street.points[i]);
-                    Vector2 b = Ground(street.points[i + 1]);
-                    float length = (b - a).magnitude;
+                Walk(street, flights, plan, settings, step, radius + settings.OverlapTolerance, (surface, segment, travelled) => {
+                    Vector3 centre = surface + Vector3.up * settings.StreetBallHeight;
+                    int count = Physics.OverlapSphereNonAlloc(centre, radius, _hits, ~0, QueryTriggerInteraction.Ignore);
 
-                    if (length < settings.MinSegmentLength) {
-                        continue;
-                    }
+                    for (int h = 0; h < count; h++) {
+                        Transform hit = _hits[h].transform;
 
-                    Vector2 axis = (b - a) / length;
-                    StreetSteps.Flight flight = StreetSteps.Of(flights, street, i);
-                    // A dead end's facade stands across the end point.
-                    float from = i == 0 && IsDeadEnd(plan, street, 0) ? radius + settings.OverlapTolerance : 0f;
-                    float to = i + 2 == street.points.Count && IsDeadEnd(plan, street, i + 1) ? length - radius - settings.OverlapTolerance : length;
+                        if (!hit.IsChildOf(root) || hit.IsChildOf(streetsRoot)) {
+                            continue;
+                        }
 
-                    for (float along = from; along <= to; along += step) {
-                        float surface = flight != null ? flight.SurfaceAt(along) : Mathf.Lerp(street.points[i].y, street.points[i + 1].y, along / length);
-                        Vector2 at = a + axis * along;
-                        Vector3 centre = new(at.x, surface + settings.StreetBallHeight, at.y);
-                        int count = Physics.OverlapSphereNonAlloc(centre, radius, _hits, ~0, QueryTriggerInteraction.Ignore);
+                        string name = Describe(hit, root);
 
-                        for (int h = 0; h < count; h++) {
-                            Transform hit = _hits[h].transform;
-
-                            if (!hit.IsChildOf(root) || hit.IsChildOf(streetsRoot)) {
-                                continue;
-                            }
-
-                            string name = Describe(hit, root);
-
-                            if (blockers.Count < MostReported && !blockers.Exists(line => line.StartsWith(name))) {
-                                blockers.Add($"{name}, {travelled + along:0.0}m along (segment {i})");
-                            }
+                        if (blockers.Count < MostReported && !blockers.Exists(line => line.StartsWith(name))) {
+                            blockers.Add($"{name}, {travelled:0.0}m along (segment {segment})");
                         }
                     }
-
-                    travelled += length;
-                }
+                });
 
                 if (blockers.Count > 0) {
                     blocked++;
@@ -88,6 +67,42 @@ namespace LevelGen
                 ? $"Street test: a ball of radius {radius}m at {settings.StreetBallHeight}m travels every street end to end untouched: the layout is valid."
                 : $"Street test FAILED: {blocked} of {spec.streets.Count} street(s) blocked by the buildings.");
             return blocked == 0;
+        }
+
+        /// <summary>
+        /// Walks a street's middle line from its first point to its last,
+        /// every step metres, calling visit with the point on the street's
+        /// surface there (up and down the flights of steps as walked), the
+        /// segment and the distance along the street. Stops endGap short of
+        /// a dead end's facade, which stands across the end point.
+        /// </summary>
+        internal static void Walk(StreetSpec street, List<StreetSteps.Flight> flights, StoreyPlan plan, GeneratorSettings settings, float step,
+            float endGap, System.Action<Vector3, int, float> visit)
+        {
+            float travelled = 0f;
+
+            for (int i = 0; i + 1 < street.points.Count; i++) {
+                Vector2 a = Ground(street.points[i]);
+                Vector2 b = Ground(street.points[i + 1]);
+                float length = (b - a).magnitude;
+
+                if (length < settings.MinSegmentLength) {
+                    continue;
+                }
+
+                Vector2 axis = (b - a) / length;
+                StreetSteps.Flight flight = StreetSteps.Of(flights, street, i);
+                float from = i == 0 && IsDeadEnd(plan, street, 0) ? endGap : 0f;
+                float to = i + 2 == street.points.Count && IsDeadEnd(plan, street, i + 1) ? length - endGap : length;
+
+                for (float along = from; along <= to; along += step) {
+                    float surface = flight != null ? flight.SurfaceAt(along) : Mathf.Lerp(street.points[i].y, street.points[i + 1].y, along / length);
+                    Vector2 at = a + axis * along;
+                    visit(new Vector3(at.x, surface, at.y), i, travelled + along);
+                }
+
+                travelled += length;
+            }
         }
 
         /// <summary>

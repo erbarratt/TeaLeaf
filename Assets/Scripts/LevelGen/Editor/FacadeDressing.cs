@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 namespace LevelGen
@@ -41,8 +42,10 @@ namespace LevelGen
     /// - Lamp posts (BuildLamps): along each street frontage, one every
     ///   LampSpacing metres on average, LampEdgeInset into the street from
     ///   its edge before a plain ground-storey wall (never a door or a
-    ///   window), facing into the street. Its light is switched off like
-    ///   every placed prefab's.
+    ///   window), facing into the street. Its light is a gameplay light (a
+    ///   LightSource, Mixed) and stays on; over every street, no spot is
+    ///   reached by more than LampMaxOverlap lamps' lights, the shadowmask's
+    ///   limit less the moon (LampAllowed).
     /// </summary>
     internal static partial class FacadeBuilder
     {
@@ -1515,6 +1518,13 @@ namespace LevelGen
             }
 
             int lamps = 0;
+            int crowded = 0;
+
+            // Every lamp placed so far, on any street, and how many others
+            // stand within its reach (twice its light's range: their lights
+            // overlap somewhere).
+            List<Vector3> lampsPlaced = new();
+            List<int> lampNeighbours = new();
 
             foreach (Frontage frontage in frontages) {
                 if (frontage.Street == null || frontage.Lot != null) {
@@ -1573,14 +1583,88 @@ namespace LevelGen
                     }
 
                     PieceAnnotation post = PiecePlacer.Pick(posts, null, random);
+                    Vector3 position = new(at.x, Height(run, middle), at.y);
+                    float yaw = Yaw(Level(run.Front)) - Yaw(post.fronts[0]);
+                    float range = LampLight(post, out Vector3 lightOffset);
+                    Vector3 lightAt = position + Quaternion.Euler(0f, yaw, 0f) * lightOffset;
+
+                    if (!LampAllowed(lightAt, 2f * range, lampsPlaced, lampNeighbours, settings.LampMaxOverlap)) {
+                        crowded++;
+                        i--;
+                        continue;
+                    }
+
                     group ??= Group(parent, frontage.Label);
-                    placer.PlaceAt(post, Vector3.zero, new Vector3(at.x, Height(run, middle), at.y), Yaw(Level(run.Front)) - Yaw(post.fronts[0]), group);
+                    placer.PlaceAt(post, Vector3.zero, position, yaw, group);
                     placed.Add(at);
+                    AddLamp(lightAt, 2f * range, lampsPlaced, lampNeighbours);
                     lamps++;
                 }
             }
 
-            log.Add($"Lamp posts: {lamps}.");
+            log.Add($"Lamp posts: {lamps} ({crowded} left out where more than {settings.LampMaxOverlap} lamps' lights would overlap).");
+        }
+
+        /// <summary>
+        /// The range of the first Light in a piece's prefab (0 if it has
+        /// none), and where it stands from the pivot of the piece placed
+        /// unturned (the placer sets the root's rotation, keeping its scale).
+        /// </summary>
+        private static float LampLight(PieceAnnotation piece, out Vector3 offset)
+        {
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(piece.guid));
+            Light light = prefab != null ? prefab.GetComponentInChildren<Light>(true) : null;
+
+            if (light == null) {
+                offset = Vector3.zero;
+                return 0f;
+            }
+
+            Transform root = prefab.transform;
+            offset = Vector3.Scale(root.localScale, root.InverseTransformPoint(light.transform.position));
+            return light.range;
+        }
+
+        /// <summary>
+        /// Whether a lamp at position keeps every lamp within maxOverlap - 1
+        /// neighbours (others within reach). Then no spot is lit by more
+        /// than maxOverlap lamps: lamps whose lights share a spot all stand
+        /// within reach of each other.
+        /// </summary>
+        private static bool LampAllowed(Vector3 position, float reach, List<Vector3> lampsPlaced, List<int> lampNeighbours, int maxOverlap)
+        {
+            int neighbours = 0;
+
+            for (int i = 0; i < lampsPlaced.Count; i++) {
+                if (Vector3.Distance(lampsPlaced[i], position) < reach) {
+                    if (lampNeighbours[i] >= maxOverlap - 1) {
+                        return false;
+                    }
+
+                    neighbours++;
+                }
+            }
+
+            return neighbours <= maxOverlap - 1;
+        }
+
+        /// <summary>
+        /// Records a lamp placed at position and counts it as a neighbour of
+        /// every lamp within reach.
+        /// </summary>
+        private static void AddLamp(Vector3 position, float reach, List<Vector3> lampsPlaced, List<int> lampNeighbours)
+        {
+            int neighbours = 0;
+
+            for (int i = 0; i < lampsPlaced.Count; i++) {
+                if (Vector3.Distance(lampsPlaced[i], position) < reach) {
+                    lampNeighbours[i]++;
+                    neighbours++;
+                }
+            }
+
+            lampsPlaced.Add(position);
+            lampNeighbours.Add(neighbours);
         }
     }
 }

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Core;
 using UnityEditor;
 using UnityEngine;
 
@@ -127,7 +128,7 @@ namespace LevelGen
         /// <summary>
         /// Instantiates a piece's prefab under a parent with its pivot at a
         /// world position and rotation, scaled along its own axes, its lights
-        /// disabled. Null if its prefab can't be found, or if the clearance
+        /// disabled but gameplay ones (a LightSource beside them). Null if its prefab can't be found, or if the clearance
         /// refuses it (it would stand in a street).
         /// </summary>
         private GameObject Place(PieceAnnotation piece, Vector3 position, Quaternion rotation, Vector3 scale, Transform parent)
@@ -154,9 +155,13 @@ namespace LevelGen
             }
 
             // Level lighting is placed by hand: a light in a piece is switched
-            // off on this instance (an override), the prefab left as it is.
+            // off on this instance (an override), the prefab left as it is -
+            // unless it's a gameplay light the piece brings with it (a
+            // LightSource beside it, as on a lamp post), which stays on.
             foreach (Light light in instance.GetComponentsInChildren<Light>(true)) {
-                light.enabled = false;
+                if (light.GetComponent<LightSource>() == null) {
+                    light.enabled = false;
+                }
             }
 
             Placed++;

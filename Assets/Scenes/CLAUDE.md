@@ -223,7 +223,10 @@ like:
 - **Fog is on**: exponential, density 0.015 (a haze that takes the far end off a long
   street). In TeaLeaf distance haze is a reserve, tried only when profiling asks.
 - In TeaLeaf a lamp or torch is a `LightSource` with a Unity `Light` beside it, and a
-  `Flame` if it can be put out; it goes under `Lighting/Gameplay Lights`.
+  `Flame` if it can be put out; it goes under `Lighting/Gameplay Lights`. The level
+  generator's lamp posts (`TL_Lampost`) are such lights, Mixed, at most
+  `lampMaxOverlap` (3) reaching one spot, and live under the generated root instead
+  (`Assets/Scripts/LevelGen/CLAUDE.md`).
 
 ## Culling
 

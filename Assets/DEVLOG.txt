@@ -6,6 +6,61 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-17 (level generator: roof cull, merged colliders, lamp posts as lights,
+            building colours, lit windows)
+---------------------------------------------------------------------------
+- Roof cull (RoofCull): the last thing a generation does. A probe walks
+  the middle of every street at roofCullHeight (9m), looking every
+  roofCullStep (2m) at every roof piece within roofCullRange (80m), 15
+  sample points a piece; a piece no look sees is removed, its emptied
+  groups too. The street test's walk was factored out (StreetTest.Walk)
+  for it. Street 114 of 283 roof pieces gone, block 81 of 245, quarter
+  166 of 576, two-lots 257 of 981; no hole seen from a street or from
+  the probe's height.
+- Merged colliders (MergedColliders): straight after the facades are
+  built, every foundation piece's upright box colliders, and the flat
+  deck boxes of the walkways, are replaced by as few boxes as possible
+  (pairwise merging within frames of one yaw, within
+  foundationColliderTolerance, 0.1m - the foundation pieces' buried
+  bottoms differ by 9cm). Street 71 foundation pieces -> 9 boxes,
+  two-lots 298 -> 96; walkway decks 14 -> 3 and 41 -> 17. The street
+  test runs after, so it checks the boxes.
+- Roof edge colliders (RoofEdgeColliders): a roof piece with nothing but
+  empty space beyond its building (a CheckBox from roofEdgeGap past the
+  building out to roofEdgeReach, from the piece's top down) loses its
+  colliders, so the void can't be climbed. The kept panels almost all
+  face a street.
+- Lamp posts are gameplay lights: the TL_Lampost variant's point light
+  is Mixed (Indirect Multiplier 0, soft shadows, 5m) with a LightSource
+  and a Flame; its lantern meshes cast no shadows. PiecePlacer leaves a
+  light with a LightSource beside it on. BuildLamps keeps every spot
+  within lampMaxOverlap (3) lamps, the shadowmask's four less the moon:
+  a post that would break it is left out (54 placed over the examples,
+  6 left out). Main.unity's three lamp posts override the light to
+  Baked.
+- Building colours (ColourVariants, FacadeBuilder.ColourBuildings): one
+  colour per set of corner-joined buildings, from material variants
+  named <material>_<suffix> under Assets/Art/Materials and Assets/Prefabs
+  (brown so far, for the roofs, plaster walls and tall walls; the
+  unsuffixed copies in Assets/Art/Materials/Environment are the default
+  colour), swapped on every renderer of the facade and roof groups.
+- Lit windows: a tunable share (litWindowShare, 0.3) of the window
+  inserts are TL_Window_*_Lit variants with the WindowLit material, a
+  copy of the pack's unused lit window material with its emission
+  halved. URP turns the _EMISSION keyword off on import when a
+  material's Global Illumination is None - the panes went dark until it
+  was set to Baked, which is where it stays; the faint baked glow round
+  each pane is accepted. Only inserts can be lit; blind-window walls
+  draw their panes from atlases with no emissive map.
+- Level Gen Test has Main's environment lighting settings (not baked).
+- Lessons: an eval sent to the editor straight after a script edit can
+  run the old assembly (the first lit-window generation gave a 0.53
+  share, four lit of eight picked at random); check a new field is
+  visible by reflection first. AssetDatabase.CopyAsset of a URP
+  material can lose its keywords - set them after copying and read the
+  file back.
+
+
 2026-10-17 (level generator: pipe ends, valves, vents, corners from walls)
 --------------------------------------------------------------------------
 - Pipe pieces are placed by their ends: connection points a, b, c at

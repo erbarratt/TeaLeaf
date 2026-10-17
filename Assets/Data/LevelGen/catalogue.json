@@ -1,7 +1,7 @@
 {
     "format": 2,
     "unityVersion": "6000.3.25f1",
-    "prefabCount": 210,
+    "prefabCount": 216,
     "prefabs": [
         {
             "name": "TL_Chimney_Slab_Base",
@@ -25425,11 +25425,19 @@
                     "count": 6
                 },
                 {
+                    "name": "Flame",
+                    "count": 1
+                },
+                {
                     "name": "LODGroup",
                     "count": 3
                 },
                 {
                     "name": "Light",
+                    "count": 1
+                },
+                {
+                    "name": "LightSource",
                     "count": 1
                 },
                 {
@@ -25447,9 +25455,17 @@
                 {
                     "name": "ParticleSystemRenderer",
                     "count": 1
+                },
+                {
+                    "name": "UniversalAdditionalLightData",
+                    "count": 1
                 }
             ],
-            "gameplayScripts": [],
+            "gameplayScripts": [
+                "Flame",
+                "LightSource",
+                "UniversalAdditionalLightData"
+            ],
             "lodGroupCount": 3,
             "lodLevels": 3,
             "renderersLod0": 3,
@@ -25466,9 +25482,9 @@
                 {
                     "objectPath": "Point Light",
                     "type": "Point",
-                    "mode": "Realtime",
-                    "shadows": "None",
-                    "range": 3.188,
+                    "mode": "Mixed",
+                    "shadows": "Soft",
+                    "range": 5,
                     "enabled": true
                 }
             ],
@@ -25607,6 +25623,7 @@
             "missingScripts": 0,
             "flags": [
                 "has-lights",
+                "has-gameplay-scripts",
                 "assembly"
             ]
         },
@@ -46656,6 +46673,237 @@
             ]
         },
         {
+            "name": "TL_Window_A_Lit",
+            "path": "Assets/Prefabs/Environment/Windows/TL_Window_A_Lit.prefab",
+            "guid": "935713b5efbc06d44baa416488d2481a",
+            "folder": "Environment/Windows",
+            "sourcePrefab": "Assets/Prefabs/Environment/Windows/TL_Window_A.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.982,
+                "y": -1.001,
+                "z": -0.192
+            },
+            "renderMax": {
+                "x": 0.982,
+                "y": 1.003,
+                "z": 0.196
+            },
+            "renderSize": {
+                "x": 1.964,
+                "y": 2.004,
+                "z": 0.388
+            },
+            "pivotInBounds": {
+                "x": 0.5,
+                "y": 0.499,
+                "z": 0.496
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.802,
+                "y": -1.001,
+                "z": -0.184
+            },
+            "colliderMax": {
+                "x": 0.846,
+                "y": 0.984,
+                "z": 0.202
+            },
+            "colliderSize": {
+                "x": 1.648,
+                "y": 1.985,
+                "z": 0.386
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 4,
+            "maxDepth": 1,
+            "topChildren": [
+                "Medieval_Window_A_LOD0",
+                "Medieval_Window_A_LOD1",
+                "Medieval_Window_A_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 3
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 2
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 2,
+            "renderersLod0": 1,
+            "trianglesLod0": 356,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "wall",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0.351,
+            "hasBackPlane": true,
+            "backPlaneMin": {
+                "x": -0.982,
+                "y": -1.001,
+                "z": -0.192
+            },
+            "backPlaneMax": {
+                "x": 0.982,
+                "y": 1.003,
+                "z": -0.151
+            },
+            "backPlaneSize": {
+                "x": 1.964,
+                "y": 2.004,
+                "z": 0.041
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.982,
+                        "y": -1.001,
+                        "z": -0.17
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.982,
+                        "y": -1.001,
+                        "z": -0.17
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0,
+                        "y": 1.003,
+                        "z": -0.17
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0,
+                        "y": -1.001,
+                        "z": -0.17
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 43,
+                    "area": 0.583,
+                    "planarity": 0.329,
+                    "planeDepth": 0.71
+                },
+                {
+                    "side": "-X",
+                    "triangles": 42,
+                    "area": 0.562,
+                    "planarity": 0.358,
+                    "planeDepth": -0.67
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 125,
+                    "area": 2.784,
+                    "planarity": 0.406,
+                    "planeDepth": -0.07
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 30,
+                    "area": 2.881,
+                    "planarity": 0.997,
+                    "planeDepth": -0.17
+                }
+            ],
+            "frontAssumed": false,
+            "suggestedCategory": "detail",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.984,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.802,
+                "y": 0.984,
+                "z": -0.184
+            },
+            "walkMax": {
+                "x": 0.846,
+                "y": 0.984,
+                "z": 0.202
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "pivot-not-on-base"
+            ]
+        },
+        {
             "name": "TL_Window_B",
             "path": "Assets/Prefabs/Environment/Windows/TL_Window_B.prefab",
             "guid": "f288df8eeedb8464da2b3e07efefc578",
@@ -46887,11 +47135,473 @@
             ]
         },
         {
+            "name": "TL_Window_B_Lit",
+            "path": "Assets/Prefabs/Environment/Windows/TL_Window_B_Lit.prefab",
+            "guid": "76d594a333ad05f4fba430e1b5784721",
+            "folder": "Environment/Windows",
+            "sourcePrefab": "Assets/Prefabs/Environment/Windows/TL_Window_B.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.981,
+                "y": -0.943,
+                "z": -0.165
+            },
+            "renderMax": {
+                "x": 0.98,
+                "y": 0.942,
+                "z": 0.171
+            },
+            "renderSize": {
+                "x": 1.961,
+                "y": 1.885,
+                "z": 0.336
+            },
+            "pivotInBounds": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.49
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -1.009,
+                "y": -0.927,
+                "z": -0.173
+            },
+            "colliderMax": {
+                "x": 0.955,
+                "y": 0.934,
+                "z": 0.112
+            },
+            "colliderSize": {
+                "x": 1.964,
+                "y": 1.861,
+                "z": 0.285
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 4,
+            "maxDepth": 1,
+            "topChildren": [
+                "Medieval_Window_B_LOD0",
+                "Medieval_Window_B_LOD1",
+                "Medieval_Window_B_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 3
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 2
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 2,
+            "renderersLod0": 1,
+            "trianglesLod0": 378,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "wall",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0.409,
+            "hasBackPlane": true,
+            "backPlaneMin": {
+                "x": -0.981,
+                "y": -0.942,
+                "z": -0.165
+            },
+            "backPlaneMax": {
+                "x": 0.951,
+                "y": 0.94,
+                "z": -0.14
+            },
+            "backPlaneSize": {
+                "x": 1.932,
+                "y": 1.882,
+                "z": 0.025
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.951,
+                        "y": -0.942,
+                        "z": -0.16
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.981,
+                        "y": -0.942,
+                        "z": -0.16
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": -0.015,
+                        "y": 0.94,
+                        "z": -0.16
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": -0.015,
+                        "y": -0.942,
+                        "z": -0.16
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 46,
+                    "area": 0.608,
+                    "planarity": 0.274,
+                    "planeDepth": 0.78
+                },
+                {
+                    "side": "-X",
+                    "triangles": 46,
+                    "area": 0.572,
+                    "planarity": 0.306,
+                    "planeDepth": -0.77
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 131,
+                    "area": 2.858,
+                    "planarity": 0.426,
+                    "planeDepth": 0.12
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 28,
+                    "area": 2.929,
+                    "planarity": 1,
+                    "planeDepth": -0.16
+                }
+            ],
+            "frontAssumed": false,
+            "suggestedCategory": "detail",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.934,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -1.009,
+                "y": 0.934,
+                "z": -0.173
+            },
+            "walkMax": {
+                "x": 0.955,
+                "y": 0.934,
+                "z": 0.112
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "pivot-not-on-base"
+            ]
+        },
+        {
             "name": "TL_Window_C",
             "path": "Assets/Prefabs/Environment/Windows/TL_Window_C.prefab",
             "guid": "bbb8f4bf084456340b696a91ee73847b",
             "folder": "Environment/Windows",
             "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Windows/Prfbs/Medieval_Window_C.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.803,
+                "y": -0.975,
+                "z": -0.206
+            },
+            "renderMax": {
+                "x": 0.806,
+                "y": 0.974,
+                "z": 0.211
+            },
+            "renderSize": {
+                "x": 1.608,
+                "y": 1.949,
+                "z": 0.417
+            },
+            "pivotInBounds": {
+                "x": 0.499,
+                "y": 0.5,
+                "z": 0.495
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.751,
+                "y": -0.969,
+                "z": -0.237
+            },
+            "colliderMax": {
+                "x": 0.774,
+                "y": 0.979,
+                "z": 0.192
+            },
+            "colliderSize": {
+                "x": 1.525,
+                "y": 1.948,
+                "z": 0.429
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 4,
+            "maxDepth": 1,
+            "topChildren": [
+                "Medieval_Window_C_LOD0",
+                "Medieval_Window_C_LOD1",
+                "Medieval_Window_C_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 3
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 2
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 2,
+            "renderersLod0": 1,
+            "trianglesLod0": 398,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "wall",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0.603,
+            "hasBackPlane": true,
+            "backPlaneMin": {
+                "x": -0.781,
+                "y": -0.965,
+                "z": -0.206
+            },
+            "backPlaneMax": {
+                "x": 0.785,
+                "y": 0.963,
+                "z": -0.194
+            },
+            "backPlaneSize": {
+                "x": 1.566,
+                "y": 1.927,
+                "z": 0.012
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.785,
+                        "y": -0.965,
+                        "z": -0.21
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.781,
+                        "y": -0.965,
+                        "z": -0.21
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0.002,
+                        "y": 0.963,
+                        "z": -0.21
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0.002,
+                        "y": -0.965,
+                        "z": -0.21
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 55,
+                    "area": 0.745,
+                    "planarity": 0.389,
+                    "planeDepth": 0.68
+                },
+                {
+                    "side": "-X",
+                    "triangles": 57,
+                    "area": 0.73,
+                    "planarity": 0.427,
+                    "planeDepth": -0.69
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 149,
+                    "area": 2.695,
+                    "planarity": 0.441,
+                    "planeDepth": -0.07
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 23,
+                    "area": 2.684,
+                    "planarity": 0.991,
+                    "planeDepth": -0.21
+                }
+            ],
+            "frontAssumed": false,
+            "suggestedCategory": "detail",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.979,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.751,
+                "y": 0.979,
+                "z": -0.237
+            },
+            "walkMax": {
+                "x": 0.774,
+                "y": 0.979,
+                "z": 0.192
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "pivot-not-on-base"
+            ]
+        },
+        {
+            "name": "TL_Window_C_Lit",
+            "path": "Assets/Prefabs/Environment/Windows/TL_Window_C_Lit.prefab",
+            "guid": "f65ca1d3882122c4f8d8af6f2c53ead8",
+            "folder": "Environment/Windows",
+            "sourcePrefab": "Assets/Prefabs/Environment/Windows/TL_Window_C.prefab",
             "isVariant": true,
             "hasRenderBounds": true,
             "renderMin": {
@@ -47350,6 +48060,238 @@
             ]
         },
         {
+            "name": "TL_Window_C_Open_Lit",
+            "path": "Assets/Prefabs/Environment/Windows/TL_Window_C_Open_Lit.prefab",
+            "guid": "a01ca8538577a8041a382a2022ca446f",
+            "folder": "Environment/Windows",
+            "sourcePrefab": "Assets/Prefabs/Environment/Windows/TL_Window_C_Open.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.804,
+                "y": -0.97,
+                "z": -0.206
+            },
+            "renderMax": {
+                "x": 0.804,
+                "y": 0.979,
+                "z": 0.211
+            },
+            "renderSize": {
+                "x": 1.608,
+                "y": 1.949,
+                "z": 0.417
+            },
+            "pivotInBounds": {
+                "x": 0.5,
+                "y": 0.498,
+                "z": 0.494
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.809,
+                "y": -0.964,
+                "z": -0.228
+            },
+            "colliderMax": {
+                "x": 0.799,
+                "y": 0.969,
+                "z": 0.203
+            },
+            "colliderSize": {
+                "x": 1.608,
+                "y": 1.933,
+                "z": 0.431
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 9,
+            "maxDepth": 2,
+            "topChildren": [
+                "Medieval_Window_C_Open_LOD0",
+                "Medieval_Window_C_Open_LOD1",
+                "Medieval_Window_C_Open_LOD2",
+                "Medieval_Window_C_Open_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 4
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 7
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 385,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 4
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "wall",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0.78,
+            "hasBackPlane": true,
+            "backPlaneMin": {
+                "x": -0.782,
+                "y": -0.96,
+                "z": -0.206
+            },
+            "backPlaneMax": {
+                "x": 0.783,
+                "y": 0.968,
+                "z": -0.194
+            },
+            "backPlaneSize": {
+                "x": 1.566,
+                "y": 1.927,
+                "z": 0.012
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.783,
+                        "y": -0.96,
+                        "z": -0.21
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.782,
+                        "y": -0.96,
+                        "z": -0.21
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0,
+                        "y": 0.968,
+                        "z": -0.21
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0,
+                        "y": -0.96,
+                        "z": -0.21
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 55,
+                    "area": 0.805,
+                    "planarity": 0.36,
+                    "planeDepth": 0.68
+                },
+                {
+                    "side": "-X",
+                    "triangles": 57,
+                    "area": 0.792,
+                    "planarity": 0.393,
+                    "planeDepth": -0.69
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 142,
+                    "area": 1.506,
+                    "planarity": 0.333,
+                    "planeDepth": 0.05
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 17,
+                    "area": 0.522,
+                    "planarity": 0.955,
+                    "planeDepth": -0.21
+                }
+            ],
+            "frontAssumed": false,
+            "suggestedCategory": "detail",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": -0.626,
+            "walkShare": 0.479,
+            "walkMin": {
+                "x": -0.809,
+                "y": -0.626,
+                "z": -0.228
+            },
+            "walkMax": {
+                "x": 0.799,
+                "y": -0.626,
+                "z": 0.203
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "pivot-not-on-base"
+            ]
+        },
+        {
             "name": "TL_Window_D",
             "path": "Assets/Prefabs/Environment/Windows/TL_Window_D.prefab",
             "guid": "f544b6bd73c4ce84f96a991423b64b85",
@@ -47581,11 +48523,474 @@
             ]
         },
         {
+            "name": "TL_Window_D_Lit",
+            "path": "Assets/Prefabs/Environment/Windows/TL_Window_D_Lit.prefab",
+            "guid": "bfbf778395ad0af4ea70d34a7b1e0289",
+            "folder": "Environment/Windows",
+            "sourcePrefab": "Assets/Prefabs/Environment/Windows/TL_Window_D.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.861,
+                "y": -0.924,
+                "z": -0.203
+            },
+            "renderMax": {
+                "x": 0.866,
+                "y": 0.926,
+                "z": 0.209
+            },
+            "renderSize": {
+                "x": 1.727,
+                "y": 1.85,
+                "z": 0.411
+            },
+            "pivotInBounds": {
+                "x": 0.498,
+                "y": 0.5,
+                "z": 0.493
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.867,
+                "y": -0.903,
+                "z": -0.187
+            },
+            "colliderMax": {
+                "x": 0.854,
+                "y": 0.922,
+                "z": 0.187
+            },
+            "colliderSize": {
+                "x": 1.722,
+                "y": 1.826,
+                "z": 0.374
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 4,
+            "maxDepth": 1,
+            "topChildren": [
+                "Medieval_Window_D_LOD0",
+                "Medieval_Window_D_LOD1",
+                "Medieval_Window_D_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 3
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 2
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 2,
+            "renderersLod0": 1,
+            "trianglesLod0": 416,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "wall",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0.321,
+            "hasBackPlane": true,
+            "backPlaneMin": {
+                "x": -0.859,
+                "y": -0.916,
+                "z": -0.203
+            },
+            "backPlaneMax": {
+                "x": 0.861,
+                "y": 0.921,
+                "z": -0.131
+            },
+            "backPlaneSize": {
+                "x": 1.72,
+                "y": 1.836,
+                "z": 0.071
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.861,
+                        "y": -0.916,
+                        "z": -0.17
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.859,
+                        "y": -0.916,
+                        "z": -0.17
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0.001,
+                        "y": 0.921,
+                        "z": -0.17
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0.001,
+                        "y": -0.916,
+                        "z": -0.17
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 59,
+                    "area": 0.682,
+                    "planarity": 0.417,
+                    "planeDepth": 0.77
+                },
+                {
+                    "side": "-X",
+                    "triangles": 60,
+                    "area": 0.656,
+                    "planarity": 0.399,
+                    "planeDepth": -0.78
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 126,
+                    "area": 2.807,
+                    "planarity": 0.436,
+                    "planeDepth": 0
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 32,
+                    "area": 2.832,
+                    "planarity": 0.985,
+                    "planeDepth": -0.17
+                }
+            ],
+            "frontAssumed": false,
+            "suggestedCategory": "detail",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.922,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.867,
+                "y": 0.922,
+                "z": -0.187
+            },
+            "walkMax": {
+                "x": 0.854,
+                "y": 0.922,
+                "z": 0.187
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "pivot-not-on-base"
+            ]
+        },
+        {
             "name": "TL_Window_D_Open",
             "path": "Assets/Prefabs/Environment/Windows/TL_Window_D_Open.prefab",
             "guid": "3d2ef5baf9d159f4fbd7ff1fff363011",
             "folder": "Environment/Windows",
             "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Windows/Prfbs/Medieval_Window_D_Open.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.862,
+                "y": -0.924,
+                "z": -0.203
+            },
+            "renderMax": {
+                "x": 0.866,
+                "y": 0.926,
+                "z": 0.208
+            },
+            "renderSize": {
+                "x": 1.727,
+                "y": 1.85,
+                "z": 0.411
+            },
+            "pivotInBounds": {
+                "x": 0.499,
+                "y": 0.5,
+                "z": 0.495
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.877,
+                "y": -0.938,
+                "z": -0.173
+            },
+            "colliderMax": {
+                "x": 0.879,
+                "y": 0.926,
+                "z": 0.193
+            },
+            "colliderSize": {
+                "x": 1.756,
+                "y": 1.864,
+                "z": 0.366
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 9,
+            "maxDepth": 2,
+            "topChildren": [
+                "Medieval_Window_D_Open_LOD0",
+                "Medieval_Window_D_Open_LOD1",
+                "Medieval_Window_D_Open_LOD2",
+                "Medieval_Window_D_Open_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 4
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 7
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 406,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 4
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "wall",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0.353,
+            "hasBackPlane": true,
+            "backPlaneMin": {
+                "x": -0.86,
+                "y": -0.916,
+                "z": -0.203
+            },
+            "backPlaneMax": {
+                "x": 0.86,
+                "y": 0.921,
+                "z": -0.132
+            },
+            "backPlaneSize": {
+                "x": 1.72,
+                "y": 1.836,
+                "z": 0.071
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.86,
+                        "y": -0.916,
+                        "z": -0.18
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.86,
+                        "y": -0.916,
+                        "z": -0.18
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0,
+                        "y": 0.921,
+                        "z": -0.18
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0,
+                        "y": -0.916,
+                        "z": -0.18
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 59,
+                    "area": 0.782,
+                    "planarity": 0.364,
+                    "planeDepth": 0.77
+                },
+                {
+                    "side": "-X",
+                    "triangles": 60,
+                    "area": 0.759,
+                    "planarity": 0.345,
+                    "planeDepth": -0.78
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 120,
+                    "area": 1.583,
+                    "planarity": 0.501,
+                    "planeDepth": 0.15
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 28,
+                    "area": 0.849,
+                    "planarity": 0.967,
+                    "planeDepth": -0.18
+                }
+            ],
+            "frontAssumed": false,
+            "suggestedCategory": "detail",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.926,
+            "walkShare": 0.454,
+            "walkMin": {
+                "x": -0.877,
+                "y": 0.926,
+                "z": -0.173
+            },
+            "walkMax": {
+                "x": 0.879,
+                "y": 0.926,
+                "z": 0.173
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "pivot-not-on-base"
+            ]
+        },
+        {
+            "name": "TL_Window_D_Open_Lit",
+            "path": "Assets/Prefabs/Environment/Windows/TL_Window_D_Open_Lit.prefab",
+            "guid": "e754fd9d1adc23b44b87a7e2f6e90dd4",
+            "folder": "Environment/Windows",
+            "sourcePrefab": "Assets/Prefabs/Environment/Windows/TL_Window_D_Open.prefab",
             "isVariant": true,
             "hasRenderBounds": true,
             "renderMin": {

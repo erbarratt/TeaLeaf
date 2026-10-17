@@ -55,6 +55,8 @@ namespace LevelGen
         [SerializeField, Range(0f, 1.2f)] private float foundationHeight = 0.3f;
         [Tooltip("How far the foundations' fronts stand out past the walls' front line, towards the street (below 0, back behind it).")]
         [SerializeField, Range(-0.5f, 0.5f)] private float foundationFrontOffset = 0.1f;
+        [Tooltip("Once everything is built, the foundations' colliders, and the walkways' flat deck colliders, are replaced by as few boxes as possible: two boxes become one where the box round both stands out past them by no more than this anywhere. The foundation pieces differ by about 9cm at their buried bottoms, so it must be more than that for neighbours to merge.")]
+        [SerializeField, Range(0f, 0.3f)] private float foundationColliderTolerance = 0.1f;
         [Tooltip("The chance that a ground storey module is a door wall, where its style has one; a building's door module in the spec is always a door.")]
         [SerializeField, Range(0f, 1f)] private float groundDoorShare = 0.1f;
         [Tooltip("The chance that a ground storey module that isn't a door is a window wall rather than a plain wall, where its style has window walls.")]
@@ -93,6 +95,8 @@ namespace LevelGen
         [SerializeField, Range(0f, 1f)] private float windowInsertMaxMargin = 0.45f;
         [Tooltip("How far the insert's middle stands forward of the middle of the wall's depth (back, below 0).")]
         [SerializeField, Range(-0.5f, 0.5f)] private float windowInsertDepth;
+        [Tooltip("The share of the window holes filled whose insert is a lit one (a window piece marked Lit: its panes glow as if lit from behind); the rest get unlit inserts.")]
+        [SerializeField, Range(0f, 1f)] private float litWindowShare = 0.3f;
 
         [Header("Columns")]
         [Tooltip("Every facade building is cut end to end into columns this many modules wide, at random between these (the last column of a building, or of a straight run, takes what is left). Each column has its own depth and storey count.")]
@@ -145,6 +149,8 @@ namespace LevelGen
         [SerializeField, Range(0f, 60f)] private float lampSpacing = 14f;
         [Tooltip("How far into the street from its edge a lamp post stands.")]
         [SerializeField, Range(0.3f, 2f)] private float lampEdgeInset = 0.6f;
+        [Tooltip("The most lamp posts whose lights may reach any one spot, over every street. A lamp's light is Mixed, and the shadowmask holds four Mixed lights per spot, the moon being one; a post that would break this is not placed.")]
+        [SerializeField, Range(1, 4)] private int lampMaxOverlap = 3;
 
         [Header("Side walls")]
         [Tooltip("Where a column stands taller than the column beside it (in its building or the next), each of its storeys above the lower one gets a side wall facing that way and running back from its front walls, so from the street it seems to go on behind. The wall's length in modules is this times the column's width in modules, at least one (0 = no side walls). Separate from roofs and roof walls.")]
@@ -225,6 +231,18 @@ namespace LevelGen
         [Tooltip("How far back, in degrees, each piece of a hip strip leans (its outer corner up), so its faces, steeper than the roofs' pitch, lie flatter on the slopes.")]
         [SerializeField, Range(0f, 25f)] private float roofHipLean = 10f;
 
+        [Header("Roof cull (last of all)")]
+        [Tooltip("The roof cull, the last thing a generation does: a probe walks the middle of every street this high above the ground tiles (up and down the steps), and every roof piece it can't see from anywhere along the way is removed.")]
+        [SerializeField, Range(2f, 30f)] private float roofCullHeight = 9f;
+        [Tooltip("How far the roof cull's probe moves between looks.")]
+        [SerializeField, Range(0.5f, 10f)] private float roofCullStep = 2f;
+        [Tooltip("The farthest the roof cull's probe looks: a roof piece further than this from every look is removed.")]
+        [SerializeField, Range(10f, 300f)] private float roofCullRange = 80f;
+        [Tooltip("Roof pieces facing the void beyond the level lose their colliders: how far past the furthest point of a piece's building the empty space must start.")]
+        [SerializeField, Range(0f, 10f)] private float roofEdgeGap = 1.5f;
+        [Tooltip("How far out the space beyond a roof piece's building must be empty (no Environment collider, from the piece's top down) for the piece to lose its colliders.")]
+        [SerializeField, Range(2f, 100f)] private float roofEdgeReach = 20f;
+
         [Header("Decking (wooden streets, walkways, bridges)")]
         [Tooltip("How far neighbouring decking tiles overlap, along a row and between rows.")]
         [SerializeField, Range(0f, 0.2f)] private float deckingOverlap = 0.03f;
@@ -251,6 +269,7 @@ namespace LevelGen
         internal float GroundStoreyHeight => groundStoreyHeight;
         internal float FoundationHeight => foundationHeight;
         internal float FoundationFrontOffset => foundationFrontOffset;
+        internal float FoundationColliderTolerance => foundationColliderTolerance;
         internal float GroundDoorShare => groundDoorShare;
         internal float GroundWindowShare => groundWindowShare;
         internal float UpperWindowShare => upperWindowShare;
@@ -266,6 +285,7 @@ namespace LevelGen
         internal float WindowInsertShare => windowInsertShare;
         internal float WindowInsertMaxMargin => windowInsertMaxMargin;
         internal float WindowInsertDepth => windowInsertDepth;
+        internal float LitWindowShare => litWindowShare;
         internal float ColumnShare => columnShare;
         internal int ColumnMinRunModules => columnMinRunModules;
         internal int ColumnWidthMin => columnWidthMin;
@@ -294,6 +314,7 @@ namespace LevelGen
         internal float WalkwayShare => walkwayShare;
         internal float LampSpacing => lampSpacing;
         internal float LampEdgeInset => lampEdgeInset;
+        internal int LampMaxOverlap => lampMaxOverlap;
         internal float OverlapTolerance => overlapTolerance;
         internal float MinSegmentLength => minSegmentLength;
         internal float JunctionDistance => junctionDistance;
@@ -326,6 +347,11 @@ namespace LevelGen
         internal float RoofHipRaise => roofHipRaise;
         internal float RoofHipStep => roofHipStep;
         internal float RoofHipLean => roofHipLean;
+        internal float RoofCullHeight => roofCullHeight;
+        internal float RoofCullStep => roofCullStep;
+        internal float RoofCullRange => roofCullRange;
+        internal float RoofEdgeGap => roofEdgeGap;
+        internal float RoofEdgeReach => roofEdgeReach;
         internal float DeckingOverlap => deckingOverlap;
         internal bool DeckingQuarterTurn => deckingQuarterTurn;
         internal float DeckingSlideMin => deckingSlideMin;

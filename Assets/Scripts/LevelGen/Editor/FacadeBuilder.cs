@@ -407,6 +407,10 @@ namespace LevelGen
             BuildPipes(frontages, settings, random, placer, log);
             BuildVents(frontages, settings, random, placer, log);
             BuildLamps(frontages, Group(parent.parent, "Lamps"), settings, random, placer, log);
+            // Last of all, with every piece of every building in place: one
+            // colour per building (per set of corner-joined buildings),
+            // walls and roof.
+            ColourBuildings(frontages, joints, random, log);
 
             if (_clearance.Refused.Count > 0) {
                 log.Add($"Street clearance: {_clearance.Refused.Count} piece(s) not placed because they would stand in a street:\n    "
@@ -821,18 +825,12 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// A corner is the corner of one building, so the buildings either
-        /// side of every joint take the same storeys: each set of buildings
-        /// joined by corners takes the storey styles and jetty of its first
-        /// (in the spec's order), so their storeys stand at the same heights.
-        /// A building keeps its own module spacing, foundations and door; one
-        /// whose ground storey's module is more than MaxStoreyWidthMismatch
-        /// off the first's keeps its own storeys (logged). Its storeys are
-        /// made again (StoreyLevels), no more of them than it had, and its
-        /// modules' storey counts kept within them.
+        /// The sets of buildings joined by corners: for every building, the
+        /// first (in the spec's order) of the set it belongs to - itself when
+        /// no corner joins it to an earlier building. A set shares its
+        /// storeys (MatchCornerStoreys) and its colour (ColourBuildings).
         /// </summary>
-        private static void MatchCornerStoreys(List<Frontage> frontages, List<Joint> joints, Dictionary<string, BuildingStyle> styles,
-            GeneratorSettings settings, PiecePlacer placer, List<string> log)
+        private static Dictionary<Building, Building> CornerLeaders(List<Frontage> frontages, List<Joint> joints)
         {
             // Every building in the spec's order, each its own set at first.
             List<Building> order = new();
@@ -872,13 +870,38 @@ namespace LevelGen
                 }
             }
 
+            // Flattened: each building straight to its set's first.
+            Dictionary<Building, Building> firsts = new();
+
+            foreach (Building building in order) {
+                firsts[building] = Root(building);
+            }
+
+            return firsts;
+        }
+
+        /// <summary>
+        /// A corner is the corner of one building, so the buildings either
+        /// side of every joint take the same storeys: each set of buildings
+        /// joined by corners takes the storey styles and jetty of its first
+        /// (in the spec's order), so their storeys stand at the same heights.
+        /// A building keeps its own module spacing, foundations and door; one
+        /// whose ground storey's module is more than MaxStoreyWidthMismatch
+        /// off the first's keeps its own storeys (logged). Its storeys are
+        /// made again (StoreyLevels), no more of them than it had, and its
+        /// modules' storey counts kept within them.
+        /// </summary>
+        private static void MatchCornerStoreys(List<Frontage> frontages, List<Joint> joints, Dictionary<string, BuildingStyle> styles,
+            GeneratorSettings settings, PiecePlacer placer, List<string> log)
+        {
+            Dictionary<Building, Building> leaders = CornerLeaders(frontages, joints);
             int matched = 0;
             List<string> kept = new();
 
             foreach (Frontage frontage in frontages) {
                 for (int i = 0; i < frontage.Buildings.Count; i++) {
                     Building building = frontage.Buildings[i];
-                    Building first = Root(building);
+                    Building first = leaders[building];
 
                     if (first == building) {
                         continue;
@@ -3096,11 +3119,13 @@ namespace LevelGen
         /// Window inserts in a placed wall's window holes (the catalogue's
         /// window openings): each hole at WindowInsertShare gets one of the
         /// inserts that fit it - at least the hole's width and height, and no
-        /// more than WindowInsertMaxMargin bigger on each side - chosen at
-        /// random, never the one before it in this wall. It faces the way the
-        /// wall does, its middle on the hole's middle, at the middle of the
-        /// wall's depth moved forward by WindowInsertDepth. Both draws are
-        /// made for every hole, so the sequence doesn't depend on what fits.
+        /// more than WindowInsertMaxMargin bigger on each side - a lit one
+        /// (marked lit, its panes glowing) at LitWindowShare, else an unlit
+        /// one (either kind when none of the other fits), chosen at random,
+        /// never the one before it in this wall. It faces the way the wall
+        /// does, its middle on the hole's middle, at the middle of the wall's
+        /// depth moved forward by WindowInsertDepth. All three draws are made
+        /// for every hole, so the sequence doesn't depend on what fits.
         /// Every doorway gets a plain door (PlaceDoor).
         /// </summary>
         private static void PlaceInserts(PieceAnnotation piece, Transform wall, GeneratorSettings settings, System.Random random,
@@ -3127,6 +3152,7 @@ namespace LevelGen
                 }
 
                 bool fill = random.NextDouble() < settings.WindowInsertShare;
+                bool lit = random.NextDouble() < settings.LitWindowShare;
                 Vector3 size = opening.max - opening.min;
                 float holeWidth = Mathf.Abs(Vector3.Dot(size, right));
                 float holeHeight = size.y;
@@ -3139,7 +3165,11 @@ namespace LevelGen
                     }
                 }
 
-                PieceAnnotation chosen = PiecePlacer.Pick(fitting, previous, random);
+                // The kind drawn, lit or unlit, where one of it fits; else
+                // whatever fits, so a hole is never left open for want of
+                // one kind.
+                List<PieceAnnotation> ofKind = fitting.FindAll(insert => insert.lit == lit);
+                PieceAnnotation chosen = PiecePlacer.Pick(ofKind.Count > 0 ? ofKind : fitting, previous, random);
 
                 if (!fill || chosen == null) {
                     continue;

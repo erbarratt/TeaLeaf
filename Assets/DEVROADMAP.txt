@@ -503,8 +503,8 @@ Greybox build:
 [ ] Level generator (Assets/Scripts/LevelGen; design in its CLAUDE.md):
     streets and buildings from the prefab variants, from a layout spec
     written from a brief. Of set dressing only facade pipes, walkways
-    and lamp posts are generated; the rest, lighting and gameplay stay
-    by hand.
+    and lamp posts (with their lights) are generated; the rest, other
+    lighting and gameplay stay by hand.
     [x] Stage 1: prefab catalogue scanner (TeaLeaf > Level Gen > Scan
         Prefab Catalogue): measurements, front from geometry (+Z
         assumed where none), category, openings, corners, floors by
@@ -548,13 +548,21 @@ Greybox build:
         [x] One box collider per row of floor tiles.
         [x] The fitting rule: whole pieces, the last widened or a
             narrower one added, everywhere a length is covered.
+        [x] Finishing passes: foundation and walkway colliders merged
+            into few boxes; roofs no one in a street can see removed
+            (roof cull); roofs facing the void lose their colliders.
+        [x] One colour per set of joined buildings from material
+            variants (<material>_<suffix> in Assets/Art/Materials).
+        [x] Lit windows: a share of the window inserts (litWindowShare)
+            are lit variants with an emissive material.
         [ ] Review the hip and valley roof corners in the headset.
         [ ] Shallow junctions: example-quarter's main-street right
             0-2 module 7 runs 2.2m past its corner; one step
             foundation on west-lane is refused.
     [x] Stage 6: placement report (TeaLeaf > Level Gen > Report
         Generated): free wall ends, refused pieces, markers.
-    [ ] Facade dressing: walkways and lamp posts (built); pipes
+    [ ] Facade dressing: walkways and lamp posts (built; the lamp posts
+        are gameplay lights, at most lampMaxOverlap reaching one spot); pipes
         placed by their verified ends, valves on T branches, caps where
         a straight pierces a wall, vents on smooth wall (built). Open:
         runs carried past a building's end at a dead end, the elbow

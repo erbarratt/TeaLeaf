@@ -674,6 +674,8 @@ namespace LevelGen
                 piece.fillsStorey);
             piece.onePerStorey = EditorGUILayout.Toggle(new GUIContent("One Per Storey", "A plain wall that never mixes on a storey with another so marked: each storey draws one of them and uses it for every plain wall (modules, corner fillers, side walls)."),
                 piece.onePerStorey);
+            piece.lit = EditorGUILayout.Toggle(new GUIContent("Lit", "A window insert whose panes glow as if lit from behind: put into the share of filled window holes the settings' Lit Window Share gives, the unlit inserts in the rest."),
+                piece.lit);
             piece.excluded = EditorGUILayout.Toggle("Excluded", piece.excluded);
             piece.verified = EditorGUILayout.Toggle("Verified", piece.verified);
 
