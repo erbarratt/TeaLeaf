@@ -6,6 +6,61 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-17 (level generator: pipe ends, valves, vents, corners from walls)
+--------------------------------------------------------------------------
+- Pipe pieces are placed by their ends: connection points a, b, c at
+  each flange, found from the LOD0 mesh's round vertex rings (PipeEnds,
+  a Find pipe ends button in Review Pieces) and verified by the
+  maintainer. Elbows had been placed from an assumed shape (legs along
+  -Z and +X) that the meshes don't have, so their free leg pointed out
+  of the wall; they are now turned by their measured legs (Turn).
+- Valves only on a T-junction's branch, facing out into the street
+  (valveShare, valveHeight), sliding along the stretch so the pipe
+  either side is none or at least 0.4m. Capped ends only where a
+  straight piece pierces a drawn surface (PierceCap, probed both ways).
+  Every run keeps at least two straight pieces or is dropped whole.
+  Vents sit on smooth wall only (ventFlatTolerance over a 0.1m grid).
+  WallProbe tests rays against LOD0 meshes: the plaster walls' timbers
+  stand 5-13cm proud of the plaster, which the box colliders don't show.
+  Level pipe ends land within pipeEndSpread of a module's middle.
+- Jetties: the supports' backs sink jettyInset behind the ground walls'
+  main front surface (FrontPlane, the side plane holding most front
+  area), the jettied storeys stand forward to bring their typical wall
+  level with the supports' front, and the first upper storey's beam
+  band stands on the deck. Walkway supports use the same back.
+- From a hand-edited copy of a quarter facade: the MasonaryWall
+  pieces' left points moved to overlap 4cm like the rest; doors sized
+  to the doorway as seen through the wall (ThroughOpening, rays through
+  the mesh) plus doorSideMargin; side walls at a column's trimmed left
+  end tuck sideWallTuck into the column behind the trim; beams centred
+  in depth on the wall above.
+- A runaway roof (1120 pieces, 550m) in the quarter: two roofs joined
+  nearly in line had eaves that passed the parallel test and crossed
+  600m away. Roofs whose eaves cross beyond cornerMaxReach are gabled.
+- Corners are made from the walls, no corner pieces (from a hand-built
+  example): the side whose walls end in their trim runs to the other
+  wall's face, the trim standing as the corner post; the plain-ended
+  side runs cornerTuck past the covering wall's back line, hidden in it.
+  The covering wall had stood 0.4m proud of the other face: the
+  frontage's line is set by the deepest wall any of its styles could
+  use, so the target is now the storey style's shallowest wall face
+  (FaceLine). A carry under the fitting share widens the end wall
+  instead of adding a sliver filler. Corners within cornerAngleTolerance
+  of square are met the same way (a separate notch and post had looked
+  like two posts with a seam); their foundations stop short of the
+  other street. The validator no longer asks for outer-corner pieces,
+  and the report treats a trimmed end another wall meets as a corner
+  post. Free wall ends: street 0, block 0, quarter 2-3, two-lots 4.
+- Wall-tall storeys never mix WindowBase and StoneWindowBase: a new
+  One Per Storey annotation toggle; each building storey draws one
+  such wall and keeps to it for its corners and side walls too.
+- Lessons: render a corner from a temporary camera before trusting the
+  numbers; disabling a root to render can destroy objects its scripts
+  made (the sky creator's stars and moon), so only hide geometry roots.
+  The editor's eval calls time out at 5s on the main thread, so generate
+  one spec per call and wait after a recompile.
+
+
 2026-10-16 (level generator: lots, steps, roofs, clearance, report)
 -------------------------------------------------------------------
 - Stage 5d, lots: a lot is a closed four-run frontage with all the

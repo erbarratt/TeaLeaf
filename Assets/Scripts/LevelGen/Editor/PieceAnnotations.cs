@@ -87,7 +87,7 @@ namespace LevelGen
             "roof", "detail", "window", "jetty", "door",
             "roof-end", "roof-end-half", "roof-ridge-end", "roof-ridge-end-half", "roof-middle", "roof-gable-half",
             "roof-hip-base", "roof-hip-middle", "roof-hip-top",
-            "pipe-straight", "pipe-corner", "pipe-end", "pipe-fitting", "lamp-post"
+            "pipe-straight", "pipe-corner", "pipe-end", "pipe-fitting", "pipe-tee", "pipe-valve", "pipe-vent", "lamp-post"
         };
 
         public string guid;
@@ -121,6 +121,11 @@ namespace LevelGen
         // every module but the spec's door (e.g. the masonry ground storey's
         // MasonaryWall).
         public bool fillsStorey;
+        // A plain wall that never mixes on a storey with another so marked:
+        // each storey draws one of them and every plain wall on it - its
+        // modules, corner fillers and side walls - is that one (e.g.
+        // wall-tall's WindowBase and StoneWindowBase).
+        public bool onePerStorey;
         public bool excluded;
         public bool verified;
         public string note = "";

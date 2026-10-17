@@ -510,8 +510,8 @@ Greybox build:
         assumed where none), category, openings, corners, floors by
         their colliders, ramps.
     [x] Stage 2: annotations and the Review Pieces window.
-    [ ] Review and verify the pieces (open: WallsTall_CornerNarrow's
-        arm point).
+    [ ] Review and verify the pieces (corner pieces are not used: the
+        walls make the corners).
     [x] Stage 3: layout spec format and validation (TeaLeaf > Level Gen
         > Validate Layout Spec), building styles as tags on pieces,
         GeneratorSettings for every tunable value.
@@ -530,9 +530,12 @@ Greybox build:
         [x] Storey beams between common-height storeys; jettied upper
             storeys on supports; walls scaled to fit their module.
         [x] 5b: bends and frontage ends: corners at bends and street
-            corners (outer corner piece or column), side returns, the
-            length left at a frontage's end, jettied storeys closed at
-            run ends.
+            corners made by the walls (the trimmed side runs to the
+            other's face, the plain side tucks in behind it), side
+            returns, the length left at a frontage's end, jettied
+            storeys closed at run ends.
+        [x] Wall-tall storeys keep to one of WindowBase and
+            StoneWindowBase (One Per Storey).
         [x] 5d: lots' whole buildings, polygon lots and lots taking
             the block their streets enclose.
         [x] Street heights: flights of steps within a segment, the
@@ -552,8 +555,12 @@ Greybox build:
     [x] Stage 6: placement report (TeaLeaf > Level Gen > Report
         Generated): free wall ends, refused pieces, markers.
     [ ] Facade dressing: walkways and lamp posts (built); pipes
-        (fix the elbows' placement, the pipe variants' far-off
-        collision children, buildings left with no run).
+        placed by their verified ends, valves on T branches, caps where
+        a straight pierces a wall, vents on smooth wall (built). Open:
+        runs carried past a building's end at a dead end, the elbow
+        left loose on a walkway deck at a jetty jog, runs standing off
+        recessed walls, buildings left with no run, few vents finding a
+        smooth patch; check the pipe variants' collision children.
 [ ] Give the variants their colliders and SurfaceTags (the bulk tool
     adds neither). Box/capsule colliders where they fit; mesh
     colliders only where the shape needs one.

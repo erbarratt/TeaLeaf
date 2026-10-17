@@ -72,6 +72,9 @@ namespace LevelGen
             public Transform Root;
             public string Path;
             public string Category;
+            // Its front in its own space (zero where it has none or no
+            // annotation), for telling its trimmed end.
+            public Vector3 Front;
             public Vector3 Min;
             public Vector3 Max;
             public Bounds World;
@@ -172,13 +175,13 @@ namespace LevelGen
         {
             markers = new List<GeneratedRoot.Marker>(_building);
             List<string> lines = new();
-            Dictionary<string, string> categories = new();
+            Dictionary<string, PieceAnnotation> byName = new();
 
             foreach (PieceAnnotation piece in annotations.pieces) {
-                categories[piece.name] = piece.category;
+                byName[piece.name] = piece;
             }
 
-            Gather(root, categories, out Grid pieces, out Grid tiles);
+            Gather(root, byName, out Grid pieces, out Grid tiles);
             Grid standing = StandingTiles(tiles, pieces, spec);
             List<(float share, GeneratedRoot.Marker marker)> ends = FreeEnds(pieces, standing);
             ends.Sort((a, b) => b.share.CompareTo(a.share));
@@ -220,7 +223,7 @@ namespace LevelGen
         /// seen from), the roofs are left out, everything else goes in
         /// pieces.
         /// </summary>
-        private static void Gather(Transform root, Dictionary<string, string> categories, out Grid pieces, out Grid tiles)
+        private static void Gather(Transform root, Dictionary<string, PieceAnnotation> byName, out Grid pieces, out Grid tiles)
         {
             pieces = new Grid();
             tiles = new Grid();
@@ -279,8 +282,11 @@ namespace LevelGen
                         continue;
                     }
 
-                    categories.TryGetValue(t.name, out string category);
-                    Piece piece = new() { Root = t, Path = PathUnder(t, root), Category = category ?? "", Min = min, Max = max, World = world };
+                    byName.TryGetValue(t.name, out PieceAnnotation annotation);
+                    Piece piece = new() {
+                        Root = t, Path = PathUnder(t, root), Category = annotation?.category ?? "",
+                        Front = annotation != null && annotation.fronts.Count == 1 ? annotation.fronts[0] : Vector3.zero, Min = min, Max = max, World = world
+                    };
                     (street ? tiles : pieces).Add(piece);
                 }
             }
@@ -445,7 +451,11 @@ namespace LevelGen
                     Vector3 axis = Vector3.zero;
                     axis[along] = end == 0 ? -1f : 1f;
                     Vector3 outward = wall.Root.TransformDirection(axis).normalized;
+                    // Seen from in front a wall's trim runs down its left
+                    // side, a closed post where its other end is hollow.
+                    bool trimmed = Vector3.Dot(axis, Vector3.Cross(Vector3.up, wall.Front)) > 0.5f;
                     int bare = 0;
+                    int covered = 0;
                     int total = 0;
                     Vector3 middle = Vector3.zero;
                     views.Clear();
@@ -461,6 +471,7 @@ namespace LevelGen
                             total++;
 
                             if (Covered(sample, i, pieces)) {
+                                covered++;
                                 continue;
                             }
 
@@ -476,7 +487,9 @@ namespace LevelGen
 
                     float share = (float)bare / total;
 
-                    if (share > BareShare) {
+                    // A trimmed end that another wall meets is a corner's
+                    // post (the walls meet so at corners), not a hole.
+                    if (share > BareShare && !(trimmed && covered > 0)) {
                         middle /= total;
                         Vector3 faceSize = wall.Root.TransformVector(new Vector3(along == 0 ? 0.1f : size.x, size.y, along == 2 ? 0.1f : size.z));
                         faceSize = new Vector3(Mathf.Abs(faceSize.x), Mathf.Abs(faceSize.y), Mathf.Abs(faceSize.z));

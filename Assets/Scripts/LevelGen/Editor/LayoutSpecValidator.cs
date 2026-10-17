@@ -815,10 +815,8 @@ namespace LevelGen
                     report.Errors.Add($"{storeyLabel}: style '{style.Name}' can only be a ground storey, but as the last style listed it would repeat for storeys above it (up to {_settings.MaxStoreys}); list a style for the storeys above.");
                 }
 
-                // Every storey is walls with an outer corner where two sides
-                // meet (a facade turns one where it ends at a branching
-                // street); the ground storey stands on foundations and holds
-                // the door.
+                // Every storey is walls (its corners are its walls meeting);
+                // the ground storey stands on foundations and holds the door.
                 RequireModules(storeyLabel, style, "wall", storey, report);
 
                 // The last listed style repeats above it: it needs walls that
@@ -826,8 +824,6 @@ namespace LevelGen
                 if (storey == 0 && storeys.Count == 1 && _settings.MaxStoreys > 1 && !groundOnly) {
                     RequireModules($"{storeyLabel} (repeated above)", style, "wall", 1, report);
                 }
-
-                RequirePieces(storeyLabel, style, "outer-corner", report);
 
                 if (storey == 0) {
                     RequirePieces(storeyLabel, style, "foundation", report);

@@ -377,18 +377,26 @@ namespace LevelGen
 
                 // No corner between a lot and a facade, roofs of different
                 // heights, one folded back on itself (no line to meet on), a
-                // convex corner wide of a right angle, or parallel eaves:
-                // the two roofs end on their own, each closed by a gable.
+                // convex corner wide of a right angle, or parallel eaves -
+                // nearly parallel ones too, whose crossing lies more than
+                // CornerMaxReach from either roof's end (two roofs in line
+                // would otherwise run on to a point far off): the two roofs
+                // end on their own, each closed by a gable.
+                bool meet = Intersect(eaveA, a.Run.Along, eaveB, b.Run.Along, out float alongA);
+                Vector2 corner = eaveA + a.Run.Along * alongA;
+                float alongB = Vector2.Dot(corner - b.Run.Start, b.Run.Along);
+                bool near = Mathf.Abs(alongA - (joint.A.AtStart ? a.From : a.To)) <= settings.CornerMaxReach
+                    && Mathf.Abs(alongB - (joint.B.AtStart ? b.From : b.To)) <= settings.CornerMaxReach;
+
                 if ((a.Frontage.Lot == null) != (b.Frontage.Lot == null) || Mathf.Abs(a.Top - b.Top) > settings.SizeTolerance || spread < 0.1f
-                    || (convex && !square) || !Intersect(eaveA, a.Run.Along, eaveB, b.Run.Along, out float alongA)) {
+                    || (convex && !square) || !meet || !near) {
                     SetGable(a, joint.A.AtStart);
                     SetGable(b, joint.B.AtStart);
                     continue;
                 }
 
-                Vector2 corner = eaveA + a.Run.Along * alongA;
                 MarkCorner(a, joint.A.AtStart, alongA, slantA);
-                MarkCorner(b, joint.B.AtStart, Vector2.Dot(corner - b.Run.Start, b.Run.Along), slantB);
+                MarkCorner(b, joint.B.AtStart, alongB, slantB);
                 corners.Add(new RoofCorner { A = a, B = b, Corner = corner, Convex = convex, Square = square });
             }
 

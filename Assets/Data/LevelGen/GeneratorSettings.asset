@@ -16,6 +16,7 @@ MonoBehaviour:
   fullSizeShare: 0.75
   sizeTolerance: 0.0801
   wallScaleLimit: 0.12
+  fillStretchShare: 0.3
   streetWidth: 6
   streetWidthVariance: 1.98
   minStreetWidth: 2.9
@@ -35,7 +36,9 @@ MonoBehaviour:
   cornerAngleTolerance: 20
   cornerMaxReach: 8
   jettyShare: 0.603
+  jettyInset: 0.05
   doorInsertMargin: 0.05
+  doorSideMargin: 0.13
   doorInsertDepth: 0
   windowInsertShare: 1
   windowInsertMaxMargin: 0.45
@@ -49,7 +52,24 @@ MonoBehaviour:
   columnOutShare: 0.5
   columnHeightShare: 0.3
   columnStoreyVariation: 1
+  pipeRunsMax: 2
+  pipeExtraRunShare: 0.35
+  pipeMinRunShare: 0.5
+  pipeLargeShare: 0.1
+  pipeWallGap: 0.05
+  pipeOpeningMargin: 0.25
+  pipeEndSpread: 0.5
+  valveShare: 0.3
+  valveHeight: 1.3
+  ventShare: 0.4
+  ventsMax: 2
+  ventLargeShare: 0.3
+  ventFlatTolerance: 0.03
+  walkwayShare: 0.3
+  lampSpacing: 14
+  lampEdgeInset: 0.6
   sideWallMultiplier: 1
+  sideWallTuck: 0.26
   maxStoreyWidthMismatch: 0.3
   overlapTolerance: 0.05
   minSegmentLength: 0.1

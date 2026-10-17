@@ -65,18 +65,24 @@ namespace LevelGen
         [SerializeField, Range(0f, 0.2f)] private float storeyBeamOverlap = 0.04f;
 
         [Header("Corners")]
-        [Tooltip("Where two facades meet on the outside of a bend or at a street corner, a joint within this many degrees of a right angle is covered by the style's outer corner piece (turned to sit between the two); any other joint by a column piece over the seam.")]
+        [Tooltip("A corner within this many degrees of a right angle counts as square: its roofs meet along a hip or valley, and a facade corner no wider than a right angle plus this gets gables.")]
         [SerializeField, Range(0f, 45f)] private float cornerAngleTolerance = 20f;
         [Tooltip("Two frontages' ends at a junction are joined at a street corner only if each needs carrying no further than this to meet the other; otherwise each turns a side return into the branching street.")]
         [SerializeField, Range(1f, 20f)] private float cornerMaxReach = 8f;
+        [Tooltip("At a corner the side whose walls end in their trim runs on to the other side's front; the other side's walls, ending plain, run this far past the covering walls' back line, into their depth, so their end is hidden inside them.")]
+        [SerializeField, Range(0f, 0.4f)] private float cornerTuck = 0.15f;
 
         [Header("Jetties")]
         [Tooltip("The chance that a facade building's upper storeys jut out over the street (by the depth of the jetty piece, about 1.5m), carried on jetty supports - where it has an upper storey and a jetty piece fits its ground storey's module. Higher for more jettied buildings, lower for fewer.")]
         [SerializeField, Range(0f, 1f)] private float jettyShare = 0.3f;
+        [Tooltip("How far the backs of the jetty supports sink into the ground storey's walls, behind the walls' main front surface (the plaster or stone between the timbers), so no gap shows behind them. The jettied storeys above stand back by the same amount, so their faces stay level with the supports' front.")]
+        [SerializeField, Range(0f, 0.3f)] private float jettyInset = 0.05f;
 
         [Header("Doors")]
-        [Tooltip("Every doorway in a placed wall gets a plain door (a verified piece of the door category; never a gameplay door), at random, scaled to the doorway: this much wider on each side and taller at the top, so its edges tuck into the frame.")]
+        [Tooltip("Every doorway in a placed wall gets a plain door (a verified piece of the door category; never a gameplay door), at random, scaled to the doorway: this much taller than it at the top, so its top tucks into the frame.")]
         [SerializeField, Range(0f, 0.3f)] private float doorInsertMargin = 0.05f;
+        [Tooltip("How much wider a door is on each side than the doorway as seen through the wall (measured through its mesh, so a stone frame narrower than the hole in the back plane counts), so its edges tuck in behind the frame.")]
+        [SerializeField, Range(0f, 0.4f)] private float doorSideMargin = 0.13f;
         [Tooltip("How far a doorway's door stands forward of the middle of the wall's depth (back, below 0).")]
         [SerializeField, Range(-0.5f, 0.5f)] private float doorInsertDepth;
 
@@ -106,7 +112,7 @@ namespace LevelGen
         [Tooltip("How many storeys at most a column stands taller or lower than its building, at random from 1 up to this.")]
         [SerializeField, Range(1, 4)] private int columnStoreyVariation = 1;
 
-        [Header("Dressing: pipes, walkways, lamp posts")]
+        [Header("Dressing: pipes, valves, vents, walkways, lamp posts")]
         [Tooltip("Every building gets one run of pipe; each further run, up to this many in all, comes at pipeExtraRunShare.")]
         [SerializeField, Range(1, 5)] private int pipeRunsMax = 2;
         [Tooltip("The chance of each run of pipe beyond a building's first.")]
@@ -119,6 +125,20 @@ namespace LevelGen
         [SerializeField, Range(0f, 0.3f)] private float pipeWallGap = 0.05f;
         [Tooltip("Clear space kept between a pipe and any door or window.")]
         [SerializeField, Range(0f, 1f)] private float pipeOpeningMargin = 0.25f;
+        [Tooltip("Where a level stretch of pipe ends in an elbow turning into the wall, the end lands at random within this share of its module's width about the module's middle (0 = always the middle, 1 = anywhere along it), never at a joint between walls.")]
+        [SerializeField, Range(0f, 1f)] private float pipeEndSpread = 0.5f;
+        [Tooltip("The chance that a run of pipe gets a valve: a T-junction in one of its straight stretches, its branch pointing out from the facade into the street, the valve on the branch.")]
+        [SerializeField, Range(0f, 1f)] private float valveShare = 0.3f;
+        [Tooltip("How high above the street a valve on an upright stretch of pipe stands (the T-junction's middle).")]
+        [SerializeField, Range(0.5f, 3f)] private float valveHeight = 1.3f;
+        [Tooltip("The chance of each vent a building gets, up to ventsMax. A vent stands on a smooth piece of wall anywhere on the facade, apart from the pipes, never over a door or window.")]
+        [SerializeField, Range(0f, 1f)] private float ventShare = 0.4f;
+        [Tooltip("The most vents one building gets.")]
+        [SerializeField, Range(0, 4)] private int ventsMax = 2;
+        [Tooltip("The share of vents that are the large vent rather than the small.")]
+        [SerializeField, Range(0f, 1f)] private float ventLargeShare = 0.3f;
+        [Tooltip("How far in depth the wall's drawn surface may vary under a vent (measured at the vent's middle and corners) for the wall to count as smooth there.")]
+        [SerializeField, Range(0.005f, 0.2f)] private float ventFlatTolerance = 0.03f;
         [Tooltip("The share of buildings with an upper storey that get a walkway along their facade: a row of the jetty piece at the base of one upper storey (never the base of a jettied one).")]
         [SerializeField, Range(0f, 1f)] private float walkwayShare = 0.3f;
         [Tooltip("Metres of street frontage per lamp post, on average (0 = no lamp posts). Posts stand at the side of the street before plain ground-storey walls, never before a door or window, facing into the street.")]
@@ -129,6 +149,8 @@ namespace LevelGen
         [Header("Side walls")]
         [Tooltip("Where a column stands taller than the column beside it (in its building or the next), each of its storeys above the lower one gets a side wall facing that way and running back from its front walls, so from the street it seems to go on behind. The wall's length in modules is this times the column's width in modules, at least one (0 = no side walls). Separate from roofs and roof walls.")]
         [SerializeField, Range(0f, 5f)] private float sideWallMultiplier = 1f;
+        [Tooltip("At a column's left end (seen from the street), where its front walls' end has its trim, the side walls are tucked in behind that end as the walls go together: their back plane this far inside the column from the join, their street end on the front wall's main surface (the plaster or stone between the timbers). At the right end they stand outside the column, covering the front walls' plain end.")]
+        [SerializeField, Range(0f, 1f)] private float sideWallTuck = 0.26f;
 
         [Tooltip("How far a storey's module width may differ from the ground storey's below it. Every storey is laid at the ground storey's spacing, each wall centred in its place, so a wider wall overlaps its neighbours and a narrower one leaves a small gap.")]
         [SerializeField, Range(0f, 1f)] private float maxStoreyWidthMismatch = 0.3f;
@@ -234,9 +256,12 @@ namespace LevelGen
         internal float UpperWindowShare => upperWindowShare;
         internal float StoreyBeamOverlap => storeyBeamOverlap;
         internal float JettyShare => jettyShare;
+        internal float JettyInset => jettyInset;
         internal float CornerAngleTolerance => cornerAngleTolerance;
         internal float CornerMaxReach => cornerMaxReach;
+        internal float CornerTuck => cornerTuck;
         internal float DoorInsertMargin => doorInsertMargin;
+        internal float DoorSideMargin => doorSideMargin;
         internal float DoorInsertDepth => doorInsertDepth;
         internal float WindowInsertShare => windowInsertShare;
         internal float WindowInsertMaxMargin => windowInsertMaxMargin;
@@ -252,12 +277,20 @@ namespace LevelGen
         internal int ColumnStoreyVariation => columnStoreyVariation;
         internal float MaxStoreyWidthMismatch => maxStoreyWidthMismatch;
         internal float SideWallMultiplier => sideWallMultiplier;
+        internal float SideWallTuck => sideWallTuck;
         internal int PipeRunsMax => pipeRunsMax;
         internal float PipeExtraRunShare => pipeExtraRunShare;
         internal float PipeMinRunShare => pipeMinRunShare;
         internal float PipeLargeShare => pipeLargeShare;
         internal float PipeWallGap => pipeWallGap;
         internal float PipeOpeningMargin => pipeOpeningMargin;
+        internal float PipeEndSpread => pipeEndSpread;
+        internal float ValveShare => valveShare;
+        internal float ValveHeight => valveHeight;
+        internal float VentShare => ventShare;
+        internal int VentsMax => ventsMax;
+        internal float VentLargeShare => ventLargeShare;
+        internal float VentFlatTolerance => ventFlatTolerance;
         internal float WalkwayShare => walkwayShare;
         internal float LampSpacing => lampSpacing;
         internal float LampEdgeInset => lampEdgeInset;

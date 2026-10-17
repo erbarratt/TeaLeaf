@@ -661,6 +661,10 @@ namespace LevelGen
                 _selectedConnection = piece.connections.Count - 1;
             }
 
+            if (piece.category.StartsWith("pipe-", StringComparison.Ordinal)) {
+                DrawPipe(piece);
+            }
+
             piece.note = EditorGUILayout.DelayedTextField("Note", piece.note);
             piece.groundStoreyOnly = EditorGUILayout.Toggle(new GUIContent("Ground Storey Only", "The generator places this wall only on a building's ground storey."),
                 piece.groundStoreyOnly);
@@ -668,6 +672,8 @@ namespace LevelGen
                 piece.showsOpening);
             piece.fillsStorey = EditorGUILayout.Toggle(new GUIContent("Fills Storey", "A plain wall that, on a storey whose style offers it, stands at every module but the spec's door: no other walls, random doors or window walls."),
                 piece.fillsStorey);
+            piece.onePerStorey = EditorGUILayout.Toggle(new GUIContent("One Per Storey", "A plain wall that never mixes on a storey with another so marked: each storey draws one of them and uses it for every plain wall (modules, corner fillers, side walls)."),
+                piece.onePerStorey);
             piece.excluded = EditorGUILayout.Toggle("Excluded", piece.excluded);
             piece.verified = EditorGUILayout.Toggle("Verified", piece.verified);
 
@@ -701,6 +707,48 @@ namespace LevelGen
             }
 
             EditorGUILayout.EndHorizontal();
+        }
+
+        /// <summary>
+        /// A pipe piece's ends: how they are marked, a button that finds them
+        /// from the mesh (PipeEnds), and what the generator will make of them
+        /// - a straight's length from a to b, an elbow's two legs from its
+        /// bend - in world metres (the root's scale applied). Called inside
+        /// DrawAnnotation's change check.
+        /// </summary>
+        private void DrawPipe(PieceAnnotation piece)
+        {
+            EditorGUILayout.HelpBox("Pipe ends: one point per open end, named a, b, c..., at the middle of the flange's outer face, "
+                + "pointing out of the piece along the pipe. A straight is placed by a and b; an elbow by a and b, whose ways out "
+                + "must be at right angles (its bend is where their legs' lines cross, drawn yellow); a T (pipe-tee) by a and b along "
+                + "the pipe and c the branch, at right angles; a valve (pipe-valve) by a, pointing into the T's branch; a capped end "
+                + "(pipe-end) by b, the flange the pipe meets, its cap face a laid on the wall; a vent (pipe-vent) by b, pointing "
+                + "into the wall.", MessageType.None);
+
+            if (GUILayout.Button(new GUIContent("Find pipe ends", "Replace the points with the open ends found on the mesh: flanges where the pipe meets a face of its render box."),
+                    GUILayout.Width(120f))) {
+                GameObject asset = AssetDatabase.LoadAssetAtPath<GameObject>(_entry.path);
+
+                if (asset != null) {
+                    piece.connections = PipeEnds.Find(asset);
+                    _selectedConnection = -1;
+                    Store();
+                }
+            }
+
+            float scale = _entry.rootScale.x != 0f ? Mathf.Abs(_entry.rootScale.x) : 1f;
+            ConnectionPoint a = PipeEnds.End(piece, "a");
+            ConnectionPoint b = PipeEnds.End(piece, "b");
+
+            if (piece.category == "pipe-straight") {
+                EditorGUILayout.LabelField("Generator", a != null && b != null
+                    ? $"straight, {Vector3.Distance(a.position, b.position) * scale:0.###} m from a to b"
+                    : "needs points a and b");
+            } else if (piece.category == "pipe-corner") {
+                EditorGUILayout.LabelField("Generator", PipeEnds.Bend(a, b, out Vector3 node)
+                    ? $"elbow, leg a {Vector3.Distance(node, a.position) * scale:0.###} m, leg b {Vector3.Distance(node, b.position) * scale:0.###} m"
+                    : "needs points a and b pointing at right angles");
+            }
         }
 
         /// <summary>
@@ -976,6 +1024,21 @@ namespace LevelGen
                 Handles.SphereHandleCap(0, point.position, Quaternion.identity, PointSize, EventType.Repaint);
                 Handles.DrawLine(point.position, point.position + point.direction * 0.4f, 2f);
                 Handles.Label(point.position + point.direction * 0.5f, point.name, _sceneLabelStyle);
+            }
+
+            // A pipe as the generator reads it: a straight's axis from a to
+            // b, an elbow's bend and its two legs.
+            ConnectionPoint a = PipeEnds.End(piece, "a");
+            ConnectionPoint b = PipeEnds.End(piece, "b");
+            Handles.color = Color.yellow;
+
+            if (piece.category == "pipe-straight" && a != null && b != null) {
+                Handles.DrawDottedLine(a.position, b.position, 4f);
+            } else if (piece.category == "pipe-corner" && PipeEnds.Bend(a, b, out Vector3 node)) {
+                Handles.DrawLine(node, a.position, 2f);
+                Handles.DrawLine(node, b.position, 2f);
+                Handles.SphereHandleCap(0, node, Quaternion.identity, PointSize, EventType.Repaint);
+                Handles.Label(node, "bend", _sceneLabelStyle);
             }
         }
 
