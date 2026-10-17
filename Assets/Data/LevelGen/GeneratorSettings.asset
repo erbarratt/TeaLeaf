@@ -16,12 +16,13 @@ MonoBehaviour:
   fullSizeShare: 0.75
   sizeTolerance: 0.0801
   wallScaleLimit: 0.12
-  streetWidth: 5
-  streetWidthVariance: 1
-  minStreetWidth: 2
+  streetWidth: 6
+  streetWidthVariance: 1.98
+  minStreetWidth: 2.9
   minStoreys: 2
-  maxStoreys: 3
-  storeyBias: 0
+  maxStoreys: 4
+  maxBuildingHeight: 13
+  storeyBias: -0.38
   lotNeighbourDistance: 15
   lotStoreyBias: 0
   groundStoreyHeight: 0.163
@@ -30,6 +31,12 @@ MonoBehaviour:
   groundDoorShare: 0
   groundWindowShare: 0.054
   upperWindowShare: 0.4
+  storeyBeamOverlap: 0.04
+  cornerAngleTolerance: 20
+  cornerMaxReach: 8
+  jettyShare: 0.603
+  doorInsertMargin: 0.05
+  doorInsertDepth: 0
   windowInsertShare: 1
   windowInsertMaxMargin: 0.45
   windowInsertDepth: 0.107
@@ -48,11 +55,32 @@ MonoBehaviour:
   minSegmentLength: 0.1
   junctionDistance: 0.1
   branchAngle: 17.5
+  branchSquareTolerance: 20
+  streetHeadroom: 2.2
+  streetBallRadius: 0.5
+  streetBallHeight: 1
+  sharpCornerAngle: 60
+  sharpCornerShare: 0.25
   groundOverlap: 0.1582
   groundTileTurns: 1
   groundSlideMin: 0.2
   groundSlideMax: 0.8
+  groundGridMinAngle: 15
+  lotGroundMargin: 1
   minTileCoverage: 0.1
+  landingDrop: 0.02
+  roofPitch: 60
+  roofRows: 2
+  roofEaveOverhang: 0.4
+  roofEaveDrop: 1
+  roofVergeOverhang: 0.2
+  roofRowOverlap: 0.25
+  roofPanelOverlap: 0.45
+  roofGableSink: 0.05
+  roofHipOut: 0.75
+  roofHipRaise: 0.2
+  roofHipStep: 2.5
+  roofHipLean: 10
   deckingOverlap: 0.03
   deckingQuarterTurn: 0
   deckingSlideMin: 0

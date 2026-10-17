@@ -21,6 +21,10 @@ namespace LevelGen
         // How many pieces have been placed.
         internal int Placed { get; private set; }
 
+        // While set, every piece placed is checked against the streets and
+        // not placed if it would stand in one (StreetClearance.Allows).
+        internal StreetClearance Clearance { get; set; }
+
         /// <summary>
         /// A placer for the pieces in one catalogue.
         /// </summary>
@@ -56,14 +60,16 @@ namespace LevelGen
         /// </summary>
         internal GameObject PlaceAt(PieceAnnotation piece, Vector3 localPoint, Vector3 worldPoint, float yaw, Vector3 scale, Transform parent)
         {
-            Quaternion rotation = Quaternion.Euler(0f, yaw, 0f);
-            GameObject instance = Place(piece, worldPoint - rotation * Vector3.Scale(scale, localPoint), rotation, parent);
+            return PlaceAt(piece, localPoint, worldPoint, Quaternion.Euler(0f, yaw, 0f), scale, parent);
+        }
 
-            if (instance != null && scale != Vector3.one) {
-                instance.transform.localScale = Vector3.Scale(instance.transform.localScale, scale);
-            }
-
-            return instance;
+        /// <summary>
+        /// The same, turned by any rotation (a roof panel tilted to its
+        /// slope); a negative scale along an axis mirrors the piece.
+        /// </summary>
+        internal GameObject PlaceAt(PieceAnnotation piece, Vector3 localPoint, Vector3 worldPoint, Quaternion rotation, Vector3 scale, Transform parent)
+        {
+            return Place(piece, worldPoint - rotation * Vector3.Scale(scale, localPoint), rotation, scale, parent);
         }
 
         /// <summary>
@@ -115,14 +121,16 @@ namespace LevelGen
                 ? new Vector3((entry.walkMin.x + entry.walkMax.x) * 0.5f, entry.walkHeight, (entry.walkMin.z + entry.walkMax.z) * 0.5f)
                 : new Vector3((entry.renderMin.x + entry.renderMax.x) * 0.5f, entry.renderMax.y, (entry.renderMin.z + entry.renderMax.z) * 0.5f);
             Quaternion rotation = Quaternion.Euler(0f, yaw, 0f);
-            return Place(piece, surfaceCentre - rotation * surface, rotation, parent);
+            return Place(piece, surfaceCentre - rotation * surface, rotation, Vector3.one, parent);
         }
 
         /// <summary>
         /// Instantiates a piece's prefab under a parent with its pivot at a
-        /// world position and rotation, its lights disabled.
+        /// world position and rotation, scaled along its own axes, its lights
+        /// disabled. Null if its prefab can't be found, or if the clearance
+        /// refuses it (it would stand in a street).
         /// </summary>
-        private GameObject Place(PieceAnnotation piece, Vector3 position, Quaternion rotation, Transform parent)
+        private GameObject Place(PieceAnnotation piece, Vector3 position, Quaternion rotation, Vector3 scale, Transform parent)
         {
             if (!_prefabs.TryGetValue(piece.guid, out GameObject prefab)) {
                 prefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(piece.guid));
@@ -135,6 +143,15 @@ namespace LevelGen
 
             GameObject instance = (GameObject)PrefabUtility.InstantiatePrefab(prefab, parent);
             instance.transform.SetPositionAndRotation(position, rotation);
+
+            if (scale != Vector3.one) {
+                instance.transform.localScale = Vector3.Scale(instance.transform.localScale, scale);
+            }
+
+            if (Clearance != null && _entries.TryGetValue(piece.guid, out CatalogueEntry entry) && !Clearance.Allows(instance.transform, entry)) {
+                Object.DestroyImmediate(instance);
+                return null;
+            }
 
             // Level lighting is placed by hand: a light in a piece is switched
             // off on this instance (an override), the prefab left as it is.

@@ -33,9 +33,10 @@ namespace Core
         private const string EnvironmentRoot = PrefabsRoot + "/Environment";
         private const string EnvironmentLayerName = "Environment";
 
-        // The village pack starts its prefabs' names with PackPrefix; the
-        // game's variants start with GamePrefix instead.
-        private const string PackPrefix = "Medieval_";
+        // The packs start their prefabs' names with one of these prefixes
+        // (the village pack's walls and most pieces, its pipes); the game's
+        // variants start with GamePrefix instead.
+        private static readonly string[] _packPrefixes = { "Medieval_", "S_MVillage_" };
         private const string GamePrefix = "TL_";
 
         // Every Static flag that still does something: lightmap baking, occlusion
@@ -302,18 +303,23 @@ namespace Core
 
         /// <summary>
         /// The file name a pack prefab's variant is saved under: the pack's
-        /// own, with a leading Medieval_ swapped for TL_. A name that
-        /// starts with anything else is kept as it is.
+        /// own, with a leading pack prefix (Medieval_, S_MVillage_) swapped
+        /// for TL_ and a duplicate-name suffix such as " (1)" dropped. A name
+        /// that starts with anything else is kept as it is.
         /// </summary>
         private static string VariantFileName(string prefabPath)
         {
-            string fileName = Path.GetFileName(prefabPath);
+            string fileName = Path.GetFileNameWithoutExtension(prefabPath);
 
-            if (fileName.StartsWith(PackPrefix, StringComparison.Ordinal)) {
-                fileName = GamePrefix + fileName.Substring(PackPrefix.Length);
+            foreach (string prefix in _packPrefixes) {
+                if (fileName.StartsWith(prefix, StringComparison.Ordinal)) {
+                    fileName = GamePrefix + fileName.Substring(prefix.Length);
+                    break;
+                }
             }
 
-            return fileName;
+            fileName = System.Text.RegularExpressions.Regex.Replace(fileName, @" \(\d+\)$", "");
+            return fileName + Path.GetExtension(prefabPath);
         }
 
         /// <summary>

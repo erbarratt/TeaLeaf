@@ -25,8 +25,6 @@ namespace LevelGen
         internal const string MasonryWoodLarge = "masonry-woodlarge";
         internal const string Cobbles = "cobbles";
         internal const string WoodFloor = "wood-floor";
-        // Where every building's upper floors come from, whatever its walls' style.
-        internal const string BuildingFloors = WoodFloor;
 
         // The styles buildings are made of (the foundations serve all of them).
         internal static readonly string[] Buildings = { Plaster, PlasterPlanks, PlasterMasonry, WallTall, MasonryCellar, MasonryWoodLarge };
@@ -63,8 +61,7 @@ namespace LevelGen
             // The only foundations in the pack: under every style.
             ("Masonary_Foundations", Buildings),
             // Street ground: cobbles, and plank decking for wooden streets,
-            // walkways, bridges and buildings' upper floors (the supports
-            // under it have no style).
+            // walkways and bridges (the supports under it have no style).
             ("StoneFloor_", new[] { Cobbles }),
             ("Platforms_Planks", new[] { WoodFloor }),
             ("Platforms_LoosePlank", new[] { WoodFloor }),

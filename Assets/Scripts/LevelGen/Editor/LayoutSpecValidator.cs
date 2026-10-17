@@ -132,6 +132,7 @@ namespace LevelGen
 
             random = new System.Random(spec.seed);
             spec.ResolveWidths(settings, random);
+            spec.ResolveLots(settings);
             Validate(spec, BuildingStyle.Gather(annotations, catalogue, settings), settings, report);
             return report;
         }
@@ -159,6 +160,9 @@ namespace LevelGen
             foreach (StreetSpec street in spec.streets) {
                 CheckFrontages(street, spec.streets, styles, usedStyles, report);
             }
+
+            CheckSharpCorners(spec.streets, report);
+            CheckBranchAngles(spec.streets, report);
 
             foreach (LotSpec lot in spec.lots) {
                 CheckLot(lot, styles, ids, usedStyles, lotRects, report);
@@ -230,6 +234,56 @@ namespace LevelGen
             if (style != null && style.Pieces("ground").Count == 0 && style.Pieces("floor").Count == 0) {
                 report.Errors.Add($"{label}: style '{style.Name}' has no usable ground or floor piece.");
             }
+
+            if (style != null) {
+                CheckRises(label, street, style, report);
+            }
+        }
+
+        /// <summary>
+        /// Each segment that rises or falls (StreetSteps): only a street of
+        /// ground tiles can, by a whole number of flights of one of its
+        /// style's steps pieces, on a segment long enough for those flights
+        /// (at the piece's ramp run) and their landing.
+        /// </summary>
+        private static void CheckRises(string label, StreetSpec street, BuildingStyle style, Report report)
+        {
+            for (int i = 1; i < street.points.Count; i++) {
+                if (!StreetSteps.Rises(street, i - 1, _settings)) {
+                    continue;
+                }
+
+                float rise = Mathf.Abs(street.points[i].y - street.points[i - 1].y);
+                string segment = $"{label}, segment {i - 1}-{i}";
+
+                if (style.TileCategory != "ground") {
+                    report.Errors.Add($"{segment} rises {rise:0.##}m, but only a street of ground tiles (cobbles) can change height: "
+                        + $"style '{style.Name}' is decked.");
+                    continue;
+                }
+
+                PieceAnnotation piece = StreetSteps.Choose(style, rise, _settings, out int count);
+
+                if (piece == null) {
+                    List<string> rises = new();
+
+                    foreach (PieceAnnotation steps in style.Pieces("steps")) {
+                        rises.Add($"{steps.height:0.##}m");
+                    }
+
+                    report.Errors.Add(rises.Count == 0
+                        ? $"{segment} rises {rise:0.##}m, but style '{style.Name}' has no usable steps piece."
+                        : $"{segment} rises {rise:0.##}m, not a whole number of flights of style '{style.Name}''s steps ({string.Join(", ", rises)} each).");
+                    continue;
+                }
+
+                float length = (Ground(street.points[i]) - Ground(street.points[i - 1])).magnitude;
+                float needed = count * piece.depth + StreetSteps.LandingDepth(style, _settings);
+
+                if (needed > length) {
+                    report.Errors.Add($"{segment} is {length:0.##}m long, too short for its {count} flight(s) of steps and their landing ({needed:0.##}m).");
+                }
+            }
         }
 
         /// <summary>
@@ -298,7 +352,7 @@ namespace LevelGen
                     smallestSpacing = Mathf.Min(smallestSpacing, spacing);
                 }
 
-                float stretch = StretchLength(street, frontage, sideSign, streets, label, report);
+                float stretch = StretchLength(street, frontage, sideSign, WallDepth(frontage, styles), streets, label, report);
 
                 if (!lengthKnown || stretch <= 0f) {
                     continue;
@@ -315,11 +369,12 @@ namespace LevelGen
         /// <summary>
         /// About how much of the street's edge a frontage can fill: the
         /// length of the street's middle line between its two points, less
-        /// half the width of any street branching off on its side at either
-        /// end. Reports a street branching off on its side part-way along it
-        /// (an error: the frontage must end there).
+        /// how far short its edge stops of any street branching off on its
+        /// side at either end (BranchCut, its walls reaching depth back from
+        /// the edge). Reports a street branching off on its side part-way
+        /// along it (an error: the frontage must end there).
         /// </summary>
-        private static float StretchLength(StreetSpec street, FrontageSpec frontage, float sideSign, List<StreetSpec> streets,
+        private static float StretchLength(StreetSpec street, FrontageSpec frontage, float sideSign, float depth, List<StreetSpec> streets,
             string label, Report report)
         {
             float length = 0f;
@@ -340,20 +395,199 @@ namespace LevelGen
 
                 along.Normalize();
                 Vector2 sideNormal = new Vector2(-along.y, along.x) * sideSign;
-                float branchWidth = BranchWidth(street, k, sideNormal, streets, _settings);
-
-                if (branchWidth <= 0f) {
-                    continue;
-                }
 
                 if (k == frontage.from || k == frontage.to) {
-                    length -= branchWidth * 0.5f;
-                } else {
+                    length -= BranchCut(street, k, segmentEnd - 1, k == frontage.from ? along : -along, sideNormal, depth, streets, _settings);
+                } else if (BranchWidth(street, k, sideNormal, streets, _settings) > 0f) {
                     report.Errors.Add($"{label}: a street branches off on its side at point {k}, so the frontage must end there.");
                 }
             }
 
             return length;
+        }
+
+        /// <summary>
+        /// Branches meet square: every street ending at a junction where at
+        /// least two other ways leave the point (another street running on
+        /// through it, or more streets meeting) must meet the street it
+        /// branches off - the line through the two other ways most nearly
+        /// opposite - within BranchSquareTolerance of a right angle (an error
+        /// otherwise). Two streets meeting end to end are a bend, not a branch.
+        /// </summary>
+        private static void CheckBranchAngles(List<StreetSpec> streets, Report report)
+        {
+            foreach (StreetSpec street in streets) {
+                for (int end = 0; end < 2; end++) {
+                    int pointIndex = end == 0 ? 0 : street.points.Count - 1;
+                    int nextIndex = end == 0 ? 1 : street.points.Count - 2;
+
+                    if (street.points.Count < 2) {
+                        continue;
+                    }
+
+                    Vector2 point = Ground(street.points[pointIndex]);
+                    Vector2 branch = Ground(street.points[nextIndex]) - point;
+
+                    if (branch.magnitude < _settings.MinSegmentLength) {
+                        continue;
+                    }
+
+                    branch.Normalize();
+                    // Every other way leaving the point, from the other streets.
+                    List<Vector2> others = new();
+
+                    foreach (StreetSpec other in streets) {
+                        if (other == street) {
+                            continue;
+                        }
+
+                        for (int j = 0; j < other.points.Count; j++) {
+                            if ((Ground(other.points[j]) - point).magnitude > _settings.JunctionDistance) {
+                                continue;
+                            }
+
+                            for (int n = j - 1; n <= j + 1; n += 2) {
+                                if (n >= 0 && n < other.points.Count && (Ground(other.points[n]) - point).magnitude >= _settings.MinSegmentLength) {
+                                    others.Add((Ground(other.points[n]) - point).normalized);
+                                }
+                            }
+                        }
+                    }
+
+                    // One other way only: two streets meeting end to end (a
+                    // bend), not a branch.
+                    if (others.Count < 2) {
+                        continue;
+                    }
+
+                    // The street it branches off: the two other ways most
+                    // nearly opposite, as one line through the point.
+                    Vector2 line = Vector2.zero;
+                    float straightest = float.MaxValue;
+
+                    for (int a = 0; a < others.Count; a++) {
+                        for (int b = a + 1; b < others.Count; b++) {
+                            float dot = Vector2.Dot(others[a], others[b]);
+
+                            if (dot < straightest) {
+                                straightest = dot;
+                                line = (others[b] - others[a]).normalized;
+                            }
+                        }
+                    }
+
+                    float angle = Vector2.Angle(branch, line);
+                    float offSquare = Mathf.Abs(Mathf.Min(angle, 180f - angle) - 90f);
+
+                    if (offSquare > _settings.BranchSquareTolerance + 0.01f) {
+                        report.Errors.Add($"Street '{street.id}' meets the street it branches off at point {pointIndex} {90f - offSquare:0.#} degrees from it; "
+                            + $"a branch must meet within {_settings.BranchSquareTolerance:0.#} degrees of square.");
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// The share of the layout's street corners that are sharp, against
+        /// SharpCornerShare: at every point (a bend, or streets meeting), the
+        /// ways the streets leave it are sorted round it, and each wedge
+        /// between two neighbouring ways is a corner (unless within the branch
+        /// angle of straight on, or wider), sharp below SharpCornerAngle. A warning when the spec is more than one
+        /// corner off the share asked for.
+        /// </summary>
+        private static void CheckSharpCorners(List<StreetSpec> streets, Report report)
+        {
+            // Every point, with the streets' ways out of it, merged where
+            // points of several streets are one junction.
+            List<(Vector2 Point, List<float> Angles)> points = new();
+
+            foreach (StreetSpec street in streets) {
+                for (int k = 0; k < street.points.Count; k++) {
+                    Vector2 point = Ground(street.points[k]);
+                    int index = points.FindIndex(entry => (entry.Point - point).magnitude <= _settings.JunctionDistance);
+
+                    if (index < 0) {
+                        points.Add((point, new List<float>()));
+                        index = points.Count - 1;
+                    }
+
+                    for (int n = k - 1; n <= k + 1; n += 2) {
+                        if (n < 0 || n >= street.points.Count) {
+                            continue;
+                        }
+
+                        Vector2 leaving = Ground(street.points[n]) - point;
+
+                        if (leaving.magnitude >= _settings.MinSegmentLength) {
+                            points[index].Angles.Add(Mathf.Atan2(leaving.y, leaving.x) * Mathf.Rad2Deg);
+                        }
+                    }
+                }
+            }
+
+            int corners = 0;
+            int sharp = 0;
+
+            foreach ((Vector2 _, List<float> angles) in points) {
+                if (angles.Count < 2) {
+                    continue;
+                }
+
+                angles.Sort();
+
+                for (int i = 0; i < angles.Count; i++) {
+                    float wedge = i + 1 < angles.Count ? angles[i + 1] - angles[i] : angles[0] + 360f - angles[i];
+
+                    // Nearly straight on (within the branch angle of a half
+                    // turn) is no corner.
+                    if (wedge >= 180f - Mathf.Asin(_settings.BranchDot) * Mathf.Rad2Deg) {
+                        continue;
+                    }
+
+                    corners++;
+
+                    if (wedge < _settings.SharpCornerAngle) {
+                        sharp++;
+                    }
+                }
+            }
+
+            if (corners == 0) {
+                return;
+            }
+
+            float wanted = _settings.SharpCornerShare * corners;
+
+            if (Mathf.Abs(sharp - wanted) > 1f) {
+                report.Warnings.Add($"{sharp} of the layout's {corners} street corners are sharp (under {_settings.SharpCornerAngle:0.#} degrees); "
+                    + $"the settings ask for about {Mathf.RoundToInt(wanted)} ({_settings.SharpCornerShare:0.##} of them).");
+            }
+        }
+
+        /// <summary>
+        /// About how far a frontage's walls reach back from the street edge:
+        /// the deepest usable wall of any of its buildings' storey styles (the
+        /// generator measures it exactly, from the walls' connection points).
+        /// </summary>
+        private static float WallDepth(FrontageSpec frontage, Dictionary<string, BuildingStyle> styles)
+        {
+            float deepest = 0f;
+
+            foreach (BuildingSpec building in frontage.buildings) {
+                foreach (string name in building.storeys) {
+                    if (!styles.TryGetValue(name ?? "", out BuildingStyle style)) {
+                        continue;
+                    }
+
+                    foreach (string category in BuildingStyle.WallCategories) {
+                        foreach (PieceAnnotation piece in style.Modules(category)) {
+                            deepest = Mathf.Max(deepest, piece.depth);
+                        }
+                    }
+                }
+            }
+
+            return deepest;
         }
 
         /// <summary>
@@ -397,8 +631,74 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// A lot's id, footprint and storeys, and that the building floor
-        /// style has floors for its upper storeys; adds its footprint for the
+        /// How far a frontage's street edge must stop short of a point where
+        /// streets branch off on its side: measured along the edge from level
+        /// with the point, going into the frontage (into), to where the edge
+        /// crosses the near edge of each street leaving towards the side (the
+        /// edge facing the frontage) - the furthest of them, so at a sharp
+        /// angle the frontage stops well short and at a square one half the
+        /// branch's width. 0 if none branches off there. The segment is the
+        /// frontage's one reaching the point (its width sets the edge). With a
+        /// depth (how far the facade's walls reach back from the edge) the line
+        /// that far back must clear the branch too, which at a sharp angle
+        /// stops the frontage further short still.
+        /// </summary>
+        internal static float BranchCut(StreetSpec street, int pointIndex, int segment, Vector2 into, Vector2 sideNormal, float depth,
+            List<StreetSpec> streets, GeneratorSettings settings)
+        {
+            Vector2 point = Ground(street.points[pointIndex]);
+            Vector2 edge = point + sideNormal * (street.SegmentWidth(segment) * 0.5f);
+            float cut = 0f;
+
+            foreach (StreetSpec other in streets) {
+                if (other == street) {
+                    continue;
+                }
+
+                for (int j = 0; j < other.points.Count; j++) {
+                    if ((Ground(other.points[j]) - point).magnitude > settings.JunctionDistance) {
+                        continue;
+                    }
+
+                    for (int n = j - 1; n <= j + 1; n += 2) {
+                        if (n < 0 || n >= other.points.Count) {
+                            continue;
+                        }
+
+                        Vector2 leaving = Ground(other.points[n]) - point;
+
+                        if (leaving.magnitude < settings.MinSegmentLength || Vector2.Dot(leaving.normalized, sideNormal) <= settings.BranchDot) {
+                            continue;
+                        }
+
+                        Vector2 along = leaving.normalized;
+                        float halfWidth = other.SegmentWidth(Mathf.Min(j, n)) * 0.5f;
+                        // The branch's edge on the frontage's side of it.
+                        Vector2 normal = new(-along.y, along.x);
+
+                        if (Vector2.Dot(normal, into) < 0f) {
+                            normal = -normal;
+                        }
+
+                        float cross = into.x * along.y - into.y * along.x;
+
+                        // Along the frontage's edge, and the line depth behind
+                        // it, to that edge (half the width if the two run side
+                        // by side).
+                        foreach (float back in new[] { 0f, depth }) {
+                            Vector2 offset = point + normal * halfWidth - (edge + sideNormal * back);
+                            float distance = Mathf.Abs(cross) < 0.0001f ? halfWidth : (offset.x * along.y - offset.y * along.x) / cross;
+                            cut = Mathf.Max(cut, distance);
+                        }
+                    }
+                }
+            }
+
+            return cut;
+        }
+
+        /// <summary>
+        /// A lot's id, footprint and storeys; adds its footprint for the
         /// overlap tests once its module width is known.
         /// </summary>
         private static void CheckLot(LotSpec lot, Dictionary<string, BuildingStyle> styles, HashSet<string> ids,
@@ -406,36 +706,70 @@ namespace LevelGen
         {
             string label = CheckId("Lot", lot.id, ids, report);
 
-            if (lot.widthModules < 1 || lot.depthModules < 1) {
+            if (!lot.HasOutline && lot.widthModules < 1 && lot.depthModules < 1) {
+                report.Errors.Add($"{label} has no outline and no modules, and no streets close round its origin to give it a block.");
+            } else if (!lot.HasOutline && (lot.widthModules < 1 || lot.depthModules < 1)) {
                 report.Errors.Add($"{label} needs at least one module along its front and its depth.");
             }
 
-            float moduleWidth = CheckStoreys(label, lot.storeys, lot.doorModule, lot.widthModules, styles, usedStyles, report);
+            if (lot.outline != null && lot.outline.Count > 0 && lot.outline.Count < 3) {
+                report.Errors.Add($"{label}: an outline needs at least three corners.");
+            }
 
-            // Every whole building's upper floors come from one style,
-            // whatever its walls. (A facade has no floors.)
-            if (_settings.MaxStoreys > 1) {
-                usedStyles.Add(StyleRules.BuildingFloors);
+            // The door is counted along the front: with an outline, the
+            // modules that fit its first side are only known with the module.
+            float moduleWidth = CheckStoreys(label, lot.storeys, lot.HasOutline ? -1 : lot.doorModule, lot.widthModules, styles, usedStyles, report);
 
-                if (!styles.TryGetValue(StyleRules.BuildingFloors, out BuildingStyle floors) || floors.Pieces("floor").Count == 0) {
-                    report.Warnings.Add($"{label}: style '{StyleRules.BuildingFloors}' has no usable floor piece, so any upper storeys it is given will have no floor.");
+            if (lot.HasOutline && moduleWidth > 0f) {
+                CheckOutline(label, lot, moduleWidth - _settings.WallOverlap, report);
+            }
+
+            // A block found from the streets fits them by its making, and
+            // its bounding rectangle would cross them at its corners.
+            if (moduleWidth > 0f && !lot.FromStreets && (lot.HasOutline || (lot.widthModules >= 1 && lot.depthModules >= 1))) {
+                // Modules are laid at the module less the overlap; the last
+                // one's overlap stands out at the far end. An outline is
+                // tested by its bounding rectangle.
+                lot.Bounds(moduleWidth - _settings.WallOverlap, _settings.WallOverlap, out Vector2 centre, out Vector2 axisX, out Vector2 axisZ,
+                    out float halfX, out float halfZ);
+                rects.Add(new GroundRect { Label = label, Centre = centre, AxisX = axisX, AxisZ = axisZ, HalfX = halfX, HalfZ = halfZ });
+            }
+        }
+
+        /// <summary>
+        /// A lot's outline: convex (every corner turning the same way), and
+        /// every side long enough for at least one module; the door, if any,
+        /// within the modules that fit the front side.
+        /// </summary>
+        private static void CheckOutline(string label, LotSpec lot, float spacing, Report report)
+        {
+            List<Vector2> corners = lot.Corners(spacing, _settings.WallOverlap);
+            int turning = 0;
+
+            for (int i = 0; i < corners.Count; i++) {
+                Vector2 a = corners[i];
+                Vector2 b = corners[(i + 1) % corners.Count];
+                Vector2 c = corners[(i + 2) % corners.Count];
+                float cross = (b.x - a.x) * (c.y - b.y) - (b.y - a.y) * (c.x - b.x);
+                int sign = cross > 0.0001f ? 1 : cross < -0.0001f ? -1 : 0;
+
+                if (sign != 0 && turning != 0 && sign != turning) {
+                    report.Errors.Add($"{label}: its outline isn't convex (it turns both ways), so its corners can't be closed.");
+                    break;
+                }
+
+                turning = sign != 0 ? sign : turning;
+                float length = (b - a).magnitude;
+
+                if (length < spacing + _settings.WallOverlap - _settings.SizeTolerance) {
+                    report.Errors.Add($"{label}: outline side {i} is {length:0.##}m, too short for one {spacing + _settings.WallOverlap:0.##}m module.");
                 }
             }
 
-            if (moduleWidth > 0f && lot.widthModules >= 1 && lot.depthModules >= 1) {
-                // Modules are laid at the module less the overlap; the last
-                // one's overlap stands out at the far end.
-                float spacing = moduleWidth - _settings.WallOverlap;
-                Vector3 front = lot.Front;
-                Vector2 axisZ = new(front.x, front.z);
-                rects.Add(new GroundRect {
-                    Label = label,
-                    Centre = Ground(lot.origin),
-                    AxisX = new Vector2(axisZ.y, -axisZ.x),
-                    AxisZ = axisZ,
-                    HalfX = (lot.widthModules * spacing + _settings.WallOverlap) * 0.5f,
-                    HalfZ = (lot.depthModules * spacing + _settings.WallOverlap) * 0.5f
-                });
+            int frontModules = Mathf.FloorToInt(((corners[1] - corners[0]).magnitude - _settings.WallOverlap) / spacing + 0.001f);
+
+            if (lot.doorModule >= frontModules) {
+                report.Errors.Add($"{label}: door module {lot.doorModule} isn't along its front side (0 to {frontModules - 1}, or -1 for none).");
             }
         }
 

@@ -6,6 +6,94 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-16 (level generator: lots, steps, roofs, clearance, report)
+-------------------------------------------------------------------
+- Stage 5d, lots: a lot is a closed four-run frontage with all the
+  facade variation (LayLot, Generated/Lots). A lot can be a convex
+  polygon (outline), or take the block its streets enclose
+  (LayoutSpec.ResolveLots / BlockOutline, half-plane clipping, ray
+  casts to pick the edges seen, slivers under 1m dropped). Interiors
+  and floors are always built by hand; every doorway gets a plain door
+  scaled to it. Street ground is laid round a lot's ring, never under
+  the building: a bounding rectangle had hidden half the quarter's
+  tiles, and GeneratorSettings.asset held a stale lotGroundMargin of
+  10m against the code's 1m.
+- Street heights (StreetSteps): a segment can rise by whole flights of
+  Steps Full Width (verified: climbs -X, solid stone, 1.62m), stacked
+  and scaled, with a landing just below the street; facade columns
+  split at the flight, and masonry foundations stack beside the steps.
+- Stage 5e, roofs (FacadeRoofs.cs): a ridge along the street, front and
+  mirrored back slopes (renders showed the undersides without the
+  back), gables at free ends, lots hipped to the middle or, when big,
+  a courtyard (hipping a big lot to the middle made a 37m spire). The
+  roof kit was annotated with new categories (roof-end, roof-ridge-end,
+  roof-middle, roof-gable-half and their halves). RoofTiles_Middle and
+  the two halves are left out: their meshes have open edges.
+- Roof corners, from a hand-built example of three Roof_PeakedBase
+  copies stacked up a hip and leaned about 9 degrees: hip strips over
+  convex corners, valleys over concave ones and inside bends, each row
+  ending on the hip or valley line, back slopes mirrored. Slits between
+  panels were each piece's verge end, its top tiles set back about
+  0.3m: roofPanelOverlap went to 0.45m. Buildings joined by a corner
+  share storey styles and jetty, and both sides of a joint take the
+  lower storey count. maxBuildingHeight (13m) stops runaway wall-tall
+  buildings.
+- Street clearance (StreetClearance): walls cut across another street
+  at a three-way junction, where InsideCorner carried a run backwards
+  past its point. Runs are now cut against mitred street shapes, every
+  piece is gated (Allows, with headroom so jetties may overhang) and
+  side walls stop short of any street (Reach). Reach had its enter and
+  leave swapped and never hit anything. A segment has two shapes:
+  Corners (cut through the point) for run cutting and Filled (out to
+  where the outer edges meet) for pieces, as Filled in run cutting
+  brought back gaps at ring corners.
+- Bends: on the outside of a bend both runs had stopped about 3.6m
+  short, as they were cut at the bisector only when the crossing lay
+  within the segment. Both runs of a bend now end at one point (the
+  walls' back lines crossing inside, the edges crossing outside).
+- Street test (StreetTest): a 0.5m ball 1m up along every street's
+  middle, an error where it is blocked. Branch angles within
+  branchSquareTolerance (20 degrees) of square are checked by the
+  validator. Example specs now give no street widths but alleys', so
+  the settings' widths are used.
+- Floor colliders (FloorColliders): every tile's colliders replaced by
+  one box per row, under each street's Colliders group, checked by
+  raycasts over every tile. TeaLeaf > Remove Colliders From Selection
+  (Core/Editor/ColliderRemover.cs) strips colliders from a selection
+  and its children.
+- The fitting rule (FitWidths, fillStretchShare): every length is laid
+  in whole pieces, the last widened when the rest is under 30% of a
+  piece, else a narrower piece added - run ends, side walls, corner
+  fillers, foundations, beams. Walls are hollow, so side walls stand
+  outside their column against the wall end.
+- Stage 6, report (GeneratedReport, TeaLeaf > Level Gen > Report
+  Generated): front wall ends nothing covers that a street can see,
+  pieces refused for standing in a street, walls left out, each in the
+  Console and marked on the GeneratedRoot in the Scene view and the
+  headset. Free ends across the four example specs went from 69, 52,
+  90 and 147 to 0, 5, 1 and 3; those left are corner posts and
+  wall-tall seams, not holes.
+- Example specs: example-block (a hexagonal ring), example-quarter
+  (lots, side streets, alleys, sharp corners) and example-two-lots (two
+  lots at different heights with steps), placed apart in the Level Gen
+  Test scene; all four give no errors and pass the street test.
+- Facade dressing, started (FacadeDressing.cs): walkways along one
+  upper storey and lamp posts at the street side work. Pipes don't yet:
+  22 pipe variants were made (Prefabs/Environment/Pipes) and annotated,
+  but elbows point out of the wall (their leg geometry was assumed, not
+  measured), the pack's pipe prefabs carry collision children tens of
+  metres away that the street test reports, and some buildings get no
+  run.
+- Learned: GPU Resident Drawer makes Camera.Render ignore
+  renderer.enabled, so it is switched off for snapshot renders; long
+  editor jobs run through unity command eval must be sliced, as a
+  call is capped at about 5s; shallow-angle joints are sensitive to
+  column depth.
+- Open: elbows and pipe colliders; example-quarter's 20 degree
+  junction on main-street right, where a module runs 2.2m past its
+  corner; the roof corners not yet seen in the headset.
+
+
 2026-10-15 (level generator: corners and frontage ends, stage 5b)
 -----------------------------------------------------------------
 - Jettied buildings at a frontage's end or a bend were left open at

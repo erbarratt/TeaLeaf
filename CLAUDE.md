@@ -187,7 +187,14 @@ block, and Phases 6, 8 and 10).
 This is a Unity project, not a CLI/npm/dotnet-cli project — there is no command-line build,
 lint, or test workflow set up. Builds and Play Mode testing are driven through
 the Unity Editor; there are no automated tests (open the project with the exact editor version in
-`ProjectSettings/ProjectVersion.txt`). `.sln`/`.csproj` files at the repo root are
+`ProjectSettings/ProjectVersion.txt`). **Claude drives the open Editor through Unity's own
+CLI** (`unity`, in the user's `AppData/Local/Unity/bin`) and the experimental
+`com.unity.pipeline` package (editor-only, in `Packages/manifest.json`): `unity status`
+shows whether the Editor is reachable, `unity command recompile_status` / `console` /
+`save_scene` and `unity command eval --code '...'` (C# run in the Editor; project
+`internal` types are reached by reflection) do the rest. After any change to the level
+generator, Claude runs it on the spec in use and saves the scene (see
+`Assets/Scripts/LevelGen/CLAUDE.md`). `.sln`/`.csproj` files at the repo root are
 Unity-generated for IDE tooling (Rider/Visual Studio) and should not be hand-edited.
 
 Version control: git, remote `origin` on GitHub, branch `master`. **Commit once per session**:
@@ -566,7 +573,8 @@ fails and restarts. The mechanics:
   `DETAILED_FantasyMarkets` (market stalls and goods). **Level art is placed by hand or
   by the level generator (`Assets/Scripts/LevelGen`), and by nothing else**: the
   generator lays out streets and buildings from real `Assets/Prefabs` variants under its
-  own root, and everything else - set dressing, lighting, gameplay - is placed by hand.
+  own root (with pipes, walkways and lamp posts on its facades), and everything else -
+  other set dressing, lighting, gameplay - is placed by hand.
   Don't propose any other editor builder for level art. The pack folder is git-ignored and its
   own prefabs are left untouched; **the game's prefabs live in `Assets/Prefabs`, each a
   prefab variant of a pack prefab** holding what the game adds - Static and the

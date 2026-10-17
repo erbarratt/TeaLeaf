@@ -1,7 +1,7 @@
 {
     "format": 2,
     "unityVersion": "6000.3.25f1",
-    "prefabCount": 188,
+    "prefabCount": 210,
     "prefabs": [
         {
             "name": "TL_Chimney_Slab_Base",
@@ -18620,6 +18620,5111 @@
                 "x": -0.011,
                 "y": 4.536,
                 "z": 0.039
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": []
+        },
+        {
+            "name": "TL_Pipe_Section_Large",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipe_Section_Large.prefab",
+            "guid": "84174b7d0abd0fe489b0c0e0a53cfff4",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipe_Section_Large.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.569,
+                "y": -2.854,
+                "z": -0.54
+            },
+            "renderMax": {
+                "x": 0.549,
+                "y": 2.728,
+                "z": 0.764
+            },
+            "renderSize": {
+                "x": 1.118,
+                "y": 5.583,
+                "z": 1.304
+            },
+            "pivotInBounds": {
+                "x": 0.509,
+                "y": 0.511,
+                "z": 0.414
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.607,
+                "y": -2.846,
+                "z": -0.514
+            },
+            "colliderMax": {
+                "x": 0.599,
+                "y": 2.72,
+                "z": 0.756
+            },
+            "colliderSize": {
+                "x": 1.207,
+                "y": 5.565,
+                "z": 1.269
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 16,
+            "maxDepth": 2,
+            "topChildren": [
+                "S_MVillage_Pipes_Corner_Small",
+                "S_MVillage_Pipes_Large_A",
+                "S_MVillage_Pipes_Corner_Small (1)"
+            ],
+            "nestedPrefabs": [
+                {
+                    "name": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Corner_Small.prefab",
+                    "count": 2
+                },
+                {
+                    "name": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Large_A.prefab",
+                    "count": 1
+                }
+            ],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 3
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 3
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 12
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 9
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 3,
+            "lodLevels": 3,
+            "renderersLod0": 3,
+            "trianglesLod0": 1314,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 3
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.549,
+                        "y": -2.855,
+                        "z": -0.54
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.569,
+                        "y": -2.855,
+                        "z": -0.54
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": -0.01,
+                        "y": 2.728,
+                        "z": -0.54
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": -0.01,
+                        "y": -2.855,
+                        "z": -0.54
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 178,
+                    "area": 3.765,
+                    "planarity": 0.323,
+                    "planeDepth": 0.33
+                },
+                {
+                    "side": "-X",
+                    "triangles": 177,
+                    "area": 3.643,
+                    "planarity": 0.28,
+                    "planeDepth": -0.36
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 181,
+                    "area": 4.2,
+                    "planarity": 0.31,
+                    "planeDepth": 0.75
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 223,
+                    "area": 4.18,
+                    "planarity": 0.212,
+                    "planeDepth": -0.33
+                }
+            ],
+            "frontAssumed": true,
+            "suggestedCategory": "",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": -1.553,
+            "walkShare": 0.369,
+            "walkMin": {
+                "x": -0.607,
+                "y": -1.553,
+                "z": -0.514
+            },
+            "walkMax": {
+                "x": 0.599,
+                "y": -1.553,
+                "z": 0.756
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "pivot-not-on-base",
+                "assembly"
+            ]
+        },
+        {
+            "name": "TL_Pipe_Section_Small",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipe_Section_Small.prefab",
+            "guid": "674b5d9dfee64674ebba5514c3415f9d",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipe_Section_Small.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.373,
+                "y": -2.072,
+                "z": -0.318
+            },
+            "renderMax": {
+                "x": 0.312,
+                "y": 2.475,
+                "z": 0.497
+            },
+            "renderSize": {
+                "x": 0.685,
+                "y": 4.547,
+                "z": 0.815
+            },
+            "pivotInBounds": {
+                "x": 0.544,
+                "y": 0.456,
+                "z": 0.39
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.383,
+                "y": -2.055,
+                "z": -0.298
+            },
+            "colliderMax": {
+                "x": 0.308,
+                "y": 2.458,
+                "z": 0.499
+            },
+            "colliderSize": {
+                "x": 0.69,
+                "y": 4.513,
+                "z": 0.797
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 16,
+            "maxDepth": 2,
+            "topChildren": [
+                "STYLZ_MVillage_Pipes_Corner_Small_Sml (27)",
+                "STYLZ_MVillage_Pipes_Small_A (86)",
+                "STYLZ_MVillage_Pipes_Corner_Small_Sml (28)"
+            ],
+            "nestedPrefabs": [
+                {
+                    "name": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Corner_Small_Sml.prefab",
+                    "count": 2
+                },
+                {
+                    "name": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Small_A.prefab",
+                    "count": 1
+                }
+            ],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 3
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 3
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 12
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 9
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 3,
+            "lodLevels": 3,
+            "renderersLod0": 3,
+            "trianglesLod0": 1144,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 3
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.312,
+                        "y": -2.072,
+                        "z": -0.318
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.373,
+                        "y": -2.072,
+                        "z": -0.318
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": -0.03,
+                        "y": 2.475,
+                        "z": -0.318
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": -0.03,
+                        "y": -2.072,
+                        "z": -0.318
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 162,
+                    "area": 1.746,
+                    "planarity": 0.342,
+                    "planeDepth": 0.15
+                },
+                {
+                    "side": "-X",
+                    "triangles": 158,
+                    "area": 1.988,
+                    "planarity": 0.369,
+                    "planeDepth": -0.22
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 168,
+                    "area": 1.924,
+                    "planarity": 0.296,
+                    "planeDepth": 0.21
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 214,
+                    "area": 1.983,
+                    "planarity": 0.222,
+                    "planeDepth": -0.18
+                }
+            ],
+            "frontAssumed": true,
+            "suggestedCategory": "",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": -1.29,
+            "walkShare": 0.359,
+            "walkMin": {
+                "x": -0.383,
+                "y": -1.29,
+                "z": -0.28
+            },
+            "walkMax": {
+                "x": 0.301,
+                "y": -1.29,
+                "z": 0.499
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "pivot-not-on-base",
+                "assembly"
+            ]
+        },
+        {
+            "name": "TL_Pipes_Capped_End_Large",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Capped_End_Large.prefab",
+            "guid": "7276c8bd8342983468c795af25b7b3cc",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Capped_End_Large.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.553,
+                "y": -0.002,
+                "z": -0.553
+            },
+            "renderMax": {
+                "x": 0.553,
+                "y": 0.262,
+                "z": 0.553
+            },
+            "renderSize": {
+                "x": 1.105,
+                "y": 0.264,
+                "z": 1.105
+            },
+            "pivotInBounds": {
+                "x": 0.5,
+                "y": 0.008,
+                "z": 0.5
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.538,
+                "y": -0.019,
+                "z": -0.538
+            },
+            "colliderMax": {
+                "x": 0.538,
+                "y": 0.279,
+                "z": 0.538
+            },
+            "colliderSize": {
+                "x": 1.075,
+                "y": 0.298,
+                "z": 1.076
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 5,
+            "maxDepth": 1,
+            "topChildren": [
+                "S_MVillage_Pipes_Capped_End_LOD0",
+                "S_MVillage_Pipes_Capped_End_LOD1",
+                "S_MVillage_Pipes_Capped_End_LOD2",
+                "S_MVillage_Pipes_Capped_End_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 4
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 194,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "+X",
+                    "position": {
+                        "x": 0.538,
+                        "y": 0.279,
+                        "z": 0
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "-X",
+                    "position": {
+                        "x": -0.538,
+                        "y": 0.279,
+                        "z": 0
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "+Z",
+                    "position": {
+                        "x": 0,
+                        "y": 0.279,
+                        "z": 0.538
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 1
+                    }
+                },
+                {
+                    "name": "-Z",
+                    "position": {
+                        "x": 0,
+                        "y": 0.279,
+                        "z": -0.538
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": -1
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 22,
+                    "area": 0.15,
+                    "planarity": 0.196,
+                    "planeDepth": 0.54
+                },
+                {
+                    "side": "-X",
+                    "triangles": 21,
+                    "area": 0.156,
+                    "planarity": 0.194,
+                    "planeDepth": -0.55
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 19,
+                    "area": 0.133,
+                    "planarity": 0.244,
+                    "planeDepth": 0.54
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 24,
+                    "area": 0.154,
+                    "planarity": 0.241,
+                    "planeDepth": -0.54
+                }
+            ],
+            "frontAssumed": false,
+            "suggestedCategory": "floor",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.279,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.538,
+                "y": 0.279,
+                "z": -0.538
+            },
+            "walkMax": {
+                "x": 0.538,
+                "y": 0.279,
+                "z": 0.538
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": []
+        },
+        {
+            "name": "TL_Pipes_Capped_End_Small",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Capped_End_Small.prefab",
+            "guid": "0bb735fe7846a4640bc672c04ca88b37",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Capped_End_Small.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.553,
+                "y": -0.002,
+                "z": -0.553
+            },
+            "renderMax": {
+                "x": 0.553,
+                "y": 0.262,
+                "z": 0.553
+            },
+            "renderSize": {
+                "x": 1.105,
+                "y": 0.264,
+                "z": 1.105
+            },
+            "pivotInBounds": {
+                "x": 0.5,
+                "y": 0.008,
+                "z": 0.5
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.563,
+                "y": -0.029,
+                "z": -0.57
+            },
+            "colliderMax": {
+                "x": 0.563,
+                "y": 0.271,
+                "z": 0.57
+            },
+            "colliderSize": {
+                "x": 1.126,
+                "y": 0.3,
+                "z": 1.14
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 0.6,
+                "y": 0.6,
+                "z": 0.6
+            },
+            "objectCount": 5,
+            "maxDepth": 1,
+            "topChildren": [
+                "S_MVillage_Pipes_Capped_End_LOD0",
+                "S_MVillage_Pipes_Capped_End_LOD1",
+                "S_MVillage_Pipes_Capped_End_LOD2",
+                "S_MVillage_Pipes_Capped_End_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 4
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 194,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "+X",
+                    "position": {
+                        "x": 0.563,
+                        "y": 0.271,
+                        "z": 0
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "-X",
+                    "position": {
+                        "x": -0.563,
+                        "y": 0.271,
+                        "z": 0
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "+Z",
+                    "position": {
+                        "x": 0,
+                        "y": 0.271,
+                        "z": 0.57
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 1
+                    }
+                },
+                {
+                    "name": "-Z",
+                    "position": {
+                        "x": 0,
+                        "y": 0.271,
+                        "z": -0.57
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": -1
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 22,
+                    "area": 0.15,
+                    "planarity": 0.196,
+                    "planeDepth": 0.54
+                },
+                {
+                    "side": "-X",
+                    "triangles": 21,
+                    "area": 0.156,
+                    "planarity": 0.194,
+                    "planeDepth": -0.55
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 19,
+                    "area": 0.133,
+                    "planarity": 0.244,
+                    "planeDepth": 0.54
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 24,
+                    "area": 0.154,
+                    "planarity": 0.241,
+                    "planeDepth": -0.54
+                }
+            ],
+            "frontAssumed": false,
+            "suggestedCategory": "floor",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.271,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.563,
+                "y": 0.271,
+                "z": -0.57
+            },
+            "walkMax": {
+                "x": 0.563,
+                "y": 0.271,
+                "z": 0.57
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": []
+        },
+        {
+            "name": "TL_Pipes_Convert_Junction",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Convert_Junction.prefab",
+            "guid": "4d58cced5a1eafa4591a4b4933734053",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Convert_Junction (1).prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.552,
+                "y": -0.553,
+                "z": -0.588
+            },
+            "renderMax": {
+                "x": 0.552,
+                "y": 0.553,
+                "z": 0.001
+            },
+            "renderSize": {
+                "x": 1.105,
+                "y": 1.105,
+                "z": 0.589
+            },
+            "pivotInBounds": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.997
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.607,
+                "y": -0.567,
+                "z": -0.623
+            },
+            "colliderMax": {
+                "x": 0.599,
+                "y": 0.559,
+                "z": 0.039
+            },
+            "colliderSize": {
+                "x": 1.207,
+                "y": 1.126,
+                "z": 0.662
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 5,
+            "maxDepth": 1,
+            "topChildren": [
+                "S_MVillage_Pipes_Convert_Junction_LOD0",
+                "S_MVillage_Pipes_Convert_Junction_LOD1",
+                "S_MVillage_Pipes_Convert_Junction_LOD2",
+                "S_MVillage_Pipes_Convert_Junction_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 4
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 284,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.552,
+                        "y": -0.552,
+                        "z": -0.588
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.552,
+                        "y": -0.552,
+                        "z": -0.588
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0,
+                        "y": 0.552,
+                        "z": -0.588
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0,
+                        "y": -0.552,
+                        "z": -0.588
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 34,
+                    "area": 0.264,
+                    "planarity": 0.209,
+                    "planeDepth": 0.29
+                },
+                {
+                    "side": "-X",
+                    "triangles": 37,
+                    "area": 0.272,
+                    "planarity": 0.201,
+                    "planeDepth": -0.26
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 40,
+                    "area": 1.043,
+                    "planarity": 0.908,
+                    "planeDepth": 0
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 81,
+                    "area": 0.888,
+                    "planarity": 0.462,
+                    "planeDepth": -0.12
+                }
+            ],
+            "frontAssumed": true,
+            "suggestedCategory": "",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.559,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.607,
+                "y": 0.559,
+                "z": -0.623
+            },
+            "walkMax": {
+                "x": 0.599,
+                "y": 0.559,
+                "z": 0.039
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "front-not-plus-z",
+                "pivot-not-on-base"
+            ]
+        },
+        {
+            "name": "TL_Pipes_Corner_Large",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Corner_Large.prefab",
+            "guid": "bd80b8a1db990e0418893a3685c986ee",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Corner_Large.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.582,
+                "y": -0.556,
+                "z": -2.074
+            },
+            "renderMax": {
+                "x": 1.488,
+                "y": 0.556,
+                "z": -0.026
+            },
+            "renderSize": {
+                "x": 2.07,
+                "y": 1.111,
+                "z": 2.048
+            },
+            "pivotInBounds": {
+                "x": 0.281,
+                "y": 0.5,
+                "z": 1.013
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.55,
+                "y": -0.568,
+                "z": -2.071
+            },
+            "colliderMax": {
+                "x": 1.478,
+                "y": 0.562,
+                "z": -0.035
+            },
+            "colliderSize": {
+                "x": 2.028,
+                "y": 1.13,
+                "z": 2.036
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 8,
+            "maxDepth": 2,
+            "topChildren": [
+                "S_MVillage_Pipes_Corner_Large_LOD0",
+                "S_MVillage_Pipes_Corner_Large_LOD1",
+                "S_MVillage_Pipes_Corner_Large_LOD2",
+                "S_MVillage_Pipes_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 3
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 6
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 560,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 3
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 1.488,
+                        "y": -0.556,
+                        "z": -2.074
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.582,
+                        "y": -0.556,
+                        "z": -2.074
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0.453,
+                        "y": 0.556,
+                        "z": -2.074
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0.453,
+                        "y": -0.556,
+                        "z": -2.074
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 101,
+                    "area": 1.651,
+                    "planarity": 0.373,
+                    "planeDepth": 1.48
+                },
+                {
+                    "side": "-X",
+                    "triangles": 86,
+                    "area": 1.492,
+                    "planarity": 0.158,
+                    "planeDepth": 1.36
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 92,
+                    "area": 1.573,
+                    "planarity": 0.425,
+                    "planeDepth": -0.04
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 93,
+                    "area": 1.481,
+                    "planarity": 0.208,
+                    "planeDepth": -0.15
+                }
+            ],
+            "frontAssumed": true,
+            "suggestedCategory": "",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.562,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.55,
+                "y": 0.562,
+                "z": -2.071
+            },
+            "walkMax": {
+                "x": 1.478,
+                "y": 0.562,
+                "z": -0.035
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "pivot-not-on-base"
+            ]
+        },
+        {
+            "name": "TL_Pipes_Corner_Large_Sml",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Corner_Large_Sml.prefab",
+            "guid": "0ba858966a560ba47a23d750b8d0e496",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Corner_Large_Sml.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.582,
+                "y": -0.556,
+                "z": -2.074
+            },
+            "renderMax": {
+                "x": 1.488,
+                "y": 0.556,
+                "z": -0.026
+            },
+            "renderSize": {
+                "x": 2.07,
+                "y": 1.111,
+                "z": 2.048
+            },
+            "pivotInBounds": {
+                "x": 0.281,
+                "y": 0.5,
+                "z": 1.013
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.572,
+                "y": -0.582,
+                "z": -2.066
+            },
+            "colliderMax": {
+                "x": 1.503,
+                "y": 0.572,
+                "z": -0.029
+            },
+            "colliderSize": {
+                "x": 2.075,
+                "y": 1.153,
+                "z": 2.037
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 0.6,
+                "y": 0.6,
+                "z": 0.6
+            },
+            "objectCount": 8,
+            "maxDepth": 2,
+            "topChildren": [
+                "S_MVillage_Pipes_Corner_Large_LOD0",
+                "S_MVillage_Pipes_Corner_Large_LOD1",
+                "S_MVillage_Pipes_Corner_Large_LOD2",
+                "S_MVillage_Pipes_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 3
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 6
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 560,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 3
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 1.488,
+                        "y": -0.556,
+                        "z": -2.074
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.582,
+                        "y": -0.556,
+                        "z": -2.074
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0.453,
+                        "y": 0.556,
+                        "z": -2.074
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0.453,
+                        "y": -0.556,
+                        "z": -2.074
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 101,
+                    "area": 1.651,
+                    "planarity": 0.373,
+                    "planeDepth": 1.48
+                },
+                {
+                    "side": "-X",
+                    "triangles": 86,
+                    "area": 1.492,
+                    "planarity": 0.158,
+                    "planeDepth": 1.36
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 92,
+                    "area": 1.573,
+                    "planarity": 0.425,
+                    "planeDepth": -0.04
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 93,
+                    "area": 1.481,
+                    "planarity": 0.208,
+                    "planeDepth": -0.15
+                }
+            ],
+            "frontAssumed": true,
+            "suggestedCategory": "",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.542,
+            "walkShare": 0.707,
+            "walkMin": {
+                "x": -0.478,
+                "y": 0.542,
+                "z": -2.066
+            },
+            "walkMax": {
+                "x": 1.503,
+                "y": 0.542,
+                "z": -0.407
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "pivot-not-on-base"
+            ]
+        },
+        {
+            "name": "TL_Pipes_Corner_Small",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Corner_Small.prefab",
+            "guid": "4eacdce8a09b77748b8105817b1af8ee",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Corner_Small.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.527,
+                "y": -0.553,
+                "z": -1.303
+            },
+            "renderMax": {
+                "x": 0.777,
+                "y": 0.553,
+                "z": 0.007
+            },
+            "renderSize": {
+                "x": 1.304,
+                "y": 1.106,
+                "z": 1.31
+            },
+            "pivotInBounds": {
+                "x": 0.404,
+                "y": 0.5,
+                "z": 0.995
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.501,
+                "y": -0.603,
+                "z": -1.295
+            },
+            "colliderMax": {
+                "x": 0.769,
+                "y": 0.603,
+                "z": -0.002
+            },
+            "colliderSize": {
+                "x": 1.269,
+                "y": 1.207,
+                "z": 1.293
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 5,
+            "maxDepth": 1,
+            "topChildren": [
+                "S_MVillage_Pipes_Corner_Small_LOD0",
+                "S_MVillage_Pipes_Corner_Small_LOD1",
+                "S_MVillage_Pipes_Corner_Small_LOD2",
+                "S_MVillage_Pipes_Corner_Small_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 4
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 432,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.777,
+                        "y": -0.553,
+                        "z": -1.303
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.527,
+                        "y": -0.553,
+                        "z": -1.303
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0.125,
+                        "y": 0.553,
+                        "z": -1.303
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0.125,
+                        "y": -0.553,
+                        "z": -1.303
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 68,
+                    "area": 1.18,
+                    "planarity": 0.552,
+                    "planeDepth": 0.77
+                },
+                {
+                    "side": "-X",
+                    "triangles": 84,
+                    "area": 1.092,
+                    "planarity": 0.356,
+                    "planeDepth": 0.65
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 66,
+                    "area": 1.167,
+                    "planarity": 0.565,
+                    "planeDepth": -0.01
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 86,
+                    "area": 1.115,
+                    "planarity": 0.41,
+                    "planeDepth": -0.13
+                }
+            ],
+            "frontAssumed": true,
+            "suggestedCategory": "",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.603,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.501,
+                "y": 0.603,
+                "z": -1.295
+            },
+            "walkMax": {
+                "x": 0.769,
+                "y": 0.603,
+                "z": -0.002
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "pivot-not-on-base"
+            ]
+        },
+        {
+            "name": "TL_Pipes_Corner_Small_Sml",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Corner_Small_Sml.prefab",
+            "guid": "ad5036a48f3f0b64a8fe0e204d84dc1d",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Corner_Small_Sml.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.527,
+                "y": -0.553,
+                "z": -1.303
+            },
+            "renderMax": {
+                "x": 0.777,
+                "y": 0.553,
+                "z": 0.007
+            },
+            "renderSize": {
+                "x": 1.304,
+                "y": 1.106,
+                "z": 1.31
+            },
+            "pivotInBounds": {
+                "x": 0.404,
+                "y": 0.5,
+                "z": 0.995
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.499,
+                "y": -0.57,
+                "z": -1.288
+            },
+            "colliderMax": {
+                "x": 0.775,
+                "y": 0.57,
+                "z": 0.01
+            },
+            "colliderSize": {
+                "x": 1.275,
+                "y": 1.14,
+                "z": 1.298
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 0.6,
+                "y": 0.6,
+                "z": 0.6
+            },
+            "objectCount": 5,
+            "maxDepth": 1,
+            "topChildren": [
+                "S_MVillage_Pipes_Corner_Small_LOD0",
+                "S_MVillage_Pipes_Corner_Small_LOD1",
+                "S_MVillage_Pipes_Corner_Small_LOD2",
+                "S_MVillage_Pipes_Corner_Small_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 4
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 432,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.777,
+                        "y": -0.553,
+                        "z": -1.303
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.527,
+                        "y": -0.553,
+                        "z": -1.303
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0.125,
+                        "y": 0.553,
+                        "z": -1.303
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0.125,
+                        "y": -0.553,
+                        "z": -1.303
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 68,
+                    "area": 1.18,
+                    "planarity": 0.552,
+                    "planeDepth": 0.77
+                },
+                {
+                    "side": "-X",
+                    "triangles": 84,
+                    "area": 1.092,
+                    "planarity": 0.356,
+                    "planeDepth": 0.65
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 66,
+                    "area": 1.167,
+                    "planarity": 0.565,
+                    "planeDepth": -0.01
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 86,
+                    "area": 1.115,
+                    "planarity": 0.41,
+                    "planeDepth": -0.13
+                }
+            ],
+            "frontAssumed": true,
+            "suggestedCategory": "",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.57,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.499,
+                "y": 0.57,
+                "z": -1.288
+            },
+            "walkMax": {
+                "x": 0.775,
+                "y": 0.57,
+                "z": 0.01
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "pivot-not-on-base"
+            ]
+        },
+        {
+            "name": "TL_Pipes_Junction",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Junction.prefab",
+            "guid": "bd8dd5bf3768d204a8014c104457823f",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Junction.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.747,
+                "y": -0.617,
+                "z": -0.746
+            },
+            "renderMax": {
+                "x": 0.747,
+                "y": 0.617,
+                "z": 0.746
+            },
+            "renderSize": {
+                "x": 1.494,
+                "y": 1.234,
+                "z": 1.491
+            },
+            "pivotInBounds": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.761,
+                "y": -0.612,
+                "z": -0.788
+            },
+            "colliderMax": {
+                "x": 0.711,
+                "y": 0.65,
+                "z": 0.788
+            },
+            "colliderSize": {
+                "x": 1.472,
+                "y": 1.263,
+                "z": 1.576
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 5,
+            "maxDepth": 1,
+            "topChildren": [
+                "S_MVillage_Pipes_Junction_LOD0",
+                "S_MVillage_Pipes_Junction_LOD1",
+                "S_MVillage_Pipes_Junction_LOD2",
+                "S_MVillage_Pipes_Junction_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 4
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 644,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.747,
+                        "y": -0.617,
+                        "z": -0.746
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.747,
+                        "y": -0.617,
+                        "z": -0.746
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0,
+                        "y": 0.617,
+                        "z": -0.746
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0,
+                        "y": -0.617,
+                        "z": -0.746
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 94,
+                    "area": 1.877,
+                    "planarity": 0.504,
+                    "planeDepth": 0.74
+                },
+                {
+                    "side": "-X",
+                    "triangles": 100,
+                    "area": 1.86,
+                    "planarity": 0.51,
+                    "planeDepth": -0.74
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 88,
+                    "area": 1.793,
+                    "planarity": 0.529,
+                    "planeDepth": 0.74
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 87,
+                    "area": 1.819,
+                    "planarity": 0.52,
+                    "planeDepth": -0.74
+                }
+            ],
+            "frontAssumed": true,
+            "suggestedCategory": "",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.65,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.761,
+                "y": 0.65,
+                "z": -0.788
+            },
+            "walkMax": {
+                "x": 0.711,
+                "y": 0.65,
+                "z": 0.788
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "pivot-not-on-base"
+            ]
+        },
+        {
+            "name": "TL_Pipes_Junction_Small",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Junction_Small.prefab",
+            "guid": "8faa600ba0194ec4083d65a0ffe61aa8",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Junction_Small.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.747,
+                "y": -0.617,
+                "z": -0.746
+            },
+            "renderMax": {
+                "x": 0.747,
+                "y": 0.617,
+                "z": 0.746
+            },
+            "renderSize": {
+                "x": 1.494,
+                "y": 1.234,
+                "z": 1.491
+            },
+            "pivotInBounds": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 0.5
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.795,
+                "y": -0.574,
+                "z": -0.755
+            },
+            "colliderMax": {
+                "x": 0.779,
+                "y": 0.637,
+                "z": 0.755
+            },
+            "colliderSize": {
+                "x": 1.575,
+                "y": 1.211,
+                "z": 1.511
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 0.6,
+                "y": 0.6,
+                "z": 0.6
+            },
+            "objectCount": 5,
+            "maxDepth": 1,
+            "topChildren": [
+                "S_MVillage_Pipes_Junction_LOD0",
+                "S_MVillage_Pipes_Junction_LOD1",
+                "S_MVillage_Pipes_Junction_LOD2",
+                "S_MVillage_Pipes_Junction_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 4
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 644,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.747,
+                        "y": -0.617,
+                        "z": -0.746
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.747,
+                        "y": -0.617,
+                        "z": -0.746
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0,
+                        "y": 0.617,
+                        "z": -0.746
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0,
+                        "y": -0.617,
+                        "z": -0.746
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 94,
+                    "area": 1.877,
+                    "planarity": 0.504,
+                    "planeDepth": 0.74
+                },
+                {
+                    "side": "-X",
+                    "triangles": 100,
+                    "area": 1.86,
+                    "planarity": 0.51,
+                    "planeDepth": -0.74
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 88,
+                    "area": 1.793,
+                    "planarity": 0.529,
+                    "planeDepth": 0.74
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 87,
+                    "area": 1.819,
+                    "planarity": 0.52,
+                    "planeDepth": -0.74
+                }
+            ],
+            "frontAssumed": true,
+            "suggestedCategory": "",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.637,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.795,
+                "y": 0.637,
+                "z": -0.755
+            },
+            "walkMax": {
+                "x": 0.779,
+                "y": 0.637,
+                "z": 0.755
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "pivot-not-on-base"
+            ]
+        },
+        {
+            "name": "TL_Pipes_Large_A",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Large_A.prefab",
+            "guid": "394c218cc72dd504181f37a201297627",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Large_A.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.557,
+                "y": -0.555,
+                "z": -2.999
+            },
+            "renderMax": {
+                "x": 0.557,
+                "y": 0.555,
+                "z": -0.001
+            },
+            "renderSize": {
+                "x": 1.114,
+                "y": 1.11,
+                "z": 2.997
+            },
+            "pivotInBounds": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 1
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.534,
+                "y": -0.516,
+                "z": -3.019
+            },
+            "colliderMax": {
+                "x": 0.52,
+                "y": 0.516,
+                "z": 0.027
+            },
+            "colliderSize": {
+                "x": 1.055,
+                "y": 1.032,
+                "z": 3.046
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 5,
+            "maxDepth": 1,
+            "topChildren": [
+                "S_MVillage_Pipes_Large_A_LOD0",
+                "S_MVillage_Pipes_Large_A_LOD1",
+                "S_MVillage_Pipes_Large_A_LOD2",
+                "S_MVillage_Pipes_Large_A_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 4
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 450,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "unsure",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0.001,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.557,
+                        "y": -0.555,
+                        "z": -2.999
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.557,
+                        "y": -0.555,
+                        "z": -2.999
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0,
+                        "y": 0.555,
+                        "z": -2.999
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0,
+                        "y": -0.555,
+                        "z": -2.999
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 59,
+                    "area": 2.046,
+                    "planarity": 0.338,
+                    "planeDepth": 0.34
+                },
+                {
+                    "side": "-X",
+                    "triangles": 58,
+                    "area": 1.924,
+                    "planarity": 0.381,
+                    "planeDepth": -0.35
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 106,
+                    "area": 1.459,
+                    "planarity": 0.429,
+                    "planeDepth": -0.01
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 108,
+                    "area": 1.47,
+                    "planarity": 0.415,
+                    "planeDepth": -2.99
+                }
+            ],
+            "frontAssumed": true,
+            "suggestedCategory": "",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.516,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.534,
+                "y": 0.516,
+                "z": -3.019
+            },
+            "walkMax": {
+                "x": 0.52,
+                "y": 0.516,
+                "z": 0.027
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "front-not-plus-z",
+                "pivot-not-on-base",
+                "front-unsure"
+            ]
+        },
+        {
+            "name": "TL_Pipes_Small_A",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Small_A.prefab",
+            "guid": "57e0c9e1ab594e34da4033db9bce0aff",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Small_A.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.333,
+                "y": -0.332,
+                "z": -2.998
+            },
+            "renderMax": {
+                "x": 0.333,
+                "y": 0.332,
+                "z": -0.002
+            },
+            "renderSize": {
+                "x": 0.665,
+                "y": 0.665,
+                "z": 2.996
+            },
+            "pivotInBounds": {
+                "x": 0.5,
+                "y": 0.5,
+                "z": 1.001
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.328,
+                "y": -0.313,
+                "z": -3.029
+            },
+            "colliderMax": {
+                "x": 0.328,
+                "y": 0.323,
+                "z": 0.007
+            },
+            "colliderSize": {
+                "x": 0.656,
+                "y": 0.636,
+                "z": 3.035
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 5,
+            "maxDepth": 1,
+            "topChildren": [
+                "S_MVillage_Pipes_Small_A_LOD0",
+                "S_MVillage_Pipes_Small_A_LOD1",
+                "S_MVillage_Pipes_Small_A_LOD2",
+                "S_MVillage_Pipes_Small_A_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 4
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 280,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "unsure",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0.005,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.332,
+                        "y": -0.332,
+                        "z": -2.998
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.332,
+                        "y": -0.332,
+                        "z": -2.998
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0,
+                        "y": 0.332,
+                        "z": -2.998
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0,
+                        "y": -0.332,
+                        "z": -2.998
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 43,
+                    "area": 1.127,
+                    "planarity": 0.422,
+                    "planeDepth": 0.2
+                },
+                {
+                    "side": "-X",
+                    "triangles": 39,
+                    "area": 1.369,
+                    "planarity": 0.42,
+                    "planeDepth": -0.2
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 47,
+                    "area": 0.407,
+                    "planarity": 0.64,
+                    "planeDepth": -0.01
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 49,
+                    "area": 0.436,
+                    "planarity": 0.583,
+                    "planeDepth": -3
+                }
+            ],
+            "frontAssumed": true,
+            "suggestedCategory": "beam",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.323,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.328,
+                "y": 0.323,
+                "z": -3.029
+            },
+            "walkMax": {
+                "x": 0.328,
+                "y": 0.323,
+                "z": 0.007
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "front-not-plus-z",
+                "pivot-not-on-base",
+                "front-unsure"
+            ]
+        },
+        {
+            "name": "TL_Pipes_TJunction",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_TJunction.prefab",
+            "guid": "09c0e673ce8d42148a9f45d7ff8f6760",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_TJunction.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.562,
+                "y": -0.556,
+                "z": -1.498
+            },
+            "renderMax": {
+                "x": 0.745,
+                "y": 0.556,
+                "z": -0.003
+            },
+            "renderSize": {
+                "x": 1.307,
+                "y": 1.112,
+                "z": 1.495
+            },
+            "pivotInBounds": {
+                "x": 0.43,
+                "y": 0.5,
+                "z": 1.002
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.567,
+                "y": -0.557,
+                "z": -1.493
+            },
+            "colliderMax": {
+                "x": 0.75,
+                "y": 0.557,
+                "z": -0.008
+            },
+            "colliderSize": {
+                "x": 1.317,
+                "y": 1.115,
+                "z": 1.485
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 5,
+            "maxDepth": 1,
+            "topChildren": [
+                "S_MVillage_Pipes_TJunction_LOD0",
+                "S_MVillage_Pipes_TJunction_LOD1",
+                "S_MVillage_Pipes_TJunction_LOD2",
+                "S_MVillage_Pipes_TJunction_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 4
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 664,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.745,
+                        "y": -0.556,
+                        "z": -1.498
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.562,
+                        "y": -0.556,
+                        "z": -1.498
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0.092,
+                        "y": 0.556,
+                        "z": -1.498
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0.092,
+                        "y": -0.556,
+                        "z": -1.498
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 101,
+                    "area": 1.593,
+                    "planarity": 0.414,
+                    "planeDepth": 0.73
+                },
+                {
+                    "side": "-X",
+                    "triangles": 115,
+                    "area": 1.597,
+                    "planarity": 0.178,
+                    "planeDepth": -0.36
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 132,
+                    "area": 1.762,
+                    "planarity": 0.379,
+                    "planeDepth": -0.01
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 134,
+                    "area": 1.739,
+                    "planarity": 0.384,
+                    "planeDepth": -1.49
+                }
+            ],
+            "frontAssumed": true,
+            "suggestedCategory": "",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.557,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.567,
+                "y": 0.557,
+                "z": -1.493
+            },
+            "walkMax": {
+                "x": 0.75,
+                "y": 0.557,
+                "z": -0.008
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "pivot-not-on-base"
+            ]
+        },
+        {
+            "name": "TL_Pipes_TJunction_Small",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_TJunction_Small.prefab",
+            "guid": "edfd85b3df0fd0b4c99ca842cc44d393",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_TJunction_Small.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.562,
+                "y": -0.556,
+                "z": -1.498
+            },
+            "renderMax": {
+                "x": 0.745,
+                "y": 0.556,
+                "z": -0.003
+            },
+            "renderSize": {
+                "x": 1.307,
+                "y": 1.112,
+                "z": 1.495
+            },
+            "pivotInBounds": {
+                "x": 0.43,
+                "y": 0.5,
+                "z": 1.002
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.599,
+                "y": -0.584,
+                "z": -1.528
+            },
+            "colliderMax": {
+                "x": 0.781,
+                "y": 0.584,
+                "z": 0.028
+            },
+            "colliderSize": {
+                "x": 1.379,
+                "y": 1.168,
+                "z": 1.556
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 0.6,
+                "y": 0.6,
+                "z": 0.6
+            },
+            "objectCount": 5,
+            "maxDepth": 1,
+            "topChildren": [
+                "S_MVillage_Pipes_TJunction_LOD0",
+                "S_MVillage_Pipes_TJunction_LOD1",
+                "S_MVillage_Pipes_TJunction_LOD2",
+                "S_MVillage_Pipes_TJunction_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 4
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 664,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.745,
+                        "y": -0.556,
+                        "z": -1.498
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.562,
+                        "y": -0.556,
+                        "z": -1.498
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0.092,
+                        "y": 0.556,
+                        "z": -1.498
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0.092,
+                        "y": -0.556,
+                        "z": -1.498
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 101,
+                    "area": 1.593,
+                    "planarity": 0.414,
+                    "planeDepth": 0.73
+                },
+                {
+                    "side": "-X",
+                    "triangles": 115,
+                    "area": 1.597,
+                    "planarity": 0.178,
+                    "planeDepth": -0.36
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 132,
+                    "area": 1.762,
+                    "planarity": 0.379,
+                    "planeDepth": -0.01
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 134,
+                    "area": 1.739,
+                    "planarity": 0.384,
+                    "planeDepth": -1.49
+                }
+            ],
+            "frontAssumed": true,
+            "suggestedCategory": "",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.584,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.599,
+                "y": 0.584,
+                "z": -1.528
+            },
+            "walkMax": {
+                "x": 0.781,
+                "y": 0.584,
+                "z": 0.028
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "pivot-not-on-base"
+            ]
+        },
+        {
+            "name": "TL_Pipes_Valve",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Valve.prefab",
+            "guid": "768cf5c53a7790347afcae2f57210cb7",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Valve.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.437,
+                "y": -0.003,
+                "z": -0.438
+            },
+            "renderMax": {
+                "x": 0.437,
+                "y": 0.273,
+                "z": 0.438
+            },
+            "renderSize": {
+                "x": 0.874,
+                "y": 0.276,
+                "z": 0.876
+            },
+            "pivotInBounds": {
+                "x": 0.5,
+                "y": 0.012,
+                "z": 0.5
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.458,
+                "y": 0.018,
+                "z": -0.472
+            },
+            "colliderMax": {
+                "x": 0.458,
+                "y": 0.304,
+                "z": 0.472
+            },
+            "colliderSize": {
+                "x": 0.916,
+                "y": 0.286,
+                "z": 0.945
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 5,
+            "maxDepth": 1,
+            "topChildren": [
+                "S_MVillage_Pipes_Valve_LOD0",
+                "S_MVillage_Pipes_Valve_LOD1",
+                "S_MVillage_Pipes_Valve_LOD2",
+                "S_MVillage_Pipes_Valve_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 4
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 216,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "+X",
+                    "position": {
+                        "x": 0.458,
+                        "y": 0.304,
+                        "z": 0
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "-X",
+                    "position": {
+                        "x": -0.458,
+                        "y": 0.304,
+                        "z": 0
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "+Z",
+                    "position": {
+                        "x": 0,
+                        "y": 0.304,
+                        "z": 0.472
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 1
+                    }
+                },
+                {
+                    "name": "-Z",
+                    "position": {
+                        "x": 0,
+                        "y": 0.304,
+                        "z": -0.472
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": -1
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 29,
+                    "area": 0.134,
+                    "planarity": 0.259,
+                    "planeDepth": 0.41
+                },
+                {
+                    "side": "-X",
+                    "triangles": 27,
+                    "area": 0.121,
+                    "planarity": 0.222,
+                    "planeDepth": 0.27
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 26,
+                    "area": 0.128,
+                    "planarity": 0.305,
+                    "planeDepth": 0.41
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 24,
+                    "area": 0.116,
+                    "planarity": 0.228,
+                    "planeDepth": -0.42
+                }
+            ],
+            "frontAssumed": false,
+            "suggestedCategory": "floor",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.304,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.458,
+                "y": 0.304,
+                "z": -0.472
+            },
+            "walkMax": {
+                "x": 0.458,
+                "y": 0.304,
+                "z": 0.472
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": []
+        },
+        {
+            "name": "TL_Pipes_Valve_Base",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Valve_Base.prefab",
+            "guid": "12578283adb00a44894775b3263c40ae",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Valve_Base (3).prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.556,
+                "y": -0.001,
+                "z": -0.55
+            },
+            "renderMax": {
+                "x": 0.556,
+                "y": 0.375,
+                "z": 0.55
+            },
+            "renderSize": {
+                "x": 1.112,
+                "y": 0.376,
+                "z": 1.101
+            },
+            "pivotInBounds": {
+                "x": 0.5,
+                "y": 0.003,
+                "z": 0.5
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.623,
+                "y": -0.01,
+                "z": -0.585
+            },
+            "colliderMax": {
+                "x": 0.563,
+                "y": 0.382,
+                "z": 0.567
+            },
+            "colliderSize": {
+                "x": 1.186,
+                "y": 0.391,
+                "z": 1.151
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 5,
+            "maxDepth": 1,
+            "topChildren": [
+                "S_MVillage_Pipes_Valve_Base_LOD0",
+                "S_MVillage_Pipes_Valve_Base_LOD1",
+                "S_MVillage_Pipes_Valve_Base_LOD2",
+                "S_MVillage_Pipes_Valve_Base_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 4
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 256,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "+X",
+                    "position": {
+                        "x": 0.563,
+                        "y": 0.382,
+                        "z": -0.009
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "-X",
+                    "position": {
+                        "x": -0.623,
+                        "y": 0.382,
+                        "z": -0.009
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "+Z",
+                    "position": {
+                        "x": -0.03,
+                        "y": 0.382,
+                        "z": 0.567
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 1
+                    }
+                },
+                {
+                    "name": "-Z",
+                    "position": {
+                        "x": -0.03,
+                        "y": 0.382,
+                        "z": -0.585
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": -1
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 21,
+                    "area": 0.14,
+                    "planarity": 0.249,
+                    "planeDepth": 0.53
+                },
+                {
+                    "side": "-X",
+                    "triangles": 20,
+                    "area": 0.141,
+                    "planarity": 0.246,
+                    "planeDepth": -0.55
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 21,
+                    "area": 0.154,
+                    "planarity": 0.261,
+                    "planeDepth": 0.54
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 22,
+                    "area": 0.138,
+                    "planarity": 0.232,
+                    "planeDepth": -0.54
+                }
+            ],
+            "frontAssumed": false,
+            "suggestedCategory": "floor",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.382,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.623,
+                "y": 0.382,
+                "z": -0.585
+            },
+            "walkMax": {
+                "x": 0.563,
+                "y": 0.382,
+                "z": 0.567
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": []
+        },
+        {
+            "name": "TL_Pipes_Valve_Large",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Valve_Large.prefab",
+            "guid": "f2bf459d4cf6173498dad8eb9951da5b",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Valve_Large.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.751,
+                "y": -0.55,
+                "z": -0.394
+            },
+            "renderMax": {
+                "x": 0.394,
+                "y": 0.55,
+                "z": 0.741
+            },
+            "renderSize": {
+                "x": 1.145,
+                "y": 1.101,
+                "z": 1.134
+            },
+            "pivotInBounds": {
+                "x": 0.656,
+                "y": 0.5,
+                "z": 0.347
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.788,
+                "y": -0.567,
+                "z": -0.447
+            },
+            "colliderMax": {
+                "x": 0.405,
+                "y": 0.585,
+                "z": 0.778
+            },
+            "colliderSize": {
+                "x": 1.193,
+                "y": 1.151,
+                "z": 1.225
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 11,
+            "maxDepth": 2,
+            "topChildren": [
+                "STYLZ_MVillage_Pipes_Valve (3)",
+                "STYLZ_MVillage_Pipes_Valve_Base (3)"
+            ],
+            "nestedPrefabs": [
+                {
+                    "name": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Valve.prefab",
+                    "count": 1
+                },
+                {
+                    "name": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Valve_Base (3).prefab",
+                    "count": 1
+                }
+            ],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 2
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 2
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 8
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 6
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 2,
+            "lodLevels": 3,
+            "renderersLod0": 2,
+            "trianglesLod0": 472,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 2
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.394,
+                        "y": -0.55,
+                        "z": -0.394
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.751,
+                        "y": -0.55,
+                        "z": -0.394
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": -0.178,
+                        "y": 0.55,
+                        "z": -0.394
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": -0.178,
+                        "y": -0.55,
+                        "z": -0.394
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 65,
+                    "area": 1.156,
+                    "planarity": 0.325,
+                    "planeDepth": -0.05
+                },
+                {
+                    "side": "-X",
+                    "triangles": 133,
+                    "area": 0.861,
+                    "planarity": 0.151,
+                    "planeDepth": -0.4
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 106,
+                    "area": 0.649,
+                    "planarity": 0.18,
+                    "planeDepth": 0.39
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 36,
+                    "area": 0.345,
+                    "planarity": 0.276,
+                    "planeDepth": -0.28
+                }
+            ],
+            "frontAssumed": true,
+            "suggestedCategory": "",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.585,
+            "walkShare": 0.639,
+            "walkMin": {
+                "x": -0.711,
+                "y": 0.585,
+                "z": -0.447
+            },
+            "walkMax": {
+                "x": 0.405,
+                "y": 0.585,
+                "z": 0.668
+            },
+            "ramps": [],
+            "rotatedRenderers": 2,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "pivot-not-on-base",
+                "rotated-pieces",
+                "assembly"
+            ]
+        },
+        {
+            "name": "TL_Pipes_Valve_Small",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Valve_Small.prefab",
+            "guid": "74317e371e438264d914384bf2d4fb9a",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Valve_Small.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.439,
+                "y": -0.427,
+                "z": -0.479
+            },
+            "renderMax": {
+                "x": 0.435,
+                "y": 0.449,
+                "z": 0.001
+            },
+            "renderSize": {
+                "x": 0.874,
+                "y": 0.876,
+                "z": 0.48
+            },
+            "pivotInBounds": {
+                "x": 0.502,
+                "y": 0.487,
+                "z": 0.999
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.46,
+                "y": -0.461,
+                "z": -0.51
+            },
+            "colliderMax": {
+                "x": 0.456,
+                "y": 0.483,
+                "z": 0.006
+            },
+            "colliderSize": {
+                "x": 0.916,
+                "y": 0.945,
+                "z": 0.516
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 11,
+            "maxDepth": 2,
+            "topChildren": [
+                "STYLZ_MVillage_Pipes_Valve (3)",
+                "STYLZ_MVillage_Pipes_Valve_Base (3)"
+            ],
+            "nestedPrefabs": [
+                {
+                    "name": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Valve.prefab",
+                    "count": 1
+                },
+                {
+                    "name": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Valve_Base (3).prefab",
+                    "count": 1
+                }
+            ],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 2
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 2
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 8
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 6
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 2,
+            "lodLevels": 3,
+            "renderersLod0": 2,
+            "trianglesLod0": 472,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 2
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.435,
+                        "y": -0.427,
+                        "z": -0.479
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.439,
+                        "y": -0.427,
+                        "z": -0.479
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": -0.002,
+                        "y": 0.449,
+                        "z": -0.479
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": -0.002,
+                        "y": -0.427,
+                        "z": -0.479
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 50,
+                    "area": 0.184,
+                    "planarity": 0.188,
+                    "planeDepth": 0.4
+                },
+                {
+                    "side": "-X",
+                    "triangles": 47,
+                    "area": 0.172,
+                    "planarity": 0.166,
+                    "planeDepth": -0.32
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 56,
+                    "area": 0.677,
+                    "planarity": 0.504,
+                    "planeDepth": 0
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 185,
+                    "area": 0.654,
+                    "planarity": 0.298,
+                    "planeDepth": -0.48
+                }
+            ],
+            "frontAssumed": true,
+            "suggestedCategory": "",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.483,
+            "walkShare": 0.611,
+            "walkMin": {
+                "x": -0.46,
+                "y": 0.483,
+                "z": -0.51
+            },
+            "walkMax": {
+                "x": 0.456,
+                "y": 0.483,
+                "z": -0.224
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "front-not-plus-z",
+                "pivot-not-on-base",
+                "assembly"
+            ]
+        },
+        {
+            "name": "TL_Pipes_Vent_A",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Vent_A.prefab",
+            "guid": "2610e59b1f6f8f54f9c6a44288f860d0",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Vent_A.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.336,
+                "y": -0.439,
+                "z": -0.765
+            },
+            "renderMax": {
+                "x": 0.343,
+                "y": 0.458,
+                "z": 0.19
+            },
+            "renderSize": {
+                "x": 0.678,
+                "y": 0.897,
+                "z": 0.955
+            },
+            "pivotInBounds": {
+                "x": 0.495,
+                "y": 0.489,
+                "z": 0.801
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.351,
+                "y": -0.436,
+                "z": -0.768
+            },
+            "colliderMax": {
+                "x": 0.351,
+                "y": 0.455,
+                "z": 0.191
+            },
+            "colliderSize": {
+                "x": 0.702,
+                "y": 0.891,
+                "z": 0.959
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1.474,
+                "y": 1.474,
+                "z": 1.474
+            },
+            "objectCount": 11,
+            "maxDepth": 2,
+            "topChildren": [
+                "STYLZ_MVillage_Pipes_TJunction (12)",
+                "STYLZ_MVillage_Pipes_Vent (5)"
+            ],
+            "nestedPrefabs": [
+                {
+                    "name": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_TJunction.prefab",
+                    "count": 1
+                },
+                {
+                    "name": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Vent_Large.prefab",
+                    "count": 1
+                }
+            ],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 2
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 2
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 8
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 6
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 2,
+            "lodLevels": 3,
+            "renderersLod0": 2,
+            "trianglesLod0": 936,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 2
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.342,
+                        "y": -0.439,
+                        "z": -0.765
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.336,
+                        "y": -0.439,
+                        "z": -0.765
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0.003,
+                        "y": 0.458,
+                        "z": -0.765
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0.003,
+                        "y": -0.439,
+                        "z": -0.765
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 111,
+                    "area": 0.568,
+                    "planarity": 0.326,
+                    "planeDepth": 0.2
+                },
+                {
+                    "side": "-X",
+                    "triangles": 116,
+                    "area": 0.585,
+                    "planarity": 0.373,
+                    "planeDepth": -0.19
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 221,
+                    "area": 0.869,
+                    "planarity": 0.273,
+                    "planeDepth": 0.01
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 130,
+                    "area": 0.915,
+                    "planarity": 0.372,
+                    "planeDepth": 0
+                }
+            ],
+            "frontAssumed": true,
+            "suggestedCategory": "",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.455,
+            "walkShare": 0.796,
+            "walkMin": {
+                "x": -0.337,
+                "y": 0.455,
+                "z": -0.768
+            },
+            "walkMax": {
+                "x": 0.344,
+                "y": 0.455,
+                "z": 0.032
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": [
+                "pivot-not-on-base",
+                "assembly"
+            ]
+        },
+        {
+            "name": "TL_Pipes_Vent_Large",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Vent_Large.prefab",
+            "guid": "e97ae56af9ce2f3499b2383e585d5595",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Vent_Large.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.555,
+                "y": 0,
+                "z": -0.553
+            },
+            "renderMax": {
+                "x": 0.555,
+                "y": 0.316,
+                "z": 0.553
+            },
+            "renderSize": {
+                "x": 1.109,
+                "y": 0.316,
+                "z": 1.105
+            },
+            "pivotInBounds": {
+                "x": 0.5,
+                "y": -0.001,
+                "z": 0.5
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.585,
+                "y": -0.002,
+                "z": -0.585
+            },
+            "colliderMax": {
+                "x": 0.585,
+                "y": 0.319,
+                "z": 0.585
+            },
+            "colliderSize": {
+                "x": 1.17,
+                "y": 0.321,
+                "z": 1.17
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 1,
+                "y": 1,
+                "z": 1
+            },
+            "objectCount": 5,
+            "maxDepth": 1,
+            "topChildren": [
+                "S_MVillage_Pipes_Vent_LOD0",
+                "S_MVillage_Pipes_Vent_LOD1",
+                "S_MVillage_Pipes_Vent_LOD2",
+                "S_MVillage_Pipes_Vent_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 4
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 272,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "+X",
+                    "position": {
+                        "x": 0.585,
+                        "y": 0.319,
+                        "z": 0
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "-X",
+                    "position": {
+                        "x": -0.585,
+                        "y": 0.319,
+                        "z": 0
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "+Z",
+                    "position": {
+                        "x": 0,
+                        "y": 0.319,
+                        "z": 0.585
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 1
+                    }
+                },
+                {
+                    "name": "-Z",
+                    "position": {
+                        "x": 0,
+                        "y": 0.319,
+                        "z": -0.585
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": -1
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 30,
+                    "area": 0.209,
+                    "planarity": 0.213,
+                    "planeDepth": 0.53
+                },
+                {
+                    "side": "-X",
+                    "triangles": 32,
+                    "area": 0.231,
+                    "planarity": 0.239,
+                    "planeDepth": -0.42
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 34,
+                    "area": 0.27,
+                    "planarity": 0.154,
+                    "planeDepth": 0.54
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 33,
+                    "area": 0.213,
+                    "planarity": 0.211,
+                    "planeDepth": -0.43
+                }
+            ],
+            "frontAssumed": false,
+            "suggestedCategory": "floor",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.319,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.585,
+                "y": 0.319,
+                "z": -0.585
+            },
+            "walkMax": {
+                "x": 0.585,
+                "y": 0.319,
+                "z": 0.585
+            },
+            "ramps": [],
+            "rotatedRenderers": 0,
+            "unevenScaleRenderers": 0,
+            "mirroredRenderers": 0,
+            "offLayerObjects": 0,
+            "nonStaticObjects": 0,
+            "missingMeshes": 0,
+            "missingScripts": 0,
+            "flags": []
+        },
+        {
+            "name": "TL_Pipes_Vent_Small",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Vent_Small.prefab",
+            "guid": "dcdc1e97cd984d2448b5ce0829cad226",
+            "folder": "Environment/Pipes",
+            "sourcePrefab": "Assets/ASTROFISH_GAMES/STYLZ_MVillage/_Assets/Pipes/Prfbs/S_MVillage_Pipes_Vent_Small.prefab",
+            "isVariant": true,
+            "hasRenderBounds": true,
+            "renderMin": {
+                "x": -0.555,
+                "y": 0,
+                "z": -0.553
+            },
+            "renderMax": {
+                "x": 0.555,
+                "y": 0.316,
+                "z": 0.553
+            },
+            "renderSize": {
+                "x": 1.109,
+                "y": 0.316,
+                "z": 1.105
+            },
+            "pivotInBounds": {
+                "x": 0.5,
+                "y": -0.001,
+                "z": 0.5
+            },
+            "hasColliderBounds": true,
+            "colliderMin": {
+                "x": -0.585,
+                "y": 0.006,
+                "z": -0.562
+            },
+            "colliderMax": {
+                "x": 0.585,
+                "y": 0.328,
+                "z": 0.562
+            },
+            "colliderSize": {
+                "x": 1.169,
+                "y": 0.321,
+                "z": 1.125
+            },
+            "rootEuler": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "rootScale": {
+                "x": 0.6,
+                "y": 0.6,
+                "z": 0.6
+            },
+            "objectCount": 5,
+            "maxDepth": 1,
+            "topChildren": [
+                "S_MVillage_Pipes_Vent_LOD0",
+                "S_MVillage_Pipes_Vent_LOD1",
+                "S_MVillage_Pipes_Vent_LOD2",
+                "S_MVillage_Pipes_Vent_Collision"
+            ],
+            "nestedPrefabs": [],
+            "components": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                },
+                {
+                    "name": "LODGroup",
+                    "count": 1
+                },
+                {
+                    "name": "MeshFilter",
+                    "count": 4
+                },
+                {
+                    "name": "MeshRenderer",
+                    "count": 3
+                }
+            ],
+            "gameplayScripts": [],
+            "lodGroupCount": 1,
+            "lodLevels": 3,
+            "renderersLod0": 1,
+            "trianglesLod0": 272,
+            "materialsLod0": 1,
+            "colliders": [
+                {
+                    "name": "BoxCollider",
+                    "count": 1
+                }
+            ],
+            "triggerColliders": 0,
+            "lights": [],
+            "orientation": "not-a-slab",
+            "suggestedFronts": [],
+            "frontConfidence": 0,
+            "hasBackPlane": false,
+            "backPlaneMin": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneMax": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "backPlaneSize": {
+                "x": 0,
+                "y": 0,
+                "z": 0
+            },
+            "suggestedConnections": [
+                {
+                    "name": "+X",
+                    "position": {
+                        "x": 0.585,
+                        "y": 0.328,
+                        "z": 0
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "-X",
+                    "position": {
+                        "x": -0.585,
+                        "y": 0.328,
+                        "z": 0
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "+Z",
+                    "position": {
+                        "x": 0,
+                        "y": 0.328,
+                        "z": 0.562
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 1
+                    }
+                },
+                {
+                    "name": "-Z",
+                    "position": {
+                        "x": 0,
+                        "y": 0.328,
+                        "z": -0.562
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": -1
+                    }
+                }
+            ],
+            "sides": [
+                {
+                    "side": "+X",
+                    "triangles": 30,
+                    "area": 0.209,
+                    "planarity": 0.213,
+                    "planeDepth": 0.53
+                },
+                {
+                    "side": "-X",
+                    "triangles": 32,
+                    "area": 0.231,
+                    "planarity": 0.239,
+                    "planeDepth": -0.42
+                },
+                {
+                    "side": "+Z",
+                    "triangles": 34,
+                    "area": 0.27,
+                    "planarity": 0.154,
+                    "planeDepth": 0.54
+                },
+                {
+                    "side": "-Z",
+                    "triangles": 33,
+                    "area": 0.213,
+                    "planarity": 0.211,
+                    "planeDepth": -0.43
+                }
+            ],
+            "frontAssumed": false,
+            "suggestedCategory": "floor",
+            "openings": [],
+            "hasWalkSurface": true,
+            "walkHeight": 0.328,
+            "walkShare": 1,
+            "walkMin": {
+                "x": -0.585,
+                "y": 0.328,
+                "z": -0.562
+            },
+            "walkMax": {
+                "x": 0.585,
+                "y": 0.328,
+                "z": 0.562
             },
             "ramps": [],
             "rotatedRenderers": 0,

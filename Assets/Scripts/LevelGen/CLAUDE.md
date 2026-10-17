@@ -3,7 +3,8 @@
 An editor tool that builds a level's streets and buildings from the game's own prefab
 variants in `Assets/Prefabs`, from a layout spec that a written brief is turned into. It
 places real prefab instances under a root of its own and can be run again without
-touching anything placed by hand. It generates no lighting, set dressing or gameplay.
+touching anything placed by hand. Of set dressing it places only the facade dressing
+(pipes, walkways, lamp posts; below); it generates no lighting, other dressing or gameplay.
 
 **State:** being built in stages (below). Stage 1 (the catalogue scanner) is built and
 run: `catalogue.json` holds the `Environment` prefabs (188 once `Containers` and
@@ -12,8 +13,16 @@ Review Pieces window) is built; one piece is verified so far and none has a styl
 Stage 3 (the layout spec, building styles and the validator) is built. Stage 4 (the
 streets' ground, the generate command and the `Generated` root) is built; the cobbles
 generate in the editor, the segment widths, storey counts and decking are untested.
-Stage 5 is built in steps: 5a (the facades' straight runs) is built, untested; 5b-5d and
-stage 6 are not built.
+Stage 5 (the facades, corners, side walls, lots and roofs) is built. Stage 6 (the
+report on what was built: free wall ends, open roof ends, refused pieces, with a marker
+at each) is built. **Every placed piece follows one fitting rule** (`FitWidths`,
+`fillStretchShare`): whatever covers a length end to end - a run's modules, side
+walls, a corner's fillers, foundations, beams - lays whole pieces, and the length left
+under a piece is closed by widening the last piece when it is under 30% of a piece's
+width, else by one more piece scaled down to it; nothing is ever a sliver nor an
+overrun. **The pack's walls are hollow: an end face left in view shows black**, so every
+wall end must be covered (by the next wall, a side wall, a filler or a corner piece) or
+hidden behind another wall.
 
 ## Rules
 
@@ -42,6 +51,17 @@ stage 6 are not built.
   constants: a new tolerance, overlap or rule value the generator or validator needs is
   added there. (The scanner's own detection thresholds stay constants in
   `WallOrientation` / `PieceShape`: changing them means a rescan.)
+- **After every change to the generator, Claude runs it in the open Editor** (Unity CLI,
+  root `CLAUDE.md`): wait for `recompile_status` to finish, call
+  `LevelGen.LevelGenerator.Generate(<spec path>)` by reflection through `unity command
+  eval`, save the scene, read the Console's validator and generator logs - the street
+  test must pass, the street clearance should refuse nothing but stray corner
+  foundations, and **the report (stage 6) should list no free wall end**; one it lists is
+  looked at (a top-down or street-level render from a temporary camera, with the
+  `Roofs` group hidden for the top-down, is how) before the work is called done - then
+  check the scene (gaps along street edges, hidden ground tiles). The rolled
+  segment widths come from `LayoutSpecValidator.ValidateFile` the same way, since the
+  spec's widths are only the base.
 - Editor-only code in `LevelGen/Editor`, namespace `LevelGen`; the one runtime component is
   the `GeneratedRoot` marker (`LevelGen/GeneratedRoot.cs`).
 
@@ -91,7 +111,43 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   origin): a high street bending at a T-junction
   with a lane, facades on every side (the high street's left side one frontage past
   the bend, its right side two, split at the lane), no lots; cobbles, the plaster,
-  wall-tall, plaster-masonry and masonry-woodlarge styles.
+  wall-tall, plaster-masonry and masonry-woodlarge styles. `example-block.json` (sector
+  `Example Block`, 100m east of the street): a hexagonal ring of two streets (turned 15 degrees) (three segments each, meeting end to
+  end), facades on its outer side, and a lot (`merchant-house`) inside it with neither
+  outline nor modules, so it takes the six-sided block the ring encloses, facing south.
+  `example-quarter.json` (sector `Example Quarter`, 200m east of the street, laid out in a frame turned 22
+  degrees): lots and side streets together - a gently bending main street with two
+  side lanes leaving it square and a back street (its two segments in line) closing a
+  five-sided block round a lot (`guild-hall`, its block from the streets, facing the
+  main street), facades on every outer side, and two alleys leaving the middle of the
+  main street and the back street square, away from the lot, splitting those
+  facades: street corners where lanes and alleys branch off, an inside L where the
+  back street meets the west lane, a lane running on past a junction, and dead ends.
+  `example-two-lots.json` (sector `Example Two Lots`, laid out in a frame turned 30
+  degrees, 110m north of the street): streets at
+  two levels - a four-sided ring of two streets round a lot (`counting-house`) at
+  the street level 0, and another round a lot (`warden-hall`) 1.62m up, the two
+  halves of each ring meeting end to end - joined by exactly two link streets leaving
+  the low ring's east side mid-edge and meeting the high ring's west side mid-edge,
+  square at both ends, each climbing by one flight of steps on its second segment; a
+  lane and an alley leaving the links' bend points square, an alley off the low
+  ring's west side and a spur off the high ring's east side, all dead ends; facades
+  on every outer side, lot origins at their street level plus `groundStoreyHeight`.
+  **The examples' sectors stand apart in world space, so all four can be in one scene
+  without overlapping; a new example spec is placed clear of them.**
+  The other examples are turned off the axes too. **Specs Claude writes keep streets
+  at irregular angles, at least about 15 degrees off the world axes; every branch
+  meets the street it leaves within `branchSquareTolerance` of square (the
+  validator's error), so sharp corners come only from bends - `sharpCornerShare` of
+  them where the layout allows (the validator warns when a spec is more than a
+  corner off it); a side street branching off a block's street mid-run shares a
+  point added there, with the facade on that side split at it, and a street with a
+  point mid-run for a branch keeps its segments either side in line (two nearly
+  parallel edges of different widths would cut a short side into the block a lot
+  takes). A street's `width` is left 0, so it takes the settings'
+  `streetWidth` (a spec's own width overrides the setting); only an alley gives an
+  explicit narrower width (4m in the examples). Frontages are sized to the widths
+  the settings give (the validator reports any too long).**
 - `Assets/Data/LevelGen/GeneratorSettings.asset` — the tunable values (`GeneratorSettings`,
   a ScriptableObject edited in the Inspector; menu **TeaLeaf > Level Gen > Generator
   Settings** selects it, making it with the defaults if missing). Generation and
@@ -103,16 +159,31 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   walls the same against the storey's height). **Streets:** `streetWidth` (5m, when a spec gives 0),
   `streetWidthVariance` (1m either way, per segment), `minStreetWidth` (2m).
   **Storeys:** `minStoreys` (1) and `maxStoreys` (3) for a
-  facade, `storeyBias` (-1 to +1, 0), `lotNeighbourDistance` (15m), `lotStoreyBias`
+  facade, `maxBuildingHeight` (13m: a building's or column's storeys stop where the
+  next one's top would pass this above its street, whatever its count - so tall
+  storey styles such as wall-tall's 4.5m never run away above their neighbours;
+  `StoreyLevels`), `storeyBias` (-1 to +1, 0), `lotNeighbourDistance` (15m), `lotStoreyBias`
   (-2 to +2 storeys, 0). **Facades:** `groundStoreyHeight` (0m, -1 to 1.2: how far
   the base of the ground storey's walls, and so its doors, stands above the street),
   `foundationHeight` (0.3m: how far the foundations' tops stand above the street, set
   apart from the walls),
   `foundationFrontOffset` (0.1m: how far their fronts stand out past the walls' front
-  line), `groundDoorShare` (0.1), `groundWindowShare` (0.3), `upperWindowShare` (0.4), `storeyBeamOverlap` (4cm), `jettyShare` (0.3: buildings whose upper storeys jut out), `cornerAngleTolerance` (20°), `cornerMaxReach` (8m), `maxStoreyWidthMismatch` (0.3m: how far a storey's module width may differ from the ground storey's). **Columns:** `columnWidthMin` / `Max` (1-2 modules), `columnShare` (0.15: off the line), `columnMinRunModules` (6), `columnDepthMin` / `Max` (0.3-0.8m), `columnOutShare` (0.5), `columnHeightShare` (0.3: taller or lower than the building), `columnStoreyVariation` (1 storey). **Window inserts:** `windowInsertShare` (1), `windowInsertMaxMargin` (0.45m), `windowInsertDepth` (0m). **Side walls:** `sideWallMultiplier` (0-5, 1). **Layout checks:** `overlapTolerance` (5cm),
-  `minSegmentLength` (0.1m), `junctionDistance` (0.1m), `branchAngle` (17.5°).
+  line), `fillStretchShare` (0.3: the fitting rule's share - the length left under a
+  piece widens the last piece below it, adds a scaled-down piece above it),
+  `groundDoorShare` (0.1), `groundWindowShare` (0.3), `upperWindowShare` (0.4), `storeyBeamOverlap` (4cm), `jettyShare` (0.3: buildings whose upper storeys jut out), `cornerAngleTolerance` (20°), `cornerMaxReach` (8m), `maxStoreyWidthMismatch` (0.3m: how far a storey's module width may differ from the ground storey's). **Columns:** `columnWidthMin` / `Max` (1-2 modules), `columnShare` (0.15: off the line), `columnMinRunModules` (6), `columnDepthMin` / `Max` (0.3-0.8m), `columnOutShare` (0.5), `columnHeightShare` (0.3: taller or lower than the building), `columnStoreyVariation` (1 storey). **Doors:** `doorInsertMargin` (5cm), `doorInsertDepth` (0m). **Window inserts:** `windowInsertShare` (1), `windowInsertMaxMargin` (0.45m), `windowInsertDepth` (0m). **Side walls:** `sideWallMultiplier` (0-5, 1). **Layout checks:** `overlapTolerance` (5cm),
+  `minSegmentLength` (0.1m), `junctionDistance` (0.1m), `branchAngle` (17.5°), `branchSquareTolerance` (20°: a
+  street ending at a junction where at least two other ways leave the point - another
+  street running on through it, or more streets meeting - must meet the street it
+  branches off, the line through the two other ways most nearly opposite, within this
+  of square; two streets meeting end to end are a bend, not a branch).
+  **Street clearance:** `streetHeadroom` (2.2m: a piece this high above a street may
+  overhang it), `streetBallRadius` (0.5m) and `streetBallHeight` (1m: the street
+  test's ball).
+  **Sharp corners (for layout specs):** `sharpCornerAngle` (60°: a corner between two
+  streets narrower than this is sharp) and `sharpCornerShare` (0.25: the share of a
+  layout's corners Claude makes sharp; the generator clears any angle).
   **Ground tiles:** `groundOverlap` (3cm), `groundTileTurns` (on), `groundSlideMin` /
-  `Max` (0.2-0.8 of a tile), `minTileCoverage` (0.1m). **Decking:** `deckingOverlap`
+  `Max` (0.2-0.8 of a tile), `minTileCoverage` (0.1m), `groundGridMinAngle` (15°: the ground grid's least turn off the world axes), `lotGroundMargin` (1m: ground laid round a lot). **Steps:** `landingDrop` (2cm: how far a flight's landing lies below the street, so the grid's tiles overlapping it lie on top). **Roofs:** `roofPitch` (60°), `roofRows` (2), `roofEaveOverhang` (0.4m), `roofEaveDrop` (1m), `roofVergeOverhang` (0.2m), `roofRowOverlap` (0.25m), `roofPanelOverlap` (0.45m: enough to cover a verge end's set-back top tiles where it faces the next panel), `roofGableSink` (5cm), `roofHipOut` (0.75m) and `roofHipRaise` (0.2m: how far out of the corner, along each slope's front, and above the eaves a hip strip's lowest piece stands), `roofHipStep` (2.5m: the most one piece of a hip strip rises above the one below) and `roofHipLean` (10°: how far back each piece leans, its outer corner up). **Decking:** `deckingOverlap`
   (3cm), `deckingQuarterTurn` (off), `deckingSlideMin` / `Max` (0-0).
 
 ## Stages
@@ -129,8 +200,8 @@ can't fill, and any overlap, is shown in the report rather than hidden.
    left at a frontage's end filled; and each lot's whole building within the lot's
    frame. Both from parts: foundations, then per storey wall modules (plain, window and
    door modules being the same width, so any can stand in for another), corner pieces
-   where sides meet, `wood-floor` floors in a whole building, and a roof from the roof
-   kit; the front faces the street. **Window walls can stand at any module of any
+   where sides meet, and a roof from the roof kit (no floors or interiors: those are
+   made by hand); the front faces the street. **Window walls can stand at any module of any
    storey**, the ground storey included, mixed freely with plain walls. **Where several pieces fit a module, one is chosen
    at random (from the seed), never the same piece as the module before it** along
    the run, unless it is the only one that fits. **The hierarchy is streets >
@@ -138,8 +209,9 @@ can't fill, and any overlap, is shown in the report rather than hidden.
    or more modules, each with its own depth and storey count. **Side walls where a
    column stands taller than its neighbour** (in its building or the next): each
    storey of the taller column above the lower one's top gets a side wall at that
-   end, facing that way and running back from behind its front walls, so from the
-   street it seems to go on behind. Its length in modules is `sideWallMultiplier`
+   end, facing that way, standing just outside the end against the front wall's end
+   and running back from its face, so the end is covered and from the street the
+   building seems to go on behind. Its length in modules is `sideWallMultiplier`
    times the column's width in modules, at least one (0 = none). Separate from roofs
    and roof walls. Placed under
    `Environment/Sectors/<Sector>/Geometry/Generated` (`GeneratedRoot`), which a regeneration
@@ -148,21 +220,24 @@ can't fill, and any overlap, is shown in the report rather than hidden.
    - **5a** the straight runs: foundations and storeys of wall modules along each
      frontage, broken at bends (built; `FacadeBuilder`, below).
    - **5b** bends and ends (built; Corners, below): **a facade breaks at a bend** and
-     goes on along the next segment's edge in that segment's frame; on the inside the
-     walls overlap behind their fronts, on the outside each side is carried to where
-     the lines meet and **the joint is covered** - an outer corner piece near a right
-     angle, else a column. **Two frontages of different streets meet at a street
-     corner** the same way; a frontage end at a junction that meets none turns a
-     one-module side return into the branching street. **The length left at a
-     frontage's end extends its last building** with whole modules; at a dead end one
-     more closes it.
+     goes on along the next segment's edge in that segment's frame, both runs ending
+     at one point; on the inside the walls overlap behind their fronts, on the outside
+     each side is carried to the corner and **the joint is covered** - an outer corner
+     piece near a right angle, else a column. **Two frontages of different streets meet
+     at a street corner** the same way; a frontage end at a junction that meets none
+     turns a one-module side return into the branching street. **The length left at a
+     frontage's end extends its last building** with whole modules and the fitting
+     rule closes the rest; at a dead end one more module overruns behind the dead
+     end's facade.
    - **5c** the side walls where a taller column stands beside a lower one, along a
-     straight run (built, with the columns; at a bend or a frontage's end they
-     wait for 5b).
-   - **5d** the lots' whole buildings: four sides, corners, `wood-floor` floors.
-   - Roofs come after these.
-6. **Report** — missing or unverified assets, footprint mismatches, overlaps, gaps along
-   streets and between storeys, unconnected connection points, anything not placed.
+     straight run (built, with the columns).
+   - **5d** the lots' whole buildings: walls along every side of the footprint, corners (built;
+     Lots, below).
+   - **5e** roofs over every facade, dead end and lot (built; Roofs, below).
+6. **Report** (built; Report, below) — after everything is placed: every front wall
+   end nothing stands against that can be seen from a street, every piece refused for
+   standing in a street, every side wall or wall left out, each listed in the Console
+   and marked in the scene.
 
 ## Facades (stage 5a)
 
@@ -170,20 +245,62 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   under `Generated/Facades/<street> <side> <from>-<to>/Building <i>/` (`Foundations`,
   `Storey 0`, `Storey 1`, ...).
 - **Runs:** one straight run per segment along the frontage's street edge (the middle
-  line pushed out by half the segment's width). On the inside of a bend a run stops
-  where it meets the neighbouring segment's edge (line intersection); on the outside
-  the runs leave a gap (closed by a corner); at a frontage's ends a run stops half a
-  branching street's width short (`LayoutSpecValidator.BranchWidth`, shared). The
+  line pushed out by half the segment's width). **At a bend the two runs end at one
+  point** (`BendEnd`), whatever the two segments' widths: on the street's inside of
+  the bend (the facade's outer corner) where the two edges cross, short of the point,
+  a corner joint carrying the walls on from there; on the street's outside (the
+  facade's inside corner, `InsideBend`) where the walls' back lines cross, past the
+  point, so the walls overlap behind their fronts and the corner closes by itself.
+  Only where that point is further than `cornerMaxReach` from the point's foot
+  (nearly straight edges of different widths cross far off) does a run end on the
+  bend's bisector through the point instead (`Bisector`). **Then every run is cut to
+  the longest stretch where its walls and foundations stand in no other street**
+  (`StreetClearance.Clear`, Street clearance below): the band from the foundations'
+  front (`foundationFrontOffset` into its own street) back to the deepest of the
+  walls' setback and the foundations' depth (`FoundationBack`), against every
+  segment's rectangle but its own segment and its neighbours, each kept clear by how
+  far a piece of the frontage stands out past its module's end (`Overhang`: a wall's
+  trim past its back plane, a foundation's excess width) plus `overlapTolerance`. So
+  a run stops clear of a street branching off at its ends (half the branch's width at
+  a right angle, far more at a sharp one, where the back line crosses last) and of a
+  street passing close behind; a run with no clear stretch is left out, and a
+  frontage with none is not built (logged). The
   buildings are laid module after module from the frontage's first point at the
   ground storey's `ModuleSpacing`; a module that would pass its run's end (beyond
-  `sizeTolerance`) starts the next run. **The length left after the buildings**
-  (`ExtendLastBuilding`): the last building goes on with whole modules while they fit,
-  moving to the next run as above; where the frontage ends at a dead end (one
-  `StoreyPlan.DeadEnds` closes), one more module is added if any length is left, its
-  overrun behind the dead end's facade, so the frontage always meets it. Seen from the
+  `sizeTolerance`) starts the next run, **the length left on the run first closed by
+  the fitting rule** (`FillRunEnd`: under `fillStretchShare` of a module, the run's
+  last module is widened to the end - `ModuleSpot.Width`, read everywhere through
+  `Spacing()`; otherwise a narrower module is added, always a plain wall), and **one
+  that would pass the last run's end is left out with the rest of the frontage's
+  modules** (logged; the validator reports such a frontage as too long). **The length
+  left after the buildings** (`ExtendLastBuilding`): the last building goes on with
+  whole modules while they fit, moving to the next run as above, the rest closed by
+  the rule; where the frontage ends at a dead end (one `StoreyPlan.DeadEnds` closes)
+  or at an inside L, one more module is added instead, its overrun behind the dead
+  end's or the other street's facade, so the frontage always meets it; a frontage that
+  starts at a dead end or an inside L gets the same overrun module before its first.
+  Seen from the
   street a left frontage runs left to right along the street, a right frontage right
   to left, so `doorModule` (counted from the left over the spec's `widthModules`, so the
   added modules never move it) is mirrored on a right frontage.
+- **Beside a flight of steps** (`Run.Stepped`, `StepAt`; `StepFlights`): the street is
+  level either side of the flight, so the run stands its modules on the low or high
+  level with the change on a module's end - **the first module wholly past the
+  flight's top stands on the high level, every module before it on the low level**
+  (the street rising against their fronts, never a module over the steps), and
+  **columns are always split there** (`SplitColumns`). The side walls between the two
+  columns compare their tops in metres above each one's own street level
+  (`FillSide`), so the higher column's storeys above the lower one's top are closed
+  as for any taller column. **A module on the low level with the street rising in
+  front of it** (beside the flight or its landing; `RisesInFront`, from the run's
+  `Flight` and `FlightOffset` and `StreetSteps.Flight.SurfaceAt`, the steps' line as
+  walked) **gets more masonry foundations stacked on its own** (`StackBesideSteps`):
+  its style's foundations, at random, never the one before, the top one's top
+  `foundationHeight` above the highest the street comes in front of the module, each
+  below overlapping the one above by `wallOverlap`, down to its own foundation,
+  placed like it - so a stone cheek closes the gap between the steps or the landing
+  and the walls. A jettied building's supports run on beside the steps like the
+  storeys they carry.
 - **Depth:** all of a frontage's walls line up by their back planes, on a back line set
   back from the street edge by the deepest any of its usable walls reaches in front
   of its `left` connection point (render box front less the back plane), so that
@@ -203,17 +320,27 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   draw falls under `groundDoorShare`, takes a `door-wall`; otherwise a `window-wall`
   when the window draw falls under `groundWindowShare` (ground storey) or
   `upperWindowShare` (above it) and the style has one; else a `wall`; chosen with
-  `PiecePlacer.Pick`, never the piece before it along that storey. **A plain wall marked `fillsStorey`** (`PlasterWalls_B_MasonaryWall`), where the storey's plain walls hold one, stands at every module but the spec's door: no other plain walls, random doors or window walls on that storey (the draws are still made). Storeys stand on
+  `PiecePlacer.Pick`, never the piece before it along that storey. **An overrun
+  module** (`ModuleSpot.Overrun`: one standing partly behind another facade, at an
+  inside L or a closed end) and **a module narrower than the ground module** (added to
+  close a run's end) are always plain walls, so no door or window is cut off or
+  squeezed. **A plain wall marked `fillsStorey`** (`PlasterWalls_B_MasonaryWall`), where the storey's plain walls hold one, stands at every module but the spec's door: no other plain walls, random doors or window walls on that storey (the draws are still made). Storeys stand on
   each other at their styles' `StoreySpacing` (or on a beam band, below), the ground storey's base
   `groundStoreyHeight` above the street; every storey is laid at the ground storey's module
-  spacing, so they stand in line; a storey whose style has another module width (up to `maxStoreyWidthMismatch` off, e.g. plaster on cellar walls) has each wall centred in its place, overlapping or leaving a small gap shared between its sides. A building whose ground style has no module yet
-  stops the frontage there (logged); a storey whose style has none ends the building.
+  spacing, so they stand in line, and **every wall is scaled along its width to fill its
+  module exactly** (the module's width plus the overlap), so a storey whose style has
+  another module width (up to `maxStoreyWidthMismatch` off, e.g. plaster on cellar
+  walls), and a module widened or narrowed to close a run's end, joins its neighbours
+  with neither gap nor overlap. A building whose ground style has no module yet
+  stops the frontage there (logged); a module with no wall that fits is left and
+  reported, the storey going on; a storey whose style has none ends the building.
 - **Foundations:** one per module from the ground style's `foundation` pieces (random,
-  no repeat), centred on the module along the street, the top of its render box
-  `foundationHeight` above the street and its front face `foundationFrontOffset` out
-  past the street edge (the walls' front line); above the ground storey's base it
-  shows as a plinth in front of the walls. Doors stand `groundStoreyHeight` above the
-  street; steps up to them aren't planned yet.
+  no repeat), centred on the module along the street and scaled along its width to it
+  as the walls are, the top of its render box `foundationHeight` above the street and
+  its front face `foundationFrontOffset` out past the street edge (the walls' front
+  line); above the ground storey's base it shows as a plinth in front of the walls. A
+  style with no usable foundation is reported and its walls built without. Doors stand
+  `groundStoreyHeight` above the street; steps up to them aren't planned yet.
 - **Jetties** (medieval overhangs): each facade building draws at `jettyShare` (always
   drawn); it is jettied where it may have an upper storey and a usable `jetty` piece
   (any style; `Platforms_ShortBoardPlanks_Supports`, 3.02 x 1.58m, its front -Z) fits
@@ -233,7 +360,7 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   storey** on each storey's depth (column depth plus jetty), so a jettied storey beside
   one that isn't is a step, closed by walls from the jettied side; a step's walls are a
   module long, or longer when the step is deeper (its depth plus the walls' setback).
-  Only a ground-storey step (a column's) gets a side foundation. **A jettied storey at a run's end** (a frontage's end or a bend, where no column of the run stands beside it) **is closed by itself** (`CloseJetty`, under `Building <i>/End <n>/`): side walls facing out of the end from its back line back past its column's own line, a module or the jetty plus the setback if longer, with the beam band below as at a join. Dead ends are never
+  Only a ground-storey step (a column's) gets a side foundation. **A jettied storey at a run's end** (a frontage's end or a bend, where no column of the run stands beside it) **is closed by itself** (`CloseJetty`, under `Building <i>/End <n>/`): side walls facing out of the end, standing just outside it against the front wall's end (a storey that high may overhang a street) from behind the wall's face back past its column's own line, a module or the jetty plus the setback if longer, with the beam band below as at a join. Dead ends are never
   jettied.
 - **Storey beams:** where two storeys' styles both have usable `beam` pieces
   (`PlasterWalls_A_MidBeam`, tagged with the common-height plaster styles; wall-tall,
@@ -251,6 +378,15 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   storey that gets side walls and has a band below it, beams laid end to end the same
   length, the same way round and from the same start as those walls, so the band
   never leaves a gap between side walls.
+- **Doors:** every doorway (a `door` opening in the catalogue) of every wall placed gets
+  a plain door (`PlaceDoor`): one of the usable `door` pieces at random, never the one
+  before in that wall - any style, and never a prefab with a gameplay script (gameplay
+  doors and locks are placed by hand). Scaled along its width and height to the doorway
+  as the wall shows it (the wall's own scale included) plus `doorInsertMargin` each
+  side and at the top, so its edges tuck into the frame (a rectangular door in an arch
+  hides its top corners in the stone); its bottom middle on the sill's middle, at the
+  middle of the wall's depth moved forward by `doorInsertDepth`; facing the wall's way,
+  under the wall's storey group. With no usable door piece the doorways stay open.
 - **Window inserts:** every facade wall placed (dead ends too, not the steps' side
   walls) has its window holes filled: per `window` opening in the catalogue (holes in
   the back plane: `PlasterWalls_A_WindowBase_Hole` has one of 1.2 x 1.3m,
@@ -273,7 +409,9 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   its depth (`columnDepthMin`-`Max`), a height change (`columnHeightShare`), taller
   or lower (even odds) and by how much (1 to `columnStoreyVariation`). **Depth** applies
   only on a straight run of at least `columnMinRunModules` modules and never to a
-  column holding the run's first or last module; forward is into the street. It is
+  column holding the run's first or last module; forward is into the street, and
+  only where the step stays out of every other street (`ColumnClear`: the street
+  clearance's band from the edge forward by the depth). It is
   capped at half the narrowest module of any storey of the frontage, so two
   neighbouring columns differ by at most a module and one side wall fills any step.
   A module's walls and foundation move with its column's depth. **Height:** the
@@ -286,36 +424,44 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   run, in one building or two, not corner pieces (the pack's corners sit at the ends
   of walls, and one over a wall's face would flicker). Each is a plain `wall` of
   **any width** whose height fits the storey's module height (`Fits`; scaled in height
-  to it when beyond `sizeTolerance`) - **never one
-  marked `showsOpening`** (`BuildingStyle.SideWalls`; ground-storey-only ones only on
-  the ground storey) - laid end to end (each `wallOverlap` short of its width further
-  back) until the length is covered, turned side-on to face out of its column's end
+  to it when beyond `sizeTolerance`) - **not one marked `showsOpening`** while any
+  other will do (`BuildingStyle.SideWalls`; ground-storey-only ones only on
+  the ground storey) - laid end to end by the fitting rule (`FitWidths` on the
+  storey's module width: whole walls, the last widened or one more narrowed, each a
+  piece near its width at random - `PickForWidth` - scaled to it; the beam band's
+  beams below on the same joints), turned side-on to face out of its column's end
   towards the other column. **Its walls come from the storey's own style, else the
   neighbouring column's style at the same storey, else the styles of the building's
-  storeys above** (wall-tall has no plain wall of its own that
-  shows no opening, so it borrows); a style with none anywhere is left without them
-  and logged once per frontage.
+  storeys above**, **else the storey's own plain walls that show a blind window**
+  (`showsOpening`; wall-tall has no plain wall showing no opening, and the other
+  styles' are far shorter than its 4.5m, so its side walls are its blind-window
+  walls); a style with none at all is left without them and logged once per
+  frontage. **Any run of side walls going back (here, at
+  corners, jetty ends) is cut short where it would reach into a street**
+  (`StreetClearance.Reach`: a ray from either face of the walls against every
+  street shape, except one it starts in, the outside of every corner counted as
+  street) - near a sharp corner the other street lies just behind - the cut length
+  then covered by the rule, so the last wall never passes the street nor ends as a
+  sliver; a storey standing `streetHeadroom` above the street is not cut (it may
+  overhang, as the clearance lets a jetty). A side wall that can't be placed, or a
+  run with no room before a street, is reported.
   - **A column's storey whose top stands above the other column's top** (by more than
     `sizeTolerance`, in metres, since styles' storey heights differ) gets
     `sideWallMultiplier` times the column's width in modules (at least one) of
-    length, from its own back line, its thickness in its own column.
+    length.
   - **Where the two stand at different depths**, the forward column's other storeys
     get one module's length each, and the step one `foundation`, its front
-    `foundationFrontOffset` out past the ground storey's side wall. Where they go
-    depends on the other column:
-    - **The other column is inset** (stands back from the line): **in the recess**,
-      backed against the forward column's end - the side wall's back plane on the
-      join, its thickness in the inset column - starting `FaceClearance` (1cm) behind
-      the face of the forward column's front wall beside the join (`ModuleSpot.Reach`,
-      recorded per storey as the walls are placed), so it covers that wall's end, and
-      running back **through the inset column's front walls**, which hide the rest.
-    - **Otherwise** (the forward column is an outset): in the outset column, its front
-      flush with the join, starting at the column's back line behind its front walls.
-      The part past the step's depth is hidden behind the recessed wall.
+    `foundationFrontOffset` out past the ground storey's side wall.
+  - **Every side wall stands in the other column's space, backed against its own
+    column's end**: its back plane on the join (`FaceClearance`, 1cm, in from it),
+    its thickness in the other column, starting just behind the face of its column's
+    front wall beside the join (`ModuleSpot.Reach`, recorded per storey as the walls
+    are placed). So it covers that wall's hollow end - above the other column's top,
+    or in front of its face - and its own face never lies on the end's; behind the
+    other column's face it runs on through that column's front wall, which hides
+    the rest, and above its top it rises through its roof like a party wall.
   - **A side wall is placed by the end of its render box**, not its connection point
-    (which some pieces' trim stands past). From the frontage's front line instead of
-    behind the front walls it would stand out past every front wall shallower than the
-    deepest.
+    (which some pieces' trim stands past).
   - Under `Building <i>/Side <n>/` of the column's building, `n` the join's module
     index. Run ends a corner closes get none; a jettied storey at any other run end is closed (Jetties, above). Dead ends
     are one column.
@@ -323,28 +469,92 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   (`LayFrontage`: modules, the end's extension, columns), then finds the corners
   (`FindJoints`), then builds the frontages, then the corners (`BuildJoint`).
   - **Inside a bend** (the next run heads into the street the run faces,
-    `InsideBend`) the runs stop where the edges meet, as before, and the building
-    being laid gets an added module where length is left: its overrun stands behind
-    the next run's walls.
+    `InsideBend`) **the runs are carried past the point to the one point where the
+    walls' back lines cross** (`Runs`, `BendEnd`, no further than `cornerMaxReach`):
+    the walls' fronts stand back from the edge by differing amounts, and wherever they
+    stand they meet before the back lines do, so the corner is closed - each run's
+    modules fill it to that point by the fitting rule, and nothing overruns past it.
+    (On the street's inside of a bend, the outer corner, both runs stop where the
+    edges cross.) **An inside L between two streets** - a
+    street ending at a point another street goes on from, turning into the street the
+    facade faces (the outer facades round a block meet like this) - is closed the same
+    way: both runs are carried to where the two edges cross (`InsideCorner`, in `Runs`),
+    and **one module more always overruns behind the other street's facade** at that
+    end - at the frontage's start a module laid back past it (`LayFrontage`), at its end
+    `ExtendLastBuilding`'s, as at a dead end. **The other street is the one bounding
+    the facade's corner**: of every street leaving the point, the first met turning
+    from the way the run leaves it towards the facade's side - an L only if it starts
+    or ends there (one passing through is a branch) and turns into the street the
+    facade faces (not a near-straight run on, nor a street branching off on the
+    facade's side). **Where the block's corner is wider than a half turn** (a ring
+    bending at a junction) the edges cross behind the point, and the run is carried
+    back past it, up to `cornerMaxReach`. No overrun where the street clearance cut
+    the run short of the corner.
   - **Outside a bend**, and at **a street corner** - two frontage ends of different
-    streets at a junction (each stops half the other street's width short), paired
+    streets at a junction (another street has a point there: a street branching off,
+    each end stopping where it clears the other street (`StreetClearance.Clear`), or two streets meeting end to
+    end at an L), on the outside of the corner only (`Outside`: the way out of one end
+    points the way the other's facade faces), paired
     where each needs carrying no more than `cornerMaxReach`, shortest pairs first -
-    **each side is carried storey by storey to where the two lines meet** (each
-    storey's line at its column's depth plus its building's jetty, meeting the other
-    side's storey of the same index, or its top storey): a **filler** of a plain wall
-    of the storey's height (borrowed as for side walls) nearest the length in width,
-    scaled to it, with a foundation under the ground storey, the band's beam below a
-    banded storey and a jetty support under a jettied first storey, all scaled to the
-    length (`PlaceFiller`, `PlaceInRun`).
+    **each side is carried storey by storey** (each storey's line at its column's
+    depth plus its building's jetty, against the other side's storey of the same
+    index, or its top storey) **as masonry corners go** (`WallTarget`): the covering
+    side (the first of the pair) runs to the corner, where the two lines meet; the
+    other side stops at the covering side's back line where that wall stands there,
+    its end tucked behind the wall, and elsewhere comes to the corner too, its end
+    face meeting the covering side's - so the two never share a plane in view, at
+    any angle. **A side already past where it should stop** (the lines meet behind
+    its end: a shallow outside bend with a column stepped forward) **has its end
+    module cut back to that point before anything is built** (`TrimCornerEnds`, on
+    the storey that must stop soonest, never below `fillStretchShare` of a module;
+    the other storeys are carried on from it); a side the corner carries nowhere is
+    reported. A **filler** carries a side: plain walls of the storey's height
+    (borrowed as for side walls) by the fitting rule, with the band's beams below a
+    banded storey and jetty supports under a jettied first storey on the same rule,
+    and foundations under the ground storey running on to the corner (`PlaceFiller`,
+    `PlaceInRun`). **Where an outer corner piece covers the joint its arms hide the
+    last of each side's walls** (about 1.5m: `CoverReach`, the shortest arm of the
+    pieces it may be, less the walls' overlap): the filler walls stop where the arm
+    begins (none where the arm covers the whole length), while the beams and supports
+    run on to the corner under it, since the piece covers only the storey's wall -
+    so a convex corner is a corner piece and at most one short filler per side,
+    never slivers squeezed under it. **The columns either side of every convex corner stand the same number of
+    storeys** (`EqualCornerHeights`, after the corners are found and before anything
+    is built: both take the lower count, repeated until no corner changes, since a
+    column can end at two). **A corner is the corner of one building, so the
+    buildings either side of every joint take the same storey styles**
+    (`MatchCornerStoreys`, just before): each set of buildings joined by corners takes
+    the storey styles and jetty of its first in the spec's order, so their storeys stand
+    at the same heights; each keeps its own module spacing, foundations and door. One
+    whose ground storey's module is more than `maxStoreyWidthMismatch` off the first's
+    keeps its own (logged, `Corner storeys: ...`).
+  - **A sharp corner** (narrower than a right angle): carried to the tip, a side's
+    walls would cross the other side's front into its street, so **each side stops
+    where its back line (its setback behind its front) meets the other side's front
+    line** (`CarryToBack`), and the cover goes across the notch between the two stops:
+    a cut-off corner with a post.
   - **The joint is covered** (`PlaceCover`, from the first side's storey style, else
     the other's, of the storey's height and scaled to it): within
     `cornerAngleTolerance` of a right angle an **outer corner piece**, its outer edge
     on the meeting point (`FaceClearance` out) and turned to sit between the two
     facades; otherwise a **`column`** piece over the seam (the plaster styles'
-    `PlasterWalls_A_MidColumn`, to be reviewed in Review Pieces as a `column` tagged
-    with the plaster styles). A style with neither is logged and the seam left bare.
+    `PlasterWalls_A_MidColumn`, a `column` with two fronts) - a column has one front
+    or two, turned so the middle of its fronts faces out between the facades, its
+    render box's furthest reach that way on the point. A style with neither is
+    logged and the seam left bare.
   - A storey standing above the other side's top is **closed by side walls** facing
     out of the corner instead (`LaySideStorey`).
+  - **Nearly in line** (the two lines meet more than `cornerMaxReach` from either
+    end, or not at all - a slight bend between segments of different widths, or **one
+    street running on nearly straight into another** at a junction: two frontage ends
+    of different streets whose ways out are opposite and whose facades face the same
+    way, within the branch angle, no more than `cornerMaxReach` apart, paired by
+    `InLine`): each side is carried to its own run's end (on a bend's bisector) and
+    on halfway across any gap left between the two (`InLineCarry`), by a filler as
+    above. Per storey, the side standing further into the street
+    (beyond `sizeTolerance`) closes the step with side walls facing out of the
+    corner, a module long or the step plus the setback if longer; with no step the
+    first side covers the joint between the two ends.
   - **Side return:** a frontage end at a junction that pairs with none gets a new
     run of one added module along the branching street's near edge (the widest
     street leaving the junction towards the frontage's side), from where the
@@ -352,6 +562,163 @@ can't fill, and any overlap, is shown in the report rather than hidden.
     joined as a corner (`AddSideReturn`). The return's far end stays open.
   - Joined run ends are marked (`ModuleSpot.JoinedStart` / `JoinedEnd`) so nothing
     else closes them. Pieces under `Building <i>/Corner/`.
+- **Lots** (stage 5d, `LayLot`, under `Generated/Lots/Lot <id>/Building 0/`): a lot's
+  whole building is laid as a closed frontage of one building (the lot's styles and
+  `StoreyPlan` storey count) with **a run along each side of its footprint**, in
+  order round it from the front side, each facing out (outward found from the
+  corners' winding). **The footprint** (`LotSpec.Corners`) is the line the walls'
+  fronts reach: the lot's `outline` if it has one (any convex shape - three, five, six
+  sides; **a lot with neither an outline nor modules takes the block its streets
+  enclose**, below), else the rectangle of `widthModules` by `depthModules` modules plus the
+  walls' overlap, centred on `origin`, its front facing `yaw`. Each side gets as many
+  whole modules as fit, laid from its start; the corners fill the rest. The spec's
+  door is counted along the front side from the left as seen from in front (whichever
+  way that side runs). The ground storey's base stands at `origin.y` (the street level
+  under it being `groundStoreyHeight` lower). **Everything a facade gets applies per
+  side**: columns stepping in and out and standing taller or lower, jetties (on every
+  side at once), beam bands, doors, windows, foundations, side walls. **The corners
+  are joints** like a bend's (the last side joined back to the first): near-right
+  angles get the style's outer corner pieces, others a column. **No floors or
+  interiors: those are always made by hand.** Roofed as Roofs (below) says. **The street ground is
+  laid under each lot** (`StreetGround`, below). The validator checks an outline:
+  convex, every side long enough for a module, the door within the front side's
+  modules; overlaps use its bounding rectangle.
+- **Roofs** (stage 5e, `FacadeRoofs.cs`, part of `FacadeBuilder`; built last, after
+  the corners and dead ends): **in a tree of their own, `Generated/Roofs/<frontage,
+  lot or dead end>/Building <i>/`** (`RoofGroup`), beside `Facades` and `Lots`, so
+  every roof can be hidden in one go while working on the level. **The pack's own
+  way - a ridge along the street, a slope each side meeting at it, gables at the
+  ends.**
+  - **Pieces** (any style; categories set in Review Pieces): `roof-end`
+    (`RoofTiles_MiddleSide`) and `roof-ridge-end` (`RoofTiles_TopCorner`, carrying the
+    ridge cap) for a row's two ends, `roof-middle` between them, `roof-end-half` /
+    `roof-ridge-end-half` for a roof of one panel, `roof-gable-half`
+    (`RoofWall_CornerA` / `B`), and `roof-hip-base` (`Roof_PeakedBase`: the lowest
+    piece of a tower spire's corner stack, its outer corner between its two `fronts`;
+    connection points `eave` on its outer bottom corner and `next` where the piece
+    above stands by its pivot, from the pack's tower - the only hip piece used;
+    `roof-hip-middle` / `-top` are annotated but unused). **Only closed (manifold) pieces are used**: the pack's
+    `RoofTiles_Middle` and the two `_Half` panels have open edges that show as gaps,
+    so they are excluded; with no usable middle, the row's end pieces stand between
+    its ends too (`Middles`), and with no half, a one-panel roof is one end piece.
+    With no usable end and ridge-end piece, no roofs (logged).
+  - **One roof per stretch of a run** whose columns' tops (in metres) and top
+    storeys' faces (column depth plus jetty) line up; at a run's end it goes on as
+    far as a corner carried the top storey (`ModuleSpot.CarriedStart` / `End`).
+  - **A slope:** rows of panels (`roofRows`, 2) tilted to `roofPitch` (60°), the
+    eave `roofEaveOverhang` in front of the top storey's face and `roofEaveDrop`
+    below the top of its walls, rows overlapping by `roofRowOverlap`. Along it, as
+    many panels as round to its length plus `roofVergeOverhang` past each end,
+    scaled along their width to fill it, overlapping by `roofPanelOverlap`: verge
+    pieces at the two ends (they carry their verge at their own +X; the other end's
+    is mirrored with a negative scale), plain ones between (the same pieces, so a
+    verge faces the next panel at every joint: its top tiles are set back about 0.3m
+    behind its render edge, which `roofPanelOverlap` must cover); a roof of one panel
+    is two mirrored halves. The top row's ends are the ridge pieces.
+  - **The back slope mirrors the front**, so the roof reads whole from behind and
+    from the next street; a facade's roof is never shortened for a street behind
+    it (a stretch scaled apart from its neighbours stands at another height and
+    opens a gap between them; at roof height a slope over a street is clear of it).
+  - **A roof end a corner can't close gets a gable** (`SetGable`): where
+    `RoofCorners` takes no corner for a joint - a lot against a facade, roofs of
+    different heights, a convex corner wide of a right angle, folded or parallel
+    eaves - both roofs end on their own and each end is gabled, never left open.
+  - **Roofs are worked out before any is laid** (`RoofStretch`: `RoofStretches`, `RoofShape`),
+    then the corners where two roofs meet found and the roofs' ends set to meet there
+    (`RoofCorners`, from `RoofJoints`: every joint plus every bend on the inside, which
+    has no joint), then all laid (`BuildRoof`), the hip strips last (`HipStrips`,
+    `PlaceStrip`).
+  - **Corners:** where two roofs (facades' or a lot's sides) end at the same joint or
+    inside bend and their walls' tops are within `sizeTolerance` (the corner storeys
+    match, Corners below), **they meet along the hip or valley line - the line equally
+    far back from both eaves - instead of overlapping gabled roofs**: no gables, and
+    each row of each slope ends on that line. A row lying b back from its eave ends
+    `slant` x b past the point where the two front eaves cross, towards the corner,
+    where `slant` = (the other roof's back direction . the way out of this end) /
+    (1 + the two back directions' dot): negative on the outside of a corner (the rows
+    stop short, the line is a hip), positive on the inside (the rows run on under the
+    other roof, the line is a valley); a back slope's rows, their eave 2 x ridgeBack
+    behind the front's, end `slant` x (2 ridgeBack - b) past it, so a convex corner has
+    a hip in front and a valley behind, a concave one a valley in front and a hip
+    behind. Into a valley a row runs until its top edge reaches the line (closing it all
+    the way up, its bottom corner hidden under the other roof); at a hip it stops where
+    its middle meets the line, its corners straddling it under the hip strip. Into a
+    valley a row runs `roofPanelOverlap` further, so a verge end's set-back top tiles
+    still close it. The end panel there keeps its verge at the corner, hidden (turned
+    inward it would meet the next panel's verge, two set-back ends leaving a slit). A
+    convex corner is only taken within
+    `cornerAngleTolerance` of a right angle (`RoofCorner.Square`); a wider or sharper
+    one keeps the gable rules below. A concave corner of any angle is taken. Two facade
+    roofs meeting take the lower of their row scales, so their ridges meet at one height;
+    a lot's sides keep theirs (each reaches the footprint's middle).
+  - **Hip strips** cover the hips of square corners, where the two slopes' rows cross
+    (`HipStrips`, `PlaceStrip`): **copies of the one `roof-hip-base` piece stacked up the
+    hip**, from where the two eaves cross to where the ridges cross (as far in from
+    both eaves as the shorter slope reaches, at the top of its ridge cap, `RidgeCap`), at
+    unit scale, each piece's outer corner facing out between the slopes and **leaned
+    back `roofHipLean` (10°)** so its faces, steeper than the roofs' pitch, lie flatter
+    on the slopes. The lowest piece's `eave` corner stands `roofHipOut` (0.75m) out of the
+    corner along each slope's front (the piece's own corner is cut back) and
+    `roofHipRaise` (0.2m) above the eaves; the top piece's `next` point is at the ridges'
+    crossing; between them the pieces step evenly, each rising at most `roofHipStep`
+    (2.5m) above the one below, so they overlap like scales (three on a two-row roof).
+    In front of a convex corner always; behind a concave one when both roofs have a
+    back slope. With no usable hip piece, no strips.
+  - **Gables:** every roof end gets one - two `roof-gable-half` pieces back to
+    back, upright edges under the ridge, sloping edges under the slopes from where
+    their undersides come down to the walls' top, sunk `roofGableSink` into it, set
+    their thickness inside the end - except at a corner (above), and at a corner wider
+    than a right angle
+    (`cornerAngleTolerance` over), where the other side's roof runs on over it
+    (`ModuleSpot.GableStart` / `End`, recorded by `BuildCornerSide`).
+  - **Lots:** each side slopes up towards the footprint's middle (no gables). Where
+    the middle is nearer than a facade roof's slope reaches, the rows reach it,
+    scaled up the slope to end there, and the sides meet as a hipped roof (at a right-angled
+    corner, under a hip strip: Corners, above); a bigger
+    lot's sides get both slopes, round a courtyard, scaled down so the inner eave
+    never passes the middle.
+  - Anywhere else roofs meet they overlap (the pack has no hip or valley tile panels).
+- **Street clearance** (`StreetClearance`, one per generation, held by
+  `FacadeBuilder`): **no wall may cut across a street.** Each street segment is a
+  convex shape: its rectangle at the rolled width, **mitred where it meets other
+  segments at a point** (`Mitre`: its own street's next segment at a bend, other
+  streets at a junction) - on each side, cut along the line from the point through
+  the corner where its edge meets the edge of the nearest segment leaving the point
+  on that side, so the segments fit together like mitred joints, filling a bend's
+  and a junction's corners, and no square end pokes out past a street leaving at a
+  sharp angle onto ground the facades between them need. **Each segment has two
+  shapes, differing only on the outside of a corner**, where the edges meet past
+  the point: `Corners` is cut through the point there, and `Filled` lengthens the
+  end to where the edges meet before cutting, so the outside corner is street too.
+  A dead end, and a side where the next segment runs on nearly straight (within the
+  branch angle; the edges would meet far off), stays square. Three things keep the
+  buildings out of them: the runs are cut clear of every other street (`Clear`,
+  Runs above, on `Corners` - the facades lining an outside corner are carried to it
+  themselves, and on `Filled` a corner between two streets would cut them short of
+  it and open a gap); side walls stop short of streets (`Reach`, on `Filled`); and
+  **every piece the
+  facades, corners, lots and dead ends place is checked as it is placed** (`Allows`,
+  through `PiecePlacer.Clearance`, set for everything but the roofs and the streets'
+  ground): its render box, as placed (scale included), against each street shape by
+  separating axes (`Filled`). A piece standing `streetHeadroom` (2.2m) or more above a street
+  (the street's surface beside it, steps included; for the street its facade faces,
+  beside a flight of steps, the low level the facade stands on, so a jetty runs on over
+  the steps) may overhang it - a jetty, an
+  upper storey, a beam; lower down it may come into the street its facade faces
+  (`Facing`; every street for a lot) as far as `columnDepthMax` plus
+  `foundationFrontOffset` plus `overlapTolerance`, and into any other street only
+  `foundationFrontOffset` plus `overlapTolerance`. A piece that would go further is
+  not placed, and listed in one log line (`Street clearance: ...`): the run cut should
+  leave nothing for it but the odd corner filler's foundation.
+- **The street test** (`StreetTest`, run by `LevelGenerator` after building): **a
+  layout is valid only if a ball can travel down every street without touching a
+  wall.** A ball of `streetBallRadius` (0.5m), its centre `streetBallHeight` (1m)
+  above the street's surface (up and down the flights as walked), moves along every
+  street's middle line from its first point to its last, a radius short of a dead
+  end's facade; anything under the generated root but `Streets` that it touches (by
+  `Physics.OverlapSphereNonAlloc`, every half radius) blocks the street. One Console
+  entry: valid, or an error naming each blocked street with up to five blockers and
+  how far along.
 - **Dead ends:** a street end with no other street's point within `junctionDistance`
   is closed by a facade across it (`StoreyPlan.DeadEnds`, made after the frontages'
   rolls and before the lots; built after the frontages, under
@@ -362,6 +729,71 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   one straight run through the end point, square to the end segment, facing back up
   the street and centred on the middle line, so its overhang runs on behind the side
   facades (where they meet, the walls overlap behind their fronts).
+
+## Report (stage 6)
+
+- **`GeneratedReport`** runs after everything is placed (`LevelGenerator.Generate`,
+  before the fingerprint is taken) and on demand for a `Generated` root already in the
+  scene (**TeaLeaf > Level Gen > Report Generated**, on the selection or every root; it
+  reads the spec the root records, `GeneratedRoot.SpecPath`). It finds what a walk
+  through the level would find, lists it in the Console (a summary, then the worst
+  forty finds; a warning when anything is found) and puts a **marker** at each on the
+  `GeneratedRoot` (`GeneratedRoot.Marker`: kind, position, box size, note), which the
+  root draws as wire boxes in the Scene view and in the headset (`IDebugDrawable`
+  through `DebugLines`: red a free wall end, orange an open roof end, magenta a
+  refused piece, yellow anything else; selected, a 3m line up from each). It only
+  finds and lists; **nothing is filled in afterwards** - each find is fixed where the
+  piece is placed.
+- **Free wall ends** (`FreeEnds`): the subjects are the front walls (the storeys',
+  a corner's fillers, a dead end's; side walls only cover - a side wall's front end
+  is a real wall end at its step, its back end open by design, the buildings having no
+  back walls). Each wall's two vertical end faces (across the longer horizontal side
+  of its render box, taken from its LOD0 meshes in its own space, so a wall at any
+  angle or scale is measured true) are sampled 2cm outside, at three depths by three
+  heights. A sample is **bare** when no covering piece's box holds it (everything
+  placed but doors, window inserts and roofs; grown 8cm) **and it can be seen from a
+  street**: a straight line from it to one of up to six street tiles within 14m,
+  spread at least 30° apart round it, at eye height (1.6m) over the tile, that no
+  covering piece's box crosses - the wall's own box included, since an end face is
+  only seen from in front of it. One can stand only on a tile whose middle lies in a
+  street segment's rectangle at its resolved width and at least 0.75m from every
+  wall's footprint (the ground tiles overrun the edges under and behind the facades).
+  An end with over a third of its samples bare is a find, with its bare share and
+  where it is seen from. Known finds that aren't holes: a corner post standing proud
+  of its module (`PlasterWalls_B_PlanksCorner`), a wall-tall wall against a stone one.
+- **Problems met while building** (`GeneratedReport.Add`, from the builders): a piece
+  refused for standing in a street (`StreetClearance.Allows`), a side wall with no
+  room before a street or one that could not be placed, a corner side that carries
+  nothing because the lines meet behind its end, a module with no wall that fits, a
+  style with no usable foundation.
+- Not checked: overlaps and z-fighting, roof coverage, floating or sunken pieces.
+
+## Facade dressing (being built)
+
+- **`FacadeDressing.cs`** (part of `FacadeBuilder`, after the roofs): pipes, walkways and
+  lamp posts on the facades, from pieces of categories `pipe-straight`, `pipe-corner`,
+  `pipe-end`, `pipe-fitting` and `lamp-post`; tunables under "Dressing" in
+  `GeneratorSettings`. Each module records its wall piece per storey
+  (`ModuleSpot.Walls`), which the dressing reads to keep clear of openings.
+- **Pipes** (`BuildPipes`): the `TL_Pipe*` / `TL_Pipes_*` variants in
+  `Assets/Prefabs/Environment/Pipes`. Every building gets at least one run, up to
+  `pipeRunsMax`, together at least `pipeMinRunShare` of its width; runs are vertical,
+  horizontal or L-shaped, level or plumb, never over a door or window
+  (`pipeOpeningMargin`), each end into a wall or the ground, following insets, outsets
+  and jetties, never along the street floor; lengths by `FitWidths`. Ground and dead-end
+  pipes are kept out of the street test's lane (`ClearOfLane`). **Not working yet:**
+  elbows are placed from an assumed geometry (legs along -Z and +X) that the corner
+  meshes don't have, so their free leg points out of the wall - the flange ring centres
+  must be measured from the mesh; the pack's pipe prefabs have collision children
+  offset by tens of metres, which the street test reports as blockers, until the
+  variants zero or remove them; some buildings get no run ("none fitted").
+- **Walkways** (`BuildWalkways`, `walkwayShare`): the jetty piece
+  (`ShortBoardPlanks_Supports`) along a whole facade at the base of one upper storey,
+  never a jettied one, one per building at most. Working.
+- **Lamp posts** (`BuildLamps`, `lampSpacing`, `lampEdgeInset`): at the street's side
+  before plain ground-storey walls, never before a door or window, facing the street.
+  Working.
+- The report treats `pipe-*` and `lamp-post` pieces as not covering a wall end.
 
 ## Catalogue scanner (stage 1)
 
@@ -491,7 +923,7 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   `path` are copied in for reading by hand and kept in step with the catalogue);
   `category` - `wall`, `door-wall`, `window-wall`, `outer-corner`, `inner-corner`,
   `foundation`, `foundation-corner`, `floor`, `ground`, `steps`, `column`, `beam`,
-  `roof`, `detail`, `window` (a window insert, put into wall holes; suggested for a `detail` in the `Windows` folder), `jetty` (jetty supports under a jettied upper storey, any style: `Platforms_ShortBoardPlanks_Supports`) (empty = not chosen); `fronts` (level axes: one for a wall, two for
+  `roof`, `detail`, `window` (a window insert, put into wall holes; suggested for a `detail` in the `Windows` folder), `jetty` (jetty supports under a jettied upper storey, any style: `Platforms_ShortBoardPlanks_Supports`), `door` (a plain door put into doorways, any style: `Door_RectangleShort` and `_RectangleTall`, to be reviewed), the roof kit's `roof-end`, `roof-end-half`, `roof-ridge-end`, `roof-ridge-end-half`, `roof-middle`, `roof-gable-half` and `roof-hip-base`, `roof-hip-middle`, `roof-hip-top` (Roofs, above; `roof` is the scanner's suggestion for the kit, not used) (empty = not chosen); `fronts` (level axes: one for a wall, two for
   a corner, none for a floor or steps);
   the module's `width` (along the piece's right as seen from in front), `height` and
   `depth` (along its front; X and Z for a piece with no front), in metres;
@@ -539,7 +971,9 @@ can't fill, and any overlap, is shown in the report rather than hidden.
     the settings' `streetWidth`; **every segment is varied from it**, see
     `ResolveWidths` below),
     `points` along its middle (y = ground height; a curve is short segments; streets
-    meet where they share a point), `frontages`;
+    meet where they share a point, so always at one level; **a segment whose two
+    points differ in height is climbed by a flight of steps**, Steps below),
+    `frontages`;
   - a **frontage** is one side of a street lined with facades: `side` (`left` /
     `right`, looking from the street's first point), `from` and `to` (point indices;
     it runs past bends and ends only where a street branches off on its side, or the
@@ -549,8 +983,26 @@ can't fill, and any overlap, is shown in the report rather than hidden.
     past the count are dropped - the count isn't in the spec, see `StoreyPlan`),
     `doorModule` (from the left seen from the street, from 0; -1 none);
   - `lots` (whole buildings, inside loops): `id`, `origin` (middle of the footprint,
-    at the ground storey's floor), `yaw` (the way the front faces), `widthModules`
-    along the front and `depthModules` back from it, `storeys`, `doorModule`.
+    at the ground storey's floor: its street level plus `groundStoreyHeight`, since
+    the ground round it is laid at `origin.y` less that), `yaw` (the way the front faces), `widthModules`
+    along the front and `depthModules` back from it, `storeys`, `doorModule`, and
+    optionally `outline`: the footprint's corners (world x, z; three or more, in order
+    round it, convex), the side from the first to the second being the front; given, it
+    replaces `widthModules`, `depthModules` and `yaw` (`LotSpec.Corners`, `Bounds`). With
+    neither an outline nor modules, the lot takes **the block its streets enclose**
+    round `origin` (`LayoutSpec.ResolveLots`, run by the validator straight after the
+    widths, so generation sees it too): the street edges seen from the origin
+    (`BlockOutline`: 720 rays cast round it, each taking the nearest segment's near edge
+    it crosses, so a street bending away or a side street leaving the far side of a
+    block's street never counts), then the convex region on the origin's side of each
+    of those edges (half-planes clipped from a large square), sides in line merged and
+    any side under 1m (a sliver where a street's junction wedge clips a corner) dropped
+    so its neighbours meet. So its faces sit on the inner street edges - one street
+    width from the facades opposite, one face per segment (a straight run of segments
+    is one face).
+    Its front is the side facing nearest `yaw`. None if the origin is on a street or the
+    streets don't close round it (an error). Such a lot skips the validator's overlap
+    test with the streets.
   A building's length follows from its modules and its styles' module spacing (below).
 - **Street widths vary by segment** (`LayoutSpec.ResolveWidths`, the first random
   choices from the seed, made by the validator so it checks the widths the generator
@@ -577,8 +1029,7 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   - `masonry-woodlarge` - `Masonary_WoodLarge*` (walls, corners, supports);
   - `Masonary_Foundations_*` - every building style;
   - `cobbles` (street ground) - `StoneFloor_*` (A-E and Tile);
-  - `wood-floor` (plank decking for wooden streets, walkways and bridges, and **every
-    building's upper floors**, whatever its walls - `StyleRules.BuildingFloors`) -
+  - `wood-floor` (plank decking for wooden streets, walkways and bridges) -
     `Platforms_Planks*`, `Platforms_LoosePlank*`, `Platforms_BoardPlanks`,
     `Platforms_ShortBoardPlanks`, `Fixtures_WoodenPlatform*`; the `_Supports` pieces (`Platforms_ShortBoardPlanks_Supports` is the `jetty` piece)
     under the decking get no style.
@@ -605,7 +1056,9 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   format, no sector, a missing or repeated id, a street with a negative width, with fewer than two points
   or a segment under 0.1m; a frontage with a side other than left / right, a stretch
   outside the street's points, overlapping another on its side, with no buildings, or
-  with a street branching off on its side part-way along it; a building or lot under
+  with a street branching off on its side part-way along it; a branch meeting the
+  street it leaves more than `branchSquareTolerance` off square (`CheckBranchAngles`);
+  a building or lot under
   one module, with no storeys or a door module off its front; a street or storey
   naming no style or one no piece carries; a street style without `ground` or `floor`
   pieces (a wooden street, walkway or bridge is decked with floors); a storey style
@@ -614,7 +1067,10 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   the ground storey's without `foundation` or
   `foundation-corner`, or without a `door-wall` that fits its module when there is a door; storeys whose
   modules differ from the ground storey's by more than `maxStoreyWidthMismatch`; a frontage's buildings more than 5cm longer than
-  its stretch. **Warnings:** more than a module's length left at a frontage's end (the
+  its stretch; a segment that rises or falls (more than `sizeTolerance`) on a decked
+  street, by other than a whole number of flights of one of its style's `steps`
+  pieces, or too short for those flights (at the piece's annotated ramp run) and
+  their landing (`CheckRises`). **Warnings:** more than a module's length left at a frontage's end (the
   generator fills it, but another building may suit); a lot, when `maxStoreys` is more
   than 1 and `wood-floor` has no usable `floor` (facades have no floors); per style used,
   tagged pieces not usable yet, walls whose width doesn't fit its module (not used as
@@ -624,11 +1080,18 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   off its tile size (not laid); lots overlapping each other or a street segment by more than
   5cm (oriented rectangles, separating axis test).
 - **A frontage's stretch** is measured roughly: the street's middle line between its
-  two points, less half the width of any street branching off on its side at either
-  end (another street sharing the point, within 10cm, and leaving it at least about
-  17 degrees towards that side). The true length along the edge (longer outside a
-  bend, shorter inside) is stage 5's. Roofs and the bend wedges are not checked yet
-  (stages 5-6). `ValidateFile` / `Validate` return the `Report` for the later stages.
+  two points, less how far short its edge stops of any street branching off on its
+  side at either end (another street sharing the point, within 10cm, and leaving it
+  at least about 17 degrees towards that side): `BranchCut`, about the stop the
+  facades' runs make (where the edge, and the line the walls reach back to, cross
+  the branch's near edge - half the branch's width at a right angle, much more at a
+  sharp one), the walls' reach taken as the deepest usable wall of the frontage's
+  styles (`WallDepth`). **Sharp corners** (`CheckSharpCorners`): every wedge between
+  neighbouring streets leaving a point (a bend's inside included; within the branch
+  angle of straight on is no corner) is counted, sharp under `sharpCornerAngle`; a
+  warning when the spec is more than one corner off `sharpCornerShare`. The true length along the edge (longer outside a
+  bend, shorter inside) is stage 5's; what was built is checked by the report (stage
+  6, below). `ValidateFile` / `Validate` return the `Report` for the later stages.
   The 5cm and other tolerances above are the settings asset's defaults.
 
 ## Generation and the streets' ground (stage 4)
@@ -646,7 +1109,9 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   widths); one Undo step for the whole generation. A street
   that can't be laid (no usable tiles, too few points) is skipped and logged rather than
   stopping the run, so the ground can be tried before every building style is
-  reviewed. One Console entry lists what was built.
+  reviewed. One Console entry lists what was built. `Generated` holds `Streets`,
+  `Facades`, `Lots` and `Roofs`. Then the street test (Facades, The street test)
+  writes its own entry, an error if the layout isn't valid.
 - **`StoreyPlan`** decides every building's storey count before anything is built
   (logged; stage 5 builds to it), its rolls next in the random sequence after the
   street widths. **A facade
@@ -660,7 +1125,9 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   and max; rolled like a facade if none is that near or a height isn't known.
   `StyleOf` gives a storey's style (the last listed repeating).
 - **`PiecePlacer`** puts a piece in as a real prefab instance
-  (`PrefabUtility.InstantiatePrefab`) with any `Light` in it disabled on the instance.
+  (`PrefabUtility.InstantiatePrefab`) with any `Light` in it disabled on the instance,
+  scaled, then (while its `Clearance` is set) checked against the streets and
+  destroyed again if it would stand in one (Street clearance, above).
   `PlaceAt` turns a piece about Y and puts a point of its own space (a connection
   point, a face's middle) on a world point; `Pick` is the shared random choice that
   never repeats the piece before it. It places a tile by its **walking surface**: the middle of the catalogue's walk box
@@ -668,15 +1135,48 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   tiles meet by their collider tops.
 - **`StreetGround`** lays every street, in the spec's order, under `Generated/Streets`:
   - **Ground (a style with `ground` tiles - cobbles): one grid per area**, an area being
-    the streets of that style joined at shared points. The grid is squared to the
-    area's first segment, from the first street's first point. The outline is each
-    segment's rectangle (at its own width) plus a disc (half the wider of the
+    the streets of that style joined at shared points. **The grid is never squared to
+    the world's axes**: from the first street's first point, turned at random (always
+    drawn) so its rows lie at least `groundGridMinAngle` off world X and Z. The outline
+    is each segment's rectangle (at its own width) plus a disc (half the wider of the
     segments meeting there) at every bend and at an end shared with another street of
-    the area, filling the wedges and width steps. A tile is laid where
-    it reaches at least `minTileCoverage` into the outline, so there are no gaps and no
-    doubled tiles at bends or junctions; what stands past the street's edge is under
-    the buildings lining it (and shows at a branch gap or a dead end). Each tile's
-    walking surface is at the height of the nearest point on the area's middle lines.
+    the area, filling the wedges and width steps, **plus the ground round each lot**
+    whose footprint's middle is nearest one of the area's segments: **a ring from its
+    footprint** (`LotSpec.Corners`, the line its walls' fronts reach) **out to
+    `lotGroundMargin`** (`LotGround`, `GroundLot`, `LotCoverage`: the footprint grown
+    by the margin, by separating axes), **never under the building** - a tile with
+    every corner more than `minTileCoverage` inside the footprint is not laid by the
+    lot (interiors are made by hand). A tile is laid where it reaches at least
+    `minTileCoverage` into the outline, so the turn leaves no gaps and no tile is
+    doubled at bends or junctions; what stands past the street's edge is under the
+    buildings lining it (and shows at a branch gap or a dead end). Each tile's walking
+    surface is at a lot's street level within its ring's outer edge, else at the
+    height of the nearest point on the area's middle lines - on a segment with a
+    flight of steps, the level of the flight's side it is on.
+  - **Steps** (`StreetSteps`: the choice and geometry, shared with the validator and
+    the facades; `StreetGround.LayFlight` lays them, after the area's grid): **streets
+    meet level at their points, and a segment whose points differ in height (by more
+    than `sizeTolerance`) climbs by a flight of steps across the whole street**, the
+    ground flat at each point's height either side of it. Only a street of `ground`
+    tiles can change height. The flight is a whole number of flights of the street
+    style's first usable `steps` piece that makes the rise within `sizeTolerance`
+    (the stone `Steps Full Width`, 1.62m, tagged `cobbles`), stacked up the segment
+    each from where the render box of the one below ends, scaled in height to make
+    the rise exactly, as many side by side as round to the segment's width,
+    overlapping by `groundOverlap` (no crack between them) and scaled along their
+    width so together they fill it, each one's ramp foot at its level. The
+    facades either side close the gap to the steps with stacked foundations (Facades,
+    Beside a flight of steps). **At the top, a
+    landing** of `LandingRows` rows of ground tiles in the segment's own frame (each
+    row slid and each tile turned as on the grid) from the top step's edge, a tile's
+    diagonal deep (two rows of the 3m tile), `landingDrop` below the street: the
+    turned grid can't make the straight edge the top step needs. The flights and the
+    landing are centred on the segment. A grid tile is left out (`OverFlight`) where
+    its middle is on the high side of halfway up the flight and short of the
+    landing's far edge less half a diagonal, within the width plus half a diagonal of
+    the middle line, so no grid tile lies over the steps and the landing covers what
+    they leave; a grid tile on the low side lies under the solid steps or the
+    landing. Under `Ground - <street>/Steps - <street> <from>-<to>`.
   - **Decking (a style with only `floor` tiles - wood-floor): each segment in its own
     frame**, so the boards follow the walkway. Rows across the segment's width,
     centred on the middle line; at a bend each segment runs on by half the wider
@@ -693,6 +1193,22 @@ can't fill, and any overlap, is shown in the report rather than hidden.
     one pitch; the first row unslid), so the joints don't line up. Along a row the
     tile is chosen at random among the style's tiles, never the one before it unless
     it is the only one.
+  - **Floor colliders** (`FloorColliders`): **the tiles keep no colliders of their
+    own** (every collider on a placed tile, the tile's disabled mesh collider
+    included, is removed from the instance as it is laid - an override, the prefab
+    untouched). **Each run of tiles side by side along a row whose collider tops are
+    at the same height (1mm) and whose `SurfaceTag` matches gets one `BoxCollider`**
+    in the row's own frame, exactly the extent of the run's tile box colliders (their
+    top at the walking surface, 0.4m thick for `StoneFloor_Tile`), so no gap opens and
+    no invisible floor reaches past the tiles. A tile skipped or refused, or a change
+    of height (a lot's ring, a flight's two levels), ends a run. Grid rows, landing
+    rows (running across the street, 2cm under the grid tiles they meet) and decking
+    rows (a sloped segment's tiles, each at its own height, get a box each) all work
+    so. The boxes (`Floor <n>`) go under a `Colliders` child of the area's or street's
+    ground group, on the tiles' collider layer (`Environment`) with their static flags
+    and a copy of their `SurfaceTag` if they have one (`StoneFloor_Tile` has none:
+    Stone). The steps keep their `RampCollider`s. About one box per row: the four
+    examples go from 166-688 tile colliders to 15-62 boxes per area.
 
 ## Known about the prefabs
 
@@ -704,14 +1220,20 @@ Measured by the scanner (still to be confirmed by eye in stage 2):
   runs along Z, `PortchStraight_Extension` measures +X and -Z.
 - Floors and platforms each have one box collider (the stone floors and ground pieces
   a mesh collider) whose top is the walking surface.
-- **The only cobble tile is `StoneFloor_Tile`** (3.04 x 3.04m, flat collider top).
+- **The only cobble tile is `StoneFloor_Tile`** (3.04 x 3.04m, flat collider top: a
+  3.04 x 0.4 x 3.04 box collider the variant adds, the pack's mesh collider beside it
+  disabled).
   `StoneFloor_A`-`E` are irregular stone patches (0.7-1.7m across, uneven colliders):
   smaller than `fullSizeShare` of the tile, so never laid as tiles. The plank floors
   are about 3.0 x 3.0m (`Platforms_Planks`, `_Planks_Ground`), with half (3.0 x 1.9m),
   nailed (2.9 x 2.3m) and board (3.0 x 1.5-2.0m) sizes; which way their boards run is
   not yet known. `Platforms_Steps_Wide`,
   `Steps Full Width` and `Steps Wood Narrow` have a `RampCollider`; the other steps
-  are box colliders only.
+  are box colliders only. **`Steps Full Width`** (seen in the editor) is a solid
+  stone flight of six steps climbing along its -X, its ramp's foot 0.28m in front of
+  its first step, rising 1.62m over a 2.98m render box, 2.7m wide, with a plain back
+  face: the street steps of `cobbles`. The two wooden ones are mostly open support
+  frames, not stairs a street can use; neither has a style.
 - **Wall modules**, from the back planes: the plaster walls (`PlasterWalls_A_*`,
   `_B_PlanksCorner`) are **3.0m wide and 3.0m tall**; `WallTall_*` **3.05m x 4.5m**;
   the `Masonary_WoodLarge_*` walls **4.95m x 4.55m** (half 2.6m, low 1.95m, lower
@@ -742,7 +1264,9 @@ Measured by the scanner (still to be confirmed by eye in stage 2):
   back, and an L's back isn't one. The doubtful corners are `PortchStraight_Extension`,
   `Portch_BeamSmall` and `PlasterWalls_A_MidColumn` (a column pivoted at mid-height).
 - **Pivots that aren't on the base** (93, flag `pivot-not-on-base`), by kind: roof
-  tiles (`RoofTiles_*`) hang about 2.1m below their pivot (pivot at the top edge);
+  tiles (`RoofTiles_*`) are flat panels modelled upright in their XY plane, tiles
+  facing +Z, pivoted at the panel's centre (about 2.1m to either edge), tilted to the
+  slope by the house that places them;
   gable walls (`RoofWall_*`) reach about 0.16m below theirs, overlapping the wall
   under them; stone floors (`StoneFloor_*`) have the pivot on the walking surface,
   the slab below it; window inserts and doors are pivoted at the centre; the cliff
@@ -763,9 +1287,23 @@ From reading the variant files:
   `Building_Layers` (51) are left out. Of the rest, a few are assemblies: one chimney
   (47 nested parts), three iron fixtures and one platform piece.
 - Most pieces have an LODGroup and box colliders; the ground pieces have mesh colliders.
-- The roof kit (`RoofTiles_*`, `Roof_Peaked*`, `RoofWall_*`) has middle, side, top-corner
-  and support pieces; whether they cover any footprint, or only some widths, is not yet
-  known.
+- **The roof kit** (measured in the editor): tile panels modelled upright, tiles facing
+  +Z, pivoted at their centre - `RoofTiles_Middle` 4.13 x 4.16m, `_MiddleSide` 4.30 x
+  4.16m and `_TopCorner` 4.52 x 4.70m (the ridge cap along its top), the last two with
+  a verge at their +X end (the pack mirrors them for the other end), and `_Half`
+  versions that are their +X halves (x -0.25 to 2.15). **`RoofTiles_Middle` (35 open
+  edges) and both `_Half` panels (56-59) are not closed meshes** - one-sided where
+  cut, so gaps show - and are excluded; `MiddleSide`, `TopCorner` and the
+  `RoofWall_Corner` half gables are closed. The pack's houses tilt them to
+  52-68°, two or three rows a slope, scaled 0.6-1.4 by hand, joins overlapped; there
+  are no hip or valley pieces. `RoofWall_CornerA` / `B` are half gables (upright edge
+  at x 0, sloping down to +X, about 2.96 x 4.4m), `RoofWall_MedA` / `LargeA` whole
+  gables. The pack's roof layers (`Building_Layers`) come only for footprints of about
+  7, 10 and 12m. `Roof_Peaked*` make a tower's spire: four corner stacks of
+  `PeakedBase` (3.03 x 3.46m), `PeakedMiddle` and `PeakedTop` (a quarter turn from the
+  other two), scaled 0.85 in height, each stack a hip strip about 3m wide at the eave,
+  its slope about 60-75° (a bell flare; `PeakedBase`'s faces about 64°) - the generator's hip strips stack copies of `PeakedBase` alone; `RoofTiles_Supports` is a truss
+  under a verge.
 - The meshes are binary FBX, and many pieces have scaled or turned children, so sizes
   and pivots can only be measured in the editor.
 - Duplicates to choose between: `TL_PlasterWalls_A_MidColumn 1`, and

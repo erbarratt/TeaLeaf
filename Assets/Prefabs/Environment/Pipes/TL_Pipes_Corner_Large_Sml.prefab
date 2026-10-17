@@ -1,0 +1,123 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1001 &4689902643159585175
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: 1823376771663007600, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 1823376771663007600, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 3105064106856426183, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 3105064106856426183, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 4418461653537390138, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 4418461653537390138, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 5187591220874043563, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -32.846966
+      objectReference: {fileID: 0}
+    - target: {fileID: 5187591220874043563, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 3.03
+      objectReference: {fileID: 0}
+    - target: {fileID: 5187591220874043563, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 6.587881
+      objectReference: {fileID: 0}
+    - target: {fileID: 5187591220874043563, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5187591220874043563, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5187591220874043563, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5187591220874043563, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5187591220874043563, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5187591220874043563, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5187591220874043563, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5527559509298493969, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_Name
+      value: TL_Pipes_Corner_Large_Sml
+      objectReference: {fileID: 0}
+    - target: {fileID: 5527559509298493969, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 5527559509298493969, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 6534904062664940282, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 6534904062664940282, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 7905420426050618263, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 7905420426050618263, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 8533793685432615261, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8533793685432615261, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 8770505011708356126, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 8770505011708356126, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 87
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}

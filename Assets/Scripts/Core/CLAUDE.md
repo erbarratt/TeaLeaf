@@ -367,7 +367,8 @@ that stands in for a flight of steps, and the barrels' shared collision shape.
   — makes the prefab variants for static level geometry in bulk. Select pack prefabs, or
   folders holding them, in the Project window and run it: each gets a variant in
   `Assets/Prefabs/Environment/<category>/` under the pack's name with a leading
-  `Medieval_` swapped for `TL_` (other names are kept), with every object in it
+  pack prefix (`Medieval_`, `S_MVillage_`) swapped for `TL_` and a duplicate-name
+  suffix such as ` (1)` dropped (other names are kept), with every object in it
   (LOD meshes and collision children too) on `Environment` and marked Static (Contribute
   GI, Occluder, Occludee, Batching, Reflection Probe). The category is the pack folder the
   prefab is in, or that folder's parent when it is only the pack's prefabs folder
@@ -385,6 +386,12 @@ that stands in for a flight of steps, and the barrels' shared collision shape.
   already under `Assets/Prefabs/Environment` (opened with `LoadPrefabContents`, saved only
   if something changed, so on a variant it is an override, nested pack pieces included).
   Pieces already on probes, and non-static ones, are left alone.
+- **`ColliderRemover`** (`Core/Editor`, menu **TeaLeaf > Remove Colliders From
+  Selection**, offered while something is selected) — removes every collider from the
+  objects selected in the Hierarchy and all their children, inactive ones included, as
+  one Undo step, logging the count. A `RampCollider` is removed too (first, since it
+  requires its `MeshCollider`). On a prefab instance the removal is an override; the
+  prefab is untouched.
 - **`LightProbePlacer`** (`Core/Editor`, menu **TeaLeaf > Place Light Probes**) — fills the
   level's one `LightProbeGroup`, at `Environment/Sectors/Global/Lighting/Light Probes`
   (made, with any missing groups on the way, if absent). A grid every 2.5m (`Spacing`) over

@@ -152,7 +152,8 @@ namespace LevelGen
         /// Makes the facade across a street's end if no other street meets
         /// it there: the styles of the building beside it at that end (the
         /// left side's, else the right's), no door, enough modules of its
-        /// ground style to span the end segment's width, and a rolled storey
+        /// ground style to span the end segment's width and reach behind the
+        /// side facades' back lines on both sides, and a rolled storey
         /// count. Logged; skipped (logged) if no building stands at that end
         /// to take styles from, or its ground style has no module yet.
         /// </summary>
@@ -188,9 +189,30 @@ namespace LevelGen
                 return;
             }
 
+            // Wide enough that both its ends stand behind the side facades'
+            // back lines (the deepest wall of its styles, and a column
+            // stepped forward by the most it may), so the side facades hide
+            // its ends and their overrun modules end behind it.
             float width = street.SegmentWidth(end == 0 ? 0 : end - 1);
+            float wallDepth = 0f;
+
+            foreach (string name in storeys) {
+                BuildingStyle style = Find(styles, name);
+
+                if (style == null) {
+                    continue;
+                }
+
+                foreach (string category in BuildingStyle.WallCategories) {
+                    foreach (PieceAnnotation piece in style.Modules(category)) {
+                        wallDepth = Mathf.Max(wallDepth, piece.depth);
+                    }
+                }
+            }
+
+            float span = width + 2f * (settings.ColumnDepthMax + wallDepth);
             BuildingSpec building = new() {
-                widthModules = Mathf.Max(1, Mathf.CeilToInt(width / ground.ModuleSpacing)),
+                widthModules = Mathf.Max(1, Mathf.CeilToInt(span / ground.ModuleSpacing)),
                 storeys = new List<string>(storeys),
                 doorModule = -1
             };
@@ -248,14 +270,9 @@ namespace LevelGen
         private static int MatchNeighbours(LotSpec lot, List<(float Height, List<Vector2> Points)> facades,
             Dictionary<string, BuildingStyle> styles, GeneratorSettings settings, out int neighbours)
         {
-            // The lot's footprint: its own frame, a whole number of modules.
+            // The lot's footprint, as its bounding rectangle.
             float spacing = Spacing(styles, lot.storeys[0]);
-            float halfWidth = (lot.widthModules * spacing + settings.WallOverlap) * 0.5f;
-            float halfDepth = (lot.depthModules * spacing + settings.WallOverlap) * 0.5f;
-            Vector3 front = lot.Front;
-            Vector2 axisZ = new(front.x, front.z);
-            Vector2 axisX = new(axisZ.y, -axisZ.x);
-            Vector2 origin = new(lot.origin.x, lot.origin.z);
+            lot.Bounds(spacing, settings.WallOverlap, out Vector2 origin, out Vector2 axisX, out Vector2 axisZ, out float halfWidth, out float halfDepth);
 
             float total = 0f;
             neighbours = 0;

@@ -25,10 +25,12 @@ namespace LevelGen
     ///
     /// Built so far: every street segment's width (LayoutSpec.ResolveWidths,
     /// during validation), every building's storey count (StoreyPlan, logged),
-    /// the streets' ground (StreetGround) and the facades' straight runs
-    /// (FacadeBuilder). A street the
-    /// generator can't lay is skipped and logged, so the ground can be tried
-    /// while the buildings' styles are still being reviewed.
+    /// the streets' ground (StreetGround), the facades, lots, dead ends and
+    /// their roofs (FacadeBuilder; roofs under a Roofs object of their own).
+    /// A street the generator can't lay is skipped and logged, so the ground
+    /// can be tried while the buildings' styles are still being reviewed.
+    /// Last the street test (StreetTest): a ball down every street that must
+    /// touch no wall, logged as an error if one does.
     /// </summary>
     internal static class LevelGenerator
     {
@@ -91,13 +93,14 @@ namespace LevelGen
             }
 
             GeneratedRoot root = rootObject.AddComponent<GeneratedRoot>();
+            GeneratedReport.Begin();
             Dictionary<string, BuildingStyle> styles = BuildingStyle.Gather(annotations, catalogue, settings);
             // The random sequence goes on from where the street widths left it.
             PiecePlacer placer = new(catalogue);
             List<string> log = new();
 
             // Storeys first, so the rolls come before any tile's in the
-            // random sequence; the facades (and later the lots) are built to it.
+            // random sequence; the facades and lots are built to it.
             StoreyPlan plan = StoreyPlan.Make(spec, styles, settings, random, log);
 
             Transform streets = new GameObject("Streets").transform;
@@ -106,8 +109,21 @@ namespace LevelGen
 
             Transform facades = new GameObject("Facades").transform;
             facades.SetParent(rootObject.transform, false);
-            FacadeBuilder.Build(spec, styles, annotations, plan, settings, random, placer, facades, log);
+            Transform lots = new GameObject("Lots").transform;
+            lots.SetParent(rootObject.transform, false);
+            // The roofs in a tree of their own, to hide in one go.
+            Transform roofs = new GameObject("Roofs").transform;
+            roofs.SetParent(rootObject.transform, false);
+            FacadeBuilder.Build(spec, styles, annotations, plan, settings, random, placer, facades, lots, roofs, log);
 
+            // The street test: a ball down every street must touch nothing built.
+            List<string> test = new();
+            bool valid = StreetTest.Run(spec, StreetSteps.Find(spec.streets, styles, placer, settings), plan, rootObject.transform, streets, settings, test);
+
+            // The report on the result: its markers go on the root, before
+            // the fingerprint is taken.
+            List<string> findings = GeneratedReport.Run(rootObject.transform, annotations, spec, out List<GeneratedRoot.Marker> markers);
+            root.SetMarkers(markers);
             root.Record(path, Fingerprint(rootObject.transform));
             Undo.CollapseUndoOperations(undoGroup);
             EditorSceneManager.MarkSceneDirty(rootObject.scene);
@@ -121,6 +137,21 @@ namespace LevelGen
             }
 
             Debug.Log(text.ToString());
+            string testText = $"LevelGenerator: {string.Join("\n", test)}";
+
+            if (valid) {
+                Debug.Log(testText);
+            } else {
+                Debug.LogError(testText);
+            }
+
+            string reportText = $"LevelGenerator: {string.Join("\n", findings)}";
+
+            if (markers.Count > 0) {
+                Debug.LogWarning(reportText);
+            } else {
+                Debug.Log(reportText);
+            }
         }
 
         /// <summary>

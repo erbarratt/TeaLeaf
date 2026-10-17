@@ -1,0 +1,463 @@
+{
+    "format": 2,
+    "seed": 4242,
+    "sector": "Example Quarter",
+    "streets": [
+        {
+            "id": "main-street",
+            "style": "cobbles",
+            "width": 0,
+            "points": [
+                {
+                    "x": 200,
+                    "y": 0,
+                    "z": 0
+                },
+                {
+                    "x": 216.127,
+                    "y": 0,
+                    "z": 8.134
+                },
+                {
+                    "x": 227.628,
+                    "y": 0,
+                    "z": 11.702
+                },
+                {
+                    "x": 238.193,
+                    "y": 0,
+                    "z": 17.588
+                },
+                {
+                    "x": 251.154,
+                    "y": 0,
+                    "z": 28.217
+                }
+            ],
+            "frontages": [
+                {
+                    "side": "right",
+                    "from": 0,
+                    "to": 2,
+                    "buildings": [
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster-planks",
+                                "plaster"
+                            ],
+                            "doorModule": -1
+                        },
+                        {
+                            "widthModules": 2,
+                            "storeys": [
+                                "plaster-masonry",
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 1,
+                            "storeys": [
+                                "wall-tall"
+                            ],
+                            "doorModule": -1
+                        }
+                    ]
+                },
+                {
+                    "side": "right",
+                    "from": 2,
+                    "to": 4,
+                    "buildings": [
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster-planks",
+                                "plaster"
+                            ],
+                            "doorModule": -1
+                        },
+                        {
+                            "widthModules": 2,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        }
+                    ]
+                },
+                {
+                    "side": "left",
+                    "from": 0,
+                    "to": 1,
+                    "buildings": [
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster-planks",
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 1,
+                            "storeys": [
+                                "plaster-masonry",
+                                "plaster"
+                            ],
+                            "doorModule": -1
+                        }
+                    ]
+                },
+                {
+                    "side": "left",
+                    "from": 3,
+                    "to": 4,
+                    "buildings": [
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "wall-tall"
+                            ],
+                            "doorModule": 1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "south-alley",
+            "style": "cobbles",
+            "width": 4,
+            "points": [
+                {
+                    "x": 227.628,
+                    "y": 0,
+                    "z": 11.702
+                },
+                {
+                    "x": 235.762,
+                    "y": 0,
+                    "z": -4.426
+                }
+            ],
+            "frontages": [
+                {
+                    "side": "left",
+                    "from": 0,
+                    "to": 1,
+                    "buildings": [
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster-planks",
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 1,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": -1
+                        }
+                    ]
+                },
+                {
+                    "side": "right",
+                    "from": 0,
+                    "to": 1,
+                    "buildings": [
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster-planks",
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 1,
+                            "storeys": [
+                                "plaster-masonry",
+                                "plaster"
+                            ],
+                            "doorModule": -1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "west-lane",
+            "style": "cobbles",
+            "width": 0,
+            "points": [
+                {
+                    "x": 216.127,
+                    "y": 0,
+                    "z": 8.134
+                },
+                {
+                    "x": 205.875,
+                    "y": 0,
+                    "z": 28.169
+                }
+            ],
+            "frontages": [
+                {
+                    "side": "left",
+                    "from": 0,
+                    "to": 1,
+                    "buildings": [
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "wall-tall"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": -1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "east-lane",
+            "style": "cobbles",
+            "width": 0,
+            "points": [
+                {
+                    "x": 238.193,
+                    "y": 0,
+                    "z": 17.588
+                },
+                {
+                    "x": 228.275,
+                    "y": 0,
+                    "z": 39.466
+                },
+                {
+                    "x": 221.632,
+                    "y": 0,
+                    "z": 54.038
+                }
+            ],
+            "frontages": [
+                {
+                    "side": "right",
+                    "from": 0,
+                    "to": 2,
+                    "buildings": [
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster-planks",
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": -1
+                        },
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster-planks",
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 2,
+                            "storeys": [
+                                "plaster-masonry",
+                                "plaster"
+                            ],
+                            "doorModule": -1
+                        }
+                    ]
+                },
+                {
+                    "side": "left",
+                    "from": 1,
+                    "to": 2,
+                    "buildings": [
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "wall-tall"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 1,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": -1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "back-street",
+            "style": "cobbles",
+            "width": 0,
+            "points": [
+                {
+                    "x": 228.275,
+                    "y": 0,
+                    "z": 39.466
+                },
+                {
+                    "x": 217.523,
+                    "y": 0,
+                    "z": 34.043
+                },
+                {
+                    "x": 205.875,
+                    "y": 0,
+                    "z": 28.169
+                }
+            ],
+            "frontages": [
+                {
+                    "side": "right",
+                    "from": 0,
+                    "to": 1,
+                    "buildings": [
+                        {
+                            "widthModules": 2,
+                            "storeys": [
+                                "plaster-planks",
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        }
+                    ]
+                },
+                {
+                    "side": "right",
+                    "from": 1,
+                    "to": 2,
+                    "buildings": [
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "north-alley",
+            "style": "cobbles",
+            "width": 4,
+            "points": [
+                {
+                    "x": 217.523,
+                    "y": 0,
+                    "z": 34.043
+                },
+                {
+                    "x": 208.177,
+                    "y": 0,
+                    "z": 51.838
+                }
+            ],
+            "frontages": [
+                {
+                    "side": "left",
+                    "from": 0,
+                    "to": 1,
+                    "buildings": [
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster-planks",
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 2,
+                            "storeys": [
+                                "plaster-masonry",
+                                "plaster"
+                            ],
+                            "doorModule": -1
+                        }
+                    ]
+                },
+                {
+                    "side": "right",
+                    "from": 0,
+                    "to": 1,
+                    "buildings": [
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "wall-tall"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 2,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": -1
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "lots": [
+        {
+            "id": "guild-hall",
+            "origin": {
+                "x": 222.018,
+                "y": 0.163,
+                "z": 22.917
+            },
+            "yaw": 158,
+            "storeys": [
+                "plaster-masonry",
+                "plaster"
+            ],
+            "doorModule": 0
+        }
+    ]
+}
