@@ -103,5 +103,27 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8296646490368649232, guid: 82d0b341002e9e740b57adb20be0e63f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5977247152504684402}
   m_SourcePrefab: {fileID: 100100000, guid: 82d0b341002e9e740b57adb20be0e63f, type: 3}
+--- !u!1 &171189335992763514 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8296646490368649232, guid: 82d0b341002e9e740b57adb20be0e63f, type: 3}
+  m_PrefabInstance: {fileID: 8161564646202223722}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5977247152504684402
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 171189335992763514}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1db11414fe0c7d64292e528fb2fa5886, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Core.SurfaceTag
+  surface: 1
+  supportsRopeBolt: 0

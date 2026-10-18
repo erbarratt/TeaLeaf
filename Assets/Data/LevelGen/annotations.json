@@ -71,6 +71,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -149,8 +150,88 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": false,
+            "note": ""
+        },
+        {
+            "guid": "9ac7c12bad5c381408b738b377870397",
+            "name": "TL_Chimney_full",
+            "path": "Assets/Prefabs/Environment/Chimneys/TL_Chimney_full.prefab",
+            "category": "roof-chimney",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 1.346,
+            "height": 2.925,
+            "depth": 1.424,
+            "connections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.674,
+                        "y": -0.024,
+                        "z": -0.712
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.674,
+                        "y": -0.024,
+                        "z": -0.712
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0,
+                        "y": 2.901,
+                        "z": -0.712
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0,
+                        "y": -0.024,
+                        "z": -0.712
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": true,
             "note": ""
         },
         {
@@ -227,6 +308,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -305,6 +387,286 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": true,
+            "note": ""
+        },
+        {
+            "guid": "b604c2af6aea3e744a7dcab640c110f5",
+            "name": "TL_Extension_Small_window",
+            "path": "Assets/Prefabs/Environment/Extensions/TL_Extension_Small_window.prefab",
+            "category": "roof-dormer",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 0.732,
+            "height": 0.781,
+            "depth": 2.401,
+            "connections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 0.371,
+                        "y": 0.275,
+                        "z": 0.7
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.361,
+                        "y": 0.275,
+                        "z": 0.7
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0.005,
+                        "y": 1.056,
+                        "z": 1.66
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0.005,
+                        "y": -0.02,
+                        "z": 1.66
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": true,
+            "note": ""
+        },
+        {
+            "guid": "f8d612acdd8396a44828cd240f14b6ee",
+            "name": "TL_Foliage_Grass_A",
+            "path": "Assets/Prefabs/Environment/Foliage/TL_Foliage_Grass_A.prefab",
+            "category": "grass",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 0.375,
+            "height": 0.652,
+            "depth": 0.408,
+            "connections": [
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": true,
+            "note": ""
+        },
+        {
+            "guid": "d078d237e829a92478b8836ecf51ec3f",
+            "name": "TL_Foliage_Grass_B",
+            "path": "Assets/Prefabs/Environment/Foliage/TL_Foliage_Grass_B.prefab",
+            "category": "grass",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 0.46,
+            "height": 0.588,
+            "depth": 0.396,
+            "connections": [
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": true,
+            "note": ""
+        },
+        {
+            "guid": "03ba224e4df8a014abf7dfb0a640757b",
+            "name": "TL_Foliage_Grass_Cluster_A",
+            "path": "Assets/Prefabs/Environment/Foliage/TL_Foliage_Grass_Cluster_A.prefab",
+            "category": "",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 1.126,
+            "height": 0.999,
+            "depth": 1.127,
+            "connections": [
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": true,
+            "note": ""
+        },
+        {
+            "guid": "1d83ad4e6da69444696a2a1075b3cef3",
+            "name": "TL_Foliage_Nettle_A",
+            "path": "Assets/Prefabs/Environment/Foliage/TL_Foliage_Nettle_A.prefab",
+            "category": "nettle",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 0.602,
+            "height": 0.849,
+            "depth": 0.573,
+            "connections": [
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": true,
+            "note": ""
+        },
+        {
+            "guid": "0808b6690d39aae4187b20496cde631b",
+            "name": "TL_Foliage_Nettle_B",
+            "path": "Assets/Prefabs/Environment/Foliage/TL_Foliage_Nettle_B.prefab",
+            "category": "nettle",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 0.651,
+            "height": 0.781,
+            "depth": 0.751,
+            "connections": [
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 0
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -379,9 +741,194 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
+        },
+        {
+            "guid": "20251a94a03f91a42bba415586f98d46",
+            "name": "TL_IronFixtures_ArowRailing_Long",
+            "path": "Assets/Prefabs/Environment/Iron/TL_IronFixtures_ArowRailing_Long.prefab",
+            "category": "roof-railing",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 2.424,
+            "height": 1.342,
+            "depth": 0.137,
+            "connections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 1.159,
+                        "y": -0.036,
+                        "z": -0.074
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -1.265,
+                        "y": -0.036,
+                        "z": -0.074
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": -0.053,
+                        "y": 1.306,
+                        "z": -0.074
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": -0.053,
+                        "y": -0.036,
+                        "z": -0.074
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": true,
+            "note": ""
+        },
+        {
+            "guid": "87211947a5ca0a842bf47076f2f559e7",
+            "name": "TL_IronFixtures_ArowRailing_Short",
+            "path": "Assets/Prefabs/Environment/Iron/TL_IronFixtures_ArowRailing_Short.prefab",
+            "category": "roof-railing",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 1.198,
+            "height": 1.342,
+            "depth": 0.124,
+            "connections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 1.083,
+                        "y": -0.029,
+                        "z": -0.057
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -0.115,
+                        "y": -0.029,
+                        "z": -0.057
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": 0.484,
+                        "y": 1.313,
+                        "z": -0.057
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": 0.484,
+                        "y": -0.029,
+                        "z": -0.057
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": true,
+            "note": ""
+        },
+        {
+            "guid": "798423f1149c81647a1ab4748e62fefc",
+            "name": "TL_Lampost",
+            "path": "Assets/Prefabs/Environment/Iron/TL_Lampost.prefab",
+            "category": "lamp-post",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 0.537,
+            "height": 3.055,
+            "depth": 0.826,
+            "connections": [],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": true,
+            "note": "Verified by Claude (2026-10-16) from the scanner's measurements: sizes are world sizes (root scale applied). Pipes: a straight runs from its pivot along the first front, width = its length, height/depth = its diameter; a corner has a leg along each front from its bend; fittings are catalogued for later use. The lamp post faces +Z."
         },
         {
             "guid": "3b238b9de303e8242b2a537e8ced1a12",
@@ -459,6 +1006,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -539,6 +1087,7 @@
             "showsOpening": true,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -619,6 +1168,7 @@
             "showsOpening": true,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -699,6 +1249,7 @@
             "showsOpening": true,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -794,6 +1345,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -874,6 +1426,7 @@
             "showsOpening": true,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -954,6 +1507,7 @@
             "showsOpening": true,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -1034,6 +1588,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -1114,6 +1669,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -1199,6 +1755,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -1284,6 +1841,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -1379,6 +1937,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -1459,6 +2018,7 @@
             "showsOpening": true,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -1539,6 +2099,7 @@
             "showsOpening": true,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -1624,6 +2185,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -1709,6 +2271,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -1794,6 +2357,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -1874,6 +2438,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -1954,6 +2519,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -2034,6 +2600,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -2114,6 +2681,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -2194,6 +2762,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -2300,6 +2869,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -2352,6 +2922,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": false,
             "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
@@ -2377,6 +2948,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": false,
             "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
@@ -2429,6 +3001,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": false,
             "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
@@ -2481,9 +3054,63 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": false,
+            "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
+        },
+        {
+            "guid": "0725c87ed4bc7c24686ba699e0988552",
+            "name": "TL_Pipes_Capped_End_Small_thin",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Capped_End_Small_thin.prefab",
+            "category": "pipe-end",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 1,
+                    "z": 0
+                }
+            ],
+            "width": 0.663,
+            "height": 0.158,
+            "depth": 0.663,
+            "connections": [
+                {
+                    "name": "a",
+                    "position": {
+                        "x": -0.008,
+                        "y": 0.262,
+                        "z": 0.012
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "b",
+                    "position": {
+                        "x": -0.004,
+                        "y": -0.002,
+                        "z": 0.003
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
-            "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
+            "note": ""
         },
         {
             "guid": "4d58cced5a1eafa4591a4b4933734053",
@@ -2533,8 +3160,9 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
-            "verified": true,
+            "verified": false,
             "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
         },
         {
@@ -2590,6 +3218,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": false,
             "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
@@ -2647,8 +3276,9 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
-            "verified": true,
+            "verified": false,
             "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
         },
         {
@@ -2704,6 +3334,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": false,
             "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
@@ -2761,9 +3392,68 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": false,
+            "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
+        },
+        {
+            "guid": "a9441ce0831c2044fb1f096c662ba7ed",
+            "name": "TL_Pipes_Corner_Small_Sml_thin",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Corner_Small_Sml_thin.prefab",
+            "category": "pipe-corner",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": -1
+                },
+                {
+                    "x": 1,
+                    "y": 0,
+                    "z": 0
+                }
+            ],
+            "width": 0.454,
+            "height": 0.664,
+            "depth": 0.451,
+            "connections": [
+                {
+                    "name": "a",
+                    "position": {
+                        "x": 0.777,
+                        "y": 0,
+                        "z": -0.757
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "b",
+                    "position": {
+                        "x": 0.039,
+                        "y": 0.004,
+                        "z": 0.007
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 1
+                    }
+                }
+            ],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
-            "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
+            "note": ""
         },
         {
             "guid": "bd8dd5bf3768d204a8014c104457823f",
@@ -2839,6 +3529,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": false,
             "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
@@ -2917,8 +3608,9 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
-            "verified": true,
+            "verified": false,
             "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
         },
         {
@@ -2969,6 +3661,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": false,
             "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
@@ -3021,9 +3714,63 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": false,
+            "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
+        },
+        {
+            "guid": "774cee5aba9adf8419ae99950e1a2933",
+            "name": "TL_Pipes_Small_A_thin",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Small_A_thin.prefab",
+            "category": "pipe-straight",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": -1
+                }
+            ],
+            "width": 2.996,
+            "height": 0.665,
+            "depth": 0.665,
+            "connections": [
+                {
+                    "name": "a",
+                    "position": {
+                        "x": -0.001,
+                        "y": 0.005,
+                        "z": -0.002
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 1
+                    }
+                },
+                {
+                    "name": "b",
+                    "position": {
+                        "x": 0.001,
+                        "y": 0.006,
+                        "z": -2.998
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": -1
+                    }
+                }
+            ],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
-            "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
+            "note": ""
         },
         {
             "guid": "09c0e673ce8d42148a9f45d7ff8f6760",
@@ -3086,6 +3833,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": false,
             "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
@@ -3151,9 +3899,76 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": false,
+            "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
+        },
+        {
+            "guid": "22bc1d2c19232e14dbc18943ea826f4a",
+            "name": "TL_Pipes_TJunction_Small_thin",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_TJunction_Small_thin.prefab",
+            "category": "pipe-tee",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": -1
+                }
+            ],
+            "width": 0.784,
+            "height": 0.667,
+            "depth": 0.897,
+            "connections": [
+                {
+                    "name": "a",
+                    "position": {
+                        "x": -0.009,
+                        "y": -0.002,
+                        "z": -0.003
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 1
+                    }
+                },
+                {
+                    "name": "b",
+                    "position": {
+                        "x": -0.008,
+                        "y": -0.001,
+                        "z": -1.498
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": -1
+                    }
+                },
+                {
+                    "name": "c",
+                    "position": {
+                        "x": 0.744,
+                        "y": 0,
+                        "z": -0.775
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
-            "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
+            "note": ""
         },
         {
             "guid": "768cf5c53a7790347afcae2f57210cb7",
@@ -3190,6 +4005,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": false,
             "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
@@ -3242,6 +4058,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": false,
             "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
@@ -3267,6 +4084,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": false,
             "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
@@ -3306,9 +4124,50 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": false,
+            "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
+        },
+        {
+            "guid": "032f2ea5fb8d28d48969e5ce236b9379",
+            "name": "TL_Pipes_Valve_Small_thin",
+            "path": "Assets/Prefabs/Environment/Pipes/TL_Pipes_Valve_Small_thin.prefab",
+            "category": "pipe-valve",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": -1
+                }
+            ],
+            "width": 0.874,
+            "height": 0.876,
+            "depth": 0.48,
+            "connections": [
+                {
+                    "name": "a",
+                    "position": {
+                        "x": -0.002,
+                        "y": 0.001,
+                        "z": 0.001
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 1
+                    }
+                }
+            ],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
-            "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
+            "note": ""
         },
         {
             "guid": "2610e59b1f6f8f54f9c6a44288f860d0",
@@ -3358,6 +4217,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": false,
             "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
@@ -3397,6 +4257,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
@@ -3436,6 +4297,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": "Ends a, b... suggested by Find pipe ends (2026-10-17); check each by eye."
@@ -3508,34 +4370,10 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": false,
             "note": ""
-        },
-        {
-            "guid": "798423f1149c81647a1ab4748e62fefc",
-            "name": "TL_Lampost",
-            "path": "Assets/Prefabs/Environment/PltfrmSprts/TL_Lampost.prefab",
-            "category": "lamp-post",
-            "fronts": [
-                {
-                    "x": 0,
-                    "y": 0,
-                    "z": 1
-                }
-            ],
-            "width": 0.537,
-            "height": 3.055,
-            "depth": 0.826,
-            "connections": [],
-            "styles": [],
-            "groundStoreyOnly": false,
-            "showsOpening": false,
-            "fillsStorey": false,
-            "onePerStorey": false,
-            "excluded": false,
-            "verified": true,
-            "note": "Verified by Claude (2026-10-16) from the scanner's measurements: sizes are world sizes (root scale applied). Pipes: a straight runs from its pivot along the first front, width = its length, height/depth = its diameter; a corner has a leg along each front from its bend; fittings are catalogued for later use. The lamp post faces +Z."
         },
         {
             "guid": "2c66c52b10dac394f87211a2eb2ad333",
@@ -3607,6 +4445,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -3681,6 +4520,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -3755,6 +4595,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -3829,6 +4670,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -3903,6 +4745,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -3977,6 +4820,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -4055,6 +4899,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -4063,7 +4908,7 @@
             "guid": "4ce738107a7d08b499f8321f7a8a4d3c",
             "name": "TL_RoofWall_CornerA",
             "path": "Assets/Prefabs/Environment/RoofWalls/TL_RoofWall_CornerA.prefab",
-            "category": "roof-gable-half",
+            "category": "roof",
             "fronts": [
                 {
                     "x": 0,
@@ -4080,15 +4925,16 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
-            "verified": true,
+            "verified": false,
             "note": "Half gable: upright edge at x 0, sloping down to +X."
         },
         {
             "guid": "951a7df2cf61c324e94d3672579d6525",
             "name": "TL_RoofWall_CornerB",
             "path": "Assets/Prefabs/Environment/RoofWalls/TL_RoofWall_CornerB.prefab",
-            "category": "roof-gable-half",
+            "category": "roof",
             "fronts": [
                 {
                     "x": 0,
@@ -4105,9 +4951,326 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": false,
+            "note": "Half gable: upright edge at x 0, sloping down to +X."
+        },
+        {
+            "guid": "5baee35393a16f7498908e4a6247d7e0",
+            "name": "TL_RoofWall_LargeA",
+            "path": "Assets/Prefabs/Environment/RoofWalls/TL_RoofWall_LargeA.prefab",
+            "category": "roof-gable",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 5.392,
+            "height": 6.798,
+            "depth": 1.104,
+            "connections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 2.674,
+                        "y": -0.03,
+                        "z": -0.5
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -2.718,
+                        "y": -0.03,
+                        "z": -0.5
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": -0.022,
+                        "y": 6.768,
+                        "z": -0.5
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": -0.022,
+                        "y": -0.03,
+                        "z": -0.5
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
-            "note": "Half gable: upright edge at x 0, sloping down to +X."
+            "note": ""
+        },
+        {
+            "guid": "77c46c3951ccd3741a539272356d8526",
+            "name": "TL_RoofWall_LargeB",
+            "path": "Assets/Prefabs/Environment/RoofWalls/TL_RoofWall_LargeB.prefab",
+            "category": "roof-gable",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 5.474,
+            "height": 6.726,
+            "depth": 1.214,
+            "connections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 2.721,
+                        "y": 0.039,
+                        "z": -0.41
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -2.752,
+                        "y": 0.039,
+                        "z": -0.41
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": -0.015,
+                        "y": 6.765,
+                        "z": -0.41
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": -0.015,
+                        "y": 0.039,
+                        "z": -0.41
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": true,
+            "note": ""
+        },
+        {
+            "guid": "95341ec46d9f0b447bc17831b3b228cb",
+            "name": "TL_RoofWall_MedA",
+            "path": "Assets/Prefabs/Environment/RoofWalls/TL_RoofWall_MedA.prefab",
+            "category": "roof-gable",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 5.217,
+            "height": 4.664,
+            "depth": 0.938,
+            "connections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 2.607,
+                        "y": -0.162,
+                        "z": -0.47
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -2.611,
+                        "y": -0.162,
+                        "z": -0.47
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": -0.002,
+                        "y": 4.502,
+                        "z": -0.47
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": -0.002,
+                        "y": -0.162,
+                        "z": -0.47
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": true,
+            "note": ""
+        },
+        {
+            "guid": "541dbe620eda989428fa05c71348abeb",
+            "name": "TL_RoofWall_MedB",
+            "path": "Assets/Prefabs/Environment/RoofWalls/TL_RoofWall_MedB.prefab",
+            "category": "roof-gable",
+            "fronts": [
+                {
+                    "x": 0,
+                    "y": 0,
+                    "z": 1
+                }
+            ],
+            "width": 4.709,
+            "height": 4.505,
+            "depth": 1.21,
+            "connections": [
+                {
+                    "name": "left",
+                    "position": {
+                        "x": 2.324,
+                        "y": -0.015,
+                        "z": -0.35
+                    },
+                    "direction": {
+                        "x": 1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "right",
+                    "position": {
+                        "x": -2.385,
+                        "y": -0.015,
+                        "z": -0.35
+                    },
+                    "direction": {
+                        "x": -1,
+                        "y": 0,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "top",
+                    "position": {
+                        "x": -0.031,
+                        "y": 4.49,
+                        "z": -0.35
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 1,
+                        "z": 0
+                    }
+                },
+                {
+                    "name": "bottom",
+                    "position": {
+                        "x": -0.031,
+                        "y": -0.015,
+                        "z": -0.35
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": -1,
+                        "z": 0
+                    }
+                }
+            ],
+            "styles": [],
+            "groundStoreyOnly": false,
+            "showsOpening": false,
+            "fillsStorey": false,
+            "onePerStorey": false,
+            "lit": false,
+            "excluded": false,
+            "verified": true,
+            "note": ""
         },
         {
             "guid": "d4f6f3e040e09db44b969deb323bd7ea",
@@ -4130,6 +5293,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": true,
             "verified": true,
             "note": "Plain panel between the ends, any row. Not manifold (open edges show gaps): not used."
@@ -4155,6 +5319,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": "Eave/middle row panel with its verge at its +X end; mirrored for the other end."
@@ -4180,6 +5345,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": true,
             "verified": true,
             "note": "The +X half of MiddleSide (x -0.25 to 2.15); two mirrored make a one-panel roof. Not manifold (open edges show gaps): not used."
@@ -4205,6 +5371,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": "Top row panel with the ridge cap, its verge at its +X end; mirrored for the other end."
@@ -4230,6 +5397,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": true,
             "verified": true,
             "note": "The +X half of TopCorner. Not manifold (open edges show gaps): not used."
@@ -4287,6 +5455,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": "Lowest third of a quarter spire, its eave corner at +X+Z. eave: the outer bottom corner; next: where the middle's pivot goes (from the pack's tower)."
@@ -4331,6 +5500,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": "Middle third of a quarter spire, its outer corner at +X+Z. next: where the top's pivot goes (from the pack's tower)."
@@ -4375,6 +5545,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": "Cap of a quarter spire, its outer corner at -X+Z (a quarter turn from the base and middle). tip: the spire's point."
@@ -4423,6 +5594,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -4469,6 +5641,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -4559,6 +5732,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -4644,6 +5818,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -4729,6 +5904,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -4814,6 +5990,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -4894,6 +6071,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -4974,6 +6152,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -5056,6 +6235,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -5090,6 +6270,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -5170,6 +6351,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -5250,6 +6432,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -5330,6 +6513,7 @@
             "showsOpening": true,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": false,
             "note": ""
@@ -5410,6 +6594,7 @@
             "showsOpening": true,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -5490,6 +6675,7 @@
             "showsOpening": true,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -5583,6 +6769,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -5663,6 +6850,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -5750,6 +6938,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": false,
             "note": ""
@@ -5830,6 +7019,7 @@
             "showsOpening": false,
             "fillsStorey": true,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -5910,6 +7100,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -5990,6 +7181,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -6070,6 +7262,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -6147,7 +7340,7 @@
                     "position": {
                         "x": -1.476,
                         "y": 1.99,
-                        "z": 0
+                        "z": 0.15
                     },
                     "direction": {
                         "x": 0,
@@ -6163,6 +7356,7 @@
             "showsOpening": true,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": false,
             "note": ""
@@ -6256,6 +7450,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -6352,6 +7547,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -6432,6 +7628,7 @@
             "showsOpening": true,
             "fillsStorey": false,
             "onePerStorey": true,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -6503,6 +7700,19 @@
                         "y": -1,
                         "z": 0
                     }
+                },
+                {
+                    "name": "window",
+                    "position": {
+                        "x": -1.75,
+                        "y": 1.95,
+                        "z": 0.38
+                    },
+                    "direction": {
+                        "x": 0,
+                        "y": 0,
+                        "z": 1
+                    }
                 }
             ],
             "styles": [
@@ -6512,6 +7722,7 @@
             "showsOpening": true,
             "fillsStorey": false,
             "onePerStorey": true,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -6597,6 +7808,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": false,
             "note": ""
@@ -6682,6 +7894,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -6767,10 +7980,10 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": true,
             "excluded": false,
             "verified": true,
-            "note": "",
-            "lit": true
+            "note": ""
         },
         {
             "guid": "f288df8eeedb8464da2b3e07efefc578",
@@ -6853,6 +8066,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -6938,10 +8152,10 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": true,
             "excluded": false,
             "verified": true,
-            "note": "",
-            "lit": true
+            "note": ""
         },
         {
             "guid": "bbb8f4bf084456340b696a91ee73847b",
@@ -7024,6 +8238,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -7109,10 +8324,10 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": true,
             "excluded": false,
             "verified": true,
-            "note": "",
-            "lit": true
+            "note": ""
         },
         {
             "guid": "f544b6bd73c4ce84f96a991423b64b85",
@@ -7195,6 +8410,7 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": false,
             "excluded": false,
             "verified": true,
             "note": ""
@@ -7280,10 +8496,10 @@
             "showsOpening": false,
             "fillsStorey": false,
             "onePerStorey": false,
+            "lit": true,
             "excluded": false,
             "verified": true,
-            "note": "",
-            "lit": true
+            "note": ""
         }
     ]
 }

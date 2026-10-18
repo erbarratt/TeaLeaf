@@ -32,6 +32,15 @@ namespace LevelGen
     /// same as the one before it along the row. The tiles' colliders are
     /// replaced by one box per run of tiles along a row at one height
     /// (FloorColliders).
+    ///
+    /// As a ground grid is laid, a share of its tiles (GrassCover) get a
+    /// cluster of grass (StreetFoliage.PlaceCluster) about a random point on
+    /// the tile, where that point stands in the open street (InOpenStreet:
+    /// GrassEdgeMargin in from the street's edges, from every lot's
+    /// footprint and from a flight of steps), under a "Grass - street" group
+    /// of the foliage parent; the foliage's own random sequence is drawn
+    /// from, so the tiles come out the same with or without it. Decking and
+    /// landings get no grass.
     /// </summary>
     internal static class StreetGround
     {
@@ -66,7 +75,7 @@ namespace LevelGen
         /// of its own in parent. Adds a line per area or street to log.
         /// </summary>
         internal static void Build(LayoutSpec spec, Dictionary<string, BuildingStyle> styles, GeneratorSettings settings,
-            System.Random random, PiecePlacer placer, Transform parent, List<string> log)
+            System.Random random, System.Random foliageRandom, PiecePlacer placer, Transform parent, Transform foliage, List<string> log)
         {
             HashSet<StreetSpec> done = new();
             // Each street in order: a ground area (its first street, style and
@@ -106,7 +115,8 @@ namespace LevelGen
 
                 if (area != null) {
                     List<StreetSteps.Flight> areaFlights = flights.FindAll(flight => area.Contains(flight.Street));
-                    LayArea(area, lotGround[i], areaFlights, style, settings, random, placer, Group(parent, $"Ground - {first.id}"), log);
+                    LayArea(area, lotGround[i], areaFlights, style, settings, random, foliageRandom, placer, Group(parent, $"Ground - {first.id}"),
+                        foliage, log);
                 } else {
                     LayDecking(first, style, settings, random, placer, Group(parent, $"Decking - {first.id}"), log);
                 }
@@ -290,7 +300,8 @@ namespace LevelGen
         /// would lie over a flight or its landing (OverFlight).
         /// </summary>
         private static void LayArea(List<StreetSpec> area, List<GroundLot> lots, List<StreetSteps.Flight> flights, BuildingStyle style,
-            GeneratorSettings settings, System.Random random, PiecePlacer placer, Transform group, List<string> log)
+            GeneratorSettings settings, System.Random random, System.Random foliageRandom, PiecePlacer placer, Transform group, Transform foliage,
+            List<string> log)
         {
             StreetSpec first = area[0];
 
@@ -352,6 +363,9 @@ namespace LevelGen
             int lastRow = Mathf.CeilToInt(max.y / pitchZ);
             float slide = 0f;
             int placed = 0;
+            int clusters = 0;
+            int tufts = 0;
+            Transform grass = null;
             FloorColliders floors = new(group);
 
             for (int row = firstRow; row <= lastRow; row++) {
@@ -385,8 +399,27 @@ namespace LevelGen
                     GameObject placedTile = placer.PlaceTile(previous, surface, gridYaw + turns * 90f, group);
                     floors.Add(placedTile);
 
-                    if (placedTile != null) {
-                        placed++;
+                    if (placedTile == null) {
+                        continue;
+                    }
+
+                    placed++;
+
+                    // A cluster of grass on this tile, about a random point
+                    // on it, where that point stands in the open street.
+                    if (StreetFoliage.HasGrass && foliageRandom.NextDouble() < settings.GrassCover) {
+                        Vector2 at = centre + axisX * (((float)foliageRandom.NextDouble() - 0.5f) * style.TileWidth)
+                            + axisZ * (((float)foliageRandom.NextDouble() - 0.5f) * style.TileDepth);
+
+                        if (InOpenStreet(at, rects, discs, lots, flights, settings.GrassEdgeMargin)) {
+                            if (grass == null) {
+                                grass = Group(foliage, $"Grass - {first.id}");
+                            }
+
+                            tufts += StreetFoliage.PlaceCluster(at, point => HeightAt(area, lots, flights, point, settings), settings, foliageRandom,
+                                placer, grass);
+                            clusters++;
+                        }
                     }
                 }
             }
@@ -399,7 +432,50 @@ namespace LevelGen
             }
 
             log.Add($"Ground '{style.Name}' for {Names(area)}: {placed} tile(s), {lastRow - firstRow + 1} row(s), {floors.Boxes} floor box(es) for {floors.Removed} tile collider(s)"
-                + (flights.Count > 0 ? $", {flights.Count} flight(s) of steps ({steps} piece(s))." : "."));
+                + (flights.Count > 0 ? $", {flights.Count} flight(s) of steps ({steps} piece(s))" : "")
+                + $", {clusters} grass cluster(s) ({tufts} tuft(s)).");
+        }
+
+        /// <summary>
+        /// Whether a point on the ground stands in the open street: at least
+        /// margin inside the area's outline (its segments' rectangles and the
+        /// discs at their bends and junctions), at least margin outside every
+        /// lot's footprint, and more than margin from any flight of steps and
+        /// its landing - so a cluster of grass never stands under a building,
+        /// against its foundations, or on the steps.
+        /// </summary>
+        private static bool InOpenStreet(Vector2 point, List<GroundRect> rects, List<GroundDisc> discs, List<GroundLot> lots,
+            List<StreetSteps.Flight> flights, float margin)
+        {
+            // A rectangle of no size: its coverage is how deep the point
+            // lies in the outline.
+            GroundRect spot = new() { Centre = point, AxisX = Vector2.right, AxisZ = Vector2.up, HalfX = 0f, HalfZ = 0f };
+
+            if (Coverage(spot, rects, discs) < margin) {
+                return false;
+            }
+
+            foreach (GroundLot lot in lots) {
+                if (lot.Outside(point) < margin) {
+                    return false;
+                }
+            }
+
+            foreach (StreetSteps.Flight flight in flights) {
+                Vector2 offset = point - flight.Start;
+                float along = Vector2.Dot(offset, flight.Axis);
+                float across = Mathf.Abs(Vector2.Dot(offset, new Vector2(-flight.Axis.y, flight.Axis.x)));
+                // From the lowest step's front to the landing's far edge.
+                float landingEnd = flight.Top + flight.Up * flight.Landing;
+                float low = Mathf.Min(flight.Front, landingEnd);
+                float high = Mathf.Max(flight.Front, landingEnd);
+
+                if (across <= flight.Width * 0.5f + margin && along >= low - margin && along <= high + margin) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

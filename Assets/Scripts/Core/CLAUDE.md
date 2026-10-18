@@ -290,7 +290,22 @@ night. The player's side (`Player.PlayerVisibility`) is in `Scripts/Player/CLAUD
   `flameVisual` object. `Extinguish()` (with an optional `extinguishCue`), `Relight()`,
   `IsLit`, `startsLit`. Self-registering static list; **`Flame.ExtinguishNear(point,
   radius)`** puts out every lit one within the radius (distance checks only) and returns
-  how many - what the water bolt calls. No `Update()`.
+  how many - what the water bolt calls. No `Update()`. **A flame is drawn by one quad
+  with the `TeaLeaf/Flame` shader** (`Assets/Art/Shaders/Flame.shader`,
+  `Assets/Art/Materials/Flame.mat`, the noise `Assets/Art/Textures/FlameNoise.png`, a
+  128 R8 tiling value noise): unlit, billboarded round the up axis in the vertex
+  shader from the per-eye camera position, two samples of the noise bending a
+  teardrop with a low rounded heart, each flame's phase hashed from its world xz,
+  flicker per vertex, premultiplied blend (`Blend One OneMinusSrcAlpha`), SRP Batcher
+  CBUFFER and stereo macros. The `TL_Lampost`, `TL_IronFixtures_Lamp`, `_LargeTorch`
+  and `_TorchBracket` variants each carry a `Flame Visual` child (a built-in Quad with
+  `Flame.mat`; `Environment` layer; Occludee static only - Batching static would lose
+  the pivot the billboard turns about; no shadows, probes or motion vectors) set as
+  the `Flame`'s `flameVisual`, with the pack's nested `Fire_Effect` particle system
+  turned off: its URP Particles/Lit material wants the depth and opaque textures,
+  both off by project rule, and drew a lit square. Sizes: lantern 0.09 x 0.16m at the
+  cage floor, brazier 0.40 x 0.55m, bracket torch 0.22 x 0.40m. Not yet tuned in the
+  headset; the lantern's point light (intensity 3) washes the flame's heart out.
 - The Sound Test House has three sources with matching point lights (Hall torch, Kitchen
   torch, Lounge lamp at 0.7); moonlight reaches the Yard and the roofless upper floor; the
   Store is dark behind its closed door.

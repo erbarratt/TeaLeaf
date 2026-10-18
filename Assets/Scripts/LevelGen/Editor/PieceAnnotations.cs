@@ -85,9 +85,10 @@ namespace LevelGen
             "", "wall", "door-wall", "window-wall", "outer-corner", "inner-corner",
             "foundation", "foundation-corner", "floor", "ground", "steps", "column", "beam",
             "roof", "detail", "window", "jetty", "door",
-            "roof-end", "roof-end-half", "roof-ridge-end", "roof-ridge-end-half", "roof-middle", "roof-gable-half",
-            "roof-hip-base", "roof-hip-middle", "roof-hip-top",
-            "pipe-straight", "pipe-corner", "pipe-end", "pipe-fitting", "pipe-tee", "pipe-valve", "pipe-vent", "lamp-post"
+            "roof-end", "roof-end-half", "roof-ridge-end", "roof-ridge-end-half", "roof-middle", "roof-gable",
+            "roof-hip-base", "roof-hip-middle", "roof-hip-top", "roof-chimney", "roof-dormer", "roof-railing",
+            "pipe-straight", "pipe-corner", "pipe-end", "pipe-fitting", "pipe-tee", "pipe-valve", "pipe-vent", "lamp-post",
+            "grass", "nettle"
         };
 
         public string guid;

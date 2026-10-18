@@ -1,5 +1,6 @@
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace LevelGen
 {
@@ -71,8 +72,8 @@ namespace LevelGen
         [SerializeField, Range(0f, 45f)] private float cornerAngleTolerance = 20f;
         [Tooltip("Two frontages' ends at a junction are joined at a street corner only if each needs carrying no further than this to meet the other; otherwise each turns a side return into the branching street.")]
         [SerializeField, Range(1f, 20f)] private float cornerMaxReach = 8f;
-        [Tooltip("At a corner the side whose walls end in their trim runs on to the other side's front; the other side's walls, ending plain, run this far past the covering walls' back line, into their depth, so their end is hidden inside them.")]
-        [SerializeField, Range(0f, 0.4f)] private float cornerTuck = 0.15f;
+        [Tooltip("At a corner each side's walls run this share of the way from the other side's back line to its face, so both ends are hidden inside the other wall and the two walls' end posts meet at the corner (0 = stop at the other's back line, 1 = run to its face).")]
+        [SerializeField, Range(0f, 1f)] private float cornerOverrun = 0.5f;
 
         [Header("Jetties")]
         [Tooltip("The chance that a facade building's upper storeys jut out over the street (by the depth of the jetty piece, about 1.5m), carried on jetty supports - where it has an upper storey and a jetty piece fits its ground storey's module. Higher for more jettied buildings, lower for fewer.")]
@@ -127,6 +128,8 @@ namespace LevelGen
         [SerializeField, Range(0f, 1f)] private float pipeLargeShare = 0.1f;
         [Tooltip("Clear space between a wall's face and the pipe beside it.")]
         [SerializeField, Range(0f, 0.3f)] private float pipeWallGap = 0.05f;
+        [Tooltip("How far from a module's left end (seen from the street) a plumb run of pipe stands: on the plaster past the wall's end post. On the joint itself, over the post, where that would cross a door or window.")]
+        [SerializeField, Range(0.2f, 1.5f)] private float pipePanelInset = 0.6f;
         [Tooltip("Clear space kept between a pipe and any door or window.")]
         [SerializeField, Range(0f, 1f)] private float pipeOpeningMargin = 0.25f;
         [Tooltip("Where a level stretch of pipe ends in an elbow turning into the wall, the end lands at random within this share of its module's width about the module's middle (0 = always the middle, 1 = anywhere along it), never at a joint between walls.")]
@@ -151,6 +154,16 @@ namespace LevelGen
         [SerializeField, Range(0.3f, 2f)] private float lampEdgeInset = 0.6f;
         [Tooltip("The most lamp posts whose lights may reach any one spot, over every street. A lamp's light is Mixed, and the shadowmask holds four Mixed lights per spot, the moon being one; a post that would break this is not placed.")]
         [SerializeField, Range(1, 4)] private int lampMaxOverlap = 3;
+
+        [Header("Smoke and steam (particle systems)")]
+        [Tooltip("The particle system prefab placed at the top of a chimney that smokes, pointing up (none: no chimney smokes).")]
+        [SerializeField] private GameObject chimneySmokePrefab;
+        [Tooltip("The share of chimneys that smoke.")]
+        [SerializeField, Range(0f, 1f)] private float chimneySmokeShare = 0.5f;
+        [Tooltip("The particle system prefab placed at the face of a vent that steams, pointing out of the wall (none: no vent steams).")]
+        [SerializeField] private GameObject ventSteamPrefab;
+        [Tooltip("The share of vents that steam.")]
+        [SerializeField, Range(0f, 1f)] private float ventSteamShare = 0.5f;
 
         [Header("Side walls")]
         [Tooltip("Where a column stands taller than the column beside it (in its building or the next), each of its storeys above the lower one gets a side wall facing that way and running back from its front walls, so from the street it seems to go on behind. The wall's length in modules is this times the column's width in modules, at least one (0 = no side walls). Separate from roofs and roof walls.")]
@@ -201,6 +214,31 @@ namespace LevelGen
         [Tooltip("A tile is laid only where it overlaps the street by at least this much; the rest of it may stand out under the buildings lining the street.")]
         [SerializeField, Range(0f, 1.5f)] private float minTileCoverage = 0.1f;
 
+        [Header("Foliage (grass, nettles)")]
+        [Tooltip("The share of the ground tiles laid on the streets that carry a cluster of grass (verified pieces of the grass category), drawn per tile. 0 lays none.")]
+        [SerializeField, Range(0f, 1f)] private float grassCover = 0.05f;
+        [Tooltip("How many tufts of grass a cluster has, at random between these.")]
+        [SerializeField, Range(1, 12)] private int grassClusterMin = 2;
+        [SerializeField, Range(1, 12)] private int grassClusterMax = 4;
+        [Tooltip("How far from a cluster's middle its tufts are scattered.")]
+        [SerializeField, Range(0f, 2f)] private float grassClusterRadius = 0.5f;
+        [Tooltip("A cluster's middle stands at least this far in from the street's edges and from every lot's footprint (clear of the foundations and of columns standing forward into the street), and this far from a flight of steps.")]
+        [SerializeField, Range(0f, 3f)] private float grassEdgeMargin = 1f;
+        [Tooltip("How many nettles each street gets, at random between these: each stands at the foot of a foundation facing the street (a verified piece of the nettle category), in the corner where the foundation stones meet the ground tiles.")]
+        [SerializeField, Range(0, 20)] private int nettlesPerStreetMin = 2;
+        [SerializeField, Range(0, 20)] private int nettlesPerStreetMax = 4;
+        [Tooltip("How far a nettle's middle stands out from the foundation's face: less than half the plant's width, so its back grows out of the joint.")]
+        [SerializeField, Range(0f, 0.5f)] private float nettleOut = 0.2f;
+        [Tooltip("No two nettles stand closer than this.")]
+        [SerializeField, Range(0f, 10f)] private float nettleSpacing = 2f;
+        [Tooltip("No nettle stands within this of a doorway's sides.")]
+        [SerializeField, Range(0f, 2f)] private float nettleDoorClear = 0.6f;
+        [Tooltip("Every tuft of grass and every nettle is scaled at random between these, so no two look alike.")]
+        [SerializeField, Range(0.5f, 1.5f)] private float foliageScaleMin = 0.8f;
+        [SerializeField, Range(0.5f, 1.5f)] private float foliageScaleMax = 1.2f;
+        [Tooltip("How far each piece of foliage is sunk below the ground's walking surface, so its roots hide in the uneven stones rather than floating over them.")]
+        [SerializeField, Range(0f, 0.1f)] private float foliageSink = 0.03f;
+
         [Header("Steps (streets changing height)")]
         [Tooltip("The landing of ground tiles laid square to a flight of steps at its top, in the steps' own frame, stands this far below the street's level, so where the street's own grid of tiles overlaps it the grid's tiles lie on top.")]
         [SerializeField, Range(0f, 0.1f)] private float landingDrop = 0.02f;
@@ -230,14 +268,51 @@ namespace LevelGen
         [SerializeField, Range(0.5f, 4f)] private float roofHipStep = 2.5f;
         [Tooltip("How far back, in degrees, each piece of a hip strip leans (its outer corner up), so its faces, steeper than the roofs' pitch, lie flatter on the slopes.")]
         [SerializeField, Range(0f, 25f)] private float roofHipLean = 10f;
+        [Tooltip("The sharpest corner (the angle between its two eaves, in degrees) whose roofs meet along a hip under a hip strip; a sharper one's roofs end in gables and overlap. The hip piece is scaled across the hip to the corner's angle, so the range is what the stretch still looks right at.")]
+        [SerializeField, Range(30f, 90f)] private float roofHipAngleMin = 50f;
+        [Tooltip("The widest corner whose roofs meet along a hip under a hip strip; a wider one's roofs end in gables and overlap (a near-straight bend would need a piece many times wider than it is tall).")]
+        [SerializeField, Range(90f, 170f)] private float roofHipAngleMax = 135f;
+        [Tooltip("How much of a building's roof, about its middle, a chimney or dormer may stand along: 0 puts it at the middle, 0.5 anywhere in the middle half, 1 anywhere along the roof.")]
+        [SerializeField, Range(0f, 1f)] private float roofFeatureSpread = 0.5f;
+        [Tooltip("A building's roof gets a chimney or dormer only where it is at least this many tile panels long (as the top row counts them).")]
+        [SerializeField, Range(1, 6)] private int roofFeatureMinPanels = 2;
+        [Tooltip("How far up the front slope from the eave, along the slope, the bottom of a dormer's front wall sits; its back is sunk into the slope.")]
+        [SerializeField, Range(0f, 6f)] private float roofDormerUp = 2f;
+        [Tooltip("How far below the tiles' surface the bottom of a dormer's front wall sits, so no gap shows under it.")]
+        [SerializeField, Range(0f, 0.5f)] private float roofDormerSink = 0.1f;
+        [Tooltip("The least far up the front slope from the eave, along the slope, the bottom of a chimney's front face sits; its back is sunk into the slope. Further up than a dormer.")]
+        [SerializeField, Range(0f, 8f)] private float roofChimneyUp = 4f;
+        [Tooltip("The furthest up the slope a chimney's front face sits: each chimney's position is drawn between Roof Chimney Up and this, and its back never passes the ridge.")]
+        [SerializeField, Range(0f, 12f)] private float roofChimneyUpMax = 8f;
+        [Tooltip("How far below the tiles' surface the bottom of a chimney's front face sits, so no gap shows under it.")]
+        [SerializeField, Range(0f, 0.5f)] private float roofChimneySink = 0.15f;
+        [Tooltip("The least a chimney's top stands above the tiles at its back face (the slope rises across its depth): it is stretched up, never shrunk, to reach its rise.")]
+        [SerializeField, Range(0f, 3f)] private float roofChimneyRise = 0.8f;
+        [Tooltip("The most a chimney's top stands above the tiles at its back face: each chimney's rise is drawn between Roof Chimney Rise and this, so some stand clear above the ridge.")]
+        [SerializeField, Range(0f, 5f)] private float roofChimneyRiseMax = 2.5f;
+        [Tooltip("The share of buildings whose roof gets iron railings along its ridge (the arrow railings laid end to end, as the pack's example buildings have them): one draw per building, on its first roof.")]
+        [SerializeField, Range(0f, 1f)] private float roofRailingShare = 0.5f;
+        [Tooltip("How far a ridge railing's feet sink below the top of the roof under them (the ridge cap, found by a ray), so they stand in the tiles rather than float on the cap.")]
+        [SerializeField, Range(0f, 0.6f)] private float roofRailingSink = 0.15f;
+        [Tooltip("The most a ridge railing leans, in degrees, along the ridge (and a third as much across it), drawn at random for each: storybook-crooked.")]
+        [SerializeField, Range(0f, 25f)] private float roofRailingLean = 12f;
+        [Tooltip("How far in from each end of the ridge the railings keep (at a corner, from where the ridge meets the other roof's).")]
+        [SerializeField, Range(0f, 2f)] private float roofRailingInset = 0.4f;
+        [Tooltip("The gap between one ridge railing and the next.")]
+        [SerializeField, Range(0f, 2f)] private float roofRailingGap = 1f;
 
-        [Header("Roof cull (last of all)")]
-        [Tooltip("The roof cull, the last thing a generation does: a probe walks the middle of every street this high above the ground tiles (up and down the steps), and every roof piece it can't see from anywhere along the way is removed.")]
-        [SerializeField, Range(2f, 30f)] private float roofCullHeight = 9f;
-        [Tooltip("How far the roof cull's probe moves between looks.")]
-        [SerializeField, Range(0.5f, 10f)] private float roofCullStep = 2f;
-        [Tooltip("The farthest the roof cull's probe looks: a roof piece further than this from every look is removed.")]
-        [SerializeField, Range(10f, 300f)] private float roofCullRange = 80f;
+        [Header("Visibility cull (last of all)")]
+        [Tooltip("The visibility cull, the last thing a generation does: a probe walks every street (up and down the steps), looking from eye height - this high above the ground - along the middle and along both edges, and every placed piece (ground, walls, beams, pipes, walkways, roofs; not the lamp posts) it can't see from anywhere along the way is removed.")]
+        [SerializeField, Range(1f, 3f)] private float cullEyeHeight = 1.6f;
+        [Tooltip("The probe also looks from this high above the middle of the street, for the roofs.")]
+        [FormerlySerializedAs("roofCullHeight")]
+        [SerializeField, Range(2f, 30f)] private float cullHeight = 9f;
+        [Tooltip("How far the cull's probe moves between looks.")]
+        [FormerlySerializedAs("roofCullStep")]
+        [SerializeField, Range(0.5f, 10f)] private float cullStep = 2f;
+        [Tooltip("The farthest the cull's probe looks: a piece further than this from every look is removed.")]
+        [FormerlySerializedAs("roofCullRange")]
+        [SerializeField, Range(10f, 300f)] private float cullRange = 80f;
         [Tooltip("Roof pieces facing the void beyond the level lose their colliders: how far past the furthest point of a piece's building the empty space must start.")]
         [SerializeField, Range(0f, 10f)] private float roofEdgeGap = 1.5f;
         [Tooltip("How far out the space beyond a roof piece's building must be empty (no Environment collider, from the piece's top down) for the piece to lose its colliders.")]
@@ -278,7 +353,7 @@ namespace LevelGen
         internal float JettyInset => jettyInset;
         internal float CornerAngleTolerance => cornerAngleTolerance;
         internal float CornerMaxReach => cornerMaxReach;
-        internal float CornerTuck => cornerTuck;
+        internal float CornerOverrun => cornerOverrun;
         internal float DoorInsertMargin => doorInsertMargin;
         internal float DoorSideMargin => doorSideMargin;
         internal float DoorInsertDepth => doorInsertDepth;
@@ -303,6 +378,7 @@ namespace LevelGen
         internal float PipeMinRunShare => pipeMinRunShare;
         internal float PipeLargeShare => pipeLargeShare;
         internal float PipeWallGap => pipeWallGap;
+        internal float PipePanelInset => pipePanelInset;
         internal float PipeOpeningMargin => pipeOpeningMargin;
         internal float PipeEndSpread => pipeEndSpread;
         internal float ValveShare => valveShare;
@@ -311,6 +387,10 @@ namespace LevelGen
         internal int VentsMax => ventsMax;
         internal float VentLargeShare => ventLargeShare;
         internal float VentFlatTolerance => ventFlatTolerance;
+        internal GameObject ChimneySmokePrefab => chimneySmokePrefab;
+        internal float ChimneySmokeShare => chimneySmokeShare;
+        internal GameObject VentSteamPrefab => ventSteamPrefab;
+        internal float VentSteamShare => ventSteamShare;
         internal float WalkwayShare => walkwayShare;
         internal float LampSpacing => lampSpacing;
         internal float LampEdgeInset => lampEdgeInset;
@@ -334,6 +414,19 @@ namespace LevelGen
         internal float MinTileCoverage => minTileCoverage;
         internal float GroundGridMinAngle => groundGridMinAngle;
         internal float LotGroundMargin => lotGroundMargin;
+        internal float GrassCover => grassCover;
+        internal int GrassClusterMin => grassClusterMin;
+        internal int GrassClusterMax => grassClusterMax;
+        internal float GrassClusterRadius => grassClusterRadius;
+        internal float GrassEdgeMargin => grassEdgeMargin;
+        internal int NettlesPerStreetMin => nettlesPerStreetMin;
+        internal int NettlesPerStreetMax => nettlesPerStreetMax;
+        internal float NettleOut => nettleOut;
+        internal float NettleSpacing => nettleSpacing;
+        internal float NettleDoorClear => nettleDoorClear;
+        internal float FoliageScaleMin => foliageScaleMin;
+        internal float FoliageScaleMax => foliageScaleMax;
+        internal float FoliageSink => foliageSink;
         internal float LandingDrop => landingDrop;
         internal float RoofPitch => roofPitch;
         internal int RoofRows => roofRows;
@@ -347,9 +440,26 @@ namespace LevelGen
         internal float RoofHipRaise => roofHipRaise;
         internal float RoofHipStep => roofHipStep;
         internal float RoofHipLean => roofHipLean;
-        internal float RoofCullHeight => roofCullHeight;
-        internal float RoofCullStep => roofCullStep;
-        internal float RoofCullRange => roofCullRange;
+        internal float RoofHipAngleMin => roofHipAngleMin;
+        internal float RoofHipAngleMax => roofHipAngleMax;
+        internal float RoofFeatureSpread => roofFeatureSpread;
+        internal int RoofFeatureMinPanels => roofFeatureMinPanels;
+        internal float RoofDormerUp => roofDormerUp;
+        internal float RoofDormerSink => roofDormerSink;
+        internal float RoofChimneyUp => roofChimneyUp;
+        internal float RoofChimneyUpMax => roofChimneyUpMax;
+        internal float RoofChimneySink => roofChimneySink;
+        internal float RoofChimneyRise => roofChimneyRise;
+        internal float RoofChimneyRiseMax => roofChimneyRiseMax;
+        internal float RoofRailingShare => roofRailingShare;
+        internal float RoofRailingSink => roofRailingSink;
+        internal float RoofRailingLean => roofRailingLean;
+        internal float RoofRailingInset => roofRailingInset;
+        internal float RoofRailingGap => roofRailingGap;
+        internal float CullEyeHeight => cullEyeHeight;
+        internal float CullHeight => cullHeight;
+        internal float CullStep => cullStep;
+        internal float CullRange => cullRange;
         internal float RoofEdgeGap => roofEdgeGap;
         internal float RoofEdgeReach => roofEdgeReach;
         internal float DeckingOverlap => deckingOverlap;
@@ -366,6 +476,9 @@ namespace LevelGen
             columnWidthMax = Mathf.Max(columnWidthMin, columnWidthMax);
             columnDepthMax = Mathf.Max(columnDepthMin, columnDepthMax);
             groundSlideMax = Mathf.Max(groundSlideMin, groundSlideMax);
+            grassClusterMax = Mathf.Max(grassClusterMin, grassClusterMax);
+            nettlesPerStreetMax = Mathf.Max(nettlesPerStreetMin, nettlesPerStreetMax);
+            foliageScaleMax = Mathf.Max(foliageScaleMin, foliageScaleMax);
             deckingSlideMax = Mathf.Max(deckingSlideMin, deckingSlideMax);
         }
 

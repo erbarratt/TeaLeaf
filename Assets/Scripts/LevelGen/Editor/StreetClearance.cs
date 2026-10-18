@@ -72,6 +72,10 @@ namespace LevelGen
         // faces whichever streets are round it.
         internal StreetSpec Facing { get; set; }
 
+        // How far off a street's edge line a lot's side may lie and still
+        // count as lining that street (LiningSegment).
+        private const float LiningTolerance = 0.1f;
+
         // The pieces refused, by name and where, for the log.
         internal List<string> Refused { get; } = new();
 
@@ -341,6 +345,57 @@ namespace LevelGen
             start = bestFrom;
             end = bestTo;
             return end - start > _settings.MinSegmentLength;
+        }
+
+        /// <summary>
+        /// The street segment whose edge a line (from a to b, facing front)
+        /// runs along, as a lot's side does where its block was taken from
+        /// the streets: both ends within LiningTolerance of one of the
+        /// segment's edge lines, the segment on the line's front side, the
+        /// two overlapping along the line - where several segments in line
+        /// do, the one overlapping most. False, with null, if no segment's
+        /// edge lines it (a lot's side in open ground).
+        /// </summary>
+        internal bool LiningSegment(Vector2 a, Vector2 b, Vector2 front, out StreetSpec street, out int segment)
+        {
+            street = null;
+            segment = -1;
+            Vector2 along = (b - a).normalized;
+            float length = (b - a).magnitude;
+            float bestOverlap = 0f;
+
+            foreach (Segment candidate in _segments) {
+                for (int i = 0; i < candidate.Corners.Count; i++) {
+                    Vector2 p = candidate.Corners[i];
+                    Vector2 q = candidate.Corners[(i + 1) % candidate.Corners.Count];
+
+                    if ((q - p).sqrMagnitude < 0.000001f) {
+                        continue;
+                    }
+
+                    Vector2 edgeAlong = (q - p).normalized;
+                    // The corners run anticlockwise seen from above, so the
+                    // street lies to the left of each edge.
+                    Vector2 inward = new(-edgeAlong.y, edgeAlong.x);
+
+                    if (Mathf.Abs(Vector2.Dot(edgeAlong, along)) < 0.999f || Vector2.Dot(inward, front) < 0.9f
+                        || Mathf.Abs(Vector2.Dot(a - p, inward)) > LiningTolerance || Mathf.Abs(Vector2.Dot(b - p, inward)) > LiningTolerance) {
+                        continue;
+                    }
+
+                    float from = Mathf.Min(Vector2.Dot(p - a, along), Vector2.Dot(q - a, along));
+                    float to = Mathf.Max(Vector2.Dot(p - a, along), Vector2.Dot(q - a, along));
+                    float overlap = Mathf.Min(to, length) - Mathf.Max(from, 0f);
+
+                    if (overlap > bestOverlap) {
+                        bestOverlap = overlap;
+                        street = candidate.Street;
+                        segment = candidate.Index;
+                    }
+                }
+            }
+
+            return street != null;
         }
 
         /// <summary>

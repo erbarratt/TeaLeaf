@@ -174,11 +174,27 @@ namespace LevelGen
                 }
 
                 if (corners.Count > 0) {
-                    pieces.Add(new Piece { Root = t, Group = t.parent, Corners = corners.ToArray() });
+                    pieces.Add(new Piece { Root = t, Group = BuildingGroup(t, roofsRoot), Corners = corners.ToArray() });
                 }
             }
 
             return pieces;
+        }
+
+        /// <summary>
+        /// The building's roof group a piece belongs to: Roofs/[owner]/Building
+        /// [i], two below the root - a piece stands straight under it, or
+        /// under a hip strip's scaled empty inside it.
+        /// </summary>
+        private static Transform BuildingGroup(Transform piece, Transform root)
+        {
+            Transform group = piece.parent;
+
+            while (group.parent != null && group.parent != root && group.parent.parent != root) {
+                group = group.parent;
+            }
+
+            return group;
         }
 
         /// <summary>

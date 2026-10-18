@@ -175,8 +175,16 @@ namespace LevelGen
                 Quaternion.LookRotation(new Vector3(_axisZ.x, 0f, _axisZ.y), Vector3.up));
             box.AddComponent<BoxCollider>().size = new Vector3(_alongMax - _alongMin, _top - _bottom, _acrossMax - _acrossMin);
 
+            // What it is made of: the tiles' tag copied, else Stone (what an
+            // untagged floor counts as anyway) made explicit.
+            SurfaceTag tag = box.AddComponent<SurfaceTag>();
+
             if (_tag != null) {
-                EditorUtility.CopySerialized(_tag, box.AddComponent<SurfaceTag>());
+                EditorUtility.CopySerialized(_tag, tag);
+            } else {
+                SerializedObject serialized = new(tag);
+                serialized.FindProperty("surface").enumValueIndex = (int)SurfaceType.Stone;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
             }
 
             Boxes++;

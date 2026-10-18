@@ -33,10 +33,10 @@ namespace LevelGen
     /// can be tried while the buildings' styles are still being reviewed.
     /// Then the street test (StreetTest): a ball down every street that must
     /// touch no wall, logged as an error if one does. Last of all, always,
-    /// the roof cull (RoofCull): every roof piece a probe walking the
-    /// streets high above them can't see is removed; then the roof pieces
-    /// left that face the void beyond the level lose their colliders
-    /// (RoofEdgeColliders).
+    /// the visibility cull (VisibilityCull): every piece a probe walking the
+    /// streets can't see, at eye height or from high above them, is removed;
+    /// then the roof pieces left that face the void beyond the level lose
+    /// their colliders (RoofEdgeColliders).
     /// </summary>
     internal static class LevelGenerator
     {
@@ -104,6 +104,10 @@ namespace LevelGen
             // The random sequence goes on from where the street widths left it.
             PiecePlacer placer = new(catalogue);
             List<string> log = new();
+            // The foliage (grass on the ground, nettles at the foundations)
+            // draws from a sequence of its own, so it changes nothing else.
+            StreetFoliage.Gather(annotations, placer);
+            System.Random foliageRandom = StreetFoliage.RandomFor(spec);
 
             // Storeys first, so the rolls come before any tile's in the
             // random sequence; the facades and lots are built to it.
@@ -111,7 +115,10 @@ namespace LevelGen
 
             Transform streets = new GameObject("Streets").transform;
             streets.SetParent(rootObject.transform, false);
-            StreetGround.Build(spec, styles, settings, random, placer, streets, log);
+            // The foliage in a tree of its own, to hide in one go.
+            Transform foliage = new GameObject("Foliage").transform;
+            foliage.SetParent(rootObject.transform, false);
+            StreetGround.Build(spec, styles, settings, random, foliageRandom, placer, streets, foliage, log);
 
             Transform facades = new GameObject("Facades").transform;
             facades.SetParent(rootObject.transform, false);
@@ -125,15 +132,19 @@ namespace LevelGen
             // the boxes that replace their colliders.
             MergedColliders.RunFoundations(rootObject.transform, annotations, settings, log);
             MergedColliders.RunWalkways(rootObject.transform, settings, log);
+            // Nettles at the foot of the foundations, once every foundation
+            // stands and the ground's colliders are in (their ground is found
+            // by rays).
+            StreetFoliage.BuildNettles(spec, annotations, settings, foliageRandom, placer, rootObject.transform, foliage, log);
 
             // The street test: a ball down every street must touch nothing built.
             List<string> test = new();
             List<StreetSteps.Flight> flights = StreetSteps.Find(spec.streets, styles, placer, settings);
             bool valid = StreetTest.Run(spec, flights, plan, rootObject.transform, streets, settings, test);
 
-            // Always last of everything built: the roofs no one in the
-            // streets can see are taken out.
-            RoofCull.Run(spec, flights, plan, roofs, settings, log);
+            // Always last of everything built: every piece no one in the
+            // streets can see is taken out.
+            VisibilityCull.Run(spec, flights, plan, rootObject.transform, settings, log);
             // Then the roofs left that face the void beyond the level lose
             // their colliders.
             RoofEdgeColliders.Run(roofs, settings, log);

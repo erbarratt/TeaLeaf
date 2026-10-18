@@ -100,6 +100,9 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3609503161162942390, guid: a045a205c1e94454cbb239eb15d92593, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7924850002944569584}
     - targetCorrespondingSourceObject: {fileID: 3183611012806452597, guid: a045a205c1e94454cbb239eb15d92593, type: 3}
       insertIndex: -1
       addedObject: {fileID: 3454136126279497039}
@@ -130,3 +133,22 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 3.04, y: 0.4, z: 3.04}
   m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &6489693697807656129 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3609503161162942390, guid: a045a205c1e94454cbb239eb15d92593, type: 3}
+  m_PrefabInstance: {fileID: 7496116272177800055}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7924850002944569584
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6489693697807656129}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1db11414fe0c7d64292e528fb2fa5886, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Core.SurfaceTag
+  surface: 0
+  supportsRopeBolt: 0

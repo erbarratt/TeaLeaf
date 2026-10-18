@@ -441,7 +441,10 @@ Player hands:
 Tools:
 [ ] Crossbow shot and rewind motion via simple transform animation
     (the string snaps forward on a shot, the clockwork winds it back).
-[ ] Torch flame: simple emissive/particle, off state when extinguished.
+[x] Torch flame: one quad with the TeaLeaf/Flame shader on the lamp
+    post, lantern, brazier and bracket torch variants, switched by
+    Flame; not yet tuned in the headset (the lantern's light washes the
+    flame out).
 
 
 Phase 8 - Level: the docks warehouse
@@ -502,8 +505,10 @@ Greybox build:
     Sector 1.
 [ ] Level generator (Assets/Scripts/LevelGen; design in its CLAUDE.md):
     streets and buildings from the prefab variants, from a layout spec
-    written from a brief. Of set dressing only facade pipes, walkways
-    and lamp posts (with their lights) are generated; the rest, other
+    written from a brief. Of set dressing only what sits on its own
+    buildings and streets is generated: facade pipes, vents, walkways
+    and lamp posts (with their lights), chimneys, dormers and ridge
+    railings, smoke and steam, grass and nettles; the rest, other
     lighting and gameplay stay by hand.
     [x] Stage 1: prefab catalogue scanner (TeaLeaf > Level Gen > Scan
         Prefab Catalogue): measurements, front from geometry (+Z
@@ -540,19 +545,36 @@ Greybox build:
             the block their streets enclose.
         [x] Street heights: flights of steps within a segment, the
             columns split at the flight.
-        [x] 5e: roofs: ridge along the street, gables at free ends,
-            hip strips and valleys at corners, hipped or courtyard
+        [x] 5e: roofs: ridge along the street, whole gable triangles
+            fitted to free ends, hip strips (fitted to corners of
+            50-135 degrees) and valleys at corners, hipped or courtyard
             lots.
+        [x] Chimneys (at varied heights, half of them smoking) and
+            dormers on the roofs; ridge railings seated on the ridge.
         [x] Street clearance: no wall, foundation or side wall stands
             in a street; the ball test along every street.
         [x] One box collider per row of floor tiles.
         [x] The fitting rule: whole pieces, the last widened or a
             narrower one added, everywhere a length is covered.
         [x] Finishing passes: foundation and walkway colliders merged
-            into few boxes; roofs no one in a street can see removed
-            (roof cull); roofs facing the void lose their colliders.
-        [x] One colour per set of joined buildings from material
-            variants (<material>_<suffix> in Assets/Art/Materials).
+            into few boxes, each with a SurfaceTag; every piece no one
+            in a street can see removed (visibility cull); roofs facing
+            the void lose their colliders.
+        [x] Colours per set of joined buildings from material variants
+            (<material>_<suffix> in Assets/Art/Materials): walls and
+            roofs drawn apart; roofs brown, grey or orange, the dormer
+            matching.
+        [x] Street foliage: grass clusters on the ground, nettles at the
+            foundations, from their own random sequence.
+        [x] Window inserts on the face of blind window walls (a hand-set
+            window point on WallTall_WindowBase).
+        [x] Lot columns step only into the street their side lines.
+        [ ] Streets climbing more than one flight: the facade beside a
+            three-flight climb stands at the low level, its upper
+            storey and roof in the raised street (example-three-levels
+            fails the street test). Choose: modules beside a flight
+            stand at the flight's surface height, or specs split a
+            climb into one-flight segments with landings.
         [x] Lit windows: a share of the window inserts (litWindowShare)
             are lit variants with an emissive material.
         [ ] Review the hip and valley roof corners in the headset.
@@ -562,13 +584,17 @@ Greybox build:
     [x] Stage 6: placement report (TeaLeaf > Level Gen > Report
         Generated): free wall ends, refused pieces, markers.
     [ ] Facade dressing: walkways and lamp posts (built; the lamp posts
-        are gameplay lights, at most lampMaxOverlap reaching one spot); pipes
-        placed by their verified ends, valves on T branches, caps where
-        a straight pierces a wall, vents on smooth wall (built). Open:
-        runs carried past a building's end at a dead end, the elbow
-        left loose on a walkway deck at a jetty jog, runs standing off
-        recessed walls, buildings left with no run, few vents finding a
-        smooth patch; check the pipe variants' collision children.
+        are gameplay lights, at most lampMaxOverlap reaching one spot);
+        pipes from the thin kit placed by their verified ends, standing
+        off the drawn surface along their height, on the plaster past
+        the end post, elbows under the eaves and hidden straights behind
+        short elbow legs; valves on T branches, caps where a straight
+        pierces a wall, vents on smooth wall, half of them steaming
+        (built). Open: runs on dead-end facades standing off the wall, a
+        corner filler's jetty support reaching into a street, a thin
+        elbow in the street lane on a dead end, buildings left with no
+        run, few vents finding a smooth patch; check the pipe variants'
+        collision children.
 [ ] Give the variants their colliders and SurfaceTags (the bulk tool
     adds neither). Box/capsule colliders where they fit; mesh
     colliders only where the shape needs one.

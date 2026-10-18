@@ -22,19 +22,21 @@ MonoBehaviour:
   minStreetWidth: 2.9
   minStoreys: 2
   maxStoreys: 4
-  maxBuildingHeight: 13
+  maxBuildingHeight: 28
   storeyBias: -0.38
   lotNeighbourDistance: 15
   lotStoreyBias: 0
   groundStoreyHeight: 0.163
   foundationHeight: 0.3
   foundationFrontOffset: 0.1
+  foundationColliderTolerance: 0.1
   groundDoorShare: 0
-  groundWindowShare: 0.054
-  upperWindowShare: 0.4
+  groundWindowShare: 0.205
+  upperWindowShare: 0.21
   storeyBeamOverlap: 0.04
   cornerAngleTolerance: 20
   cornerMaxReach: 8
+  cornerOverrun: 0.5
   jettyShare: 0.603
   jettyInset: 0.05
   doorInsertMargin: 0.05
@@ -43,20 +45,22 @@ MonoBehaviour:
   windowInsertShare: 1
   windowInsertMaxMargin: 0.45
   windowInsertDepth: 0.107
-  columnWidthMin: 1
-  columnWidthMax: 2
-  columnShare: 0.15
+  litWindowShare: 0.5
+  columnWidthMin: 2
+  columnWidthMax: 3
+  columnShare: 0.403
   columnMinRunModules: 6
-  columnDepthMin: 0.3
-  columnDepthMax: 1.093
-  columnOutShare: 0.5
+  columnDepthMin: 0.7
+  columnDepthMax: 1.41
+  columnOutShare: 0.403
   columnHeightShare: 0.3
-  columnStoreyVariation: 1
-  pipeRunsMax: 2
+  columnStoreyVariation: 2
+  pipeRunsMax: 1
   pipeExtraRunShare: 0.35
   pipeMinRunShare: 0.5
   pipeLargeShare: 0.1
   pipeWallGap: 0.05
+  pipePanelInset: 0.6
   pipeOpeningMargin: 0.25
   pipeEndSpread: 0.5
   valveShare: 0.3
@@ -68,6 +72,11 @@ MonoBehaviour:
   walkwayShare: 0.3
   lampSpacing: 14
   lampEdgeInset: 0.6
+  lampMaxOverlap: 3
+  chimneySmokePrefab: {fileID: 7664201130063381979, guid: ffb7d4b1e1fcfaf4b912b3ed41144f78, type: 3}
+  chimneySmokeShare: 0.5
+  ventSteamPrefab: {fileID: 2570943823478510014, guid: b4d70fd2ee466b1478e3cca8a3024296, type: 3}
+  ventSteamShare: 0.5
   sideWallMultiplier: 1
   sideWallTuck: 0.26
   maxStoreyWidthMismatch: 0.3
@@ -81,19 +90,32 @@ MonoBehaviour:
   streetBallHeight: 1
   sharpCornerAngle: 60
   sharpCornerShare: 0.25
-  groundOverlap: 0.1582
+  groundOverlap: 0.18
   groundTileTurns: 1
   groundSlideMin: 0.2
   groundSlideMax: 0.8
   groundGridMinAngle: 15
   lotGroundMargin: 1
   minTileCoverage: 0.1
+  grassCover: 0.551
+  grassClusterMin: 2
+  grassClusterMax: 6
+  grassClusterRadius: 0.5
+  grassEdgeMargin: 1
+  nettlesPerStreetMin: 2
+  nettlesPerStreetMax: 4
+  nettleOut: 0.2
+  nettleSpacing: 2
+  nettleDoorClear: 0.6
+  foliageScaleMin: 0.8
+  foliageScaleMax: 1.2
+  foliageSink: 0.03
   landingDrop: 0.02
   roofPitch: 60
   roofRows: 2
   roofEaveOverhang: 0.4
   roofEaveDrop: 1
-  roofVergeOverhang: 0.2
+  roofVergeOverhang: 0.29
   roofRowOverlap: 0.25
   roofPanelOverlap: 0.45
   roofGableSink: 0.05
@@ -101,6 +123,28 @@ MonoBehaviour:
   roofHipRaise: 0.2
   roofHipStep: 2.5
   roofHipLean: 10
+  roofHipAngleMin: 50
+  roofHipAngleMax: 135
+  roofFeatureSpread: 0.5
+  roofFeatureMinPanels: 2
+  roofDormerUp: 2
+  roofDormerSink: 0.1
+  roofChimneyUp: 4
+  roofChimneyUpMax: 8
+  roofChimneySink: 0.15
+  roofChimneyRise: 0.8
+  roofChimneyRiseMax: 2.5
+  roofRailingShare: 0.5
+  roofRailingSink: 0.15
+  roofRailingLean: 12
+  roofRailingInset: 0.4
+  roofRailingGap: 1
+  cullEyeHeight: 1.6
+  cullHeight: 9
+  cullStep: 2
+  cullRange: 80
+  roofEdgeGap: 1.5
+  roofEdgeReach: 20
   deckingOverlap: 0.03
   deckingQuarterTurn: 0
   deckingSlideMin: 0

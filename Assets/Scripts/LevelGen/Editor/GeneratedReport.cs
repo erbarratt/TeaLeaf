@@ -416,7 +416,8 @@ namespace LevelGen
         /// </summary>
         private static bool Covers(string category)
         {
-            return category != "door" && category != "window" && !category.StartsWith("roof") && !category.StartsWith("pipe-") && category != "lamp-post";
+            return category != "door" && category != "window" && !category.StartsWith("roof") && !category.StartsWith("pipe-") && category != "lamp-post"
+                && category != "grass" && category != "nettle";
         }
 
         /// <summary>
@@ -487,9 +488,12 @@ namespace LevelGen
 
                     float share = (float)bare / total;
 
-                    // A trimmed end that another wall meets is a corner's
-                    // post (the walls meet so at corners), not a hole.
-                    if (share > BareShare && !(trimmed && covered > 0)) {
+                    // An end that another wall meets is a corner, not a
+                    // hole: at a corner the two walls run into each other
+                    // (CornerOverrun), each end inside the other wall's
+                    // depth, and the strip of either end left between the
+                    // two posts is by design.
+                    if (share > BareShare && covered == 0) {
                         middle /= total;
                         Vector3 faceSize = wall.Root.TransformVector(new Vector3(along == 0 ? 0.1f : size.x, size.y, along == 2 ? 0.1f : size.z));
                         faceSize = new Vector3(Mathf.Abs(faceSize.x), Mathf.Abs(faceSize.y), Mathf.Abs(faceSize.z));

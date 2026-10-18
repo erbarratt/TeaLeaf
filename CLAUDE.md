@@ -573,7 +573,9 @@ fails and restarts. The mechanics:
   `DETAILED_FantasyMarkets` (market stalls and goods). **Level art is placed by hand or
   by the level generator (`Assets/Scripts/LevelGen`), and by nothing else**: the
   generator lays out streets and buildings from real `Assets/Prefabs` variants under its
-  own root (with pipes, walkways and lamp posts on its facades), and everything else -
+  own root (with pipes, vents, walkways and lamp posts on its facades, chimneys,
+  dormers and railings on its roofs, smoke and steam, and grass and nettles in its
+  streets), and everything else -
   other set dressing, lighting, gameplay - is placed by hand.
   Don't propose any other editor builder for level art. The pack folder is git-ignored and its
   own prefabs are left untouched; **the game's prefabs live in `Assets/Prefabs`, each a
@@ -585,7 +587,8 @@ fails and restarts. The mechanics:
   (`Environment` layer and Static set; see `Assets/Scripts/Core/CLAUDE.md`). The packs' materials are URP Lit and their textures are
   imported at 2048 at most; keep both so. **The project's own copies and colour
   variants of pack materials** (`<material>_<suffix>`, which the level generator draws
-  from) **and the lit window material live in `Assets/Art/Materials/Environment`**; the
+  from) **and the lit window material live in `Assets/Art/Materials/Environment`** (by
+  kind: `Roofs`, `Walls`, `Extensions`, `Windows`); the
   packs' own materials are left as they are. Their demo scenes, skyboxes, lighting
   settings, post effects and `SimpleCameraController` are not used. Organic models (the
   guard, hands, hero props) come from outside. The test areas are the

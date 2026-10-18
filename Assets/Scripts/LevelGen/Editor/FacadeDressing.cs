@@ -15,9 +15,14 @@ namespace LevelGen
     ///   and runs are added until together they are PipeMinRunShare of its
     ///   width (and further ones at PipeExtraRunShare, up to PipeRunsMax).
     ///   A run is vertical, horizontal or an L, made of straight sections and
-    ///   elbows, always level or plumb, standing PipeWallGap off the wall's
-    ///   face; it ends by turning into the wall (an elbow) or going into the
-    ///   ground, never along the street. A level stretch's ends that turn
+    ///   elbows, always level or plumb, standing PipeWallGap off the frontmost
+    ///   face of the walls it passes (their timbers; a plumb run stands on
+    ///   the plaster past a wall's end post, PipePanelInset, else over the
+    ///   post); it ends by turning into the wall (an elbow, with a hidden
+    ///   straight on into the wall behind it where its leg falls short of
+    ///   the plaster) or going into the ground, never along the street. A
+    ///   vertical run's top elbow keeps under the eaves (Ceiling); an L may
+    ///   end on any storey. A level stretch's ends that turn
     ///   into the wall land near the middle of a module (PipeEndSpread),
     ///   never at a joint between walls. It is kept PipeOpeningMargin clear
     ///   of every door and window hole of the walls it passes, and off a wall
@@ -49,15 +54,19 @@ namespace LevelGen
     /// </summary>
     internal static partial class FacadeBuilder
     {
-        // The pipe the small corners (root scale 0.6) and the small
-        // straights are, and the large; chosen per run by diameter.
+        // The widest pipe (its diameter, in metres) that jogs round a jetty:
+        // the thin pipe (the small pieces at half their size) and the small
+        // one; the large pipe never crosses a jetty. Kits are chosen per run
+        // by diameter.
         private const float SmallPipe = 0.67f;
 
         /// <summary>
         /// A pipe elbow from its annotated ends a and b (PipeEnds.Bend): its
         /// bend in the piece's own (root, unscaled) space, the ways its legs
         /// run out from the bend (towards a and b) in that space, the radius,
-        /// and the two legs' lengths in world metres.
+        /// the two legs' lengths in world metres, and how far its body
+        /// reaches past the bend away from leg A (Up: above the bend when
+        /// leg A points down).
         /// </summary>
         private struct Elbow
         {
@@ -68,6 +77,7 @@ namespace LevelGen
             public float Radius;
             public float LegA;
             public float LegB;
+            public float Up;
             public Vector3 RootScale;
         }
 
@@ -188,6 +198,7 @@ namespace LevelGen
                     Radius = PipeRadius(c, Vector3.Cross(a.direction, b.direction)),
                     LegA = Vector3.Scale(a.position - node, c.rootScale).magnitude,
                     LegB = Vector3.Scale(b.position - node, c.rootScale).magnitude,
+                    Up = BoxReach(c, node, -a.direction) * Vector3.Scale(a.direction, c.rootScale).magnitude,
                     RootScale = c.rootScale
                 });
             }
@@ -392,9 +403,11 @@ namespace LevelGen
         /// plumb), its pieces by the fitting rule along the length, each
         /// scaled along its own axis to its share; cross is a direction at
         /// right angles to the pipe its +X is turned to (which way the
-        /// flanges' seams face).
+        /// flanges' seams face). No capped ends for a stretch hidden inside
+        /// a wall (caps false).
         /// </summary>
-        private static void PlacePipe(PipeKit kit, Vector3 from, Vector3 to, Vector3 cross, GeneratorSettings settings, PiecePlacer placer, Transform group)
+        private static void PlacePipe(PipeKit kit, Vector3 from, Vector3 to, Vector3 cross, GeneratorSettings settings, PiecePlacer placer, Transform group,
+            bool caps = true)
         {
             Vector3 way = to - from;
             float length = way.magnitude;
@@ -425,7 +438,7 @@ namespace LevelGen
 
             // A level stretch running into a wall (not one it runs along):
             // a capped end where it goes in, from either end.
-            if (Mathf.Abs(way.y) < 0.5f) {
+            if (caps && Mathf.Abs(way.y) < 0.5f) {
                 // From the far end too, unless that meets the same thin piece
                 // (a beam) the first did.
                 bool first = PierceCap(kit, from, way, length, null, placer, group, out Vector3 met);
@@ -442,6 +455,77 @@ namespace LevelGen
             // The pivot is placed so the bend (in root space, scaled by the
             // root) lands on node.
             placer.PlaceAt(elbow.Piece, Vector3.Scale(elbow.Node, elbow.RootScale), node, Turn(elbow.DirA, elbow.DirB, wayA, wayB), Vector3.one, group);
+        }
+
+        // How far past the wall's drawn surface the hidden straight behind an
+        // elbow's leg runs, and how far a wall is looked for behind the leg.
+        private const float HiddenLegRun = 0.35f;
+        private const float HiddenLegReach = 1.5f;
+        // How far up from a pipe the eaves or anything else over it is looked
+        // for, for its top elbow.
+        private const float CeilingReach = 3f;
+
+        /// <summary>
+        /// Places an elbow whose leg B turns into the wall (its bend at node,
+        /// leg A pointing wayA along the pipe, leg B pointing wayIn), and,
+        /// where that leg ends short of the wall's drawn surface (the pipe
+        /// stands off the timbers, and the plaster lies further back), a
+        /// straight from its flange on into the wall, HiddenLegRun past the
+        /// surface, so the pipe is seen to go in. Nothing where no surface is
+        /// met within HiddenLegReach. The hidden straight is not counted
+        /// among the run's straight pieces.
+        /// </summary>
+        private static void PlaceWallElbow(PipeKit kit, Vector3 node, Vector3 wayA, Vector3 wayIn, GeneratorSettings settings, PiecePlacer placer, Transform group)
+        {
+            PlaceElbow(kit.Elbow, node, wayA, wayIn, placer, group);
+
+            if (!WallProbe.Cast(node, wayIn, HiddenLegReach, out float surface) || surface <= kit.Elbow.LegB + settings.SizeTolerance) {
+                return;
+            }
+
+            int straights = _straights;
+            PlacePipe(kit, node + wayIn * kit.Elbow.LegB, node + wayIn * (surface + HiddenLegRun), Vector3.up, settings, placer, group, false);
+            _straights = straights;
+        }
+
+        /// <summary>
+        /// The highest a plumb pipe's top elbow may have its bend, for a
+        /// point on the pipe's axis: below whatever is met going up from
+        /// there (the eaves' underside) by the elbow's reach above its bend
+        /// and PipeWallGap, looked for from the axis and from the pipe's
+        /// back (nearer the wall, where a soffit comes lower); unbounded
+        /// where nothing is met within CeilingReach.
+        /// </summary>
+        private static float Ceiling(Vector3 axisPoint, Vector3 towardsWall, PipeKit kit, GeneratorSettings settings)
+        {
+            float lowest = float.MaxValue;
+
+            if (WallProbe.Cast(axisPoint, Vector3.up, CeilingReach, out float hit)) {
+                lowest = axisPoint.y + hit;
+            }
+
+            if (WallProbe.Cast(axisPoint + towardsWall * kit.Radius, Vector3.up, CeilingReach, out hit)) {
+                lowest = Mathf.Min(lowest, axisPoint.y + hit);
+            }
+
+            return lowest == float.MaxValue ? float.MaxValue : lowest - kit.Elbow.Up - settings.PipeWallGap;
+        }
+
+        /// <summary>
+        /// How far a piece's render box reaches from a point of its own space
+        /// along a direction (the furthest corner's distance that way).
+        /// </summary>
+        private static float BoxReach(CatalogueEntry entry, Vector3 from, Vector3 direction)
+        {
+            float far = float.MinValue;
+
+            for (int i = 0; i < 8; i++) {
+                Vector3 corner = new((i & 1) == 0 ? entry.renderMin.x : entry.renderMax.x, (i & 2) == 0 ? entry.renderMin.y : entry.renderMax.y,
+                    (i & 4) == 0 ? entry.renderMin.z : entry.renderMax.z);
+                far = Mathf.Max(far, Vector3.Dot(corner - from, direction));
+            }
+
+            return far;
         }
 
         // The shortest straight left either side of a valve's T-junction (a
@@ -731,6 +815,176 @@ namespace LevelGen
         }
 
         /// <summary>
+        /// How far forward of the street edge the frontmost wall face a plumb
+        /// pipe passes stands, over a module's storeys from first to last
+        /// (FaceAt: the walls' fronts, the timbers, which stand proudest), so
+        /// a pipe PipeWallGap off it clears every post and beam it passes;
+        /// false where none of those storeys has a wall.
+        /// </summary>
+        private static bool FrontmostFace(ModuleSpot spot, Building building, int first, int last, float setback, out float face)
+        {
+            face = float.MinValue;
+
+            for (int s = first; s <= last; s++) {
+                if (FaceAt(spot, building, s, setback, out float storeyFace)) {
+                    face = Mathf.Max(face, storeyFace);
+                }
+            }
+
+            return face > float.MinValue;
+        }
+
+        // How far in front of the walls' fronts a probe for the drawn surface
+        // starts, and how far in front of a storey's wall front (FaceAt) a hit
+        // may lie and still count as the wall (its timbers, beams and stone
+        // frames stand within it; a deck, a bracket or the eaves stand
+        // further out).
+        private const float ProbeOut = 0.6f;
+        private const float FaceSlack = 0.25f;
+        private const float ProbeStep = 0.25f;
+        private const float BandStart = 0.5f;
+
+        /// <summary>
+        /// The storey of a building whose band holds a height above the
+        /// street (first where below them all), from first to last.
+        /// </summary>
+        private static int StoreyAt(Building building, float height, int first, int last)
+        {
+            for (int s = last; s > first; s--) {
+                if (height >= building.Levels[s].Base) {
+                    return s;
+                }
+            }
+
+            return first;
+        }
+
+        /// <summary>
+        /// Where a ray from in front of a module's walls back towards them
+        /// meets the drawn surface (WallProbe), as a distance forward of the
+        /// street edge, at a point along the run and a height: false where
+        /// nothing is met within reach, or the hit stands more than FaceSlack
+        /// in front of the storey's wall front (a deck, a bracket, the eaves).
+        /// </summary>
+        private static bool ProbeFront(Run run, float x, float y, float start, float storeyFace, out float hit)
+        {
+            Vector3 origin = new(run.Start.x + run.Along.x * x + run.Front.x * start, y, run.Start.y + run.Along.y * x + run.Front.y * start);
+            hit = 0f;
+
+            if (!WallProbe.Cast(origin, -Level(run.Front), start + 1.5f, out float distance)) {
+                return false;
+            }
+
+            hit = start - distance;
+            return hit <= storeyFace + FaceSlack;
+        }
+
+        /// <summary>
+        /// How far forward of the street edge the drawn wall surface a plumb
+        /// pipe at x stands against reaches, over a band of storeys (first
+        /// to last) between two heights above the street: the frontmost
+        /// drawn surface met every ProbeStep up the band (from BandStart
+        /// above its foot, over a foundation's plinth or a deck's planks) at
+        /// x and the pipe's two sides (ProbeFront, so timbers, beams and
+        /// stone frames count and the pipe clears them all, and a deck or
+        /// the eaves don't); the walls' frontmost front (FrontmostFace)
+        /// where nothing is met. False where no storey of the band has a
+        /// wall.
+        /// </summary>
+        private static bool PlumbFace(Frontage frontage, ModuleSpot spot, Building building, float x, int first, int last, float y0, float y1, PipeKit kit,
+            out float face)
+        {
+            float setback = frontage.WallSetback;
+
+            if (!FrontmostFace(spot, building, first, last, setback, out face)) {
+                return false;
+            }
+
+            Run run = frontage.Runs[spot.Run];
+            float ground = Height(run, x);
+            float start = face + ProbeOut;
+            float best = float.MinValue;
+
+            for (float y = ground + y0 + BandStart; y <= ground + y1; y += ProbeStep) {
+                if (!FaceAt(spot, building, StoreyAt(building, y - ground, first, last), setback, out float storeyFace)) {
+                    continue;
+                }
+
+                for (int side = -1; side <= 1; side++) {
+                    if (ProbeFront(run, x + side * kit.Radius, y, start, storeyFace, out float hit)) {
+                        best = Mathf.Max(best, hit);
+                    }
+                }
+            }
+
+            if (best > float.MinValue) {
+                face = best;
+            }
+
+            return true;
+        }
+
+        /// <summary>
+        /// How far forward of the street edge the drawn wall surface a level
+        /// pipe along a storey stands against reaches, from x0 to x1 over
+        /// the modules from first to last, at a height above the street: the
+        /// frontmost drawn surface met every ProbeStep along it at the
+        /// pipe's middle, top and bottom (ProbeFront); face (the walls'
+        /// front) where nothing is met.
+        /// </summary>
+        private static float LevelFace(Frontage frontage, Building building, int first, int last, int storey, float x0, float x1, float h, PipeKit kit, float face)
+        {
+            List<ModuleSpot> spots = frontage.Spots;
+            Run run = frontage.Runs[spots[first].Run];
+            float start = face + ProbeOut;
+            float best = float.MinValue;
+            int k = first;
+
+            for (float x = x0; x <= x1; x += ProbeStep) {
+                while (k < last && x >= spots[k].Position + Spacing(spots[k], building)) {
+                    k++;
+                }
+
+                if (!FaceAt(spots[k], building, storey, frontage.WallSetback, out float storeyFace)) {
+                    continue;
+                }
+
+                float ground = Height(run, x);
+
+                for (int side = -1; side <= 1; side++) {
+                    if (ProbeFront(run, x, ground + h + side * kit.Radius, start, storeyFace, out float hit)) {
+                        best = Mathf.Max(best, hit);
+                    }
+                }
+            }
+
+            return best > float.MinValue ? best : face;
+        }
+
+        /// <summary>
+        /// Where along its run a plumb run of pipe may stand in a module, in
+        /// order of preference, each with the first and last module whose
+        /// openings it must keep clear of: PipePanelInset from the module's
+        /// left end as seen from the street, on the plaster past the wall's
+        /// end post (the post stands at every wall's left end); then at the
+        /// module's start edge, over the post, where both it and the module
+        /// before are checked.
+        /// </summary>
+        private static IEnumerable<(float x, int firstModule, int lastModule)> PlumbPlaces(Frontage frontage, Building building, int first, int at, PipeKit kit,
+            GeneratorSettings settings)
+        {
+            ModuleSpot spot = frontage.Spots[at];
+            Run run = frontage.Runs[spot.Run];
+            // Seen from the street, the viewer's right is up x the way they look.
+            Vector3 worldRight = Vector3.Cross(Vector3.up, -Level(run.Front));
+            bool leftIsStart = Vector3.Dot(Level(run.Along), worldRight) > 0f;
+            float spacing = Spacing(spot, building);
+            float inset = Mathf.Min(settings.PipePanelInset, spacing - kit.Radius - settings.PipeWallGap);
+            yield return (leftIsStart ? spot.Position + inset : spot.Position + spacing - inset, at, at);
+            yield return (spot.Position + kit.Radius + 0.05f, Mathf.Max(first, at - 1), at);
+        }
+
+        /// <summary>
         /// Every building's pipes (see the class summary). Logs how many runs
         /// were placed and the buildings that got none.
         /// </summary>
@@ -1000,12 +1254,33 @@ namespace LevelGen
                 // into it.
                 Vector3 seat = Point(x, h, reach) - front * nearest;
                 Transform group = Group(building.Group, "Vents");
-                placer.PlaceAt(vent.Piece, Vector3.Scale(vent.End, vent.RootScale), seat, Turn(vent.Way, VentUp(vent), -front, Vector3.up), Vector3.one, group);
+                GameObject placed = placer.PlaceAt(vent.Piece, Vector3.Scale(vent.End, vent.RootScale), seat, Turn(vent.Way, VentUp(vent), -front, Vector3.up), Vector3.one, group);
+                // Steam out of its face, at VentSteamShare (a draw every time).
+                bool steams = random.NextDouble() < settings.VentSteamShare;
+
+                if (steams && placed != null && settings.VentSteamPrefab != null) {
+                    PlaceEffect(settings.VentSteamPrefab, placed.transform, seat + front * size.z, front);
+                }
                 Physics.SyncTransforms();
                 return true;
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// An effect prefab (the smoke or steam particle system) placed at a
+        /// world point, its forward (the way its particles set off) a way,
+        /// as a child of the piece it rises from, so it goes wherever the
+        /// piece goes (the roof cull, a hidden piece) and stays an instance
+        /// of its own prefab.
+        /// </summary>
+        private static void PlaceEffect(GameObject prefab, Transform piece, Vector3 point, Vector3 forward)
+        {
+            GameObject effect = (GameObject)UnityEditor.PrefabUtility.InstantiatePrefab(prefab, piece);
+            // Straight up needs an up vector of its own.
+            Vector3 up = Mathf.Abs(forward.y) > 0.9f ? Vector3.forward : Vector3.up;
+            effect.transform.SetPositionAndRotation(point, Quaternion.LookRotation(forward, up));
         }
 
         /// <summary>
@@ -1120,13 +1395,15 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// A plumb run of pipe at the start edge of a module (where two
-        /// modules meet), from the top of its column down into the ground:
-        /// an elbow turning into the wall at the top, straight sections down
-        /// the storeys' faces, and under a jetty (small pipe only) two elbows
-        /// jogging the pipe back to the ground storey's face. Nothing where it
-        /// would cross a door or window, pass another run, or (large pipe)
-        /// cross a jetty. Returns the length placed, 0 for none.
+        /// A plumb run of pipe in a module (PlumbPlaces: on the plaster past
+        /// the wall's end post, else over the post at the module's start
+        /// edge), from the top of its column down into the ground: an elbow
+        /// turning into the wall at the top, under the eaves (Ceiling),
+        /// straight sections down the storeys' faces, and under a jetty
+        /// (small pipe only) two elbows jogging the pipe back to the ground
+        /// storey's face. Nothing where it would cross a door or window, pass
+        /// another run, or (large pipe) cross a jetty. Returns the length
+        /// placed, 0 for none.
         /// </summary>
         private static float VerticalRun(Frontage frontage, Building building, int first, int last, int at, PipeKit kit, bool valve,
             List<(float x0, float x1, float y0, float y1)> taken, GeneratorSettings settings, PiecePlacer placer, Transform group)
@@ -1136,9 +1413,6 @@ namespace LevelGen
             Run run = frontage.Runs[spot.Run];
             float setback = frontage.WallSetback;
             float offset = settings.PipeWallGap + kit.Radius;
-            // On the module's start edge, in from it by the pipe, so both
-            // the module and the one before are checked.
-            float x = spot.Position + kit.Radius + 0.05f;
             int storeys = spot.Storeys;
 
             if (storeys == 0 || !FaceAt(spot, building, 0, setback, out float groundFace)) {
@@ -1147,84 +1421,106 @@ namespace LevelGen
 
             bool jettied = building.Jetty > 0f && storeys > 1;
 
-            if (jettied && kit.Radius > SmallPipe) {
+            if (jettied && kit.Radius * 2f > SmallPipe) {
                 return 0f;
             }
-
-            float ground = Height(run, x);
-            float top = ground + building.Levels[storeys - 1].Base + building.Levels[storeys - 1].Style.StoreySpacing - kit.Elbow.LegA - kit.Radius;
-            float x0 = x - kit.Radius;
-            float x1 = x + kit.Radius;
-
-            if (CrossesOpening(spots, Mathf.Max(first, at - 1), at, building, frontage.Runs, x0, x1, 0f, top - ground, 0, storeys - 1, placer, settings)
-                || Taken(taken, x0, x1, ground, top) || !ClearOfLane(frontage, run, x0, x1, groundFace + offset + kit.Radius, 0, settings)) {
-                return 0f;
-            }
-
-            // A valve at ValveHeight on the stretch down to the ground, where
-            // it stays out of the street's lane.
-            valve = valve && ClearOfLane(frontage, run, x0, x1, groundFace + offset + ValveReach(kit), 0, settings);
-            float valveY = ground + settings.ValveHeight;
 
             Vector2 along = run.Along;
             Vector3 front = Level(run.Front);
             Vector3 alongWorld = Level(along);
-            Vector3 Point(float d, float y) => new(run.Start.x + along.x * x + run.Front.x * d, y, run.Start.y + along.y * x + run.Front.y * d);
-            float upperFace = groundFace;
+            StoreyLevel topLevel = building.Levels[storeys - 1];
+            float storeyTop = topLevel.Base + topLevel.Style.StoreySpacing;
+            float deckHeight = jettied ? DeckTop(building.Levels[1]) : 0f;
 
-            if (jettied) {
-                FaceAt(spot, building, 1, setback, out upperFace);
-            }
+            foreach ((float x, int firstModule, int lastModule) in PlumbPlaces(frontage, building, first, at, kit, settings)) {
+                float ground = Height(run, x);
+                float x0 = x - kit.Radius;
+                float x1 = x + kit.Radius;
+                Vector3 Point(float d, float y) => new(run.Start.x + along.x * x + run.Front.x * d, y, run.Start.y + along.y * x + run.Front.y * d);
+                // The top elbow's bend: under the top storey's top, and under
+                // the eaves over the pipe - first off the walls' fronts, to
+                // know how high the straight pipe goes, then off where the
+                // pipe stands.
+                FrontmostFace(spot, building, jettied ? 1 : 0, storeys - 1, setback, out float frontGuess);
+                float top = ground + storeyTop - kit.Elbow.LegA - kit.Radius;
+                top = Mathf.Min(top, Ceiling(Point(frontGuess + offset, top - 1.5f), -front, kit, settings));
+                // A plumb pipe stands at one offset down every storey it
+                // passes: off the frontmost drawn surface along it (PlumbFace:
+                // timbers, beams, stone frames; up to the straight pipe's top,
+                // short of the eaves), so it clears them all and hangs free
+                // before a storey standing further back (the ground storey's
+                // masonry). Under a jetty the ground storey has its own.
+                float upperFace = groundFace;
+                float straightTop = top - ground - kit.Radius;
 
-            // The top elbow: its leg A down the pipe, leg B into the wall.
-            float topFace = jettied ? upperFace : groundFace;
-            Vector3 topNode = Point(topFace + offset, top);
-            PlaceElbow(kit.Elbow, topNode, Vector3.down, -front, placer, group);
-            float length = kit.Elbow.LegA + kit.Elbow.LegB;
+                if (jettied) {
+                    PlumbFace(frontage, spot, building, x, 1, storeys - 1, deckHeight, straightTop, kit, out upperFace);
+                    PlumbFace(frontage, spot, building, x, 0, 0, 0f, deckHeight, kit, out groundFace);
+                } else {
+                    PlumbFace(frontage, spot, building, x, 0, storeys - 1, 0f, straightTop, kit, out groundFace);
+                }
 
-            if (!jettied) {
-                Vector3 from = topNode + Vector3.down * kit.Elbow.LegA;
-                Vector3 to = Point(groundFace + offset, ground - 0.3f);
-                PlaceRunPipe(kit, from, to, alongWorld, front, valve ? from.y - valveY : -1f, settings, placer, group);
-                length += Vector3.Distance(from, to);
+                float topFace = jettied ? upperFace : groundFace;
+                top = Mathf.Min(top, Ceiling(Point(topFace + offset, top - 1.5f), -front, kit, settings));
+
+                if (top - ground < kit.Elbow.LegA + kit.Radius + 1f
+                    || CrossesOpening(spots, firstModule, lastModule, building, frontage.Runs, x0, x1, 0f, top - ground, 0, storeys - 1, placer, settings)
+                    || Taken(taken, x0, x1, ground, top) || !ClearOfLane(frontage, run, x0, x1, groundFace + offset + kit.Radius, 0, settings)) {
+                    continue;
+                }
+
+                // A valve at ValveHeight on the stretch down to the ground,
+                // where it stays out of the street's lane.
+                bool withValve = valve && ClearOfLane(frontage, run, x0, x1, groundFace + offset + ValveReach(kit), 0, settings);
+                float valveY = ground + settings.ValveHeight;
+
+                // The top elbow: its leg A down the pipe, leg B into the wall.
+                Vector3 topNode = Point(topFace + offset, top);
+                PlaceWallElbow(kit, topNode, Vector3.down, -front, settings, placer, group);
+                float length = kit.Elbow.LegA + kit.Elbow.LegB;
+
+                if (!jettied) {
+                    Vector3 from = topNode + Vector3.down * kit.Elbow.LegA;
+                    Vector3 to = Point(groundFace + offset, ground - 0.3f);
+                    PlaceRunPipe(kit, from, to, alongWorld, front, withValve ? from.y - valveY : -1f, settings, placer, group);
+                    length += Vector3.Distance(from, to);
+                    taken.Add((x0, x1, ground, top));
+                    return length;
+                }
+
+                // Under the jetty: down the upper face to the deck, an elbow
+                // turning back towards the wall, one turning down again at
+                // the ground face, then down into the ground. The two legs
+                // between them span the jetty (the small pipe's legs are made
+                // for it); where they don't meet the jog exactly, a short
+                // straight between them along the way in.
+                float deck = ground + deckHeight;
+                float outerY = deck - kit.Radius - kit.Elbow.LegA * 0.5f;
+                Vector3 upperFrom = topNode + Vector3.down * kit.Elbow.LegA;
+                Vector3 outerNode = Point(upperFace + offset, outerY);
+                PlacePipe(kit, upperFrom, outerNode + Vector3.up * kit.Elbow.LegA, alongWorld, settings, placer, group);
+                PlaceElbow(kit.Elbow, outerNode, Vector3.up, -front, placer, group);
+                Vector3 legEnd = outerNode - front * kit.Elbow.LegB;
+                // The inner elbow stands at the ground face's offset, level
+                // with the outer one: its leg A points back out towards the
+                // outer elbow's leg, its leg B down.
+                Vector3 innerNode = Point(groundFace + offset, outerY);
+                PlaceElbow(kit.Elbow, innerNode, front, Vector3.down, placer, group);
+                Vector3 innerLeg = innerNode + front * kit.Elbow.LegA;
+
+                if (Vector3.Distance(legEnd, innerLeg) > settings.SizeTolerance) {
+                    PlacePipe(kit, legEnd, innerLeg, Vector3.up, settings, placer, group);
+                }
+
+                Vector3 down = innerNode + Vector3.down * kit.Elbow.LegB;
+                Vector3 bottom = Point(groundFace + offset, ground - 0.3f);
+                PlaceRunPipe(kit, down, bottom, alongWorld, front, withValve ? down.y - valveY : -1f, settings, placer, group);
+                length += Vector3.Distance(upperFrom, outerNode) + kit.Elbow.LegA * 2f + kit.Elbow.LegB * 2f + Vector3.Distance(down, bottom);
                 taken.Add((x0, x1, ground, top));
                 return length;
             }
 
-            // Under the jetty: down the upper face to the deck, an elbow
-            // turning back towards the wall, one turning down again at the
-            // ground face, then down into the ground. The two legs between
-            // them span the jetty (the small pipe's legs are made for it).
-            float deck = ground + DeckTop(building.Levels[1]);
-            float jog = upperFace - groundFace;
-            float outerY = deck - kit.Radius - kit.Elbow.LegA * 0.5f;
-            Vector3 upperFrom = topNode + Vector3.down * kit.Elbow.LegA;
-            Vector3 outerNode = Point(upperFace + offset, outerY);
-            PlacePipe(kit, upperFrom, outerNode + Vector3.up * kit.Elbow.LegA, alongWorld, settings, placer, group);
-            PlaceElbow(kit.Elbow, outerNode, Vector3.up, -front, placer, group);
-            Vector3 innerNode = Point(groundFace + offset, outerY - (kit.Elbow.LegB + kit.Elbow.LegA - jog));
-            // Where the two legs don't meet the jog exactly, a short straight
-            // between them along the way in.
-            Vector3 legEnd = outerNode - front * kit.Elbow.LegB;
-            Vector3 innerLegEnd = innerNode + Vector3.up * kit.Elbow.LegA;
-            innerNode = Point(groundFace + offset, outerY);
-            innerLegEnd = innerNode + Vector3.up * 0f;
-            // The inner elbow stands at the ground face's offset, level with
-            // the outer one: its leg A points back out towards the outer
-            // elbow's leg, its leg B down.
-            PlaceElbow(kit.Elbow, innerNode, front, Vector3.down, placer, group);
-            Vector3 innerLeg = innerNode + front * kit.Elbow.LegA;
-
-            if (Vector3.Distance(legEnd, innerLeg) > settings.SizeTolerance) {
-                PlacePipe(kit, legEnd, innerLeg, Vector3.up, settings, placer, group);
-            }
-
-            Vector3 down = innerNode + Vector3.down * kit.Elbow.LegB;
-            Vector3 bottom = Point(groundFace + offset, ground - 0.3f);
-            PlaceRunPipe(kit, down, bottom, alongWorld, front, valve ? down.y - valveY : -1f, settings, placer, group);
-            length += Vector3.Distance(upperFrom, outerNode) + kit.Elbow.LegA * 2f + kit.Elbow.LegB * 2f + Vector3.Distance(down, bottom);
-            taken.Add((x0, x1, ground, top));
-            return length;
+            return 0f;
         }
 
         /// <summary>
@@ -1277,24 +1573,30 @@ namespace LevelGen
                 float y = ground + h;
 
                 if (CrossesOpening(spots, at, end, building, frontage.Runs, x0, x1, h - kit.Radius, h + kit.Radius, storey, storey, placer, settings)
-                    || Taken(taken, x0, x1, y - kit.Radius, y + kit.Radius)
-                    || !ClearOfLane(frontage, run, x0, x1, face + settings.PipeWallGap + kit.Radius * 2f, storey, settings)) {
+                    || Taken(taken, x0, x1, y - kit.Radius, y + kit.Radius)) {
+                    continue;
+                }
+
+                // Off the frontmost drawn surface along the stretch (timbers,
+                // beams), so the pipe clears them.
+                float offset = LevelFace(frontage, building, at, end, storey, x0, x1, h, kit, face) + settings.PipeWallGap + kit.Radius;
+
+                if (!ClearOfLane(frontage, run, x0, x1, offset + kit.Radius, storey, settings)) {
                     continue;
                 }
 
                 // A valve in the middle of the level stretch, where it stays
                 // out of the street's lane.
-                bool withValve = valve && ClearOfLane(frontage, run, x0, x1, face + settings.PipeWallGap + kit.Radius + ValveReach(kit), storey, settings);
+                bool withValve = valve && ClearOfLane(frontage, run, x0, x1, offset + ValveReach(kit), storey, settings);
 
                 Vector3 front = Level(run.Front);
                 Vector3 alongWorld = Level(run.Along);
-                Vector3 Point(float x) => new(run.Start.x + run.Along.x * x + run.Front.x * (face + settings.PipeWallGap + kit.Radius), y,
-                    run.Start.y + run.Along.y * x + run.Front.y * (face + settings.PipeWallGap + kit.Radius));
+                Vector3 Point(float x) => new(run.Start.x + run.Along.x * x + run.Front.x * offset, y, run.Start.y + run.Along.y * x + run.Front.y * offset);
                 Vector3 a = Point(x0);
                 Vector3 bEnd = Point(x1);
                 // Both elbows: leg A along the pipe, leg B into the wall.
-                PlaceElbow(kit.Elbow, a, alongWorld, -front, placer, group);
-                PlaceElbow(kit.Elbow, bEnd, -alongWorld, -front, placer, group);
+                PlaceWallElbow(kit, a, alongWorld, -front, settings, placer, group);
+                PlaceWallElbow(kit, bEnd, -alongWorld, -front, settings, placer, group);
                 Vector3 from = a + alongWorld * kit.Elbow.LegA;
                 Vector3 to = bEnd - alongWorld * kit.Elbow.LegA;
                 PlaceRunPipe(kit, from, to, Vector3.up, front, withValve ? Vector3.Distance(from, to) * 0.5f : -1f, settings, placer, group);
@@ -1306,12 +1608,16 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// An L of pipe: up from the ground at a module's start edge to a
+        /// An L of pipe: up from the ground in a module (PlumbPlaces) to a
         /// height on a storey, an elbow, then level along the storey to an
-        /// elbow into the wall near the middle of a later module
-        /// (PipeEndInModule, at endRoll). Where the vertical would cross a
-        /// jetty it is stopped at the ground storey instead. Returns the length
-        /// placed.
+        /// elbow into the wall near the middle of that module or a later one
+        /// (PipeEndInModule, at endRoll; where picks the module over the
+        /// stretch the level part may reach) - at the storey's middle
+        /// height, else near its top, else near its base, whichever first
+        /// clears the openings. The whole L stands off the frontmost face of
+        /// the storeys the vertical passes. Where the vertical would cross a
+        /// jetty it is stopped at the ground storey instead. Returns the
+        /// length placed.
         /// </summary>
         private static float CornerRun(Frontage frontage, Building building, int first, int last, int at, int storey, float where, float endRoll, PipeKit kit,
             bool valve, List<(float x0, float x1, float y0, float y1)> taken, GeneratorSettings settings, PiecePlacer placer, Transform group)
@@ -1326,8 +1632,8 @@ namespace LevelGen
                 storey = 0;
             }
 
-            if (storey >= spot.Storeys || !FaceAt(spot, building, storey, setback, out float face) || !FaceAt(spot, building, 0, setback, out float groundFace)
-                || Mathf.Abs(face - groundFace) > SameDepth) {
+            if (storey >= spot.Storeys || !FaceAt(spot, building, storey, setback, out float storeyFace)
+                || !FrontmostFace(spot, building, 0, storey, setback, out float face)) {
                 return 0f;
             }
 
@@ -1335,50 +1641,67 @@ namespace LevelGen
 
             while (end + 1 <= last && spots[end + 1].Run == spot.Run && spots[end + 1].Storeys > storey
                 && Mathf.Abs(spots[end + 1].Depth - spot.Depth) < SameDepth && FaceAt(spots[end + 1], building, storey, setback, out float f)
-                && Mathf.Abs(f - face) < SameDepth) {
+                && Mathf.Abs(f - storeyFace) < SameDepth) {
                 end++;
             }
 
             Run run = frontage.Runs[spot.Run];
-            float x = spot.Position + kit.Radius + 0.05f;
-            int stop = at + Mathf.Max(1, Mathf.RoundToInt(where * (end - at)));
-
-            if (stop > end) {
-                return 0f;
-            }
-
+            int stop = at + Mathf.RoundToInt(where * (end - at));
             float x1 = PipeEndInModule(spots[stop], building, endRoll, settings);
             StoreyLevel level = building.Levels[storey];
-            float ground = Height(run, x);
-            float y = ground + level.Base + level.Style.StoreySpacing - 0.45f - kit.Radius;
-
-            if (x1 - x < kit.Elbow.LegA + kit.Elbow.LegB + settings.SizeTolerance
-                || CrossesOpening(spots, Mathf.Max(first, at - 1), at, building, frontage.Runs, x - kit.Radius, x + kit.Radius, 0f, y - ground, 0, storey, placer, settings)
-                || CrossesOpening(spots, at, end, building, frontage.Runs, x, x1, y - ground - kit.Radius, y - ground + kit.Radius, storey, storey, placer, settings)
-                || Taken(taken, x - kit.Radius, x + kit.Radius, ground, y) || Taken(taken, x, x1, y - kit.Radius, y + kit.Radius)
-                || !ClearOfLane(frontage, run, x - kit.Radius, x1, face + settings.PipeWallGap + kit.Radius * 2f, 0, settings)) {
-                return 0f;
-            }
-
+            float[] heights = {
+                level.Base + level.Style.StoreySpacing * 0.5f, level.Base + level.Style.StoreySpacing - 0.45f - kit.Radius, level.Base + 0.45f + kit.Radius
+            };
             Vector3 front = Level(run.Front);
             Vector3 alongWorld = Level(run.Along);
-            float offset = face + settings.PipeWallGap + kit.Radius;
-            Vector3 Point(float px, float py) => new(run.Start.x + run.Along.x * px + run.Front.x * offset, py, run.Start.y + run.Along.y * px + run.Front.y * offset);
-            Vector3 cornerNode = Point(x, y);
-            Vector3 endNode = Point(x1, y);
-            // The corner elbow: leg A down the vertical, leg B along; the end
-            // elbow: leg A back along the pipe, leg B into the wall.
-            PlaceElbow(kit.Elbow, cornerNode, Vector3.down, alongWorld, placer, group);
-            PlaceElbow(kit.Elbow, endNode, -alongWorld, -front, placer, group);
-            // A valve at ValveHeight on the upright, where it stays out of the
-            // street's lane.
-            Vector3 upFrom = cornerNode + Vector3.down * kit.Elbow.LegA;
-            bool withValve = valve && ClearOfLane(frontage, run, x - kit.Radius, x + kit.Radius, offset + ValveReach(kit), 0, settings);
-            PlaceRunPipe(kit, upFrom, Point(x, ground - 0.3f), alongWorld, front, withValve ? upFrom.y - (ground + settings.ValveHeight) : -1f, settings, placer, group);
-            PlacePipe(kit, cornerNode + alongWorld * kit.Elbow.LegB, endNode - alongWorld * kit.Elbow.LegA, Vector3.up, settings, placer, group);
-            taken.Add((x - kit.Radius, x + kit.Radius, ground, y));
-            taken.Add((x, x1, y - kit.Radius, y + kit.Radius));
-            return y - ground + x1 - x;
+
+            foreach ((float x, int firstModule, int lastModule) in PlumbPlaces(frontage, building, first, at, kit, settings)) {
+                if (x1 - x < kit.Elbow.LegA + kit.Elbow.LegB + settings.SizeTolerance) {
+                    continue;
+                }
+
+                float ground = Height(run, x);
+
+                foreach (float h in heights) {
+                    float y = ground + h;
+
+                    if (CrossesOpening(spots, firstModule, lastModule, building, frontage.Runs, x - kit.Radius, x + kit.Radius, 0f, y - ground, 0, storey, placer, settings)
+                        || CrossesOpening(spots, at, end, building, frontage.Runs, x, x1, h - kit.Radius, h + kit.Radius, storey, storey, placer, settings)
+                        || Taken(taken, x - kit.Radius, x + kit.Radius, ground, y) || Taken(taken, x, x1, y - kit.Radius, y + kit.Radius)) {
+                        continue;
+                    }
+
+                    // The whole L at one offset: off the frontmost drawn
+                    // surface the upright and the level stretch pass.
+                    PlumbFace(frontage, spot, building, x, 0, storey, 0f, h, kit, out float plumbFace);
+                    float offset = Mathf.Max(plumbFace, LevelFace(frontage, building, at, end, storey, x, x1, h, kit, face)) + settings.PipeWallGap + kit.Radius;
+
+                    if (!ClearOfLane(frontage, run, x - kit.Radius, x1, offset + kit.Radius, 0, settings)) {
+                        continue;
+                    }
+
+                    Vector3 Point(float px, float py) => new(run.Start.x + run.Along.x * px + run.Front.x * offset, py, run.Start.y + run.Along.y * px + run.Front.y * offset);
+                    Vector3 cornerNode = Point(x, y);
+                    Vector3 endNode = Point(x1, y);
+                    // The corner elbow: leg A down the vertical, leg B along;
+                    // the end elbow: leg A back along the pipe, leg B into the
+                    // wall.
+                    PlaceElbow(kit.Elbow, cornerNode, Vector3.down, alongWorld, placer, group);
+                    PlaceWallElbow(kit, endNode, -alongWorld, -front, settings, placer, group);
+                    // A valve at ValveHeight on the upright, where it stays
+                    // out of the street's lane.
+                    Vector3 upFrom = cornerNode + Vector3.down * kit.Elbow.LegA;
+                    bool withValve = valve && ClearOfLane(frontage, run, x - kit.Radius, x + kit.Radius, offset + ValveReach(kit), 0, settings);
+                    PlaceRunPipe(kit, upFrom, Point(x, ground - 0.3f), alongWorld, front, withValve ? upFrom.y - (ground + settings.ValveHeight) : -1f, settings,
+                        placer, group);
+                    PlacePipe(kit, cornerNode + alongWorld * kit.Elbow.LegB, endNode - alongWorld * kit.Elbow.LegA, Vector3.up, settings, placer, group);
+                    taken.Add((x - kit.Radius, x + kit.Radius, ground, y));
+                    taken.Add((x, x1, y - kit.Radius, y + kit.Radius));
+                    return y - ground + x1 - x;
+                }
+            }
+
+            return 0f;
         }
 
         /// <summary>

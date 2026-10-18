@@ -6,6 +6,160 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-18 (level generator: visibility cull, pipe rules and the thin kit,
+            corner overrun, roof colours, chimney heights, hip strips at
+            any angle, ridge railings, smoke and steam, street foliage,
+            face windows, lot columns, three-levels spec; flame shader)
+---------------------------------------------------------------------------
+- Visibility cull (VisibilityCull, in place of the roof cull): every
+  piece the generator placed that no one in the streets can see is
+  removed - ground tiles under the buildings, back slopes, walls, beams,
+  pipes, walkway parts, foliage. The probe walks every street looking
+  from eye height (cullEyeHeight 1.6m) along the middle and both edges
+  and from cullHeight (9m) above the middle; a piece is seen when a ray
+  to one of its sample points hits nothing, its own collider, or its
+  render box (the merged boxes stand in for the tiles', foundations' and
+  walkways' colliders). Nearest eight looks one ray at a time, the rest
+  as RaycastCommand jobs. Three-levels: 824 of 10247 pieces in 19s;
+  railings left on a removed ridge go too. Lamp posts are never culled.
+- Thin pipes: the generator places only the _thin pipe variants (0.33m
+  across, root scale 0.3-0.5, ends copied from the Small pieces); the
+  Small and Large pieces were unverified, so one kit.
+- Pipe rules from the maintainer's hand-adjusted copy of Lot
+  counting-house (the `example` object): a plumb run stands off the
+  frontmost drawn surface along its height (PlumbFace, WallProbe every
+  0.25m; level runs LevelFace), pipePanelInset (0.6m) from the module's
+  left end on the plaster past the end post, else over the post; the top
+  elbow keeps under the eaves (Ceiling); an elbow whose leg falls short
+  of the plaster gets a hidden straight behind it (PlaceWallElbow); an L
+  run may end in its own module at the storey's middle, top or base.
+  Pipes now stand 0.15-0.25m off the plaster, clearing posts and beams.
+- Corner overrun: cornerOverrun (0.5) in place of cornerTuck - each
+  side's walls run that share of the way from the other side's back line
+  to its face, both ends hidden inside the other wall and the end posts
+  meeting at the corner (WallTarget, EndReach); a corner's fillers are
+  brought forward to the other side's end wall's reach (CornerFaceReach).
+  The report excuses any end another wall meets. Two-lots: 0 free ends.
+- Roof colours: grey (slate) and orange (terracotta) albedos for the two
+  roof materials and the dormer's extension material, made from the
+  maintainer's brown versions with only the tile sheets recoloured (a
+  .NET program over the 4k TIFs; the editor's eval has a 5s cap); the
+  dormer gets brown/grey/orange too (Assets/Art/Materials/Environment/
+  Extensions) so it matches its roof. ColourBuildings draws walls and
+  roofs apart (two draws per building), log "walls brown x36, default
+  x17; roofs brown x16, default x10, grey x9, orange x18".
+- Ridge railings (roof-railing: the arrow railings, long and short) on
+  roofRailingShare of buildings along the first roof's ridge, longest
+  first, feet seated by a ray on the ridge cap (roofRailingSink 0.15),
+  leaning up to 12 degrees; skipped where the ridge is buried or the roof
+  top differs under its ends (a hip, a corner). Measured against the
+  maintainer's hand-placed railings (feet 0.05-0.29 below the cap, gaps
+  0.6-1.4m, leans to 13 degrees): the first version sat 0.4-0.5m too
+  high and too close together.
+- Chimney smoke and vent steam: Shuriken particle systems (the
+  maintainer's choice), prefabs in Assets/Prefabs/Effects, SmokePuff.png
+  (three soft discs) through a URP Particles/Unlit material with no soft
+  particles, camera fading or distortion; placed as children of the
+  chimney (at the top of its IronFixtures_Chimney pot) and the vent
+  (at its face) at chimneySmokeShare / ventSteamShare, so the cull takes
+  a hidden chimney's smoke with it. Colours and alphas untuned in the
+  headset.
+- SurfaceTags on every merged collider box: TL_StoneFloor_Tile and the
+  jetty/walkway piece carry one (Stone, Wood); FloorColliders and
+  MergedColliders copy the source's, else a fallback (Stone for floors
+  and foundations, Wood for walkways).
+- Street foliage (StreetFoliage.cs; categories grass, nettle): grass
+  clusters of 2-4 tufts at grassCover of the ground tiles, only 1m inside
+  the street and off lots and flights; 2-4 nettles per street at the
+  foot of the foundations facing it (foundation fronts assigned to
+  streets, spots by length, 0.6m from doorways, ground by a ray). Its
+  own System.Random (seed x 31 + 7), so nothing else moves. Two-lots: 5
+  clusters, 28 nettles, all seated to 3cm.
+- Chimneys at varied heights: position drawn between roofChimneyUp and
+  roofChimneyUpMax (4-8m up the slope), rise between roofChimneyRise and
+  roofChimneyRiseMax (0.8-2.5m), so the tallest stand clear above the
+  ridge - the maintainer pointed at one 2.5m over the ridge as the look.
+  Gable pieces placed with their pivot plane on the roof's end (the
+  wall face is within 0.1m of the pivot, the beams 0.45-0.6m in front);
+  the maintainer had moved two gables 0.44m outward by hand to show it.
+- Hip strips at any corner angle: a convex roof corner within
+  roofHipAngleMin-Max (50-135 degrees) is hipped, the right-angled
+  Roof_PeakedBase scaled across the hip by tan(angle/2) and in height so
+  its faces keep the pitch, under a Hip empty per strip holding the
+  frame. Three-levels: 55 corners, 50 strips; warden-hall's 61 and 128
+  degree corners get strips; its 161 degree bend stays gabled.
+- Lot columns step only into the street their side lines
+  (StreetClearance.LiningSegment), never into a cross street at a block
+  corner, as a facade's do.
+- Face windows: a blind window wall (WallTall_WindowBase) with a
+  hand-set `window` connection point gets a window insert on its face
+  when its module's window draw comes up, so a wall-tall storey shows
+  windows at the window shares, not on every module.
+- Three-levels spec (example-three-levels.json): three lots in rings at
+  0, 4.86 and 9.72m joined by chains of streets climbing three flights
+  on one segment, seven dead ends; validates. Its street test fails: the
+  facade beside a three-flight climb stands at the low level and its
+  upper storey and roof stand in the raised street (stair-lane). Open for
+  the maintainer: modules beside a flight at the flight's surface
+  height, or specs splitting a climb into one-flight segments. Also
+  seen: 27 free wall ends at the pentagon lots' corners and the
+  10-15 degree off-square junctions. FacadeBuilder.FillRunEnd sized the
+  run-end module's arrays by the next building's levels while giving the
+  module to the previous one (IndexOutOfRange when a plaster building
+  followed a wall-tall one): sized by the owner's now.
+- Flames: one quad with the TeaLeaf/Flame shader (unlit, billboarded in
+  the vertex shader, two noise samples bending a teardrop, phase hashed
+  from world xz, premultiplied blend) on the lamp post, lantern, brazier
+  and bracket torch variants, set as the Flame's flameVisual; the pack's
+  Fire_Effect particles are off (their URP Particles/Lit material wants
+  the depth and opaque textures, off by project rule, and drew a lit
+  square). Occludee static only - Batching static loses the billboard's
+  pivot. Untuned in the headset; the lantern's light washes the heart
+  out. TL_Lampost moved to Prefabs/Environment/Iron.
+- Level Gen Test has a lighting and occlusion bake of its own
+  (Assets/Scenes/Level Gen Test/, six lightmaps); Docks Lighting's AO
+  reaches 3m (exponents 1.24 / 1.28); the URP asset's shadow distance is
+  50m.
+- Lessons: a street spec's two streets chained end to end must meet
+  square or nearly straight (a join more than branchAngle off straight
+  counts as a branch when frontages are sized), and mid-street bends of
+  30-45 degrees or near-straight joins leave bare wall ends both sides;
+  a seated piece needs Physics.SyncTransforms() before the ray; a
+  railing seen over a gable may stand on a ridge the cull removed, so
+  the cull checks railings last; recolouring a texture by hue alone
+  takes the mossy beams too (they are teal in the pack), so limit it to
+  polygons round the tile sheets in UV space.
+
+
+2026-10-17 (late: level generator corners from the maintainer's example,
+            chimneys and dormers, whole gables, one-panel ridge rows)
+---------------------------------------------------------------------------
+- Corner placement matched to the maintainer's hand-corrected copy of
+  Lot warden-hall: a corner side's end is carried by whichever corner of
+  its end face reaches the target line first (EndReach); the beam band
+  and jetty supports widen with the end module (BuildBeams / BuildJetty
+  read WidenStart / End) and band fillers run only as long as the wall
+  fillers; right-end side walls start halfway between the front wall's
+  main surface and its reach (SideWallFace).
+- Chimneys and dormers (BuildRoofFeatures): the maintainer made and
+  verified TL_Chimney_full and TL_Extension_Small_window (a dormer:
+  box with a window on its front, a little gabled roof falling to its
+  back, pivot at the back bottom). One feature per building whose roof
+  is at least roofFeatureMinPanels (2) long, 50/50; a chimney straddles
+  the ridge, a dormer stands on the front slope 2m up, refused (a
+  chimney instead) where it would top the ridge. Two-lots: 10 chimneys,
+  13 dormers. A dormer's open back shows through a narrow roof's back
+  slope.
+- Whole gables: category roof-gable (RoofWall_LargeA/B, MedA/B verified;
+  the half gables CornerA/B unverified): one triangle per roof end,
+  GablePiece picking the shape nearest the triangle's. Roof ends stop at
+  the outer face of the top storey's end wall (ModuleSpot.SideFaceStart
+  / End, written by BuildCornerSide, FillSide and CloseJetty); the
+  maintainer's example put every gable face at the side wall's outer
+  face within 0.1m. A row of one panel never takes the ridge piece.
+  Two-lots: 913 roof pieces.
+
+
 2026-10-17 (level generator: roof cull, merged colliders, lamp posts as lights,
             building colours, lit windows)
 ---------------------------------------------------------------------------

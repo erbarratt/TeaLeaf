@@ -89,7 +89,7 @@ namespace LevelGen
                 }
             }
 
-            Run(root, pieces, "Foundation", settings.FoundationColliderTolerance, log);
+            Run(root, pieces, "Foundation", settings.FoundationColliderTolerance, SurfaceType.Stone, log);
         }
 
         /// <summary>
@@ -114,15 +114,16 @@ namespace LevelGen
                 }
             }
 
-            Run(root, pieces, "Walkway", settings.FoundationColliderTolerance, log);
+            Run(root, pieces, "Walkway", settings.FoundationColliderTolerance, SurfaceType.Wood, log);
         }
 
         /// <summary>
         /// Replaces the upright box colliders of the pieces with merged boxes
-        /// under "&lt;what&gt; Colliders" in root, each named "&lt;what&gt; &lt;n&gt;".
+        /// under "&lt;what&gt; Colliders" in root, each named "&lt;what&gt; &lt;n&gt;",
+        /// tagged with the surface the pieces are (fallback where a piece has no tag).
         /// Adds one line to log.
         /// </summary>
-        private static void Run(Transform root, List<GameObject> pieces, string what, float tolerance, List<string> log)
+        private static void Run(Transform root, List<GameObject> pieces, string what, float tolerance, SurfaceType fallback, List<string> log)
         {
             List<Frame> frames = new();
             int removed = 0;
@@ -152,7 +153,7 @@ namespace LevelGen
                         parent.SetParent(root, false);
                     }
 
-                    MakeBox(frame, box, parent, $"{what} {made}");
+                    MakeBox(frame, box, parent, $"{what} {made}", fallback);
                     made++;
                 }
             }
@@ -283,9 +284,11 @@ namespace LevelGen
 
         /// <summary>
         /// Makes one merged box's collider under parent, turned to its frame,
-        /// on its source's layer with its static flags and tag.
+        /// on its source's layer with its static flags, and a SurfaceTag: the
+        /// source's copied, else one set to the fallback (Stone for the
+        /// foundations, Wood for the walkways).
         /// </summary>
-        private static void MakeBox(Frame frame, Box box, Transform parent, string name)
+        private static void MakeBox(Frame frame, Box box, Transform parent, string name, SurfaceType fallback)
         {
             Vector3 middle = (box.Min + box.Max) * 0.5f;
             GameObject made = new(name) {
@@ -297,8 +300,16 @@ namespace LevelGen
                 Quaternion.LookRotation(frame.AxisZ, Vector3.up));
             made.AddComponent<BoxCollider>().size = box.Max - box.Min;
 
+            // What it is made of: the source's tag copied, else the fallback
+            // for this kind of piece made explicit.
+            SurfaceTag tag = made.AddComponent<SurfaceTag>();
+
             if (frame.Tag != null) {
-                EditorUtility.CopySerialized(frame.Tag, made.AddComponent<SurfaceTag>());
+                EditorUtility.CopySerialized(frame.Tag, tag);
+            } else {
+                SerializedObject serialized = new(tag);
+                serialized.FindProperty("surface").enumValueIndex = (int)fallback;
+                serialized.ApplyModifiedPropertiesWithoutUndo();
             }
         }
 
