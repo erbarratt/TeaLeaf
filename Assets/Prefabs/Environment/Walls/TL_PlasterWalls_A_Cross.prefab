@@ -8,6 +8,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 429349343291980908, guid: f7f981d6350c24441a90ff4a69ba41f4, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 2046734202530967748, guid: f7f981d6350c24441a90ff4a69ba41f4, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -63,6 +67,10 @@ PrefabInstance:
     - target: {fileID: 6561391412436667612, guid: f7f981d6350c24441a90ff4a69ba41f4, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 6561391412438667806, guid: f7f981d6350c24441a90ff4a69ba41f4, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 7105573832567386428, guid: f7f981d6350c24441a90ff4a69ba41f4, type: 3}
       propertyPath: m_Name

@@ -28,6 +28,10 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 5539209759100824431, guid: b55a99d4ba90cba4f9e81fc235d9e21a, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.5
+      objectReference: {fileID: 0}
     - target: {fileID: 5539209759103022509, guid: b55a99d4ba90cba4f9e81fc235d9e21a, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -75,6 +79,10 @@ PrefabInstance:
     - target: {fileID: 5826907421538583859, guid: b55a99d4ba90cba4f9e81fc235d9e21a, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5840372182459165152, guid: b55a99d4ba90cba4f9e81fc235d9e21a, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 8296583821973525524, guid: b55a99d4ba90cba4f9e81fc235d9e21a, type: 3}
       propertyPath: m_Layer

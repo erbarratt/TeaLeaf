@@ -26,12 +26,21 @@ namespace Core
         // in the level.
         [SerializeField] private float maxDistance = 200f;
 
+        // The least light any baked surface receives, so deep shadow keeps
+        // its detail: a linear light level (not a pixel value - the surface's
+        // own colour still multiplies it), in the moon's blue-grey. Applied
+        // to the lightmaps and light probes after every bake by the editor's
+        // ShadowFloor, which reads it from here; the rendered look only, the
+        // gameplay light above is unaffected.
+        [SerializeField, ColorUsage(false, true)] private Color shadowFloor = new Color(0.045f, 0.05f, 0.06f, 1f);
+
         /// The scene's moon, or null if there isn't one (then nothing is
         /// moonlit: everywhere not near a LightSource is full shadow).
         public static Moonlight Instance { get; private set; }
 
         public float Level => level;
         public float MaxDistance => maxDistance;
+        public Color ShadowFloor => shadowFloor;
 
         /// <summary>
         /// The direction from anywhere in the level towards the moon. A

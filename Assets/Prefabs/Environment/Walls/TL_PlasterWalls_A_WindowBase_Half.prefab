@@ -8,6 +8,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 7911824364855291680, guid: 8f4461d96a41e50449e23190d864f6e8, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 8309976965324824071, guid: 8f4461d96a41e50449e23190d864f6e8, type: 3}
       propertyPath: m_Name
       value: TL_PlasterWalls_A_WindowBase_Half

@@ -8,6 +8,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 616755623148420424, guid: 99073518bf208284e9314b8558ec0c28, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 1500349753875985025, guid: 99073518bf208284e9314b8558ec0c28, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -55,6 +59,10 @@ PrefabInstance:
     - target: {fileID: 3976298450946814436, guid: 99073518bf208284e9314b8558ec0c28, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4926094975936992357, guid: 99073518bf208284e9314b8558ec0c28, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 4926094975938923175, guid: 99073518bf208284e9314b8558ec0c28, type: 3}
       propertyPath: m_Layer

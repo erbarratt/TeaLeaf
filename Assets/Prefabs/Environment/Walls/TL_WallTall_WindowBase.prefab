@@ -8,6 +8,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 638155447834007763, guid: a3754e3e6d6b7db449deecf277d11c97, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 1859057337600512292, guid: a3754e3e6d6b7db449deecf277d11c97, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 1859057337602510822, guid: a3754e3e6d6b7db449deecf277d11c97, type: 3}
       propertyPath: m_Layer
       value: 6

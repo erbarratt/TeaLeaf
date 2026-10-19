@@ -68,6 +68,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3319531448728480601, guid: bd9a9bd76ba50d74aa857bd0f01dbfa7, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 7705490706588865837, guid: bd9a9bd76ba50d74aa857bd0f01dbfa7, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -75,6 +79,10 @@ PrefabInstance:
     - target: {fileID: 7705490706588865837, guid: bd9a9bd76ba50d74aa857bd0f01dbfa7, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 7705490706591058927, guid: bd9a9bd76ba50d74aa857bd0f01dbfa7, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 7900792398036291794, guid: bd9a9bd76ba50d74aa857bd0f01dbfa7, type: 3}
       propertyPath: m_Layer

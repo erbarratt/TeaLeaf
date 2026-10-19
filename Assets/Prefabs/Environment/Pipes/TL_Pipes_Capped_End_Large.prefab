@@ -8,6 +8,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 122732833297494526, guid: 157ab6d8c2e12bb42ae8a4be1dc36ba0, type: 3}
+      propertyPath: m_ReceiveGI
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 1499736229530387426, guid: 157ab6d8c2e12bb42ae8a4be1dc36ba0, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -84,6 +88,10 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 7359286494306923697, guid: 157ab6d8c2e12bb42ae8a4be1dc36ba0, type: 3}
+      propertyPath: m_ReceiveGI
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 7907925838295016183, guid: 157ab6d8c2e12bb42ae8a4be1dc36ba0, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -91,6 +99,10 @@ PrefabInstance:
     - target: {fileID: 7907925838295016183, guid: 157ab6d8c2e12bb42ae8a4be1dc36ba0, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 8626363380964305002, guid: 157ab6d8c2e12bb42ae8a4be1dc36ba0, type: 3}
+      propertyPath: m_ReceiveGI
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

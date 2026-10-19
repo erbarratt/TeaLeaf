@@ -16,6 +16,10 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 669942836272100184, guid: 656ee4460f6f3624aa2429c6d176d0a3, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.5
+      objectReference: {fileID: 0}
     - target: {fileID: 669942836274294170, guid: 656ee4460f6f3624aa2429c6d176d0a3, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -83,6 +87,10 @@ PrefabInstance:
     - target: {fileID: 2560713622173272200, guid: 656ee4460f6f3624aa2429c6d176d0a3, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 7732561673933031921, guid: 656ee4460f6f3624aa2429c6d176d0a3, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

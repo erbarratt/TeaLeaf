@@ -6,6 +6,44 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-18 (late: lightmap scale on walls and roofs, the shadow floor,
+            bake settings, Level Gen Test rebaked)
+---------------------------------------------------------------------------
+- Scale In Lightmap set as a prefab-variant override on every static
+  mesh renderer under Assets/Prefabs/Environment: 2 on the wall materials
+  (Medieval_PlasterWalls_A_4k, _B_4k, Medieval_WallsTall_A_4k and their
+  colour variants), 0.5 on the roof materials (Medieval_Roofs_4k,
+  Medieval_RoofPeaked_4k and theirs). 99 prefabs, 1660 wall renderers,
+  968 roof renderers; both scenes inherit it with no scene overrides.
+  Masonry foundations, the gable RoofWall pieces and the bridge walls
+  stay at 1 (not in the Walls material folder).
+- Shadow floor (Core/Editor/ShadowFloor.cs; TeaLeaf > Apply Shadow Floor,
+  and by itself after every bake through Lightmapping.bakeCompleted):
+  raises every lightmap texel and every light probe to at least
+  Moonlight.shadowFloor, a linear light level in the moon's blue-grey
+  (0.045, 0.05, 0.06) that the shader still multiplies by albedo, so
+  deep shade keeps its detail while the moon-to-shade contrast stays.
+  Done in the baked data rather than with a sky ambient: a flat ambient
+  reaches an enclosed alley at about a thirtieth of what open shade gets,
+  so any ambient that lifts the alleys washes out the shade everywhere
+  else. The lightmaps are read back through the GPU (a blit to a float
+  render texture, so the BC6H textures need no importer change),
+  floored, written over their EXR files and reimported synchronously;
+  the probes get an ambient term where their darkest of six directions
+  is below the floor. Both idempotent (a texel within 2% of the floor
+  counts as done). Reimporting a lightmap raises bakeCompleted again
+  from inside the import: ignored while a floor is being applied, or it
+  read the half-reloaded texture and wrote it back. With no Moonlight in
+  the scene nothing is applied.
+- Docks Lighting: indirect output scale 1, AO reaching 1m (exponents
+  1.03 / 1.08), 4 bounces, the direct denoiser and the direct filter off
+  so the moon's shadow edges stay sharp. Level Gen Test: ambient a
+  blue-grey (0.08, 0.09, 0.11), default reflection Custom with no
+  cubemap (nothing reflects the sky), regenerated and rebaked: three
+  2048 lightmaps with shadowmasks. Main's bake output (lighting data and
+  lightmaps) is removed; it needs Place Light Probes and a bake again.
+
+
 2026-10-18 (level generator: visibility cull, pipe rules and the thin kit,
             corner overrun, roof colours, chimney heights, hip strips at
             any angle, ridge railings, smoke and steam, street foliage,

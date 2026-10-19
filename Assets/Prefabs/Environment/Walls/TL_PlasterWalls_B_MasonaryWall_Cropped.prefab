@@ -40,6 +40,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 2737750959185288061, guid: 5b20a8f12fbeb72419e16489e0161519, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 3095990272772109152, guid: 5b20a8f12fbeb72419e16489e0161519, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 7034770320000433121, guid: 5b20a8f12fbeb72419e16489e0161519, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -79,6 +87,10 @@ PrefabInstance:
     - target: {fileID: 7034770320000433121, guid: 5b20a8f12fbeb72419e16489e0161519, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7981529293891910948, guid: 5b20a8f12fbeb72419e16489e0161519, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 8475929286589907234, guid: 5b20a8f12fbeb72419e16489e0161519, type: 3}
       propertyPath: m_Name

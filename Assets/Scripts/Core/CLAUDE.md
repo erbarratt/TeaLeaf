@@ -29,8 +29,19 @@ light, the procedural night sky, the level surface shaders and the shared debug 
   (`Assets/Scripts/LevelGen/CLAUDE.md`), and `Main.unity`'s three instances override
   it to Baked while keeping the `LightSource` and `Flame`.
   Settings asset `Assets/Settings/Docks Lighting.lighting` (GPU lightmapper, 10 texels/m,
-  2048 maps, Non-Directional, AO); the bake's output is in `Assets/Scenes/Main/` (two
-  lightmaps with shadowmasks, about 85 MB, plus the occlusion data). Small pieces and
+  2048 maps, Non-Directional, 4 bounces, AO reaching 1m, no direct denoiser or direct
+  filter so the moon's shadow edges stay sharp). **Walls are baked at twice the texel
+  density and roofs at half**: every static mesh renderer under `Assets/Prefabs/Environment`
+  with a wall material (`Medieval_PlasterWalls_A_4k`, `_B_4k`, `Medieval_WallsTall_A_4k`
+  and their colour variants) has Scale In Lightmap 2, and every one with a roof material
+  (`Medieval_Roofs_4k`, `Medieval_RoofPeaked_4k` and theirs) 0.5, prefab-variant overrides
+  the scenes inherit; masonry foundations, the gable `RoofWall` pieces and the bridge walls
+  are at 1. **After every bake the shadow floor is applied** (`ShadowFloor`, below): no
+  lightmap texel or light probe is left darker than `Moonlight.shadowFloor`. `Main.unity`
+  has no bake output at present (`Assets/Scenes/Main/` holds only the occlusion data, so
+  it needs Place Light Probes and a bake); `Level Gen Test.unity` has its own (three
+  lightmaps with shadowmasks in `Assets/Scenes/Level Gen Test/`), its ambient a blue-grey
+  (0.08, 0.09, 0.11) and its default reflection Custom with no cubemap. Small pieces and
   everything that moves are lit by the light probes (`EnvironmentVariants`,
   `LightProbePlacer`, below). Moving, adding or removing a static piece, or changing a
   light, needs Place Light Probes run again and a rebake.
@@ -275,7 +286,10 @@ night. The player's side (`Player.PlayerVisibility`) is in `Scripts/Player/CLAUD
   shadow map is deliberately not read back from the GPU. No allocation; callers should
   sample a few times a second, not per frame.
 - **`Moonlight`** — on the scene's Directional Light. `level` (0.4), `maxDistance` (200m, how
-  far the ray looks), `DirectionToMoon` = `-transform.forward`. `Moonlight.Instance` set in
+  far the ray looks), `DirectionToMoon` = `-transform.forward`; `shadowFloor` (0.045, 0.05,
+  0.06, a linear light level in the moon's blue-grey) is the least light any baked surface
+  or light probe receives, applied to the bake by `ShadowFloor` (`Core/Editor`) - the
+  rendered look only, nothing to do with the gameplay light. `Moonlight.Instance` set in
   `OnEnable`; with none in the scene nothing is moonlit.
 - **`LightSource`** — a torch or lamp: `level` (0-1), `range` (metres) and
   `fullBrightnessFraction` (0.5): full level out to that fraction of the range, then a
@@ -422,6 +436,20 @@ that stands in for a flight of steps, and the barrels' shared collision shape.
   collider (back faces on: shut inside a building with no interior). Each run replaces the
   group's probes (undoable); rerun after layout changes, then rebake. Environment layer only,
   so it also fills spaces the player can't reach (a sea bed under the water).
+- **`ShadowFloor`** (`Core/Editor`, menu **TeaLeaf > Apply Shadow Floor**; also runs by
+  itself after every bake, through `Lightmapping.bakeCompleted`) — raises every lightmap
+  texel and every light probe of the open scene to at least `Moonlight.shadowFloor`, so
+  deep shade keeps its detail while the moon-to-shade contrast stays: a flat sky ambient
+  would reach an enclosed alley at about a thirtieth of what open shade gets, so any
+  ambient that lifts the alleys washes out the shade everywhere else, while flooring the
+  baked data lifts only what is below the floor. Each lightmap is read back through the
+  GPU (a blit to a float render texture, so the BC6H textures need no importer change),
+  floored, written over its EXR file and reimported synchronously; each probe gets an
+  ambient term where the darkest of six directions is below the floor, and the lighting
+  data is saved. Idempotent (a texel within 2% of the floor counts as done), so re-applying
+  changes nothing. The reimport raises `bakeCompleted` again from inside the import, which
+  is ignored while a floor is being applied. With no `Moonlight` in the scene nothing is
+  applied. Costs nothing at runtime and changes no shader.
 
 ## Noise and sound
 

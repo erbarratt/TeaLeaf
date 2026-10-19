@@ -646,6 +646,12 @@ Lighting:
     [x] Light probes over every floor (TeaLeaf > Place Light Probes),
         and small pieces lit by them rather than lightmapped (TeaLeaf >
         Set Small Pieces To Light Probes).
+    [x] Walls baked at twice the texel density and roofs at half
+        (Scale In Lightmap 2 and 0.5 on the prefab variants).
+    [x] Shadow floor: after every bake no lightmap texel or light probe
+        is darker than Moonlight.shadowFloor (TeaLeaf > Apply Shadow
+        Floor re-applies it), so deep shade keeps its detail without a
+        sky ambient washing out the shade everywhere else.
     [ ] One baked reflection probe, or none.
     [ ] A Meta pass for the cobblestone and brick shaders, so a lightmap
         bake can see their colours.

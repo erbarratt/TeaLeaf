@@ -76,6 +76,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6496002880452318821, guid: 1ffd1fb7b4f0af745bb37626aa943b31, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 6496002880454314151, guid: 1ffd1fb7b4f0af745bb37626aa943b31, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -83,6 +87,10 @@ PrefabInstance:
     - target: {fileID: 6496002880454314151, guid: 1ffd1fb7b4f0af745bb37626aa943b31, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 9115022729876162421, guid: 1ffd1fb7b4f0af745bb37626aa943b31, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

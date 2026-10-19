@@ -16,6 +16,10 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 487699101828525924, guid: bd213ceb62df68e4dbb8820076007488, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.5
+      objectReference: {fileID: 0}
     - target: {fileID: 487699101830787494, guid: bd213ceb62df68e4dbb8820076007488, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -71,6 +75,10 @@ PrefabInstance:
     - target: {fileID: 4261340101452223951, guid: bd213ceb62df68e4dbb8820076007488, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 7513835200656341441, guid: bd213ceb62df68e4dbb8820076007488, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 8076148806155793987, guid: bd213ceb62df68e4dbb8820076007488, type: 3}
       propertyPath: m_Name

@@ -52,6 +52,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 5564512608636740091, guid: a883a0f0d1919674f87fd9995ed0480f, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6058546206620940679, guid: a883a0f0d1919674f87fd9995ed0480f, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 7229414899495416875, guid: a883a0f0d1919674f87fd9995ed0480f, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
@@ -91,6 +99,10 @@ PrefabInstance:
     - target: {fileID: 7229414899495416875, guid: a883a0f0d1919674f87fd9995ed0480f, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8587226322071445020, guid: a883a0f0d1919674f87fd9995ed0480f, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

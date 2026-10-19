@@ -8,6 +8,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 174774731199031801, guid: 6ec74ef138c286b45bd1ca2173225d46, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 616190072154107461, guid: 6ec74ef138c286b45bd1ca2173225d46, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -107,6 +111,10 @@ PrefabInstance:
     - target: {fileID: 8110790016966260149, guid: 6ec74ef138c286b45bd1ca2173225d46, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 8110790016968190839, guid: 6ec74ef138c286b45bd1ca2173225d46, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 2
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

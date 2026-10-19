@@ -32,6 +32,10 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 1067664603199011450, guid: ed0cc678f4a6ecf4d8eaa0b55b102276, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.5
+      objectReference: {fileID: 0}
     - target: {fileID: 2838629144190753504, guid: ed0cc678f4a6ecf4d8eaa0b55b102276, type: 3}
       propertyPath: m_Name
       value: TL_RoofTiles_TopCorner
@@ -83,6 +87,10 @@ PrefabInstance:
     - target: {fileID: 4972264393043614773, guid: ed0cc678f4a6ecf4d8eaa0b55b102276, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 6380990021990330371, guid: ed0cc678f4a6ecf4d8eaa0b55b102276, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 6380990021992263361, guid: ed0cc678f4a6ecf4d8eaa0b55b102276, type: 3}
       propertyPath: m_Layer
