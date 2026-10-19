@@ -1955,7 +1955,7 @@ namespace LevelGen
                     previousSupport = support;
 
                     if (support != null) {
-                        PlaceInRun(support, placer, run, middle, spot.Depth - setback + building.SupportBack, true, DeckTop(level), true, width / support.width, 1f,
+                        PlaceInRun(support, placer, run, middle, spot.Depth - setback + building.SupportBack, true, JettyDeckTop(level, settings), true, width / support.width, 1f,
                             group);
                     }
                 }
@@ -2213,7 +2213,9 @@ namespace LevelGen
         /// jettied building the first upper storey stands instead on the jetty
         /// supports' deck, whose top lies StoreyBeamOverlap below the top of
         /// the ground storey's walls, with the beam band (where both styles
-        /// have beams) standing on the deck as it would on the walls.
+        /// have beams) standing on the deck as it would on the walls - the
+        /// band and the walls JettyStoreyDrop further down, cut into the deck
+        /// (JettyDeckTop gives the deck back).
         /// </summary>
         private static List<StoreyLevel> StoreyLevels(BuildingSpec spec, int storeys, Dictionary<string, BuildingStyle> styles, GeneratorSettings settings,
             bool jettied, string label, List<string> log)
@@ -2234,14 +2236,18 @@ namespace LevelGen
                     StoreyLevel below = levels[s - 1];
                     level.BeamHeight = BeamHeight(below.Style, style);
 
+                    // On a jetty the first upper storey stands on the deck,
+                    // dropped into it so the beam and walls cut the planks.
+                    float drop = jettied && s == 1 ? settings.JettyStoreyDrop : 0f;
+
                     if (level.BeamHeight > 0f) {
                         // The beam's bottom overlaps the top of the walls
                         // below (on a jetty, it stands on the deck there),
                         // the walls above overlap its top.
-                        level.BeamBottom = below.Base + below.Style.ModuleHeight - settings.StoreyBeamOverlap;
+                        level.BeamBottom = below.Base + below.Style.ModuleHeight - settings.StoreyBeamOverlap - drop;
                         level.Base = level.BeamBottom + level.BeamHeight - settings.StoreyBeamOverlap;
                     } else if (jettied && s == 1) {
-                        level.Base = below.Base + below.Style.ModuleHeight - settings.StoreyBeamOverlap;
+                        level.Base = below.Base + below.Style.ModuleHeight - settings.StoreyBeamOverlap - drop;
                     } else {
                         level.Base = below.Base + below.Style.StoreySpacing;
                     }
@@ -2410,6 +2416,17 @@ namespace LevelGen
         }
 
         /// <summary>
+        /// The height of the top of the jetty supports' deck under a jettied
+        /// building's first upper storey: the storey stands JettyStoreyDrop
+        /// down into it (StoreyLevels), so the deck is that much above the
+        /// storey's bottom.
+        /// </summary>
+        private static float JettyDeckTop(StoreyLevel level, GeneratorSettings settings)
+        {
+            return DeckTop(level) + settings.JettyStoreyDrop;
+        }
+
+        /// <summary>
         /// The supports under a jettied building's first upper storey: one per
         /// module whose column stands above the ground storey, from its jetty
         /// pieces at random (never the one before it), facing the street,
@@ -2426,7 +2443,7 @@ namespace LevelGen
                 return;
             }
 
-            float deckTop = DeckTop(building.Levels[1]);
+            float deckTop = JettyDeckTop(building.Levels[1], settings);
             Transform group = null;
             PieceAnnotation previous = null;
 

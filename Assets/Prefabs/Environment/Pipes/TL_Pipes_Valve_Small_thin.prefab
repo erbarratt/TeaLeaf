@@ -86,19 +86,35 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1611088314219019248, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_ReceiveGI
-      value: 2
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1611088314219019248, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.3
       objectReference: {fileID: 0}
     - target: {fileID: 2352183737377906558, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_ReceiveGI
-      value: 2
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2352183737377906558, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.3
       objectReference: {fileID: 0}
     - target: {fileID: 2558682969133527615, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_ReceiveGI
-      value: 2
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2558682969133527615, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.3
       objectReference: {fileID: 0}
     - target: {fileID: 2640384229522362594, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_ReceiveGI
-      value: 2
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2640384229522362594, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.3
       objectReference: {fileID: 0}
     - target: {fileID: 2813788969376372811, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_Layer
@@ -118,7 +134,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3350991836970472277, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_ReceiveGI
-      value: 2
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3350991836970472277, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.3
       objectReference: {fileID: 0}
     - target: {fileID: 3655125070589971180, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_Layer
@@ -130,7 +150,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3785328070713435345, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_ReceiveGI
-      value: 2
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3785328070713435345, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.3
       objectReference: {fileID: 0}
     - target: {fileID: 3907876135567982276, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_Layer

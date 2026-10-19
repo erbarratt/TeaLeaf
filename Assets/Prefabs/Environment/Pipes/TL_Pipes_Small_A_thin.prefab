@@ -10,7 +10,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2412791269550334844, guid: 64182a3e86de309438d22ea6d0ddcb74, type: 3}
       propertyPath: m_ReceiveGI
-      value: 2
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2412791269550334844, guid: 64182a3e86de309438d22ea6d0ddcb74, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 3481431275410396230, guid: 64182a3e86de309438d22ea6d0ddcb74, type: 3}
       propertyPath: m_Layer
@@ -86,7 +90,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4659723337018666602, guid: 64182a3e86de309438d22ea6d0ddcb74, type: 3}
       propertyPath: m_ReceiveGI
-      value: 2
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4659723337018666602, guid: 64182a3e86de309438d22ea6d0ddcb74, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 5192855946884218925, guid: 64182a3e86de309438d22ea6d0ddcb74, type: 3}
       propertyPath: m_Layer
@@ -114,7 +122,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8238177731925706061, guid: 64182a3e86de309438d22ea6d0ddcb74, type: 3}
       propertyPath: m_ReceiveGI
-      value: 2
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8238177731925706061, guid: 64182a3e86de309438d22ea6d0ddcb74, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.5
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

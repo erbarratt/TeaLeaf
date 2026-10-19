@@ -47,10 +47,10 @@ namespace LevelGen
     /// - Lamp posts (BuildLamps): along each street frontage, one every
     ///   LampSpacing metres on average, LampEdgeInset into the street from
     ///   its edge before a plain ground-storey wall (never a door or a
-    ///   window), facing into the street. Its light is a gameplay light (a
-    ///   LightSource, Mixed) and stays on; over every street, no spot is
-    ///   reached by more than LampMaxOverlap lamps' lights, the shadowmask's
-    ///   limit less the moon (LampAllowed).
+    ///   window), facing into the street, lowered LampSink into the ground.
+    ///   Its light is a gameplay light (a LightSource, Mixed) and stays on.
+    ///   Over every street, no two posts stand within LampSpacing of each
+    ///   other and no two lights overlap (LampAllowed).
     /// </summary>
     internal static partial class FacadeBuilder
     {
@@ -1430,7 +1430,7 @@ namespace LevelGen
             Vector3 alongWorld = Level(along);
             StoreyLevel topLevel = building.Levels[storeys - 1];
             float storeyTop = topLevel.Base + topLevel.Style.StoreySpacing;
-            float deckHeight = jettied ? DeckTop(building.Levels[1]) : 0f;
+            float deckHeight = jettied ? JettyDeckTop(building.Levels[1], settings) : 0f;
 
             foreach ((float x, int firstModule, int lastModule) in PlumbPlaces(frontage, building, first, at, kit, settings)) {
                 float ground = Height(run, x);
@@ -1841,13 +1841,16 @@ namespace LevelGen
             }
 
             int lamps = 0;
-            int crowded = 0;
+            int tooClose = 0;
 
-            // Every lamp placed so far, on any street, and how many others
-            // stand within its reach (twice its light's range: their lights
-            // overlap somewhere).
-            List<Vector3> lampsPlaced = new();
-            List<int> lampNeighbours = new();
+            // Every lamp placed so far, on any street: where its post stands,
+            // where its light is and how far that reaches. A new lamp keeps
+            // LampSpacing from every post and its light clear of every
+            // other's, so no two stand across a narrow street from each other
+            // and no spot is lit by two lamps.
+            List<Vector3> postsPlaced = new();
+            List<Vector3> lightsPlaced = new();
+            List<float> lightRanges = new();
 
             foreach (Frontage frontage in frontages) {
                 if (frontage.Street == null || frontage.Lot != null) {
@@ -1883,49 +1886,40 @@ namespace LevelGen
 
                 int wanted = Mathf.RoundToInt(length / settings.LampSpacing + (float)random.NextDouble() - 0.5f);
                 Transform group = null;
-                List<Vector2> placed = new();
 
                 for (int i = 0; i < wanted && candidates.Count > 0; i++) {
                     int pick = candidates[random.Next(candidates.Count)];
+                    candidates.Remove(pick);
                     ModuleSpot spot = frontage.Spots[pick];
                     Building building = frontage.Buildings[spot.Building];
                     Run run = frontage.Runs[spot.Run];
                     float middle = spot.Position + Spacing(spot, building) * 0.5f;
                     Vector2 at = run.Start + run.Along * middle + run.Front * settings.LampEdgeInset;
-                    bool near = false;
-
-                    foreach (Vector2 other in placed) {
-                        near |= Vector2.Distance(other, at) < settings.LampSpacing * 0.5f;
-                    }
-
-                    candidates.Remove(pick);
-
-                    if (near) {
-                        i--;
-                        continue;
-                    }
-
                     PieceAnnotation post = PiecePlacer.Pick(posts, null, random);
-                    Vector3 position = new(at.x, Height(run, middle), at.y);
+
+                    // The post is lowered LampSink into the ground, so its base
+                    // is hidden in the tiles rather than resting on them.
+                    Vector3 position = new(at.x, Height(run, middle) - settings.LampSink, at.y);
                     float yaw = Yaw(Level(run.Front)) - Yaw(post.fronts[0]);
                     float range = LampLight(post, out Vector3 lightOffset);
                     Vector3 lightAt = position + Quaternion.Euler(0f, yaw, 0f) * lightOffset;
 
-                    if (!LampAllowed(lightAt, 2f * range, lampsPlaced, lampNeighbours, settings.LampMaxOverlap)) {
-                        crowded++;
+                    if (!LampAllowed(position, lightAt, range, postsPlaced, lightsPlaced, lightRanges, settings.LampSpacing)) {
+                        tooClose++;
                         i--;
                         continue;
                     }
 
                     group ??= Group(parent, frontage.Label);
                     placer.PlaceAt(post, Vector3.zero, position, yaw, group);
-                    placed.Add(at);
-                    AddLamp(lightAt, 2f * range, lampsPlaced, lampNeighbours);
+                    postsPlaced.Add(position);
+                    lightsPlaced.Add(lightAt);
+                    lightRanges.Add(range);
                     lamps++;
                 }
             }
 
-            log.Add($"Lamp posts: {lamps} ({crowded} left out where more than {settings.LampMaxOverlap} lamps' lights would overlap).");
+            log.Add($"Lamp posts: {lamps} ({tooClose} left out within {settings.LampSpacing}m of another post, or where its light would overlap another's).");
         }
 
         /// <summary>
@@ -1949,45 +1943,24 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// Whether a lamp at position keeps every lamp within maxOverlap - 1
-        /// neighbours (others within reach). Then no spot is lit by more
-        /// than maxOverlap lamps: lamps whose lights share a spot all stand
-        /// within reach of each other.
+        /// Whether a lamp post at position, its light at lightAt reaching
+        /// range, stands at least spacing (measured level) from every post
+        /// placed so far, with its light clear of every other's: two lights
+        /// overlap where their centres are closer than their ranges added.
         /// </summary>
-        private static bool LampAllowed(Vector3 position, float reach, List<Vector3> lampsPlaced, List<int> lampNeighbours, int maxOverlap)
+        private static bool LampAllowed(Vector3 position, Vector3 lightAt, float range, List<Vector3> postsPlaced, List<Vector3> lightsPlaced,
+            List<float> lightRanges, float spacing)
         {
-            int neighbours = 0;
+            for (int i = 0; i < postsPlaced.Count; i++) {
+                Vector3 toPost = postsPlaced[i] - position;
+                toPost.y = 0f;
 
-            for (int i = 0; i < lampsPlaced.Count; i++) {
-                if (Vector3.Distance(lampsPlaced[i], position) < reach) {
-                    if (lampNeighbours[i] >= maxOverlap - 1) {
-                        return false;
-                    }
-
-                    neighbours++;
+                if (toPost.magnitude < spacing || Vector3.Distance(lightsPlaced[i], lightAt) < range + lightRanges[i]) {
+                    return false;
                 }
             }
 
-            return neighbours <= maxOverlap - 1;
-        }
-
-        /// <summary>
-        /// Records a lamp placed at position and counts it as a neighbour of
-        /// every lamp within reach.
-        /// </summary>
-        private static void AddLamp(Vector3 position, float reach, List<Vector3> lampsPlaced, List<int> lampNeighbours)
-        {
-            int neighbours = 0;
-
-            for (int i = 0; i < lampsPlaced.Count; i++) {
-                if (Vector3.Distance(lampsPlaced[i], position) < reach) {
-                    lampNeighbours[i]++;
-                    neighbours++;
-                }
-            }
-
-            lampsPlaced.Add(position);
-            lampNeighbours.Add(neighbours);
+            return true;
         }
     }
 }

@@ -6,6 +6,66 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-19 (level generator: merged wall and roof colliders, lamp post
+            spacing and sink, jettied storeys cut into the deck; prefab
+            lighting tweaks)
+---------------------------------------------------------------------------
+- Merged colliders for the facade walls and the roof slope panels
+  (MergedColliders.RunWalls / RunRoofs), run after the visibility cull
+  and the roof edge colliders so no box stands where a piece or a
+  collider was removed. The merge's frames are now any orientation (a
+  collider's right, up and forward, matched either way round within
+  0.05 degrees), not only upright with quarter turns; Run takes
+  uprightOnly (true for foundations, walkways and walls, so a tilted
+  box stays on its piece; false for roofs). Walls: every piece under a
+  Storey n or Corner group, boxes under Generated/Wall Colliders,
+  fallback Stone, wallColliderTolerance 0.15m - the window-base walls'
+  collider fronts (their sills) stand 12-14cm proud of the plain walls',
+  so 0.1 merged little. Three-levels: 2471 colliders on 1940 pieces
+  become 1456 boxes; what stays separate is mostly door surrounds, door
+  leaves and windows standing proud (1m and 2m boxes). Roofs: the five
+  slope panel categories at any tilt, boxes under Generated/Roof
+  Colliders, fallback Tile, roofColliderTolerance 0.1m - the two rows'
+  collider tops differ by 7cm, undersides by 2cm, so rows merge where
+  their ends line up (gable ends), else one box per row. Three-levels:
+  1215 colliders on 1343 pieces become 527 boxes (365 one row, 162 two).
+  Found on the way: TL_Roof_PeakedBase (the hip strips) has a
+  MeshCollider with no mesh in the pack prefab itself, so hip strips
+  have no collision.
+- Lamp posts: lampSink (0.2m) lowers each post into the ground tiles.
+  lampMaxOverlap and the neighbour count are gone; LampAllowed keeps
+  every post at least lampSpacing (level distance) from every other
+  post over every street, and every light clear of every other (centres
+  further apart than their ranges added), so no two lamps light the
+  same spot and none stand across a narrow street from each other. The
+  per-frontage half-spacing check went with it. With lampSpacing 20 in
+  the settings asset the counts fell: Two Lots 17 -> 7, Three Levels
+  48 -> 17. Measured: least post distance 21.4m, least gap between
+  lights 11.5m, every post base 0.2m under the ground.
+- Jettied storeys cut into the deck: jettyStoreyDrop (new, 0.1m)
+  lowers a jettied building's first upper storey - its beam band where
+  there is one, else its walls - into the jetty supports' deck, so the
+  beam and walls meet the planks instead of resting on them with a
+  seam. StoreyLevels subtracts it; JettyDeckTop (DeckTop plus the
+  drop) gives the deck back to BuildJetty, the corner fillers' supports
+  and the pipes' deck height, so the supports did not move. Facades
+  and lots both go through StoreyLevels. Measured over the 99 jettied
+  buildings of three-levels: beam render bottom 0.101m below the deck
+  top; walls 0.21m above it where a 0.35m band lies between, 0.10m
+  below it where the styles have no beam.
+- Prefab variants, by hand: the roof tile panels and the hip base
+  receive GI from light probes; the thin pipe pieces receive lightmaps
+  at scale 0.5 (the valve 0.3); the gable walls (RoofWall_Large/Med
+  A/B) and the two railings lose the pack's collision child objects;
+  the chimney pots' mesh collider is disabled; the stone floor tile's
+  LOD group cross-fades.
+- Level Gen Test regenerated (three-levels) and saved; its lightmap
+  bake is stale. The report after regeneration: the street test still
+  fails only on stair-lane (the known three-flight climb roof), the
+  clearance refuses 10 (corner foundations and one corner jetty
+  support), 27 free wall ends.
+
+
 2026-10-18 (late: lightmap scale on walls and roofs, the shadow floor,
             bake settings, Level Gen Test rebaked)
 ---------------------------------------------------------------------------

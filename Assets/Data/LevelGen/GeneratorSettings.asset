@@ -30,6 +30,8 @@ MonoBehaviour:
   foundationHeight: 0.3
   foundationFrontOffset: 0.1
   foundationColliderTolerance: 0.1
+  wallColliderTolerance: 0.15
+  roofColliderTolerance: 0.1
   groundDoorShare: 0
   groundWindowShare: 0.205
   upperWindowShare: 0.21
@@ -56,7 +58,7 @@ MonoBehaviour:
   columnHeightShare: 0.3
   columnStoreyVariation: 2
   pipeRunsMax: 1
-  pipeExtraRunShare: 0.35
+  pipeExtraRunShare: 0
   pipeMinRunShare: 0.5
   pipeLargeShare: 0.1
   pipeWallGap: 0.05
@@ -70,9 +72,9 @@ MonoBehaviour:
   ventLargeShare: 0.3
   ventFlatTolerance: 0.03
   walkwayShare: 0.3
-  lampSpacing: 14
+  lampSpacing: 20
   lampEdgeInset: 0.6
-  lampMaxOverlap: 3
+  lampSink: 0.2
   chimneySmokePrefab: {fileID: 7664201130063381979, guid: ffb7d4b1e1fcfaf4b912b3ed41144f78, type: 3}
   chimneySmokeShare: 0.5
   ventSteamPrefab: {fileID: 2570943823478510014, guid: b4d70fd2ee466b1478e3cca8a3024296, type: 3}

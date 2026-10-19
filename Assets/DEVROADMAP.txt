@@ -556,10 +556,13 @@ Greybox build:
         [x] One box collider per row of floor tiles.
         [x] The fitting rule: whole pieces, the last widened or a
             narrower one added, everywhere a length is covered.
-        [x] Finishing passes: foundation and walkway colliders merged
-            into few boxes, each with a SurfaceTag; every piece no one
-            in a street can see removed (visibility cull); roofs facing
-            the void lose their colliders.
+        [x] Finishing passes: foundation, walkway, facade wall and roof
+            slope colliders merged into few boxes, each with a
+            SurfaceTag; every piece no one in a street can see removed
+            (visibility cull); roofs facing the void lose their
+            colliders.
+        [x] Jettied storeys cut 10cm into the jetty supports' deck
+            (jettyStoreyDrop), so the beam and walls meet the planks.
         [x] Colours per set of joined buildings from material variants
             (<material>_<suffix> in Assets/Art/Materials): walls and
             roofs drawn apart; roofs brown, grey or orange, the dormer
@@ -584,7 +587,8 @@ Greybox build:
     [x] Stage 6: placement report (TeaLeaf > Level Gen > Report
         Generated): free wall ends, refused pieces, markers.
     [ ] Facade dressing: walkways and lamp posts (built; the lamp posts
-        are gameplay lights, at most lampMaxOverlap reaching one spot);
+        are gameplay lights, lampSpacing apart with no two lights
+        overlapping, sunk lampSink into the ground);
         pipes from the thin kit placed by their verified ends, standing
         off the drawn surface along their height, on the plaster past
         the end post, elbows under the eaves and hidden straights behind

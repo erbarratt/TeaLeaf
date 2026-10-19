@@ -17,6 +17,10 @@ PrefabInstance:
       value: 87
       objectReference: {fileID: 0}
     - target: {fileID: 75384650233923617, guid: 90e903d3df574fe478017922427bfe7e, type: 3}
+      propertyPath: m_ReceiveGI
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 75384650233923617, guid: 90e903d3df574fe478017922427bfe7e, type: 3}
       propertyPath: m_ScaleInLightmap
       value: 0.5
       objectReference: {fileID: 0}
@@ -67,6 +71,10 @@ PrefabInstance:
     - target: {fileID: 2503248100267800201, guid: 90e903d3df574fe478017922427bfe7e, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 4334855727688472746, guid: 90e903d3df574fe478017922427bfe7e, type: 3}
+      propertyPath: m_ReceiveGI
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 4334855727688472746, guid: 90e903d3df574fe478017922427bfe7e, type: 3}
       propertyPath: m_ScaleInLightmap

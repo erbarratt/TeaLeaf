@@ -90,15 +90,27 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5129240357304451358, guid: 5d4ea6230b8c1af40976354d2345b0cf, type: 3}
       propertyPath: m_ReceiveGI
-      value: 2
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5129240357304451358, guid: 5d4ea6230b8c1af40976354d2345b0cf, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 6974545758795491298, guid: 5d4ea6230b8c1af40976354d2345b0cf, type: 3}
       propertyPath: m_ReceiveGI
-      value: 2
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6974545758795491298, guid: 5d4ea6230b8c1af40976354d2345b0cf, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 8164534239876474714, guid: 5d4ea6230b8c1af40976354d2345b0cf, type: 3}
       propertyPath: m_ReceiveGI
-      value: 2
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8164534239876474714, guid: 5d4ea6230b8c1af40976354d2345b0cf, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 8490028693900408340, guid: 5d4ea6230b8c1af40976354d2345b0cf, type: 3}
       propertyPath: m_Layer

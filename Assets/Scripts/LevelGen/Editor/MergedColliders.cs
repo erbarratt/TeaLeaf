@@ -1,43 +1,60 @@
+using System;
 using System.Collections.Generic;
 using Core;
 using UnityEditor;
 using UnityEngine;
+using Object = UnityEngine.Object;
 
 namespace LevelGen
 {
     /// <summary>
     /// Replaces the box colliders of a set of placed pieces with as few boxes
-    /// as possible, once everything is built (LevelGenerator): the
-    /// foundations the facades, corners, lots and dead ends placed
-    /// (RunFoundations), and the walkways along the facades (RunWalkways).
-    /// The pieces' upright box colliders are taken as boxes in the world,
-    /// sorted into frames (the same turn about the world's up, to a quarter
-    /// turn, the same layer and surface), and within a frame two boxes become
-    /// one wherever the box round both stands out past them by no more than
-    /// the tolerance: one holds the other, or they match on two axes and meet
-    /// or overlap on the third. Merging repeats until no two boxes in a frame
+    /// as possible (LevelGenerator): the foundations the facades, corners,
+    /// lots and dead ends placed (RunFoundations) and the walkways along the
+    /// facades (RunWalkways), once everything is built; the walls of every
+    /// storey (RunWalls) and the roofs' slope panels (RunRoofs), after the
+    /// visibility cull and the roof edge pass, so nothing is boxed that was
+    /// taken out. The pieces' box colliders are taken as boxes in the world,
+    /// sorted into frames (the same three axes, each either way, the same
+    /// layer and surface), and within a frame two boxes become one wherever
+    /// the box round both stands out past them by no more than the
+    /// tolerance: one holds the other, or they match on two axes and meet or
+    /// overlap on the third. Merging repeats until no two boxes in a frame
     /// can merge. The new box always covers both, so no gap opens; it reaches
-    /// past them by at most the tolerance.
+    /// past them by at most the tolerance. A frame is any turn: a roof
+    /// panel's lies along its slope.
     ///
     /// The pieces' own colliders are removed from the placed instances (an
     /// override, the prefabs untouched). The boxes go under a child of the
     /// generated root named for the set ("Foundation Colliders", "Walkway
-    /// Colliders"), on the pieces' layer with their static flags and a copy
-    /// of their SurfaceTag if they have one. A collider not upright (a
-    /// walkway's tilted brace, say), or not a box, is left where it is.
+    /// Colliders", "Wall Colliders", "Roof Colliders"), on the pieces' layer
+    /// with their static flags and a copy of their SurfaceTag if they have
+    /// one. The foundations, walkways and walls take upright boxes only: a
+    /// collider not upright (a walkway's tilted brace, a door surround's
+    /// arch), or not a box, is left where it is.
     /// </summary>
     internal static class MergedColliders
     {
-        // How close two turns (degrees, to a quarter turn) must be to share a
-        // frame: the pieces of one run are turned exactly alike, so only
-        // rounding.
+        // How close two directions (degrees) must be to count as the same
+        // axis of a frame: the pieces of one run are turned exactly alike,
+        // so only rounding.
         private const float SameTurn = 0.05f;
+        private static readonly float _sameAxis = Mathf.Cos(SameTurn * Mathf.Deg2Rad);
         // The name FacadeDressing gives a building's walkway group.
         private const string WalkwayGroup = "Walkway";
+        // The names FacadeBuilder gives a building's storey groups
+        // ("Storey <s>") and its corner's walls ("Corner").
+        private const string StoreyGroupPrefix = "Storey ";
+        private const string CornerGroup = "Corner";
+        // The annotation categories of the roofs' slope panels, laid in rows
+        // by FacadeRoofs: not the gables, hip pieces, chimneys, dormers or
+        // railings.
+        private static readonly string[] _panelCategories = { "roof-middle", "roof-end", "roof-end-half", "roof-ridge-end", "roof-ridge-end-half" };
+        private static readonly string[] _foundationCategories = { "foundation", "foundation-corner" };
 
         /// <summary>
-        /// One box in a frame: its extent along the frame's X, up and along
-        /// its Z, and the collider it copies its layer, flags and tag from.
+        /// One box in a frame: its extent along the frame's three axes, and
+        /// the collider it copies its layer, flags and tag from.
         /// </summary>
         private class Box
         {
@@ -47,13 +64,13 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// The boxes of one frame: its turn about the world's up, its axes
-        /// on the ground, and what every box in it shares.
+        /// The boxes of one frame: its three axes (a collider's right, up
+        /// and forward, orthonormal), and what every box in it shares.
         /// </summary>
         private class Frame
         {
-            public float Turn;
             public Vector3 AxisX;
+            public Vector3 AxisY;
             public Vector3 AxisZ;
             public int Layer;
             public SurfaceTag Tag;
@@ -67,11 +84,58 @@ namespace LevelGen
         /// </summary>
         internal static void RunFoundations(Transform root, PieceAnnotations annotations, GeneratorSettings settings, List<string> log)
         {
-            HashSet<string> foundations = new();
+            Run(root, PiecesOfCategories(root, annotations, _foundationCategories), "Foundation", settings.FoundationColliderTolerance, SurfaceType.Stone, true, log);
+        }
+
+        /// <summary>
+        /// Merges the colliders of the walkway pieces (every piece under a
+        /// building's "Walkway" group, FacadeDressing.BuildWalkways) placed
+        /// anywhere under root: their flat decks become one box per run,
+        /// their tilted braces stay as they are. Adds one line to log.
+        /// </summary>
+        internal static void RunWalkways(Transform root, GeneratorSettings settings, List<string> log)
+        {
+            Run(root, PiecesUnderGroups(root, name => name == WalkwayGroup), "Walkway", settings.FoundationColliderTolerance, SurfaceType.Wood, true, log);
+        }
+
+        /// <summary>
+        /// Merges the colliders of the walls (every piece under a building's
+        /// "Storey n" and "Corner" groups, FacadeBuilder: walls, door and
+        /// window walls, and the windows and doors set in them) placed
+        /// anywhere under root: a storey's upright boxes become one box per
+        /// run, storeys with their fronts in line one box together; a door
+        /// surround's slanted boxes stay as they are. Adds one line to log.
+        /// </summary>
+        internal static void RunWalls(Transform root, GeneratorSettings settings, List<string> log)
+        {
+            Run(root, PiecesUnderGroups(root, name => name == CornerGroup || name.StartsWith(StoreyGroupPrefix, StringComparison.Ordinal)),
+                "Wall", settings.WallColliderTolerance, SurfaceType.Stone, true, log);
+        }
+
+        /// <summary>
+        /// Merges the colliders of the roofs' slope panels (annotation
+        /// categories roof-middle, roof-end and roof-ridge-end, and their
+        /// halves; FacadeRoofs lays them in rows up each slope) placed
+        /// anywhere under root: a row's tilted boxes become one box per run,
+        /// and the ridge row and the eave row one box together where their
+        /// ends line up. Adds one line to log.
+        /// </summary>
+        internal static void RunRoofs(Transform root, PieceAnnotations annotations, GeneratorSettings settings, List<string> log)
+        {
+            Run(root, PiecesOfCategories(root, annotations, _panelCategories), "Roof", settings.RoofColliderTolerance, SurfaceType.Tile, false, log);
+        }
+
+        /// <summary>
+        /// Every placed piece under root (an outermost prefab instance) whose
+        /// annotation has one of the categories.
+        /// </summary>
+        private static List<GameObject> PiecesOfCategories(Transform root, PieceAnnotations annotations, string[] categories)
+        {
+            HashSet<string> guids = new();
 
             foreach (PieceAnnotation piece in annotations.pieces) {
-                if (piece.category == "foundation" || piece.category == "foundation-corner") {
-                    foundations.Add(piece.guid);
+                if (Array.IndexOf(categories, piece.category) >= 0) {
+                    guids.Add(piece.guid);
                 }
             }
 
@@ -84,53 +148,53 @@ namespace LevelGen
 
                 string path = PrefabUtility.GetPrefabAssetPathOfNearestInstanceRoot(t.gameObject);
 
-                if (foundations.Contains(AssetDatabase.AssetPathToGUID(path))) {
+                if (guids.Contains(AssetDatabase.AssetPathToGUID(path))) {
                     pieces.Add(t.gameObject);
                 }
             }
 
-            Run(root, pieces, "Foundation", settings.FoundationColliderTolerance, SurfaceType.Stone, log);
+            return pieces;
         }
 
         /// <summary>
-        /// Merges the colliders of the walkway pieces (every piece under a
-        /// building's "Walkway" group, FacadeDressing.BuildWalkways) placed
-        /// anywhere under root: their flat decks become one box per run,
-        /// their tilted braces stay as they are. Adds one line to log.
+        /// Every placed piece (an outermost prefab instance) under any group
+        /// below root whose name the test accepts; each piece once.
         /// </summary>
-        internal static void RunWalkways(Transform root, GeneratorSettings settings, List<string> log)
+        private static List<GameObject> PiecesUnderGroups(Transform root, Func<string, bool> isGroup)
         {
             List<GameObject> pieces = new();
+            HashSet<GameObject> seen = new();
 
             foreach (Transform group in root.GetComponentsInChildren<Transform>(true)) {
-                if (group.name != WalkwayGroup) {
+                if (!isGroup(group.name) || PrefabUtility.IsPartOfPrefabInstance(group)) {
                     continue;
                 }
 
                 foreach (Transform t in group.GetComponentsInChildren<Transform>(true)) {
-                    if (PrefabUtility.IsOutermostPrefabInstanceRoot(t.gameObject)) {
+                    if (PrefabUtility.IsOutermostPrefabInstanceRoot(t.gameObject) && seen.Add(t.gameObject)) {
                         pieces.Add(t.gameObject);
                     }
                 }
             }
 
-            Run(root, pieces, "Walkway", settings.FoundationColliderTolerance, SurfaceType.Wood, log);
+            return pieces;
         }
 
         /// <summary>
-        /// Replaces the upright box colliders of the pieces with merged boxes
-        /// under "&lt;what&gt; Colliders" in root, each named "&lt;what&gt; &lt;n&gt;",
-        /// tagged with the surface the pieces are (fallback where a piece has no tag).
-        /// Adds one line to log.
+        /// Replaces the box colliders of the pieces (only the upright ones,
+        /// if uprightOnly) with merged boxes under "&lt;what&gt; Colliders"
+        /// in root, each named "&lt;what&gt; &lt;n&gt;", tagged with the
+        /// surface the pieces are (fallback where a piece has no tag). Adds
+        /// one line to log.
         /// </summary>
-        private static void Run(Transform root, List<GameObject> pieces, string what, float tolerance, SurfaceType fallback, List<string> log)
+        private static void Run(Transform root, List<GameObject> pieces, string what, float tolerance, SurfaceType fallback, bool uprightOnly, List<string> log)
         {
             List<Frame> frames = new();
             int removed = 0;
 
             foreach (GameObject piece in pieces) {
                 foreach (BoxCollider collider in piece.GetComponentsInChildren<BoxCollider>(true)) {
-                    if (!collider.enabled || collider.isTrigger || Vector3.Dot(collider.transform.up, Vector3.up) < 0.9999f) {
+                    if (!collider.enabled || collider.isTrigger || (uprightOnly && Vector3.Dot(collider.transform.up, Vector3.up) < 0.9999f)) {
                         continue;
                     }
 
@@ -162,35 +226,42 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// The frame a collider's box belongs to: one already made with its
-        /// turn (to a quarter turn), layer and surface, else a new one turned
-        /// as it is.
+        /// The frame a collider's box belongs to: one already made whose
+        /// axes its own lie along (each either way), with its layer and
+        /// surface, else a new one on its own axes.
         /// </summary>
         private static Frame FrameFor(List<Frame> frames, BoxCollider collider)
         {
-            Vector3 right = collider.transform.right;
-            float turn = Mathf.Repeat(Mathf.Atan2(right.z, right.x) * Mathf.Rad2Deg, 90f);
+            Transform t = collider.transform;
             int layer = collider.gameObject.layer;
             SurfaceTag tag = SurfaceTag.Find(collider);
 
             foreach (Frame frame in frames) {
-                float apart = Mathf.Abs(turn - frame.Turn);
-
-                if (Mathf.Min(apart, 90f - apart) <= SameTurn && frame.Layer == layer && SameSurface(frame.Tag, tag)) {
+                if (frame.Layer == layer && SameSurface(frame.Tag, tag) && Along(frame, t.right) && Along(frame, t.up) && Along(frame, t.forward)) {
                     return frame;
                 }
             }
 
-            float radians = turn * Mathf.Deg2Rad;
             Frame made = new() {
-                Turn = turn,
-                AxisX = new Vector3(Mathf.Cos(radians), 0f, Mathf.Sin(radians)),
+                AxisX = t.right,
+                AxisY = t.up,
+                AxisZ = t.forward,
                 Layer = layer,
                 Tag = tag
             };
-            made.AxisZ = Vector3.Cross(made.AxisX, Vector3.up);
             frames.Add(made);
             return made;
+        }
+
+        /// <summary>
+        /// Whether a direction lies along one of the frame's axes, either
+        /// way, to SameTurn.
+        /// </summary>
+        private static bool Along(Frame frame, Vector3 direction)
+        {
+            return Mathf.Abs(Vector3.Dot(direction, frame.AxisX)) >= _sameAxis
+                || Mathf.Abs(Vector3.Dot(direction, frame.AxisY)) >= _sameAxis
+                || Mathf.Abs(Vector3.Dot(direction, frame.AxisZ)) >= _sameAxis;
         }
 
         /// <summary>
@@ -209,7 +280,7 @@ namespace LevelGen
             for (int i = 0; i < 8; i++) {
                 Vector3 sign = new((i & 1) == 0 ? -1f : 1f, (i & 2) == 0 ? -1f : 1f, (i & 4) == 0 ? -1f : 1f);
                 Vector3 corner = collider.transform.TransformPoint(collider.center + Vector3.Scale(half, sign));
-                Vector3 inFrame = new(Vector3.Dot(corner, frame.AxisX), corner.y, Vector3.Dot(corner, frame.AxisZ));
+                Vector3 inFrame = new(Vector3.Dot(corner, frame.AxisX), Vector3.Dot(corner, frame.AxisY), Vector3.Dot(corner, frame.AxisZ));
                 box.Min = Vector3.Min(box.Min, inFrame);
                 box.Max = Vector3.Max(box.Max, inFrame);
             }
@@ -286,7 +357,7 @@ namespace LevelGen
         /// Makes one merged box's collider under parent, turned to its frame,
         /// on its source's layer with its static flags, and a SurfaceTag: the
         /// source's copied, else one set to the fallback (Stone for the
-        /// foundations, Wood for the walkways).
+        /// foundations and walls, Wood for the walkways, Tile for the roofs).
         /// </summary>
         private static void MakeBox(Frame frame, Box box, Transform parent, string name, SurfaceType fallback)
         {
@@ -296,8 +367,8 @@ namespace LevelGen
             };
             GameObjectUtility.SetStaticEditorFlags(made, GameObjectUtility.GetStaticEditorFlags(box.Source));
             made.transform.SetParent(parent, false);
-            made.transform.SetPositionAndRotation(frame.AxisX * middle.x + Vector3.up * middle.y + frame.AxisZ * middle.z,
-                Quaternion.LookRotation(frame.AxisZ, Vector3.up));
+            made.transform.SetPositionAndRotation(frame.AxisX * middle.x + frame.AxisY * middle.y + frame.AxisZ * middle.z,
+                Quaternion.LookRotation(frame.AxisZ, frame.AxisY));
             made.AddComponent<BoxCollider>().size = box.Max - box.Min;
 
             // What it is made of: the source's tag copied, else the fallback

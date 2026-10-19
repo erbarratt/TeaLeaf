@@ -69,8 +69,16 @@ PrefabInstance:
       value: 87
       objectReference: {fileID: 0}
     - target: {fileID: 2113626508952938840, guid: c6f8210129fe68940b255256946b851a, type: 3}
+      propertyPath: m_ReceiveGI
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2113626508952938840, guid: c6f8210129fe68940b255256946b851a, type: 3}
       propertyPath: m_ScaleInLightmap
       value: 0.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 4111017440330663163, guid: c6f8210129fe68940b255256946b851a, type: 3}
+      propertyPath: m_ReceiveGI
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 4111017440330663163, guid: c6f8210129fe68940b255256946b851a, type: 3}
       propertyPath: m_ScaleInLightmap

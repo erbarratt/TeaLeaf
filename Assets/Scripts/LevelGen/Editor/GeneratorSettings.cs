@@ -58,6 +58,10 @@ namespace LevelGen
         [SerializeField, Range(-0.5f, 0.5f)] private float foundationFrontOffset = 0.1f;
         [Tooltip("Once everything is built, the foundations' colliders, and the walkways' flat deck colliders, are replaced by as few boxes as possible: two boxes become one where the box round both stands out past them by no more than this anywhere. The foundation pieces differ by about 9cm at their buried bottoms, so it must be more than that for neighbours to merge.")]
         [SerializeField, Range(0f, 0.3f)] private float foundationColliderTolerance = 0.1f;
+        [Tooltip("The same for the walls' colliders (every piece under a building's Storey and Corner groups, windows and doors included), merged after the visibility cull: along a storey, and storey onto storey where the fronts line up. Within a storey, a window-base wall's collider front stands 12-14cm proud of a plain wall's (its sill), so below 0.15 the two kinds stay apart and little merges; at 0.15 a storey is one box whose front lies at the sills, about where the timbers stand anyway.")]
+        [SerializeField, Range(0f, 0.3f)] private float wallColliderTolerance = 0.15f;
+        [Tooltip("The same for the roof panels' colliders (the slope tiles, roof-middle / roof-end / roof-ridge-end pieces and their halves), merged after the roof edge pass: panel onto panel along a row, and the ridge row onto the eave row where their ends line up. The two rows' collider tops differ by 7cm, so below that each row stays its own box.")]
+        [SerializeField, Range(0f, 0.3f)] private float roofColliderTolerance = 0.1f;
         [Tooltip("The chance that a ground storey module is a door wall, where its style has one; a building's door module in the spec is always a door.")]
         [SerializeField, Range(0f, 1f)] private float groundDoorShare = 0.1f;
         [Tooltip("The chance that a ground storey module that isn't a door is a window wall rather than a plain wall, where its style has window walls.")]
@@ -80,6 +84,8 @@ namespace LevelGen
         [SerializeField, Range(0f, 1f)] private float jettyShare = 0.3f;
         [Tooltip("How far the backs of the jetty supports sink into the ground storey's walls, behind the walls' main front surface (the plaster or stone between the timbers), so no gap shows behind them. The jettied storeys above stand back by the same amount, so their faces stay level with the supports' front.")]
         [SerializeField, Range(0f, 0.3f)] private float jettyInset = 0.05f;
+        [Tooltip("How far a jettied building's first upper storey - its beam band and walls - stands down into the jetty supports' deck, so the beam and walls cut into the planks instead of resting on them with a seam showing. The supports stay where they are.")]
+        [SerializeField, Range(0f, 0.3f)] private float jettyStoreyDrop = 0.1f;
 
         [Header("Doors")]
         [Tooltip("Every doorway in a placed wall gets a plain door (a verified piece of the door category; never a gameplay door), at random, scaled to the doorway: this much taller than it at the top, so its top tucks into the frame.")]
@@ -148,12 +154,12 @@ namespace LevelGen
         [SerializeField, Range(0.005f, 0.2f)] private float ventFlatTolerance = 0.03f;
         [Tooltip("The share of buildings with an upper storey that get a walkway along their facade: a row of the jetty piece at the base of one upper storey (never the base of a jettied one).")]
         [SerializeField, Range(0f, 1f)] private float walkwayShare = 0.3f;
-        [Tooltip("Metres of street frontage per lamp post, on average (0 = no lamp posts). Posts stand at the side of the street before plain ground-storey walls, never before a door or window, facing into the street.")]
+        [Tooltip("Metres of street frontage per lamp post, on average (0 = no lamp posts), and the least distance between any two posts, over every street (so none stand across a narrow street from each other). Posts stand at the side of the street before plain ground-storey walls, never before a door or window, facing into the street; two posts' lights never overlap.")]
         [SerializeField, Range(0f, 60f)] private float lampSpacing = 14f;
         [Tooltip("How far into the street from its edge a lamp post stands.")]
         [SerializeField, Range(0.3f, 2f)] private float lampEdgeInset = 0.6f;
-        [Tooltip("The most lamp posts whose lights may reach any one spot, over every street. A lamp's light is Mixed, and the shadowmask holds four Mixed lights per spot, the moon being one; a post that would break this is not placed.")]
-        [SerializeField, Range(1, 4)] private int lampMaxOverlap = 3;
+        [Tooltip("How far a lamp post is lowered into the ground, hiding its base in the tiles.")]
+        [SerializeField, Range(0f, 0.5f)] private float lampSink = 0.2f;
 
         [Header("Smoke and steam (particle systems)")]
         [Tooltip("The particle system prefab placed at the top of a chimney that smokes, pointing up (none: no chimney smokes).")]
@@ -345,12 +351,15 @@ namespace LevelGen
         internal float FoundationHeight => foundationHeight;
         internal float FoundationFrontOffset => foundationFrontOffset;
         internal float FoundationColliderTolerance => foundationColliderTolerance;
+        internal float WallColliderTolerance => wallColliderTolerance;
+        internal float RoofColliderTolerance => roofColliderTolerance;
         internal float GroundDoorShare => groundDoorShare;
         internal float GroundWindowShare => groundWindowShare;
         internal float UpperWindowShare => upperWindowShare;
         internal float StoreyBeamOverlap => storeyBeamOverlap;
         internal float JettyShare => jettyShare;
         internal float JettyInset => jettyInset;
+        internal float JettyStoreyDrop => jettyStoreyDrop;
         internal float CornerAngleTolerance => cornerAngleTolerance;
         internal float CornerMaxReach => cornerMaxReach;
         internal float CornerOverrun => cornerOverrun;
@@ -394,7 +403,7 @@ namespace LevelGen
         internal float WalkwayShare => walkwayShare;
         internal float LampSpacing => lampSpacing;
         internal float LampEdgeInset => lampEdgeInset;
-        internal int LampMaxOverlap => lampMaxOverlap;
+        internal float LampSink => lampSink;
         internal float OverlapTolerance => overlapTolerance;
         internal float MinSegmentLength => minSegmentLength;
         internal float JunctionDistance => junctionDistance;

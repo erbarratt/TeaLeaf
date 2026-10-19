@@ -68,7 +68,8 @@ the post of a corner.
   check the scene (gaps along street edges, hidden ground tiles). The rolled
   segment widths come from `LayoutSpecValidator.ValidateFile` the same way, since the
   spec's widths are only the base. The finishing passes each log one line (`Foundation
-  colliders`, `Walkway colliders`, `Nettles`, `Visibility cull`, `Roof edge`, `Roof
+  colliders`, `Walkway colliders`, `Wall colliders`, `Roof colliders`, `Nettles`,
+  `Visibility cull`, `Roof edge`, `Roof
   features`, `Roof railings`, `Pipes`, `Vents`, `Lamp posts`, `Building colours`), read
   with the rest. An eval sent straight after a script edit can run
   the old assembly: check the new code is in (a new field or type seen by reflection)
@@ -196,9 +197,13 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   `foundationFrontOffset` (0.1m: how far their fronts stand out past the walls' front
   line), `foundationColliderTolerance` (0.1m: merged collider boxes, Foundations below
   - two boxes become one where the box round both stands out past them by no more
-  than this), `fillStretchShare` (0.3: the fitting rule's share - the length left under a
+  than this; the walkways' boxes use it too), `wallColliderTolerance` (0.15m: the
+  facade walls' merged boxes - the window-base walls' collider fronts, their sills,
+  stand 12-14cm proud of the plain walls', so less merges little),
+  `roofColliderTolerance` (0.1m: the roof slope panels' merged boxes - the two rows'
+  collider tops differ by 7cm), `fillStretchShare` (0.3: the fitting rule's share - the length left under a
   piece widens the last piece below it, adds a scaled-down piece above it),
-  `groundDoorShare` (0.1), `groundWindowShare` (0.3), `upperWindowShare` (0.4), `storeyBeamOverlap` (4cm), `maxStoreyWidthMismatch` (0.3m: how far a storey's module width may differ from the ground storey's). **Corners:** `cornerAngleTolerance` (20°: a corner this close to a right angle counts as square - its walls meet as at a right angle, its roofs meet along a hip or valley), `cornerMaxReach` (8m), `cornerOverrun` (0.5: the share of the way from the other side's back line to its face that each side's walls run at a corner, both ends hidden inside the other wall). **Jetties:** `jettyShare` (0.3: buildings whose upper storeys jut out), `jettyInset` (5cm: how far the supports' backs sink behind the ground walls' main front surface). **Columns:** `columnWidthMin` / `Max` (1-2 modules), `columnShare` (0.15: off the line), `columnMinRunModules` (6), `columnDepthMin` / `Max` (0.3-0.8m), `columnOutShare` (0.5), `columnHeightShare` (0.3: taller or lower than the building), `columnStoreyVariation` (1 storey). **Doors:** `doorInsertMargin` (5cm, at the top), `doorSideMargin` (0.13m, each side), `doorInsertDepth` (0m). **Window inserts:** `windowInsertShare` (1), `windowInsertMaxMargin` (0.45m), `windowInsertDepth` (0m), `litWindowShare` (0.3: the share of the holes filled whose insert is a lit one). **Side walls:** `sideWallMultiplier` (0-5, 1), `sideWallTuck` (0.26m: how far into its column a side wall at the column's left end stands). **Dressing:** `pipeRunsMax` (2), `pipeExtraRunShare` (0.35), `pipeMinRunShare` (0.5), `pipeLargeShare` (0.1; nothing while only the thin pipe kit is verified), `pipePanelInset` (0.6m: how far from a module's left end a plumb run stands, on the plaster past the end post), `pipeWallGap` (5cm), `pipeOpeningMargin` (0.25m), `pipeEndSpread` (0.5), `valveShare` (0.3), `valveHeight` (1.3m), `ventShare` (0.4), `ventsMax` (2), `ventLargeShare` (0.3), `ventFlatTolerance` (3cm), `walkwayShare` (0.3), `lampSpacing` (14m), `lampEdgeInset` (0.6m), `lampMaxOverlap` (3: the most lamp posts whose lights reach any one spot). **Smoke and steam:** `chimneySmokePrefab` / `chimneySmokeShare` (0.5), `ventSteamPrefab` / `ventSteamShare` (0.5). **Foliage:** `grassCover` (0.05 of the ground tiles), `grassClusterMin` / `Max` (2-4 tufts), `grassClusterRadius` (0.5m), `grassEdgeMargin` (1m), `nettlesPerStreetMin` / `Max` (2-4), `nettleOut` (0.2m), `nettleSpacing` (2m), `nettleDoorClear` (0.6m), `foliageScaleMin` / `Max` (0.8-1.2), `foliageSink` (3cm). **Layout checks:** `overlapTolerance` (5cm),
+  `groundDoorShare` (0.1), `groundWindowShare` (0.3), `upperWindowShare` (0.4), `storeyBeamOverlap` (4cm), `maxStoreyWidthMismatch` (0.3m: how far a storey's module width may differ from the ground storey's). **Corners:** `cornerAngleTolerance` (20°: a corner this close to a right angle counts as square - its walls meet as at a right angle, its roofs meet along a hip or valley), `cornerMaxReach` (8m), `cornerOverrun` (0.5: the share of the way from the other side's back line to its face that each side's walls run at a corner, both ends hidden inside the other wall). **Jetties:** `jettyShare` (0.3: buildings whose upper storeys jut out), `jettyInset` (5cm: how far the supports' backs sink behind the ground walls' main front surface), `jettyStoreyDrop` (10cm: how far the first upper storey - its beam band, else its walls - stands down into the supports' deck). **Columns:** `columnWidthMin` / `Max` (1-2 modules), `columnShare` (0.15: off the line), `columnMinRunModules` (6), `columnDepthMin` / `Max` (0.3-0.8m), `columnOutShare` (0.5), `columnHeightShare` (0.3: taller or lower than the building), `columnStoreyVariation` (1 storey). **Doors:** `doorInsertMargin` (5cm, at the top), `doorSideMargin` (0.13m, each side), `doorInsertDepth` (0m). **Window inserts:** `windowInsertShare` (1), `windowInsertMaxMargin` (0.45m), `windowInsertDepth` (0m), `litWindowShare` (0.3: the share of the holes filled whose insert is a lit one). **Side walls:** `sideWallMultiplier` (0-5, 1), `sideWallTuck` (0.26m: how far into its column a side wall at the column's left end stands). **Dressing:** `pipeRunsMax` (2), `pipeExtraRunShare` (0.35), `pipeMinRunShare` (0.5), `pipeLargeShare` (0.1; nothing while only the thin pipe kit is verified), `pipePanelInset` (0.6m: how far from a module's left end a plumb run stands, on the plaster past the end post), `pipeWallGap` (5cm), `pipeOpeningMargin` (0.25m), `pipeEndSpread` (0.5), `valveShare` (0.3), `valveHeight` (1.3m), `ventShare` (0.4), `ventsMax` (2), `ventLargeShare` (0.3), `ventFlatTolerance` (3cm), `walkwayShare` (0.3), `lampSpacing` (14m; the asset has 20m: the least distance between any two lamp posts, over every street), `lampEdgeInset` (0.6m), `lampSink` (0.2m: how far a post is lowered into the ground tiles). **Smoke and steam:** `chimneySmokePrefab` / `chimneySmokeShare` (0.5), `ventSteamPrefab` / `ventSteamShare` (0.5). **Foliage:** `grassCover` (0.05 of the ground tiles), `grassClusterMin` / `Max` (2-4 tufts), `grassClusterRadius` (0.5m), `grassEdgeMargin` (1m), `nettlesPerStreetMin` / `Max` (2-4), `nettleOut` (0.2m), `nettleSpacing` (2m), `nettleDoorClear` (0.6m), `foliageScaleMin` / `Max` (0.8-1.2), `foliageSink` (3cm). **Layout checks:** `overlapTolerance` (5cm),
   `minSegmentLength` (0.1m), `junctionDistance` (0.1m), `branchAngle` (17.5°), `branchSquareTolerance` (20°: a
   street ending at a junction where at least two other ways leave the point - another
   street running on through it, or more streets meeting - must meet the street it
@@ -269,8 +274,9 @@ can't fill, and any overlap, is shown in the report rather than hidden.
    and marked in the scene.
 7. **Finishing passes** (built; Generation, below, gives the order): the foundations'
    and walkways' colliders merged into few boxes, the nettles at the foundations, the
-   street test, the visibility cull (every piece no one in a street can see removed)
-   and the roof edge colliders (roofs facing the void lose theirs); and, last in the
+   street test, the visibility cull (every piece no one in a street can see removed),
+   the roof edge colliders (roofs facing the void lose theirs), then the facade walls'
+   and the roof slope panels' colliders merged into few boxes; and, last in the
    facades' build, one colour per set of joined buildings and the lamp posts as
    gameplay lights.
 
@@ -380,14 +386,25 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   (`MergedColliders.RunFoundations`, run by `LevelGenerator` straight after
   `FacadeBuilder.Build`, before the street test, which then checks the boxes): every
   placed `foundation` / `foundation-corner` piece loses its upright box colliders,
-  which are sorted into frames (yaw within 0.05° of a quarter turn, same layer and
-  `SurfaceTag`) and merged pairwise until none can - one box holds the other, or two
-  axes match and the third meets - each within `foundationColliderTolerance` (0.1m;
-  the foundation pieces' buried bottoms differ by about 9cm, so less stops neighbours
-  merging). The boxes (`Foundation <n>`) go under `Generated/Foundation Colliders`,
-  with the pieces' layer, static flags and a `SurfaceTag` (the source's copied, else
-  Stone; the walkways' boxes Wood - `MergedColliders.Run` takes the fallback); one
-  log line (`Foundation colliders: ...`). The four examples go from 65-298 pieces to 9-96 boxes.
+  which are sorted into frames (a collider's right, up and forward, matched either
+  way round within 0.05°, same layer and `SurfaceTag`) and merged pairwise until none
+  can - one box holds the other, or two axes match and the third meets - each within
+  `foundationColliderTolerance` (0.1m; the foundation pieces' buried bottoms differ
+  by about 9cm, so less stops neighbours merging). The boxes (`Foundation <n>`) go
+  under `Generated/Foundation Colliders`, with the pieces' layer, static flags and a
+  `SurfaceTag` (the source's copied, else Stone; the walkways' boxes Wood -
+  `MergedColliders.Run` takes the fallback, and `uprightOnly`: true for the
+  foundations, walkways and walls, so a tilted box stays on its piece, false for the
+  roofs; `PiecesOfCategories` and `PiecesUnderGroups` pick the pieces); one log line
+  (`Foundation colliders: ...`). The four examples go from 65-298 pieces to 9-96 boxes.
+- **Wall colliders** (`MergedColliders.RunWalls`, after the visibility cull and the
+  roof edge colliders, so no box stands where a piece was removed): every piece under a
+  `Storey <n>` or `Corner` group (facades and lots) loses its upright box colliders,
+  merged as the foundations' are within `wallColliderTolerance` (0.15m) into boxes
+  (`Wall <n>`) under `Generated/Wall Colliders`, fallback Stone (a door keeps its Wood
+  tag); one log line (`Wall colliders: ...`). Three-levels: 2471 colliders on 1940
+  pieces become 1456 boxes; what is left separate is mostly door surrounds, door leaves
+  and windows standing proud.
 - **Jetties** (medieval overhangs): each facade building draws at `jettyShare` (always
   drawn); it is jettied where it may have an upper storey and a usable `jetty` piece
   (any style; `Platforms_ShortBoardPlanks_Supports`, 3.02 x 1.58m, its front -Z) fits
@@ -400,10 +417,13 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   as much as brings the front of their typical wall (the median reach of the first
   upper storey's walls) level with the supports' front - on top of each column's own
   depth, in one plane (`StoreyJetty`; walls, beams and side walls use it). **The
-  first upper storey stands on the supports' deck**: the deck's top lies
+  first upper storey stands on the supports' deck, cut into it**: the deck's top lies
   `storeyBeamOverlap` below the top of the ground storey's walls, and the beam band
-  (where both styles have beams) stands on the deck as it would on the walls
-  (`StoreyLevels`, `DeckTop`). **Supports** (`BuildJetty`, under
+  (where both styles have beams; else the walls) stands `jettyStoreyDrop` (10cm) down
+  into the deck, as it would on the walls but lower, so the beam and walls meet the
+  planks with no seam (`StoreyLevels`; `JettyDeckTop` gives the deck's height back
+  from the storey's bottom - `DeckTop` plus the drop - for the supports and the pipes).
+  **Supports** (`BuildJetty`, under
   `Building <i>/Jetty/`): one per module whose column stands above the ground storey,
   at random, never the one before it, facing the street, centred on the module and
   scaled along its width to it, the back of its render box at `SupportBack`, the top
@@ -881,6 +901,16 @@ can't fill, and any overlap, is shown in the report rather than hidden.
     the building's furthest point that way out to `roofEdgeReach` (20m) further, from
     the piece's top down 100m: empty means the void. One log line (`Roof edge: ...`);
     the kept panels almost all face a street.
+  - **Roof colliders** (`MergedColliders.RunRoofs`, after the roof edge colliders):
+    every slope panel (categories `roof-middle`, `roof-end`, `roof-end-half`,
+    `roof-ridge-end`, `roof-ridge-end-half`) loses its box colliders, at any tilt,
+    merged in their own tilted frames as the foundations' are within
+    `roofColliderTolerance` (0.1m) into boxes (`Roof <n>`) under `Generated/Roof
+    Colliders`, fallback Tile; one log line (`Roof colliders: ...`). The two rows'
+    collider tops differ by 7cm and undersides by 2cm, so a slope's two rows merge
+    where their ends line up (gable ends), else one box per row. Three-levels: 1215
+    colliders on 1343 pieces become 527 boxes. The hip strips (`TL_Roof_PeakedBase`)
+    have no collision: the pack prefab's MeshCollider has no mesh.
   - **Building colours** (`FacadeBuilder.ColourBuildings`, in `FacadeRoofs.cs`, last in
     `FacadeBuilder.Build` after the lamps; `ColourVariants.cs`): **one colour per set
     of corner-joined buildings** (`CornerLeaders`, the union-find `MatchCornerStoreys`
@@ -1110,21 +1140,25 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   flat deck boxes of every piece under a `Walkway` group become one box per straight
   run (`Walkway <n>` under `Generated/Walkway Colliders`, same tolerance), while the
   tilted brace box on each piece fails the upright test and stays on the instance.
-- **Lamp posts** (`BuildLamps`, `lampSpacing`, `lampEdgeInset`, `lampMaxOverlap`): at
+- **Lamp posts** (`BuildLamps`, `lampSpacing`, `lampEdgeInset`, `lampSink`): at
   the street's side before plain ground-storey walls, never before a door or window,
-  facing the street. **They are gameplay lights:** the `TL_Lampost` variant
+  facing the street, each post lowered `lampSink` (0.2m) into the ground tiles so its
+  base never floats. **They are gameplay lights:** the `TL_Lampost` variant
   (`Assets/Prefabs/Environment/Iron`) carries a
   **Mixed** point light (Indirect Multiplier 0, soft shadows, range 5m) with a
   `Core.LightSource` (range 5) and a `Core.Flame` (its `flameVisual` the `Flame
   Visual` quad drawn by the `TeaLeaf/Flame` shader, `Assets/Scripts/Core/CLAUDE.md`;
   the pack's `Fire_Effect` particles are turned off), and its lantern meshes cast no
   shadows (the light sits inside them);
-  `PiecePlacer` leaves the light on. **At most `lampMaxOverlap` (3: the shadowmask's
-  four less the moon) lamps reach any one spot:** a post is placed only if it and
-  every lamp within twice the range of it have fewer than that many such neighbours
-  (`LampAllowed`, measured at the lights' positions, over every street); one log line
-  (`Lamp posts: n (m left out ...)`). Working: 54 lamps over the four examples, 6 left
-  out.
+  `PiecePlacer` leaves the light on. **No two lamps light the same spot, and none
+  stand across a narrow street from each other:** a post is placed only if it stands
+  at least `lampSpacing` (level distance; 20m in the settings asset) from every other
+  post over every street and its light is clear of every other's (the lights' centres
+  further apart than their ranges added) (`LampAllowed`); so the shadowmask's limit
+  of four mixed lights at a spot is never neared by lamps. One log line (`Lamp posts:
+  n (m left out within Xm of another post, or where its light would overlap
+  another's)`). Two Lots gets 7 lamps, Three Levels 17-19 (least post distance 21.4m,
+  least gap between lights 11.5m).
 - The report treats `pipe-*` (vents included), `lamp-post`, `grass` and `nettle`
   pieces as not covering a wall end.
 
@@ -1474,13 +1508,16 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   that can't be laid (no usable tiles, too few points) is skipped and logged rather than
   stopping the run, so the ground can be tried before every building style is
   reviewed. One Console entry lists what was built. `Generated` holds `Streets`,
-  `Facades`, `Lots`, `Roofs`, `Foliage`, `Foundation Colliders` and `Walkway
-  Colliders`. **After `FacadeBuilder.Build`, in this order:** the merged colliders
-  (`MergedColliders`: foundations, then walkways), the nettles
-  (`StreetFoliage.BuildNettles`), the street test (Facades, The street test; its own
-  entry, an error if the layout isn't valid - it checks the merged boxes), the
-  visibility cull (`VisibilityCull`), the roof edge colliders (`RoofEdgeColliders`),
-  the report (`GeneratedReport`, its markers on the root), then the fingerprint.
+  `Facades`, `Lots`, `Roofs`, `Foliage`, `Foundation Colliders`, `Walkway
+  Colliders`, `Wall Colliders` and `Roof Colliders`. **After `FacadeBuilder.Build`, in
+  this order:** the merged colliders (`MergedColliders`: foundations, then walkways),
+  the nettles (`StreetFoliage.BuildNettles`), the street test (Facades, The street
+  test; its own entry, an error if the layout isn't valid - it checks the merged
+  boxes), the visibility cull (`VisibilityCull`), the roof edge colliders
+  (`RoofEdgeColliders`), the walls' and the roofs' merged colliders
+  (`MergedColliders.RunWalls`, `RunRoofs`: after the cull and the roof edge, which
+  remove pieces and colliders, so no box stands for one), the report
+  (`GeneratedReport`, its markers on the root), then the fingerprint.
 - **`StoreyPlan`** decides every building's storey count before anything is built
   (logged; stage 5 builds to it), its rolls next in the random sequence after the
   street widths. **A facade

@@ -36,7 +36,9 @@ namespace LevelGen
     /// the visibility cull (VisibilityCull): every piece a probe walking the
     /// streets can't see, at eye height or from high above them, is removed;
     /// then the roof pieces left that face the void beyond the level lose
-    /// their colliders (RoofEdgeColliders).
+    /// their colliders (RoofEdgeColliders), and the walls' and the roof
+    /// panels' colliders left are merged into as few boxes as possible too
+    /// (MergedColliders).
     /// </summary>
     internal static class LevelGenerator
     {
@@ -148,6 +150,12 @@ namespace LevelGen
             // Then the roofs left that face the void beyond the level lose
             // their colliders.
             RoofEdgeColliders.Run(roofs, settings, log);
+            // Then the walls' and the roof panels' colliders are merged into as
+            // few boxes as possible: after the cull, so no box stands where a
+            // piece was removed, and after the roof edge, which takes whole
+            // pieces' colliders.
+            MergedColliders.RunWalls(rootObject.transform, settings, log);
+            MergedColliders.RunRoofs(rootObject.transform, annotations, settings, log);
 
             // The report on the result: its markers go on the root, before
             // the fingerprint is taken.
