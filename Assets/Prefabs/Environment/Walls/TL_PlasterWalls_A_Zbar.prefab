@@ -24,6 +24,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 3881757359617859644, guid: 1ffd1fb7b4f0af745bb37626aa943b31, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3881757359617859644, guid: 1ffd1fb7b4f0af745bb37626aa943b31, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3881757359617859645, guid: 1ffd1fb7b4f0af745bb37626aa943b31, type: 3}
       propertyPath: m_Name
       value: TL_PlasterWalls_A_Zbar

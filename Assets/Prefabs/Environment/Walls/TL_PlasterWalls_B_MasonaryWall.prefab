@@ -44,6 +44,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 7259095624652151446, guid: f26fdd3a6ffca7c42859493a30a8b5ef, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7259095624652151446, guid: f26fdd3a6ffca7c42859493a30a8b5ef, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7259095624652151447, guid: f26fdd3a6ffca7c42859493a30a8b5ef, type: 3}
       propertyPath: m_Name
       value: TL_PlasterWalls_B_MasonaryWall

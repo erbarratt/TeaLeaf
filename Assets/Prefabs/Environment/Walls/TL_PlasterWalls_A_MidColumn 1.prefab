@@ -48,6 +48,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 2934432355588428103, guid: e59d3010783ad5c489873aa3e57854bf, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2934432355588428103, guid: e59d3010783ad5c489873aa3e57854bf, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5519870395895487550, guid: e59d3010783ad5c489873aa3e57854bf, type: 3}
       propertyPath: m_Name
       value: TL_PlasterWalls_A_MidColumn 1

@@ -100,6 +100,14 @@ PrefabInstance:
       propertyPath: m_ScaleInLightmap
       value: 0.5
       objectReference: {fileID: 0}
+    - target: {fileID: 8802311418157784759, guid: 8047e17adbdb6ac46bd80d6b4711ca11, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8802311418157784759, guid: 8047e17adbdb6ac46bd80d6b4711ca11, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

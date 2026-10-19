@@ -5,7 +5,8 @@ the physics layers; this file is loaded when working in this folder. Keep it up 
 every change to these systems, like the root file.
 
 Here: the game state/level manager, the screen fade, noise events, sound, surfaces, gameplay
-light, the procedural night sky, the level surface shaders and the shared debug drawing.
+light, the procedural night sky, the moon shafts, the level surface shaders and the shared
+debug drawing.
 
 ## Render settings
 
@@ -127,6 +128,72 @@ Flat).
   256 per face) behind the stars - clouds are soft, so low resolution doesn't show.
 - The scene's default reflection was baked from an old sky and stays until lighting is
   regenerated.
+
+## Moon shafts
+
+Shafts of moonlight - the beam the moon throws through an opening, made visible by the
+dust in the air - as placed geometry, not a screen effect: no depth texture, no
+post-processing, correct in stereo. The level generator lays them over its alleys
+(`Assets/Scripts/LevelGen/CLAUDE.md`, Moon shafts); anywhere else one is placed by hand.
+
+- **`MoonShaft`** (`[ExecuteAlways]`, `RequireComponent(MeshFilter, MeshRenderer)`) —
+  describes only the **opening**: a rectangle `width` across the object's local X and
+  `height` along its local Y, the object's position at the middle of its local-Y foot
+  edge, stood upright for a window or a mouth, laid level for the strip of sky between
+  two eaves. Keep its scale at 1. It builds the beam itself: `Rebuild()` (in `Start()`
+  at runtime, behind `ScreenFade`'s level-start black; in the editor on enable, after
+  an Inspector change and when the generator calls `Configure(width, height,
+  maxLength)`, always a tick later through `EditorApplication.delayCall`, since physics
+  may not be used from `OnValidate` and colliders enabled after the object would be
+  missed) takes the light's direction from the scene's `Moonlight` (`Instance`, or
+  `FindAnyObjectByType` in the editor, where `Moonlight` isn't registered), drops the
+  shaft if the light runs along the opening rather than through it (`MinThrough`
+  0.2), follows the light from each corner of the opening with one `Physics.Raycast`
+  (Environment + Interactable, the light rays' layers, triggers ignored) to where it
+  lands (`maxLength`, 40m, where nothing stops it; `Clearance` 5cm short of the
+  surface), and makes **a prism of six sheets** - the opening, its far end and the four
+  sides - in a `HideFlags.DontSave` mesh (24 vertices, flat normals; UV0 = where on its
+  sheet a vertex is, 0..1 each way, a side's second coordinate held at 0.5; UV1 = how
+  far along the beam, 0 near to 1 far, and the beam's thickness behind that sheet in
+  metres: the caps the mean length, the two long sides the opening's lit span, the two
+  ends the opening's width). Nothing is saved to the scene and nothing runs per frame;
+  the renderer casts and receives no shadows, uses no probes and no motion vectors.
+  `IsLit` says whether the last build drew anything. **Honest about shadow**
+  (`fitToMoon`, on): along each of the opening's two local-Y edges, from the foot, a ray
+  towards the moon (`LitFrom`, `IsMoonlit`: 200m, the same layers) finds where the edge
+  comes out of the shadow of whatever stands beside the opening - the foot and the top
+  tested first, then six halvings - and the sheets start there; an edge in shadow all
+  the way narrows to a point at its top, an opening in shadow altogether draws nothing.
+  So a shaft can be placed without working out where the moon is, and only shows light
+  that is there: **put the foot edge on the moon's side**, so the fit cuts the shadowed
+  side off. **The colour is the moon's**: `Rebuild()` sets the global `_MoonShaftLight`
+  to the `Light` on the `Moonlight`'s object, its colour (linear) times its intensity
+  (white with no `Light`) - not URP's `_MainLightColor`, which is black wherever the moon
+  is a Baked light (as in `Level Gen Test.unity`). `material` is the shared
+  `Assets/Art/Materials/MoonShaft.mat` (`MaterialPath`), filled in by the editor when
+  empty; every shaft wears the same one, so the look is tuned in one place.
+- **Shader `TeaLeaf/MoonShaft`** (`Assets/Art/Shaders/MoonShaft.shader`; `SRPDefaultUnlit`,
+  Transparent queue, `Blend One One` additive, `ZTest LEqual`, `ZWrite Off`, `Cull Off` -
+  the sheets are seen from inside when the player stands in the beam; SRP Batcher
+  CBUFFER, single-pass instanced stereo macros, two samples of `FlameNoise.png` a pixel,
+  no depth or opaque texture) shades the sheets as one soft volume: each sheet stands
+  for the beam behind it, `1 - exp(-_Density x thickness x |view . normal|)` (full
+  thickness seen square on, nothing seen edge on, so the seams between sheets never
+  show - the opening looked down the beam shows its whole length, a side looked at
+  square its width); times a fade in from each edge of the sheet (`_EdgeSoftness`, a
+  share of the sheet, 0.3), a fade along the beam (`_LengthFalloff`, 1.5, so it dies
+  away before the ground rather than cutting into it), and a fade within `_NearFade`
+  (1.5m) of the eye, so walking into a shaft never fills the view; `_Streaks` (0.5, at
+  `_StreakScale` 0.6, drifting at `_StreakDrift`) break the light into streaks that run
+  the length of the beam, `_Motes` (0.3, `_MoteScale` 3, `_MoteSpeed` 0.06) drift down
+  it. Colour = `_MoonShaftLight` x `_Tint` (0.85, 0.9, 1) x `_Intensity` (0.5). **Cost**
+  (a judgement; unmeasured): two texture samples a pixel over the pixels the sheets
+  cover, nothing on the CPU; the worst case is standing inside a beam, where up to six
+  sheets each cover the view at near-zero alpha but full fill rate. **The look isn't
+  right yet and no shaft is in any scene**: in editor renders the beams read as flat
+  bright slabs rather than soft light, so the generator's shafts are switched off
+  (`moonShaftStreetMaxWidth` 0 in its settings asset) until the shading is reworked and
+  judged in the headset; the component, shader and material stay as they are.
 
 ## Level surface shaders
 

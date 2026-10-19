@@ -48,6 +48,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3362502097334434276, guid: eaae9a6a3196bae43acfc050c95531f0, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3362502097334434276, guid: eaae9a6a3196bae43acfc050c95531f0, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3362502097334434283, guid: eaae9a6a3196bae43acfc050c95531f0, type: 3}
       propertyPath: m_Name
       value: TL_StoneFloor_D

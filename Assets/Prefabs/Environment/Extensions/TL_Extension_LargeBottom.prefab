@@ -44,6 +44,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 8078792138062330773, guid: af36b8546783cda4292672511834d78a, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8078792138062330773, guid: af36b8546783cda4292672511834d78a, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8082999553509357012, guid: af36b8546783cda4292672511834d78a, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

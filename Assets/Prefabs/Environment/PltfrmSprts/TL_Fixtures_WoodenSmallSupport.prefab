@@ -16,6 +16,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 1711913649545413022, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1711913649545413022, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1711913649545413023, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
       propertyPath: m_Name
       value: TL_Fixtures_WoodenSmallSupport

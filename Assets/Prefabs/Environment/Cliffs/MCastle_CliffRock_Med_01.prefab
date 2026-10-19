@@ -24,6 +24,14 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
+    - target: {fileID: 2766582783644660337, guid: a6825dce09ba4b2409153448a8040152, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2766582783644660337, guid: a6825dce09ba4b2409153448a8040152, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2766582783661882097, guid: a6825dce09ba4b2409153448a8040152, type: 3}
       propertyPath: m_Name
       value: MCastle_CliffRock_Med_01

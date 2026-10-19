@@ -20,6 +20,14 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
+    - target: {fileID: 2996598344599862720, guid: eee5e3d7819a5ed4d9b89af4ebb53238, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2996598344599862720, guid: eee5e3d7819a5ed4d9b89af4ebb53238, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2996598344615930208, guid: eee5e3d7819a5ed4d9b89af4ebb53238, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0

@@ -96,6 +96,9 @@ namespace LevelGen
         // cut to where they clear them, side walls and roofs stop short of
         // them, and every piece placed is checked against them.
         private static StreetClearance _clearance;
+        // The clearance of the last build, for passes that place after it
+        // (GapFiller), checked against every street alike.
+        internal static StreetClearance Clearance => _clearance;
         // Where the roofs go, set the same way: a tree of their own beside the
         // facades and lots (Roofs/<frontage or lot>/<building>), so they can
         // be hidden in one go while working on the level.
@@ -3541,7 +3544,7 @@ namespace LevelGen
         /// A wall's scale along its own axes: widthScale along its width (its
         /// right, seen from in front), heightScale up, its depth unscaled.
         /// </summary>
-        private static Vector3 PieceScale(PieceAnnotation piece, float widthScale, float heightScale)
+        internal static Vector3 PieceScale(PieceAnnotation piece, float widthScale, float heightScale)
         {
             Vector3 right = Vector3.Cross(Vector3.up, -piece.fronts[0]);
             return Mathf.Abs(right.x) >= Mathf.Abs(right.z) ? new Vector3(widthScale, heightScale, 1f) : new Vector3(1f, heightScale, widthScale);
@@ -3557,7 +3560,7 @@ namespace LevelGen
         /// it faces into). Scaled up by heightScale (to its storey's height).
         /// Returns its thickness, or 0 if not placed.
         /// </summary>
-        private static float PlaceSideWall(PieceAnnotation piece, Vector2 corner, float height, float widthScale, float heightScale, Vector2 face,
+        internal static float PlaceSideWall(PieceAnnotation piece, Vector2 corner, float height, float widthScale, float heightScale, Vector2 face,
             Vector2 back, bool backOnJoin, PiecePlacer placer, Transform group)
         {
             Vector3 front = Level(face);
@@ -4121,7 +4124,7 @@ namespace LevelGen
         /// front of its back plane (its left point's depth), or -1 if it can't
         /// be told. A beam is centred on it in depth.
         /// </summary>
-        private static float DepthMiddle(PieceAnnotation piece, PiecePlacer placer)
+        internal static float DepthMiddle(PieceAnnotation piece, PiecePlacer placer)
         {
             CatalogueEntry entry = piece != null ? placer.Entry(piece) : null;
 
@@ -4145,7 +4148,7 @@ namespace LevelGen
         /// <summary>
         /// A piece's connection point by name, in its own space.
         /// </summary>
-        private static bool Connection(PieceAnnotation piece, string name, out Vector3 position)
+        internal static bool Connection(PieceAnnotation piece, string name, out Vector3 position)
         {
             foreach (ConnectionPoint point in piece.connections) {
                 if (point.name == name) {
@@ -4237,7 +4240,7 @@ namespace LevelGen
         /// <summary>
         /// The yaw (degrees clockwise from +Z) of a level direction.
         /// </summary>
-        private static float Yaw(Vector3 direction)
+        internal static float Yaw(Vector3 direction)
         {
             return Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
         }

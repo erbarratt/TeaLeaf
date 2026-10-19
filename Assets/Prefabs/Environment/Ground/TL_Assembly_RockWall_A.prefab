@@ -24,6 +24,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 4894808588858514238, guid: 14342ab5ba4adac4a92a86eca2e7dd45, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4894808588858514238, guid: 14342ab5ba4adac4a92a86eca2e7dd45, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6420847859746252095, guid: 14342ab5ba4adac4a92a86eca2e7dd45, type: 3}
       propertyPath: m_Name
       value: TL_Assembly_RockWall_A

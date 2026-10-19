@@ -40,6 +40,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 3447346442603978422, guid: 919cb064fa6e50547a4c7b71828968e6, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3447346442603978422, guid: 919cb064fa6e50547a4c7b71828968e6, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3447346442603978423, guid: 919cb064fa6e50547a4c7b71828968e6, type: 3}
       propertyPath: m_Name
       value: TL_Fences_Broken

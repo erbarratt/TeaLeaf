@@ -32,6 +32,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 996210981424058256, guid: 9b55d3486d7c12146982cf2b204f799f, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 996210981424058256, guid: 9b55d3486d7c12146982cf2b204f799f, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 996210981424058257, guid: 9b55d3486d7c12146982cf2b204f799f, type: 3}
       propertyPath: m_Name
       value: TL_WallsTall_CornerNarrow

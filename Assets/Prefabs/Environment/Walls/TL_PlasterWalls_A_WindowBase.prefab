@@ -12,6 +12,14 @@ PrefabInstance:
       propertyPath: m_ScaleInLightmap
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 3167264464050810834, guid: 2bffb55106273bc498899340b70380f3, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3167264464050810834, guid: 2bffb55106273bc498899340b70380f3, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3167264464050810835, guid: 2bffb55106273bc498899340b70380f3, type: 3}
       propertyPath: m_Name
       value: TL_PlasterWalls_A_WindowBase

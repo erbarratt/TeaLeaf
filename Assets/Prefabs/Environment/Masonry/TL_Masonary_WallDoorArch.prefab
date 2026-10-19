@@ -84,6 +84,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5065892557161910724, guid: e5d8c9bfcc5adff4f8c4f86370ddaeb5, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5065892557161910724, guid: e5d8c9bfcc5adff4f8c4f86370ddaeb5, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5916098696180746073, guid: e5d8c9bfcc5adff4f8c4f86370ddaeb5, type: 3}
       propertyPath: m_Layer
       value: 6

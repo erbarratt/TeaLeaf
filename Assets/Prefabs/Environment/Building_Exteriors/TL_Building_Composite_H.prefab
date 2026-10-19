@@ -96,6 +96,14 @@ PrefabInstance:
       propertyPath: m_ScaleInLightmap
       value: 0.5
       objectReference: {fileID: 0}
+    - target: {fileID: 286996932770698373, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 286996932770698373, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 292675011479785102, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -163,6 +171,14 @@ PrefabInstance:
     - target: {fileID: 407541798773609387, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 482688022247717189, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 482688022247717189, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 492919998961603259, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
@@ -239,6 +255,78 @@ PrefabInstance:
     - target: {fileID: 546021176462346060, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 549471081675785608, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 549471081675785608, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 549471081881194845, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 549471081881194845, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 549471082031962053, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 549471082031962053, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 549471082739203393, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 549471082739203393, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 549471083033967590, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 549471083033967590, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 554076536306898623, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 554076536306898623, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 554076536597353832, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 554076536597353832, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 554076537441707339, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 554076537441707339, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 554076538043554379, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 554076538043554379, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 596876475883099246, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_ScaleInLightmap
@@ -364,6 +452,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 873558166190122513, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 873558166190122513, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 894087922006485906, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -387,6 +483,14 @@ PrefabInstance:
     - target: {fileID: 934466995993870837, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 974159534660976809, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 974159534660976809, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 997094122357309862, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
@@ -444,6 +548,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 1079109894400357051, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1079109894400357051, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1154475276461248197, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -491,6 +603,14 @@ PrefabInstance:
     - target: {fileID: 1239221862143395082, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 1248220762027504426, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1248220762027504426, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1276204623955995307, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
@@ -544,6 +664,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 1491560239211963550, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1491560239211963550, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1491560239278599818, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -551,6 +679,14 @@ PrefabInstance:
     - target: {fileID: 1491560239278599818, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 1491560239278599821, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1491560239278599821, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1496828508482296257, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
@@ -607,6 +743,14 @@ PrefabInstance:
     - target: {fileID: 1637821219715934096, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 1684652482597256294, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1684652482597256294, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1720415540485824774, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
@@ -704,6 +848,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 1937166962468464589, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1937166962468464589, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1986642214911910474, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -711,6 +863,14 @@ PrefabInstance:
     - target: {fileID: 1986642214911910474, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 1986642214911910475, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1986642214911910475, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1993542189188480444, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
@@ -832,6 +992,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 2242053752199132065, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2242053752199132065, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2242053752199132066, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -847,6 +1015,14 @@ PrefabInstance:
     - target: {fileID: 2242053752308186288, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 2242053752308186291, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2242053752308186291, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2251951813096678244, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
@@ -1012,6 +1188,22 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 2386728129108521059, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2386728129108521059, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2386728129515733573, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2386728129515733573, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2389431880080246187, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -1071,6 +1263,14 @@ PrefabInstance:
     - target: {fileID: 2525374198170528003, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_ScaleInLightmap
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2539682763698239686, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2539682763698239686, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2539682763698239687, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
@@ -1216,6 +1416,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 2848256613611662298, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2848256613611662298, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2857503018870199094, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_ScaleInLightmap
       value: 2
@@ -1268,6 +1476,22 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 2966079561846610828, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2966079561846610828, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2966079562003527399, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2966079562003527399, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2987754635237822700, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -1284,6 +1508,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 3062161577932845128, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3062161577932845128, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3062161577932845129, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -1299,6 +1531,22 @@ PrefabInstance:
     - target: {fileID: 3062161578902940656, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 3062161578902940657, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3062161578902940657, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3069270304331530705, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3069270304331530705, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 3101856735442155587, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
@@ -1608,6 +1856,38 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 3792924425375937933, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3792924425375937933, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3818068574155592586, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3818068574155592586, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3818068575446690598, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3818068575446690598, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3818068575680508114, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3818068575680508114, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3819247604857022850, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -1848,6 +2128,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 4457933928308133479, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4457933928308133479, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4475770274565319111, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -1855,6 +2143,14 @@ PrefabInstance:
     - target: {fileID: 4475770274565319111, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 4541506276780173753, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4541506276780173753, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4561969072767943557, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
@@ -1944,6 +2240,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 4893533590503699239, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4893533590503699239, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4919317730442208452, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -2012,6 +2316,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 5053933169324103385, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5053933169324103385, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5063554331728600415, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -2187,6 +2499,14 @@ PrefabInstance:
     - target: {fileID: 5332756265187377947, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 5336408292780260131, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5336408292780260131, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5477317532669199493, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
@@ -2328,6 +2648,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 5764057382460064766, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5764057382460064766, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5764057382460064767, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -2392,6 +2720,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 5890088689066970115, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5890088689066970115, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5890088689126500406, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -2400,6 +2736,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 5890088689126500407, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5890088689126500407, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5890088690208166490, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -2407,6 +2751,14 @@ PrefabInstance:
     - target: {fileID: 5890088690208166490, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 5890088690208166491, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5890088690208166491, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5931340020091392815, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
@@ -2456,6 +2808,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 6053470865039827594, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6053470865039827594, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6053470865039827605, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -2463,6 +2823,14 @@ PrefabInstance:
     - target: {fileID: 6053470865039827605, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 6089933905547230196, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6089933905547230196, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6089933905547230197, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
@@ -2556,6 +2924,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 6362148419382697666, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6362148419382697666, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6362148419382697667, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -2571,6 +2947,14 @@ PrefabInstance:
     - target: {fileID: 6362148420461907828, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 6362148420461907829, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6362148420461907829, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6393973707695340477, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
@@ -2628,6 +3012,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 6432956346222245010, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6432956346222245010, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6432956347068436005, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -2635,6 +3027,22 @@ PrefabInstance:
     - target: {fileID: 6432956347068436005, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 6432956347068436006, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6432956347068436006, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6456015296677731383, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6456015296677731383, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 6468448789243464588, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
@@ -3116,6 +3524,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 7374930018396647849, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7374930018396647849, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7374930018396647850, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -3319,6 +3735,22 @@ PrefabInstance:
     - target: {fileID: 7836488429982985212, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 7836488429982985213, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7836488429982985213, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7836488431159841350, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7836488431159841350, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7836488431159841351, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
@@ -3571,6 +4003,14 @@ PrefabInstance:
     - target: {fileID: 8279394745394401390, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 8279394745394401391, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8279394745394401391, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8307300150460455388, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_ScaleInLightmap
@@ -3892,6 +4332,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 8799346147215843268, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8799346147215843268, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8812050828506992175, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -3971,6 +4419,14 @@ PrefabInstance:
     - target: {fileID: 8940822658458571522, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 8940822658458571523, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8940822658458571523, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8944404026522474825, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
@@ -4056,6 +4512,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 8995001276195147027, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8995001276195147027, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8995001276195147028, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -4063,6 +4527,14 @@ PrefabInstance:
     - target: {fileID: 8995001276195147028, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 8995001276240211576, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8995001276240211576, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8995001276240211583, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer
@@ -4079,6 +4551,14 @@ PrefabInstance:
     - target: {fileID: 8995001276493416577, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 8995001276493416582, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8995001276493416582, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8997713506419416243, guid: b541804a81dc55f4abe1866b198676bb, type: 3}
       propertyPath: m_Layer

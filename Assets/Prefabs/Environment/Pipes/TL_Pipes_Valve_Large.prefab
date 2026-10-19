@@ -32,6 +32,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 3281306041396969398, guid: e013e53293615614fbe4fd868c4dacd5, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3281306041396969398, guid: e013e53293615614fbe4fd868c4dacd5, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 3472482683640627128, guid: e013e53293615614fbe4fd868c4dacd5, type: 3}
       propertyPath: m_Name
       value: TL_Pipes_Valve_Large
@@ -43,6 +51,14 @@ PrefabInstance:
     - target: {fileID: 3472482683640627128, guid: e013e53293615614fbe4fd868c4dacd5, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 3475827633601777710, guid: e013e53293615614fbe4fd868c4dacd5, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3475827633601777710, guid: e013e53293615614fbe4fd868c4dacd5, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4710450441838111957, guid: e013e53293615614fbe4fd868c4dacd5, type: 3}
       propertyPath: m_ReceiveGI

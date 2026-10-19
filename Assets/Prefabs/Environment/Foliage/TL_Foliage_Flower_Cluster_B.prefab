@@ -40,6 +40,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 1439995816111673803, guid: 1275d6fee55712e4cb8d4a9fb12ac117, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1439995816111673803, guid: 1275d6fee55712e4cb8d4a9fb12ac117, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1451744347243919131, guid: 1275d6fee55712e4cb8d4a9fb12ac117, type: 3}
       propertyPath: m_LocalPosition.x
       value: -7.402
@@ -144,6 +152,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 6437011823873835384, guid: 1275d6fee55712e4cb8d4a9fb12ac117, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6437011823873835384, guid: 1275d6fee55712e4cb8d4a9fb12ac117, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6661981819878479926, guid: 1275d6fee55712e4cb8d4a9fb12ac117, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -155,6 +171,14 @@ PrefabInstance:
     - target: {fileID: 6926774520195909124, guid: 1275d6fee55712e4cb8d4a9fb12ac117, type: 3}
       propertyPath: m_ReceiveGI
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8847870120910725056, guid: 1275d6fee55712e4cb8d4a9fb12ac117, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8847870120910725056, guid: 1275d6fee55712e4cb8d4a9fb12ac117, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

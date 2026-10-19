@@ -508,8 +508,9 @@ Greybox build:
     written from a brief. Of set dressing only what sits on its own
     buildings and streets is generated: facade pipes, vents, walkways
     and lamp posts (with their lights), chimneys, dormers and ridge
-    railings, smoke and steam, grass and nettles; the rest, other
-    lighting and gameplay stay by hand.
+    railings, smoke and steam, grass and nettles, shafts of moonlight
+    over the alleys (switched off); the rest, other lighting and
+    gameplay stay by hand.
     [x] Stage 1: prefab catalogue scanner (TeaLeaf > Level Gen > Scan
         Prefab Catalogue): measurements, front from geometry (+Z
         assumed where none), category, openings, corners, floors by
@@ -572,6 +573,14 @@ Greybox build:
         [x] Window inserts on the face of blind window walls (a hand-set
             window point on WallTall_WindowBase).
         [x] Lot columns step only into the street their side lines.
+        [x] Gaps closed: every free wall end bridged (pairs facing each
+            other within 3m) or given a return wall before the street
+            test and the cull; the report lists none on three-levels.
+        [ ] Moon shafts over the alleys (MoonShafts pass, Core.MoonShaft,
+            TeaLeaf/MoonShaft): built, switched off
+            (moonShaftStreetMaxWidth 0) - the beams read as flat bright
+            slabs in editor renders. Rework the shading (softer, less
+            sheet-like), judge in the headset, then switch on.
         [ ] Streets climbing more than one flight: the facade beside a
             three-flight climb stands at the low level, its upper
             storey and roof in the raised street (example-three-levels
@@ -630,6 +639,12 @@ Lighting:
         drawn into the shadow map (2048, 25m).
     [x] The pack's own point lights (in the buildings, the lampposts and
         the tower bridge's torch) Baked.
+    [ ] Shafts of moonlight as placed geometry, never a screen effect
+        (Core.MoonShaft and TeaLeaf/MoonShaft: an opening, a prism of
+        light built from the moon at load, cut to what the moon reaches).
+        Built; switched off until the shading reads as soft light and
+        has been judged in the headset. Then hand-placed ones at windows
+        and gaps the generator doesn't know.
     [ ] Look over the bake in the headset: leaks, blotches, probe-lit
         pieces that stand out, moving things' shadows on the baked level.
     [ ] Torches. A realtime point light with no shadows shines through

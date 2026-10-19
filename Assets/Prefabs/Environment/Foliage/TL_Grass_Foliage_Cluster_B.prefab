@@ -84,6 +84,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 2527500501062556871, guid: ff8bbf5d83cb55b409d014cabf272dc3, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2527500501062556871, guid: ff8bbf5d83cb55b409d014cabf272dc3, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2686265835261748751, guid: ff8bbf5d83cb55b409d014cabf272dc3, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -108,6 +116,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 4879839748399759358, guid: ff8bbf5d83cb55b409d014cabf272dc3, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4879839748399759358, guid: ff8bbf5d83cb55b409d014cabf272dc3, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 4946345819303589951, guid: ff8bbf5d83cb55b409d014cabf272dc3, type: 3}
       propertyPath: m_ReceiveGI
       value: 2
@@ -131,6 +147,14 @@ PrefabInstance:
     - target: {fileID: 6900092086620206821, guid: ff8bbf5d83cb55b409d014cabf272dc3, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 7518275306146597828, guid: ff8bbf5d83cb55b409d014cabf272dc3, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7518275306146597828, guid: ff8bbf5d83cb55b409d014cabf272dc3, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7828067969291407308, guid: ff8bbf5d83cb55b409d014cabf272dc3, type: 3}
       propertyPath: m_Name

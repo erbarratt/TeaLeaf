@@ -64,6 +64,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 5700782819524069518, guid: 172885ec894ac6943a32bacc544dc1d4, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5700782819524069518, guid: 172885ec894ac6943a32bacc544dc1d4, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5764687264226874017, guid: 172885ec894ac6943a32bacc544dc1d4, type: 3}
       propertyPath: m_Name
       value: TL_Masonary_DoorOrnate

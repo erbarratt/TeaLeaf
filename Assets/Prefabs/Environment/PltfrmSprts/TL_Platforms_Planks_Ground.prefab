@@ -16,6 +16,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 694569193450521852, guid: 45c38fcbbd7cf634faa2a98c8ce5411b, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 694569193450521852, guid: 45c38fcbbd7cf634faa2a98c8ce5411b, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 694569193450521855, guid: 45c38fcbbd7cf634faa2a98c8ce5411b, type: 3}
       propertyPath: m_Name
       value: TL_Platforms_Planks_Ground

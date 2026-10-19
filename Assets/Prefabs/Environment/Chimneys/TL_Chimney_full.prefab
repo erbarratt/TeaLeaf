@@ -174,7 +174,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4714466281495530272, guid: 9b6027e3db9dc3c48a8c6ecebb86883f, type: 3}
       propertyPath: m_Name
-      value: TL_Chimney_full Variant
+      value: TL_Chimney_full
+      objectReference: {fileID: 0}
+    - target: {fileID: 5401081933915966995, guid: 9b6027e3db9dc3c48a8c6ecebb86883f, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5401081933915966995, guid: 9b6027e3db9dc3c48a8c6ecebb86883f, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

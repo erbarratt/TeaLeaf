@@ -8,6 +8,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1168813174891983144, guid: 2f06573bc73b7f44298777eaf2f0b500, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1168813174891983144, guid: 2f06573bc73b7f44298777eaf2f0b500, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1168813174891983151, guid: 2f06573bc73b7f44298777eaf2f0b500, type: 3}
       propertyPath: m_Name
       value: TL_Platforms_PlanksNailed

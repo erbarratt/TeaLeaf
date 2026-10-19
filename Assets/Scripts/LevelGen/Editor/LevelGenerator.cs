@@ -139,6 +139,12 @@ namespace LevelGen
             // by rays).
             StreetFoliage.BuildNettles(spec, annotations, settings, foliageRandom, placer, rootObject.transform, foliage, log);
 
+            // The free wall ends everything above has left (walls either side
+            // of a bend stopping short of each other, an end standing past its
+            // neighbour) are closed now, before the street test and the cull,
+            // so the fillers are tested and culled like the walls.
+            GapFiller.Run(rootObject.transform, annotations, styles, spec, settings, placer, log);
+
             // The street test: a ball down every street must touch nothing built.
             List<string> test = new();
             List<StreetSteps.Flight> flights = StreetSteps.Find(spec.streets, styles, placer, settings);
@@ -156,6 +162,10 @@ namespace LevelGen
             // pieces' colliders.
             MergedColliders.RunWalls(rootObject.transform, settings, log);
             MergedColliders.RunRoofs(rootObject.transform, annotations, settings, log);
+            // Shafts of moonlight across the narrow streets' mouths: once
+            // every piece and collider stands, since each beam is cut by
+            // rays against them, and after the cull, which never sees them.
+            MoonShafts.Build(spec, settings, rootObject.transform, log);
 
             // The report on the result: its markers go on the root, before
             // the fingerprint is taken.

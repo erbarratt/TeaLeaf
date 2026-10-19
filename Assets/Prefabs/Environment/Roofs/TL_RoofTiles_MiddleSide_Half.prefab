@@ -80,6 +80,14 @@ PrefabInstance:
       propertyPath: m_ScaleInLightmap
       value: 0.5
       objectReference: {fileID: 0}
+    - target: {fileID: 5288614740913072726, guid: 90e903d3df574fe478017922427bfe7e, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5288614740913072726, guid: 90e903d3df574fe478017922427bfe7e, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 5795630801670171067, guid: 90e903d3df574fe478017922427bfe7e, type: 3}
       propertyPath: m_Layer
       value: 6

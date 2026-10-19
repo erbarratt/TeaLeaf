@@ -12,6 +12,14 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 2517337692262544681, guid: 8f9fa5ce873cd784ab739bd38f95b90b, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2517337692262544681, guid: 8f9fa5ce873cd784ab739bd38f95b90b, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2967687066970146225, guid: 8f9fa5ce873cd784ab739bd38f95b90b, type: 3}
       propertyPath: m_ReceiveGI
       value: 2

@@ -16,6 +16,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 1603601011794906976, guid: 06e0dd22f6b3a98429d050bf0c648d69, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1603601011794906976, guid: 06e0dd22f6b3a98429d050bf0c648d69, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1896087599285050622, guid: 06e0dd22f6b3a98429d050bf0c648d69, type: 3}
       propertyPath: m_Layer
       value: 6

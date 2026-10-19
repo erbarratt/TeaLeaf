@@ -8,6 +8,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 66105093194436550, guid: 64182a3e86de309438d22ea6d0ddcb74, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 66105093194436550, guid: 64182a3e86de309438d22ea6d0ddcb74, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2412791269550334844, guid: 64182a3e86de309438d22ea6d0ddcb74, type: 3}
       propertyPath: m_ReceiveGI
       value: 1

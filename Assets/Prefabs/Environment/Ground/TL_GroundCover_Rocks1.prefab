@@ -48,6 +48,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 8334968433174694960, guid: 0b62ca0b50cac7d40a9305960fbc2a98, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8334968433174694960, guid: 0b62ca0b50cac7d40a9305960fbc2a98, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 8334968433174694961, guid: 0b62ca0b50cac7d40a9305960fbc2a98, type: 3}
       propertyPath: m_Name
       value: TL_GroundCover_Rocks1

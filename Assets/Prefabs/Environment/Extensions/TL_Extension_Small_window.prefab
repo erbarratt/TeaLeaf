@@ -50,7 +50,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8948399893880690225, guid: aaca55e645fba6a4ab2f3da43d441c80, type: 3}
       propertyPath: m_Name
-      value: TL_Extension_Small_window Variant
+      value: TL_Extension_Small_window
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -128,6 +128,14 @@ PrefabInstance:
     - target: {fileID: 9042749272057716747, guid: f544b6bd73c4ce84f96a991423b64b85, type: 3}
       propertyPath: m_Name
       value: TL_Window_D
+      objectReference: {fileID: 0}
+    - target: {fileID: 9042749272057716756, guid: f544b6bd73c4ce84f96a991423b64b85, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9042749272057716756, guid: f544b6bd73c4ce84f96a991423b64b85, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

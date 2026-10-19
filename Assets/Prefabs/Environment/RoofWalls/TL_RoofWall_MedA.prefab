@@ -16,6 +16,14 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
+    - target: {fileID: 2125429501311546120, guid: 2579dcb3997c2c04d8effeae9e6b4622, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2125429501311546120, guid: 2579dcb3997c2c04d8effeae9e6b4622, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2125429501311546121, guid: 2579dcb3997c2c04d8effeae9e6b4622, type: 3}
       propertyPath: m_Name
       value: TL_RoofWall_MedA

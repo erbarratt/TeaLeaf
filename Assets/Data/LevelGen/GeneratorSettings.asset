@@ -41,6 +41,7 @@ MonoBehaviour:
   cornerOverrun: 0.5
   jettyShare: 0.603
   jettyInset: 0.05
+  jettyStoreyDrop: 0.1
   doorInsertMargin: 0.05
   doorSideMargin: 0.13
   doorInsertDepth: 0
@@ -81,6 +82,8 @@ MonoBehaviour:
   ventSteamShare: 0.5
   sideWallMultiplier: 1
   sideWallTuck: 0.26
+  gapBridgeMax: 3
+  gapStoreyTolerance: 0.3
   maxStoreyWidthMismatch: 0.3
   overlapTolerance: 0.05
   minSegmentLength: 0.1
@@ -147,6 +150,11 @@ MonoBehaviour:
   cullRange: 80
   roofEdgeGap: 1.5
   roofEdgeReach: 20
+  moonShaftStreetMaxWidth: 0
+  moonShaftMaxLength: 40
+  moonShaftWallProbe: 1.5
+  moonShaftInset: 0.3
+  moonShaftMinEaves: 2
   deckingOverlap: 0.03
   deckingQuarterTurn: 0
   deckingSlideMin: 0

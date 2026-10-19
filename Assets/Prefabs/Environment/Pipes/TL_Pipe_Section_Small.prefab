@@ -52,6 +52,14 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 1730574217497872415, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1730574217497872415, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1792273140753730759, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -59,6 +67,14 @@ PrefabInstance:
     - target: {fileID: 1792273140753730759, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 1889591686226693723, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1889591686226693723, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1970203292799778454, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_Layer
@@ -163,6 +179,14 @@ PrefabInstance:
     - target: {fileID: 6968741127582872985, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_StaticEditorFlags
       value: 87
+      objectReference: {fileID: 0}
+    - target: {fileID: 7085202825544742661, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7085202825544742661, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7150887975570655176, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_Layer

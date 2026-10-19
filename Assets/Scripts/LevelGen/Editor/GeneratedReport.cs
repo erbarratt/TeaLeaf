@@ -27,8 +27,8 @@ namespace LevelGen
     ///   standing in a street, a side wall with no room before a street, a
     ///   corner side that carries nothing.
     ///
-    /// It only finds and lists; nothing is filled in afterwards. Each find is
-    /// fixed where the piece is placed.
+    /// The free wall ends it finds are closed by GapFiller before the street
+    /// test and the cull; what the report lists afterwards is what that left.
     /// </summary>
     internal static class GeneratedReport
     {
@@ -166,6 +166,45 @@ namespace LevelGen
         }
 
         /// <summary>
+        /// One front wall end nothing stands against, in view of a street:
+        /// what GapFiller closes and the report lists.
+        /// </summary>
+        internal struct FreeEnd
+        {
+            // The wall whose end it is (the placed piece's root).
+            public Transform Wall;
+            // The middle of the end face, in world space.
+            public Vector3 Centre;
+            // Out of the end along the wall, and the wall's front: level
+            // unit vectors.
+            public Vector3 Outward;
+            public Vector3 Front;
+            // The face's bottom and top heights, and its thickness, in metres.
+            public float Bottom;
+            public float Top;
+            public float Thickness;
+            // The share of its samples bare.
+            public float Share;
+            public GeneratedRoot.Marker Marker;
+        }
+
+        /// <summary>
+        /// The free wall ends under a Generated root as it stands now, for
+        /// closing (GapFiller): the same finds the report lists.
+        /// </summary>
+        internal static List<FreeEnd> FindFreeEnds(Transform root, PieceAnnotations annotations, LayoutSpec spec)
+        {
+            Dictionary<string, PieceAnnotation> byName = new();
+
+            foreach (PieceAnnotation piece in annotations.pieces) {
+                byName[piece.name] = piece;
+            }
+
+            Gather(root, byName, out Grid pieces, out Grid tiles);
+            return FreeEnds(pieces, StandingTiles(tiles, pieces, spec));
+        }
+
+        /// <summary>
         /// Reports on everything under a Generated root: the free wall ends
         /// found now and the problems the builders added. Returns the
         /// Console lines (a summary first, then the worst finds) and every
@@ -183,8 +222,8 @@ namespace LevelGen
 
             Gather(root, byName, out Grid pieces, out Grid tiles);
             Grid standing = StandingTiles(tiles, pieces, spec);
-            List<(float share, GeneratedRoot.Marker marker)> ends = FreeEnds(pieces, standing);
-            ends.Sort((a, b) => b.share.CompareTo(a.share));
+            List<FreeEnd> ends = FreeEnds(pieces, standing);
+            ends.Sort((a, b) => b.Share.CompareTo(a.Share));
             int walls = 0;
 
             foreach (Piece piece in pieces.Pieces) {
@@ -197,10 +236,10 @@ namespace LevelGen
                 + $"stood on; {ends.Count} free wall end(s) (over {BareShare:P0} bare and in view of a street); {_building.Count} problem(s) met while building.");
 
             for (int i = 0; i < ends.Count; i++) {
-                markers.Add(ends[i].marker);
+                markers.Add(ends[i].Marker);
 
                 if (i < Listed) {
-                    lines.Add("    " + ends[i].marker.note);
+                    lines.Add("    " + ends[i].Marker.note);
                 }
             }
 
@@ -429,9 +468,9 @@ namespace LevelGen
         /// BareShare bare, with its marker (at the end face's middle, the
         /// face's size).
         /// </summary>
-        private static List<(float, GeneratedRoot.Marker)> FreeEnds(Grid pieces, Grid tiles)
+        private static List<FreeEnd> FreeEnds(Grid pieces, Grid tiles)
         {
-            List<(float, GeneratedRoot.Marker)> found = new();
+            List<FreeEnd> found = new();
             List<Vector3> views = new();
 
             for (int i = 0; i < pieces.Pieces.Count; i++) {
@@ -508,13 +547,25 @@ namespace LevelGen
                             }
                         }
 
-                        found.Add((share, new GeneratedRoot.Marker {
-                            kind = GeneratedRoot.MarkerKind.FreeEnd,
-                            position = middle,
-                            size = faceSize,
-                            note = $"Free end: {wall.Path}, {(end == 0 ? "first" : "second")} end at ({middle.x:0.0}, {middle.y:0.0}, {middle.z:0.0}), "
-                                + $"{share:P0} bare{seenFrom}."
-                        }));
+                        Vector3 front = wall.Root.TransformDirection(wall.Front);
+                        front.y = 0f;
+                        found.Add(new FreeEnd {
+                            Wall = wall.Root,
+                            Centre = middle,
+                            Outward = outward,
+                            Front = front.sqrMagnitude > 0.0001f ? front.normalized : Vector3.Cross(Vector3.up, outward),
+                            Bottom = wall.Root.TransformPoint(new Vector3(0f, wall.Min.y, 0f)).y,
+                            Top = wall.Root.TransformPoint(new Vector3(0f, wall.Max.y, 0f)).y,
+                            Thickness = (wall.Max[across] - wall.Min[across]) * Mathf.Abs(wall.Root.lossyScale[across]),
+                            Share = share,
+                            Marker = new GeneratedRoot.Marker {
+                                kind = GeneratedRoot.MarkerKind.FreeEnd,
+                                position = middle,
+                                size = faceSize,
+                                note = $"Free end: {wall.Path}, {(end == 0 ? "first" : "second")} end at ({middle.x:0.0}, {middle.y:0.0}, {middle.z:0.0}), "
+                                    + $"{share:P0} bare{seenFrom}."
+                            }
+                        });
                     }
                 }
             }

@@ -6,6 +6,65 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-19 (late: level generator closes its free wall ends; shafts of
+            moonlight built and switched off)
+---------------------------------------------------------------------------
+- Gaps closed (GapFiller, run after the nettles and before the street
+  test and the visibility cull, so the fillers are tested and culled
+  like the walls). The free wall ends the report finds - walls either
+  side of a bend stopping short of each other, a lot's corner whose
+  walls meet at an angle the joints don't close, a wall standing above
+  or past its neighbour at a step - are found at that point
+  (GeneratedReport.FindFreeEnds, a FreeEnd per end: the wall, the end
+  face's middle, its outward and front directions, bottom, top and
+  thickness) and closed. Two ends on different walls within
+  gapBridgeMax (3m), at one storey height (gapStoreyTolerance 0.3m),
+  facing each other and facing the same way round are paired, nearest
+  first, and bridged by one plain wall across the chord, scaled to it,
+  under the first end's own storey group so the wall colliders merge
+  it and the report checks its ends. An end left alone gets a return
+  wall (FacadeBuilder.PlaceSideWall) facing out of the end, under a
+  Side gap group. The filler is the end's own wall where it is a plain
+  wall showing no opening, else a side wall of its style of the right
+  height, else a blind-window wall, never a ground-only wall above the
+  ground nor another one-per-storey wall; from a random sequence of its
+  own (seed x 37 + 11), so nothing else built moves. Fillers wear the
+  wall's materials by name (with the colour suffix), so they take the
+  building's colour, and are checked against the streets like any wall.
+  Three-levels: 29 ends, 7 pairs bridged, 15 returns, none left; the
+  report lists no free wall end for the first time.
+- Shafts of moonlight, built and then switched off. Core.MoonShaft
+  describes an opening (a rectangle on its local X and Y) and builds
+  the beam itself at load: the light's direction from Moonlight, one
+  ray from each corner along it to where the light lands, a prism of
+  six sheets in a DontSave mesh; rays towards the moon cut the opening
+  down to the part the moon reaches, so a shaft placed anywhere only
+  shows light that is there, and one wholly in shadow draws nothing.
+  TeaLeaf/MoonShaft (additive, unlit, stereo instanced, no depth
+  texture) shades each sheet by the beam's thickness behind it and how
+  square on it is seen, with edge, length and near fades, streaks and
+  motes from the flame noise. The level generator (MoonShafts, after
+  the merged colliders) lays one over every segment of a spec-narrow
+  street as the strip of sky between the two sides' eaves; settings
+  under "Moon shafts". Three-levels got 7 over its 8 alley segments.
+  Lessons: a vertical slot across an alley's mouth carries light only
+  when the moon shines along the alley, the sky strip works for any
+  bearing; a 2D opening profile is zero on every side sheet, so the
+  fades had to be per sheet; and URP's _MainLightColor is black in
+  Level Gen Test, whose moon is a Baked light, so the component hands
+  the moon's Light colour to the shader as a global instead. In the
+  editor renders the beams read as flat bright slabs rather than soft
+  light, so moonShaftStreetMaxWidth is 0 in the settings asset, the
+  level was regenerated without them and the look waits for a rework
+  and a judgement in the headset. The code stays.
+- Every prefab variant under Assets/Prefabs (295 files) has its LOD
+  groups set to cross-fade (Fade Mode Cross Fade, Animate Cross-fading)
+  as an override, as the stone floor tile already had, so LOD changes
+  blend rather than pop.
+- Level Gen Test regenerated (three-levels) and saved; lightmap bake
+  stale. Street test still fails only on stair-lane.
+
+
 2026-10-19 (level generator: merged wall and roof colliders, lamp post
             spacing and sink, jettied storeys cut into the deck; prefab
             lighting tweaks)

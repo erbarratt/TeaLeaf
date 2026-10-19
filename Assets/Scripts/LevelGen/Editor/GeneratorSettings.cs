@@ -177,6 +177,12 @@ namespace LevelGen
         [Tooltip("At a column's left end (seen from the street), where its front walls' end has its trim, the side walls are tucked in behind that end as the walls go together: their back plane this far inside the column from the join, their street end on the front wall's main surface (the plaster or stone between the timbers). At the right end they stand outside the column, covering the front walls' plain end.")]
         [SerializeField, Range(0f, 1f)] private float sideWallTuck = 0.26f;
 
+        [Header("Gaps")]
+        [Tooltip("Once every facade, lot and dead end stands, the free wall ends (a front wall's end nothing stands against, in view of a street: the report's finds) are closed before the street test and the visibility cull. Two ends facing each other at one storey height no further apart than this are bridged by one plain wall of the storey's style laid across the gap; an end with no partner gets a return wall, side-on, running back from the front.")]
+        [SerializeField, Range(0.5f, 10f)] private float gapBridgeMax = 3f;
+        [Tooltip("How far two free ends' bottoms (and tops) may differ in height and still count as one storey, to be bridged.")]
+        [SerializeField, Range(0f, 1f)] private float gapStoreyTolerance = 0.3f;
+
         [Tooltip("How far a storey's module width may differ from the ground storey's below it. Every storey is laid at the ground storey's spacing, each wall centred in its place, so a wider wall overlaps its neighbours and a narrower one leaves a small gap.")]
         [SerializeField, Range(0f, 1f)] private float maxStoreyWidthMismatch = 0.3f;
 
@@ -324,6 +330,18 @@ namespace LevelGen
         [Tooltip("How far out the space beyond a roof piece's building must be empty (no Environment collider, from the piece's top down) for the piece to lose its colliders.")]
         [SerializeField, Range(2f, 100f)] private float roofEdgeReach = 20f;
 
+        [Header("Moon shafts")]
+        [Tooltip("Every segment of a street no wider than this, with a building on both sides, gets a shaft of moonlight: a MoonShaft laid level across the strip of sky between the two sides' eaves, which cuts itself down to the part the moon reaches and draws nothing where it reaches none. 0 places none.")]
+        [SerializeField, Range(0f, 10f)] private float moonShaftStreetMaxWidth = 4.5f;
+        [Tooltip("The furthest a shaft's light is followed through its opening before the beam is cut off, where nothing stops it sooner.")]
+        [SerializeField, Range(1f, 100f)] private float moonShaftMaxLength = 40f;
+        [Tooltip("How far from a street's edge the pass looks for the walls along it, whose tops (less the roofs' eave drop, the lower side's) set the opening's height; a segment with no wall along either edge gets no shaft.")]
+        [SerializeField, Range(0.2f, 5f)] private float moonShaftWallProbe = 1.5f;
+        [Tooltip("How far in from each edge of the street the opening stops, so its rays never start inside the walls.")]
+        [SerializeField, Range(0f, 1.5f)] private float moonShaftInset = 0.3f;
+        [Tooltip("A segment whose eaves stand lower than this above the street gets no shaft.")]
+        [SerializeField, Range(0.5f, 10f)] private float moonShaftMinEaves = 2f;
+
         [Header("Decking (wooden streets, walkways, bridges)")]
         [Tooltip("How far neighbouring decking tiles overlap, along a row and between rows.")]
         [SerializeField, Range(0f, 0.2f)] private float deckingOverlap = 0.03f;
@@ -382,6 +400,8 @@ namespace LevelGen
         internal float MaxStoreyWidthMismatch => maxStoreyWidthMismatch;
         internal float SideWallMultiplier => sideWallMultiplier;
         internal float SideWallTuck => sideWallTuck;
+        internal float GapBridgeMax => gapBridgeMax;
+        internal float GapStoreyTolerance => gapStoreyTolerance;
         internal int PipeRunsMax => pipeRunsMax;
         internal float PipeExtraRunShare => pipeExtraRunShare;
         internal float PipeMinRunShare => pipeMinRunShare;
@@ -471,6 +491,11 @@ namespace LevelGen
         internal float CullRange => cullRange;
         internal float RoofEdgeGap => roofEdgeGap;
         internal float RoofEdgeReach => roofEdgeReach;
+        internal float MoonShaftStreetMaxWidth => moonShaftStreetMaxWidth;
+        internal float MoonShaftMaxLength => moonShaftMaxLength;
+        internal float MoonShaftWallProbe => moonShaftWallProbe;
+        internal float MoonShaftInset => moonShaftInset;
+        internal float MoonShaftMinEaves => moonShaftMinEaves;
         internal float DeckingOverlap => deckingOverlap;
         internal bool DeckingQuarterTurn => deckingQuarterTurn;
         internal float DeckingSlideMin => deckingSlideMin;

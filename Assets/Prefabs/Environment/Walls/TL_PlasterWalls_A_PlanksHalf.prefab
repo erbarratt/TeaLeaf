@@ -8,6 +8,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 1619305879186607192, guid: 63dc26478a7ede74fa63d7f23c08d103, type: 3}
+      propertyPath: m_FadeMode
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1619305879186607192, guid: 63dc26478a7ede74fa63d7f23c08d103, type: 3}
+      propertyPath: m_AnimateCrossFading
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 1619305879186607199, guid: 63dc26478a7ede74fa63d7f23c08d103, type: 3}
       propertyPath: m_Name
       value: TL_PlasterWalls_A_PlanksHalf

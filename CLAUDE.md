@@ -55,7 +55,8 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
   `SoundLoop`, `SoundLoopPlayer`, `ListenerReverb`, `RoomAmbience`, `ReverbSettings`,
   `SpatialVoice`), the render settings, surfaces (`SurfaceType`, `SurfaceTag`,
   `SurfaceSounds`, `RampCollider`, `BarrelCollider`, `EnvironmentVariants`), gameplay light (`SceneLight`, `Moonlight`, `LightSource`, `Flame`), the
-  procedural night sky (`ProceduralSky`, `MoonSurfaceBuilder`), the level surface shaders,
+  procedural night sky (`ProceduralSky`, `MoonSurfaceBuilder`), the shafts of moonlight
+  (`MoonShaft`), the level surface shaders,
   and shared debug drawing (`DebugLines`, `IDebugDrawable`, `InHeadsetGizmos`).
 - **`Assets/Scripts/Inventory/CLAUDE.md`** — what the player owns and carries: the pack
   (`Pack`, `PackSlot`), loot (`Loot`), keys (`Key`, `Keyring`) and the inventory data
@@ -558,8 +559,14 @@ fails and restarts. The mechanics:
 - **Sky:** no skybox - the camera clears to black and `Core.ProceduralSky` draws the stars
   (camera-locked quads built at level load, none below the horizon, twinkling in the shader)
   and the moon, a disc where the Directional Light shines from, its cratered face painted
-  into a small texture at level load. A picture only: it lights nothing. Detail in
-  `Assets/Scripts/Core/CLAUDE.md`.
+  into a small texture at level load. A picture only: it lights nothing. **Shafts of
+  moonlight** (`Core.MoonShaft`) are placed geometry, never a screen effect: a component
+  describes an opening (a strip of sky between two eaves, a window, an alley's mouth) and
+  builds a soft prism of light from the Directional Light's direction and colour at load,
+  cut to the part the moon reaches by rays, with the beam drawn by `TeaLeaf/MoonShaft`;
+  the level generator can lay one over each of its alleys, the rest are placed by hand.
+  **Switched off for now** (none in any scene; the generator's shaft width is 0) until
+  the look is right. Detail in `Assets/Scripts/Core/CLAUDE.md`.
 - **Art:** the slice is to look like a finished game, not a greybox. **Shapes are
   storybook-crooked**: half-timbered houses that lean storey by storey, swept roofs with
   flared eaves, bowed timbers, staggered chimneys. **Surfaces are painted, in the manner
@@ -574,8 +581,8 @@ fails and restarts. The mechanics:
   by the level generator (`Assets/Scripts/LevelGen`), and by nothing else**: the
   generator lays out streets and buildings from real `Assets/Prefabs` variants under its
   own root (with pipes, vents, walkways and lamp posts on its facades, chimneys,
-  dormers and railings on its roofs, smoke and steam, and grass and nettles in its
-  streets), and everything else -
+  dormers and railings on its roofs, smoke and steam, grass and nettles in its
+  streets, and shafts of moonlight over its alleys), and everything else -
   other set dressing, lighting, gameplay - is placed by hand.
   Don't propose any other editor builder for level art. The pack folder is git-ignored and its
   own prefabs are left untouched; **the game's prefabs live in `Assets/Prefabs`, each a
