@@ -26,9 +26,12 @@ debug drawing.
   shadow map; their shadows come from the bake. Every point light in the pack's prefabs
   (buildings, lampposts, the tower bridge's torch) is overridden to **Baked** in the scene
   - the `TL_Lampost` variant's own light is **Mixed** (Indirect Multiplier 0, soft
-  shadows, 5m) with a `LightSource` and a `Flame`, the level generator's gameplay lamp
-  (`Assets/Scripts/LevelGen/CLAUDE.md`), and `Main.unity`'s three instances override
-  it to Baked while keeping the `LightSource` and `Flame`.
+  shadows, 5m) with a `LightSource`, a `Flame` and a `FlameFlicker`, the level
+  generator's gameplay lamp (`Assets/Scripts/LevelGen/CLAUDE.md`), and `Main.unity`'s
+  three instances override it to Baked while keeping the `LightSource` and `Flame` (so
+  their flicker switches itself off). Each lit window variant (`TL_Window_*_Lit`)
+  carries a **Baked** spot light that pools its glow on the street below, no
+  `LightSource` (`Assets/Scripts/LevelGen/CLAUDE.md`).
   Settings asset `Assets/Settings/Docks Lighting.lighting` (GPU lightmapper, 10 texels/m,
   2048 maps, Non-Directional, 4 bounces, AO reaching 1m, no direct denoiser or direct
   filter so the moon's shadow edges stay sharp). **Walls are baked at twice the texel
@@ -40,7 +43,7 @@ debug drawing.
   are at 1. **After every bake the shadow floor is applied** (`ShadowFloor`, below): no
   lightmap texel or light probe is left darker than `Moonlight.shadowFloor`. `Main.unity`
   has no bake output at present (`Assets/Scenes/Main/` holds only the occlusion data, so
-  it needs Place Light Probes and a bake); `Level Gen Test.unity` has its own (three
+  it needs Place Light Probes and a bake); `Level Gen Test.unity` has its own (ten
   lightmaps with shadowmasks in `Assets/Scenes/Level Gen Test/`), its ambient a blue-grey
   (0.08, 0.09, 0.11) and its default reflection Custom with no cubemap. Small pieces and
   everything that moves are lit by the light probes (`EnvironmentVariants`,
@@ -371,7 +374,22 @@ night. The player's side (`Player.PlayerVisibility`) is in `Scripts/Player/CLAUD
   `flameVisual` object. `Extinguish()` (with an optional `extinguishCue`), `Relight()`,
   `IsLit`, `startsLit`. Self-registering static list; **`Flame.ExtinguishNear(point,
   radius)`** puts out every lit one within the radius (distance checks only) and returns
-  how many - what the water bolt calls. No `Update()`. **A flame is drawn by one quad
+  how many - what the water bolt calls. No `Update()`. It also pauses the fire's
+  `FlameFlicker` (found on the same object if not wired) while the fire is out.
+- **`FlameFlicker`** — makes a fire's visible light waver: its Unity `Light`'s intensity
+  (`flameLight`, found on the same object if not wired) wanders round the value set in
+  the editor by up to `amount` (0.15) of it either way, at `speed` (6), from two octaves
+  of `Mathf.PerlinNoise` - a slow wander with a quicker tremble on top. **Only the
+  visible light moves; the `LightSource` guards see by stays steady**, so detection never
+  jitters. It works because the light is Mixed and the lighting mode is Shadowmask: the
+  direct part is computed every frame, so the change shows on static and moving things
+  alike with no rebake; only the baked bounce stays constant. On a **Baked** light it
+  disables itself in `Awake()` (nothing would show) and costs nothing. **Each flame
+  starts at its own point in the noise**, hashed from its world position in `Awake()`,
+  so neighbouring lamps never flicker in step. Its own `Update()` (one float write a
+  frame; not a player system). Disabling it puts the intensity back where the editor
+  set it. On the `TL_Lampost` variant beside its `Flame`; the Sound Test House builder
+  adds one to each of its lights. **A flame is drawn by one quad
   with the `TeaLeaf/Flame` shader** (`Assets/Art/Shaders/Flame.shader`,
   `Assets/Art/Materials/Flame.mat`, the noise `Assets/Art/Textures/FlameNoise.png`, a
   128 R8 tiling value noise): unlit, billboarded round the up axis in the vertex
@@ -463,7 +481,7 @@ that stands in for a flight of steps, and the barrels' shared collision shape.
   the numbers. **Other barrel prefabs get a plain convex `MeshCollider` with the baked
   mesh, no `BarrelCollider`.** Convex, so a ring narrower than the line between its
   neighbours is bridged over.
-- **`EnvironmentVariants`** (`Core/Editor`, menu **TeaLeaf > Make Environment Variants**)
+- **`EnvironmentVariants`** (`Core/Editor`, menu **TeaLeaf > Modify Prefab > Make Environment Variants**)
   — makes the prefab variants for static level geometry in bulk. Select pack prefabs, or
   folders holding them, in the Project window and run it: each gets a variant in
   `Assets/Prefabs/Environment/<category>/` under the pack's name with a leading
@@ -481,29 +499,82 @@ that stands in for a flight of steps, and the barrels' shared collision shape.
   renderer whose longest side is under 1m, or whose middle side is under 0.15m (a rod:
   rails, beams, brackets), gets Receive Global Illumination: Light Probes, measured on the
   mesh's own bounds times the object's scale (`SmallPieceSize`, `ThinPieceWidth`); thin
-  flat pieces (floors, roofs, wall panels) keep their lightmaps. New variants get it as
-  they are made; **TeaLeaf > Set Small Pieces To Light Probes** applies it to every prefab
-  already under `Assets/Prefabs/Environment` (opened with `LoadPrefabContents`, saved only
-  if something changed, so on a variant it is an override, nested pack pieces included).
-  Pieces already on probes, and non-static ones, are left alone.
+  flat pieces (floors, roof tile panels and hip bases, wall panels) keep their lightmaps.
+  **A probe-lit renderer is never Batching Static** - one set to Light Probes, or one
+  that doesn't Contribute GI (lit by probes whatever it is set to, lamp posts for one):
+  static batching merges it into one mesh with its neighbours, and the probes are then
+  read at the merged mesh's centre, so a prop at the far end of its batch takes the
+  light and moon shadow of a spot many metres away. The tool takes the flag off every
+  such renderer, keeping its other static flags. New variants get both as they are made;
+  **TeaLeaf > Lighting > Set Small Pieces To Light Probes** applies both to every prefab
+  already under `Assets/Prefabs` (opened with `LoadPrefabContents`, saved only if
+  something changed, so on a variant it is an override, nested pack pieces included).
+  Non-static pieces are left alone.
+- **`LodMeshBuilder`** (`Core/Editor`, an editor window, menu **TeaLeaf > Modify Prefab > Make LOD
+  Meshes**) — makes the lower-detail meshes for a model the way the packs' models carry
+  them (Medieval_Barrel: `_LOD0`, `_LOD1`, `_LOD2` and `_Collision` meshes). Select
+  models (FBX) or meshes in the Project window and press the button: the model's own mesh
+  is LOD0, and next to the model it saves `<name>_LOD1.asset` and `<name>_LOD2.asset`
+  cut to a share of the triangles (0.5 and 0.2 by default), plus `<name>_Collision.asset`
+  (0.1) when **Collision mesh** is ticked - off by default - for a convex `MeshCollider`.
+  `<name>` is the model file's name, or the mesh's own when a model holds several; a
+  mesh already named `_LOD1`/`_LOD2`/`_Collision` is skipped. **Mesh assets only**: the
+  prefab (root with a `LODGroup`, a child per LOD, a collision child) is put together by
+  hand. Running it again rewrites the existing assets in place (`CopySerialized`), so a
+  prefab built on them keeps its references. The reducing is the **Unity Mesh Simplifier**
+  package (`com.whinarn.unitymeshsimplifier`, from GitHub in the manifest; quadric edge
+  collapse keeping UVs, normals and tangents; used only here, nothing of it runs in the
+  game). Open edges are always kept (`PreserveBorderEdges`); **Preserve UV seams** is off
+  by default because a generated (Tripo) model is seamed everywhere and keeping them stops
+  the reduction - the Console report gives each mesh's triangle counts, so an unreached
+  ratio shows. Settings persist in EditorPrefs.
 - **`ColliderRemover`** (`Core/Editor`, menu **TeaLeaf > Remove Colliders From
   Selection**, offered while something is selected) — removes every collider from the
   objects selected in the Hierarchy and all their children, inactive ones included, as
   one Undo step, logging the count. A `RampCollider` is removed too (first, since it
   requires its `MeshCollider`). On a prefab instance the removal is an override; the
   prefab is untouched.
-- **`LightProbePlacer`** (`Core/Editor`, menu **TeaLeaf > Place Light Probes**) — fills the
+- **`ColliderFlattener`** (`Core/Editor`, menu **TeaLeaf > Modify Prefab > Flatten Variant Colliders**)
+  — moves the colliders of the prefabs selected in the Project window (prefabs or
+  folders, under `Assets/Prefabs` only) onto each prefab's root object and deletes the
+  child objects left holding nothing but a transform (and an undrawn mesh), logging a
+  total and a line per prefab changed. **The rule it applies: a prefab's colliders sit
+  on its root, and a collider gets a child object only when it needs one** - the packs
+  put every collider on its own child, most of them empty transforms (an extra
+  Transform each to sync and serialise, and a longer walk for `SurfaceTag.Find()`).
+  A collider stays on its child when it is turned relative to the root (within
+  `AlignedAngle`, 0.01°; a collider has no rotation of its own), when the child has
+  another layer or a `SurfaceTag` between it and the root or is a trigger, when it
+  carries another component (a `RampCollider`, a `BarrelCollider`), or when it is part
+  of a nested prefab instance; a `MeshCollider` moves only from a child at the root's
+  exact transform, since its mesh can't be re-centred. A box is re-centred with
+  `TransformPoint` and re-sized by the child's world scale over the root's, axis by
+  axis; a sphere's radius by the largest axis, a capsule's height along its axis and
+  radius by the larger of the other two. Each prefab is opened with
+  `LoadPrefabContents` and saved only if something moved, so on a variant the changes
+  are overrides (an added collider on the root, a removed component and a removed
+  object on the base) and the pack's prefab is untouched. Only the variants it is run
+  on change: run it on a prefab when its collider children matter (the cliff rocks and
+  the deciduous trees carry up to thirty each).
+- **`LightProbePlacer`** (`Core/Editor`, menu **TeaLeaf > Lighting > Place Light Probes**) — fills the
   level's one `LightProbeGroup`, at `Environment/Sectors/Global/Lighting/Light Probes`
-  (made, with any missing groups on the way, if absent). A grid every 2.5m (`Spacing`) over
+  (made, with any missing groups on the way, if absent). A grid every 1.25m (`Spacing`) over
   the box round every Environment collider; in each column, rays straight down find every
   floor (normal y at least 0.7, so ramps count and walls don't; a floor within 0.5m below
-  the last gives nothing), and a probe goes 0.5m and 2m above each (`_heights`). A probe is
+  the last gives nothing), and a probe goes 0.2m, 1m and 2m above each (`_heights`). The
+  lowest layer sits below the centre of anything small standing on the floor (grass, a
+  table, loot): Unity blends from the tetrahedron round a renderer's bounds centre, not
+  from the nearest probes, and a centre under the lowest layer is blended from a
+  tetrahedron reaching down to some lower floor. A probe-lit thing takes one value for
+  its whole body, blurred across the cell it stands in, so the grid is close to keep the
+  moon's shadow edge tight; the count costs bake time and a little memory, not frame
+  time (a renderer's lookup is cached until it moves). A probe is
   left out if it is within 0.15m of geometry, if anything lies between it and its floor (a
   low ceiling), or if at least three of six rays out from it first hit the inside of a mesh
   collider (back faces on: shut inside a building with no interior). Each run replaces the
   group's probes (undoable); rerun after layout changes, then rebake. Environment layer only,
   so it also fills spaces the player can't reach (a sea bed under the water).
-- **`ShadowFloor`** (`Core/Editor`, menu **TeaLeaf > Apply Shadow Floor**; also runs by
+- **`ShadowFloor`** (`Core/Editor`, menu **TeaLeaf > Lighting > Apply Shadow Floor**; also runs by
   itself after every bake, through `Lightmapping.bakeCompleted`) — raises every lightmap
   texel and every light probe of the open scene to at least `Moonlight.shadowFloor`, so
   deep shade keeps its detail while the moon-to-shade contrast stays: a flat sky ambient
@@ -794,7 +865,10 @@ the player truthfully where it is, on stereo headphones.
   restarts like Caught until there is a "Mission complete" panel. **The player's body is
   frozen during the end fade**: `PlayerController` subscribes to `StateChanged` and, once the
   level is over, runs only the hand systems (see the tick order in the root `CLAUDE.md`).
-  Right-click "Test Caught"/"Test Take Objective" in Play Mode.
+  Right-click "Test Caught"/"Test Take Objective" in Play Mode. Also holds the **PC Play**
+  development switch: `pcPlay` (`IsPcPlay`, off by default, off for a build) - Play Mode
+  with the mouse and keyboard and no headset, done by `PcPlay` on the Player root (see
+  `Scripts/Player/CLAUDE.md`); the manager only holds the switch.
 - **`ExitZone`** — a box (serialized `size`, centred on the object, following its
   position/rotation/scale) tested with `InverseTransformPoint`, not a trigger collider: no
   physics layer, nothing for hand rays to hit, and it works while a mantle has the

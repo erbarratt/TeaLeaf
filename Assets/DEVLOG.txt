@@ -6,6 +6,156 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-20 (level generator: sloped streets, facade lean with sheared
+            side walls, pipes per building, the three-streets level in
+            Intro.unity; lit window spots, flipbook smoke, flame
+            flicker, probe-lit pieces off static batching, closer light
+            probes, flattened variant colliders, LOD meshes for Tripo
+            props, PC Play)
+---------------------------------------------------------------------------
+- Sloped streets. A segment whose points differ in height climbs by a
+  slope where its grade is no steeper than streetSlopeMaxGrade (1 in
+  12, over the segment less the landing at its top), else by a flight
+  of steps as before. StreetSlopes chooses and measures them;
+  StreetHeights.Find gathers every flight and slope once and hands
+  them to the ground, the facades, the street clearance, the street
+  test and the cull, so they all agree where the surface is (SurfaceAt
+  as walked, GroundAt for the tiles). StreetGround.LaySlope lays rows
+  of tiles tilted about the across axis from the top down, with a
+  landing at the top (LayLanding, shared with the flights, now
+  reaching a tile past each edge) and the grid's tiles left out over
+  it; the floor colliders get one tilted box per row (BeginRow takes
+  the row's normal). No grass on a slope.
+- Buildings beside a slope stand level, each at the highest the
+  street comes under any of its modules (RunLevel, Height()), so a
+  door is never buried and buildings step down a hill one by one; the
+  two sides of every joint stand at the higher level
+  (EqualCornerLevels). Where the street falls below a module's level
+  its foundations are stacked down (StackFoundations, the one pass
+  that also stacks up beside steps) until the lowest course is
+  foundationBury (0.1m) below the street in front of it. A foundation
+  piece stands 0.3m above its level, so nothing is needed until the
+  drop passes 0.7m; the validator refuses a lot beside a slope (its
+  ground ring is one level) and warns of a building whose drop passes
+  slopeDropMax (0.6m), so specs keep slope-side buildings short.
+  example-slope.json (a hill street rising 1.5m over 30m with a lane
+  falling off it) and five sloping lanes added to three-levels.
+- Facade lean, a preview of the storybook lean (facadeLean, 5 in the
+  asset). On a leaning run the upper storeys' street walls, the beam
+  bands and the corner fillers lie on one plane tilted out over the
+  street, hinged at the first upper storey's base (Lean, LeanForward);
+  doors and inserts tilt with their wall. Only one side of a corner
+  leans (AssignLeans, in spec order; three-levels 41 lean, 45
+  upright): with both leaning each wall's top moves out over its own
+  street and a wedge opens at the top of the corner. The upright
+  side's end piece at each storey is widened by the lean's offset and
+  its mesh sheared towards the corner (FollowLeans), so its edge stays
+  inside the leaning wall at every height. The side walls of a leaning
+  run follow it: moved forward and their meshes sheared so the front
+  edge leans and the back edge stays plumb (LaySideStorey,
+  PlaceSideWall). The shear is baked into a copy of the wall's mesh
+  (ShearedMeshes, every LOD, normals and tangents carried), one per
+  mesh and 0.25-degree angle, saved under Assets/Data/LevelGen/Sheared
+  (106 for three-levels, remade if deleted) and set as a MeshFilter
+  override, so the piece's transform, colliders and prefab link are
+  those of any wall; chosen over shearing with nested transforms. The
+  ground storey, jetty supports, roofs and dressing stay upright. Not
+  yet judged in the headset; a sharp corner's notch cover and the top
+  of an inside bend with one side leaning are unchecked.
+- pipeBuildingShare (0.4): each building is rolled for pipes before
+  anything else and the rest get none (three-levels 61 of 151).
+- three-streets.json, the first spec that is a level rather than an
+  example: two sloping streets roughly north-south at different
+  levels and a middle street climbing between them by three
+  one-flight segments at each end (the validator wants such a segment
+  at least 9.13m: a flight and its landing), no lots. It sits on the
+  origin, so it is never built beside the examples. Generated into
+  the new Intro.unity (sector Three Streets, with a lightmap and
+  occlusion bake; nothing else in the scene yet).
+- Known, pre-existing: at a shallow inside bend (about 20 degrees)
+  with a jettied building a storey's corner filler can be left out
+  between the trimmed end module and the next, a hole the report
+  excuses (example-slope's hill street, left side).
+- Lit windows: the emissive material alone baked only a faint warm
+  patch, so each lit variant carries a Baked spot light (Window
+  Light: warm, 1.5, 4m, 110-degree cone, pointing out and 25 degrees
+  down) that pools light on the street below in the lightmaps and
+  probes, costing nothing at runtime.
+- Smoke and steam reworked from the Thief VR prologue's export: the
+  motion is in a 6 x 6 flipbook of 36 frames at 8 fps
+  (SmokeFlipbook_REPLACEME.png, a stand-in), not in the particles -
+  at most five upright billboard quads per system, tinted dark blue
+  at low alpha, growing and fading over 10s, camera fade so a quad
+  never fills the view. Smoke.mat and SmokePuff.png are gone;
+  Chimney Smoke and Vent Steam have materials of their own.
+- FlameFlicker (Core): a fire's visible light wavers, its Light's
+  intensity wandering round the editor value by up to 15% from two
+  octaves of Perlin noise, each flame starting at its own point in
+  the noise. Only the visible light moves - the LightSource guards
+  see by stays steady. It works because the light is Mixed in
+  Shadowmask mode (the direct part is computed every frame), so no
+  rebake; on a Baked light it disables itself. Flame pauses it while
+  the fire is out. On TL_Lampost (which also gets Lamp Glass and
+  BlackBlocker materials of its own) and the Sound Test House's
+  lights. Flame.mat retuned (cover 1, flicker 0.56).
+- Probe-lit pieces off static batching. The Dressing props took the
+  light and moon shadow of a spot metres away: static batching merges
+  probe-lit meshes into one and reads the probes at the merged
+  mesh's centre. A probe-lit renderer (Receive GI: Light Probes, or
+  one that doesn't Contribute GI) is now never Batching Static; Make
+  Environment Variants and Set Small Pieces To Light Probes (now over
+  all of Assets/Prefabs) take the flag off, keeping the others. Roof
+  tile panels and hip bases keep their lightmaps.
+- Light probes closer: a grid every 1.25m with layers at 0.2, 1 and
+  2m. Unity blends from the tetrahedron round a renderer's bounds
+  centre, so a small thing whose centre was under the lowest layer
+  was blended from a tetrahedron reaching down to some lower floor.
+- Variant colliders flattened. A survey found the packs put every
+  collider on its own child, most of them empty transforms; the new
+  ColliderFlattener (TeaLeaf > Modify Prefab > Flatten Variant
+  Colliders) moves a collider onto the prefab root where it is
+  aligned with it and carries nothing else, re-centring and re-sizing
+  it, and deletes the emptied child. Run over Assets/Prefabs/
+  Environment: 215 colliders onto roots in 148 prefabs, 212 empty
+  children removed, every moved box checked against its source.
+- LodMeshBuilder (TeaLeaf > Modify Prefab > Make LOD Meshes): LOD1
+  and LOD2 meshes (0.5 and 0.2 of the triangles) and an optional
+  collision mesh next to a model, by the Unity Mesh Simplifier
+  package (editor only). First used on the Tripo-generated props in
+  Assets/TripoModels (bench, broom, chairs, shelf), which became the
+  prefabs in Assets/Prefabs/Dressing (Barrel moved there from
+  Containers, Broom, Chair_1, Chair_2, Table, WardrobeShelfBody). A
+  generated model is seamed everywhere, so keeping UV seams stops the
+  reduction: off by default. The Tripo Unity bridge is in the
+  manifest as a local package.
+- Every LOD Group under Assets/Prefabs (302 prefabs) transitions at
+  7 / 3.5 / 1 % of the view (7 / 1 for two LODs), set by script as
+  overrides.
+- The pack models have Read/Write off (a readable mesh keeps a second
+  copy in memory) and mesh compression stays off (it saves nothing at
+  runtime and can open seams between modular pieces); both are in the
+  fresh-clone steps in the root CLAUDE.md.
+- The TeaLeaf menu regrouped: Lighting (Place Light Probes, Set Small
+  Pieces To Light Probes, Apply Shadow Floor) and Modify Prefab (Make
+  Environment Variants, Make LOD Meshes, Flatten Variant Colliders).
+- PC Play: a development switch on LevelManager (pcPlay, off for a
+  build) read by the new PcPlay Debug component on the Player prefab,
+  which stops XR, disables the Tracked Pose Drivers and
+  PlayerTracking, turns the body with the mouse and pitches the
+  camera, and parks the hands under the camera; WASD, Space, C and
+  Left Shift come from the Player map's existing keyboard bindings.
+  Movement only. Smoke-tested in Play Mode with no headset.
+- The catalogue rescanned (259 prefabs; the not-batching-static flag
+  is now not-static). The Editor crashed once, out of memory, during
+  the afternoon's prefab reimports; no cause found.
+- Level Gen Test regenerated (three-levels with the slopes, the lean
+  at 5 and the pipe share) and rebaked, ten lightmaps now; grass is
+  off in the settings asset (grassCover 0). Wall colliders: 1713 on
+  1848 pieces become 1015 boxes; the cull removes 841 of 9831 pieces;
+  26 free wall ends, all closed. The street test still fails only on
+  the three-flight climb.
+
+
 2026-10-19 (late: level generator closes its free wall ends; shafts of
             moonlight built and switched off)
 ---------------------------------------------------------------------------

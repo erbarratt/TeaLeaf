@@ -57,12 +57,32 @@ PrefabInstance:
       value: 87
       objectReference: {fileID: 0}
     - target: {fileID: 1758831448343682638, guid: 0aafde0ecd65da74bb439c2bf51e006a, type: 3}
+      propertyPath: m_Size
+      value: 2.3124456
+      objectReference: {fileID: 0}
+    - target: {fileID: 1758831448343682638, guid: 0aafde0ecd65da74bb439c2bf51e006a, type: 3}
       propertyPath: m_FadeMode
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1758831448343682638, guid: 0aafde0ecd65da74bb439c2bf51e006a, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1758831448343682638, guid: 0aafde0ecd65da74bb439c2bf51e006a, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.010303199
+      objectReference: {fileID: 0}
+    - target: {fileID: 1758831448343682638, guid: 0aafde0ecd65da74bb439c2bf51e006a, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 1.1405492
+      objectReference: {fileID: 0}
+    - target: {fileID: 1758831448343682638, guid: 0aafde0ecd65da74bb439c2bf51e006a, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: -0.000016093254
+      objectReference: {fileID: 0}
+    - target: {fileID: 1758831448343682638, guid: 0aafde0ecd65da74bb439c2bf51e006a, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
       objectReference: {fileID: 0}
     - target: {fileID: 2449830763229993990, guid: 0aafde0ecd65da74bb439c2bf51e006a, type: 3}
       propertyPath: m_Layer
@@ -108,8 +128,65 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedComponents:
+    - {fileID: 4621981109772073371, guid: 0aafde0ecd65da74bb439c2bf51e006a, type: 3}
+    - {fileID: 3693080263277713535, guid: 0aafde0ecd65da74bb439c2bf51e006a, type: 3}
+    m_RemovedGameObjects:
+    - {fileID: 7686956204335080210, guid: 0aafde0ecd65da74bb439c2bf51e006a, type: 3}
+    - {fileID: 2449830763229993990, guid: 0aafde0ecd65da74bb439c2bf51e006a, type: 3}
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4606933582214787000, guid: 0aafde0ecd65da74bb439c2bf51e006a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1757251021813846105}
+    - targetCorrespondingSourceObject: {fileID: 4606933582214787000, guid: 0aafde0ecd65da74bb439c2bf51e006a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7044373078384858493}
   m_SourcePrefab: {fileID: 100100000, guid: 0aafde0ecd65da74bb439c2bf51e006a, type: 3}
+--- !u!1 &576652719694167478 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4606933582214787000, guid: 0aafde0ecd65da74bb439c2bf51e006a, type: 3}
+  m_PrefabInstance: {fileID: 4030637248169431566}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &1757251021813846105
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 576652719694167478}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.56622, y: 0.7211944, z: 0.56622}
+  m_Center: {x: 0, y: 0.3515, z: 0}
+--- !u!65 &7044373078384858493
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 576652719694167478}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.2861632, y: 1.604635, z: 0.2946634}
+  m_Center: {x: 0, y: 1.4957, z: 0.0206}

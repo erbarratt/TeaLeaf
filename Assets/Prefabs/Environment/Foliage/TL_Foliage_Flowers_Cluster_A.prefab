@@ -18,7 +18,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 142923046078986456, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 320202823815934446, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
       propertyPath: m_ReceiveGI
@@ -34,7 +34,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2339499169774667204, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 2995159899588986846, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
       propertyPath: m_Layer
@@ -42,7 +42,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2995159899588986846, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 3052688844047531626, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
       propertyPath: m_Layer
@@ -50,7 +50,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3052688844047531626, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 3469541704498187569, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
       propertyPath: m_FadeMode
@@ -60,6 +60,22 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 3469541704498187569, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.056210272
+      objectReference: {fileID: 0}
+    - target: {fileID: 3469541704498187569, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.36830503
+      objectReference: {fileID: 0}
+    - target: {fileID: 3469541704498187569, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 3544649069844226080, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
+      propertyPath: m_Size
+      value: 0.71564364
+      objectReference: {fileID: 0}
     - target: {fileID: 3544649069844226080, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
       propertyPath: m_FadeMode
       value: 1
@@ -68,13 +84,25 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 3544649069844226080, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: 0.034603447
+      objectReference: {fileID: 0}
+    - target: {fileID: 3544649069844226080, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.35951546
+      objectReference: {fileID: 0}
+    - target: {fileID: 3544649069844226080, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
     - target: {fileID: 3602705901513612512, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 3602705901513612512, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 4176412419284738395, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
       propertyPath: m_Name
@@ -154,7 +182,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7963665067645310233, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 8907600245383282609, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
       propertyPath: m_FadeMode
@@ -163,6 +191,18 @@ PrefabInstance:
     - target: {fileID: 8907600245383282609, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8907600245383282609, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.38054764
+      objectReference: {fileID: 0}
+    - target: {fileID: 8907600245383282609, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: -0.011599898
+      objectReference: {fileID: 0}
+    - target: {fileID: 8907600245383282609, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
       objectReference: {fileID: 0}
     - target: {fileID: 9086707322572146269, guid: c4e449843e5fb1140bfa7635521b308d, type: 3}
       propertyPath: m_Layer

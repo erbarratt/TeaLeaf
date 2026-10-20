@@ -40,6 +40,13 @@ namespace Core
         // How long the fade to black takes after winning, in seconds.
         [SerializeField] private float wonFadeDuration = 2f;
 
+        [Header("Development")]
+        // Play the level from the desk with the mouse and keyboard, with no
+        // headset: WASD walks, the mouse looks. Movement only - nothing is
+        // grabbed. Read once at start by PcPlay (on the Player root), which
+        // does the switching; this is only the switch. Off for a build.
+        [SerializeField] private bool pcPlay;
+
         /// The scene's level manager, so other systems (guards, loot, exit
         /// zones) can reach it without a scene search. Null if the scene has
         /// none.
@@ -50,6 +57,10 @@ namespace Core
 
         /// Whether the player is carrying the objective item right now.
         public bool HasObjective { get; private set; }
+
+        /// Whether the level is to be played with the mouse and keyboard
+        /// instead of a headset - see pcPlay.
+        public bool IsPcPlay => pcPlay;
 
         /// Raised once each time State changes, with the new state. An
         /// instance event rather than a static one: the manager is destroyed

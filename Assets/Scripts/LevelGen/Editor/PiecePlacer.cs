@@ -111,6 +111,15 @@ namespace LevelGen
         /// </summary>
         internal GameObject PlaceTile(PieceAnnotation piece, Vector3 surfaceCentre, float yaw, Transform parent)
         {
+            return PlaceTile(piece, surfaceCentre, Quaternion.Euler(0f, yaw, 0f), parent);
+        }
+
+        /// <summary>
+        /// The same, turned by any rotation (a tile tilted to a street's
+        /// slope: its yaw about Y applied first, then the tilt).
+        /// </summary>
+        internal GameObject PlaceTile(PieceAnnotation piece, Vector3 surfaceCentre, Quaternion rotation, Transform parent)
+        {
             if (!_entries.TryGetValue(piece.guid, out CatalogueEntry entry)) {
                 return null;
             }
@@ -121,7 +130,6 @@ namespace LevelGen
             Vector3 surface = entry.hasWalkSurface
                 ? new Vector3((entry.walkMin.x + entry.walkMax.x) * 0.5f, entry.walkHeight, (entry.walkMin.z + entry.walkMax.z) * 0.5f)
                 : new Vector3((entry.renderMin.x + entry.renderMax.x) * 0.5f, entry.renderMax.y, (entry.renderMin.z + entry.renderMax.z) * 0.5f);
-            Quaternion rotation = Quaternion.Euler(0f, yaw, 0f);
             return Place(piece, surfaceCentre - rotation * surface, rotation, Vector3.one, parent);
         }
 

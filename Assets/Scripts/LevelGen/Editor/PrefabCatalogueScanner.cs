@@ -63,7 +63,7 @@ namespace LevelGen
         internal const string FlagPivotNotOnBase = "pivot-not-on-base";
         internal const string FlagPivotOutsideFootprint = "pivot-outside-footprint";
         internal const string FlagOffLayer = "off-environment-layer";
-        internal const string FlagNotStatic = "not-batching-static";
+        internal const string FlagNotStatic = "not-static";
         internal const string FlagMissingMesh = "missing-mesh";
         internal const string FlagMissingScript = "missing-script";
         internal const string FlagSharesSource = "shares-source";
@@ -226,7 +226,9 @@ namespace LevelGen
                     entry.offLayerObjects++;
                 }
 
-                if ((GameObjectUtility.GetStaticEditorFlags(go) & StaticEditorFlags.BatchingStatic) == 0) {
+                // No static flag at all. (Batching Static alone says nothing: probe-lit
+                // pieces are static but never batched - see EnvironmentVariants.)
+                if (GameObjectUtility.GetStaticEditorFlags(go) == 0) {
                     entry.nonStaticObjects++;
                 }
 

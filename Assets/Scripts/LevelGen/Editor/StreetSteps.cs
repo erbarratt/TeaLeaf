@@ -143,10 +143,11 @@ namespace LevelGen
 
         /// <summary>
         /// Every flight of steps the spec's streets need, in the spec's order:
-        /// each rising segment of a street of ground tiles whose style has a
-        /// steps piece that makes the rise, with a RampCollider measured in the
-        /// catalogue, and that is long enough for the flights and their landing
-        /// (the validator reports the rest).
+        /// each rising segment of a street of ground tiles too steep to slope
+        /// (StreetSlopes.IsSlope) whose style has a steps piece that makes the
+        /// rise, with a RampCollider measured in the catalogue, and that is
+        /// long enough for the flights and their landing (the validator
+        /// reports the rest).
         /// </summary>
         internal static List<Flight> Find(List<StreetSpec> streets, Dictionary<string, BuildingStyle> styles, PiecePlacer placer,
             GeneratorSettings settings)
@@ -159,7 +160,8 @@ namespace LevelGen
                 }
 
                 for (int i = 0; i + 1 < street.points.Count; i++) {
-                    if (!Rises(street, i, settings)) {
+                    // A rise gentle enough to slope is a slope, never steps.
+                    if (!Rises(street, i, settings) || StreetSlopes.IsSlope(street, i, style, settings)) {
                         continue;
                     }
 

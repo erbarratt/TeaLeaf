@@ -73,6 +73,14 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 3757366709437352357}
     m_Modifications:
+    - target: {fileID: 2311892626300696963, guid: f544b6bd73c4ce84f96a991423b64b85, type: 3}
+      propertyPath: m_ReceiveGI
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 6205896416725259214, guid: f544b6bd73c4ce84f96a991423b64b85, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 83
+      objectReference: {fileID: 0}
     - target: {fileID: 6988383023084275996, guid: f544b6bd73c4ce84f96a991423b64b85, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.42548
@@ -124,6 +132,14 @@ PrefabInstance:
     - target: {fileID: 6988383023084275996, guid: f544b6bd73c4ce84f96a991423b64b85, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 8421615418721036284, guid: f544b6bd73c4ce84f96a991423b64b85, type: 3}
+      propertyPath: m_ReceiveGI
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8421615418723236158, guid: f544b6bd73c4ce84f96a991423b64b85, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 9042749272057716747, guid: f544b6bd73c4ce84f96a991423b64b85, type: 3}
       propertyPath: m_Name

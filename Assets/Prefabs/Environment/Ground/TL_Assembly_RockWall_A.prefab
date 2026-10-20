@@ -32,6 +32,22 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 4894808588858514238, guid: 14342ab5ba4adac4a92a86eca2e7dd45, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: 0.0000013113022
+      objectReference: {fileID: 0}
+    - target: {fileID: 4894808588858514238, guid: 14342ab5ba4adac4a92a86eca2e7dd45, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.000060081482
+      objectReference: {fileID: 0}
+    - target: {fileID: 4894808588858514238, guid: 14342ab5ba4adac4a92a86eca2e7dd45, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: -0.0000333786
+      objectReference: {fileID: 0}
+    - target: {fileID: 4894808588858514238, guid: 14342ab5ba4adac4a92a86eca2e7dd45, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
     - target: {fileID: 6420847859746252095, guid: 14342ab5ba4adac4a92a86eca2e7dd45, type: 3}
       propertyPath: m_Name
       value: TL_Assembly_RockWall_A

@@ -14,19 +14,31 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 135051650500407952, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
+      objectReference: {fileID: 0}
+    - target: {fileID: 469567181869269669, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.30173
+      objectReference: {fileID: 0}
+    - target: {fileID: 469567181869269669, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.30173
+      objectReference: {fileID: 0}
+    - target: {fileID: 469567181869269669, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.30173
       objectReference: {fileID: 0}
     - target: {fileID: 469567181869269669, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -14.881036
+      value: -14.891
       objectReference: {fileID: 0}
     - target: {fileID: 469567181869269669, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3.9996643
+      value: 4.1762
       objectReference: {fileID: 0}
     - target: {fileID: 469567181869269669, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -29.228958
+      value: -29.221
       objectReference: {fileID: 0}
     - target: {fileID: 469567181869269669, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
       propertyPath: m_LocalRotation.w
@@ -66,11 +78,19 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 995274015630137375, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 2752644831098011825, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
       propertyPath: m_ReceiveGI
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2752644831098011825, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
+      propertyPath: m_StaticShadowCaster
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4674212446170346964, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
+      propertyPath: m_Size
+      value: 0.6524745
       objectReference: {fileID: 0}
     - target: {fileID: 4674212446170346964, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
       propertyPath: m_FadeMode
@@ -80,17 +100,37 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 4674212446170346964, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.014613166
+      objectReference: {fileID: 0}
+    - target: {fileID: 4674212446170346964, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.25286484
+      objectReference: {fileID: 0}
+    - target: {fileID: 4674212446170346964, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.010814965
+      objectReference: {fileID: 0}
+    - target: {fileID: 4674212446170346964, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
     - target: {fileID: 4775059117235649879, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 4775059117235649879, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 5268932724841592326, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
       propertyPath: m_ReceiveGI
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5268932724841592326, guid: 70300c15a1475db4baf5942c48e3bb69, type: 3}
+      propertyPath: m_StaticShadowCaster
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

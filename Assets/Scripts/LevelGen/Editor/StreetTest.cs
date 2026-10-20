@@ -7,7 +7,7 @@ namespace LevelGen
     /// The street test, run after a generation: a ball of StreetBallRadius
     /// travels down the middle of every street from its first point to its
     /// last, its centre StreetBallHeight above the street's surface (up and
-    /// down the flights of steps as walked), stopping its radius short of a
+    /// down the flights of steps and the slopes as walked), stopping its radius short of a
     /// dead end's facade. The layout is valid only if the ball never touches
     /// anything the generator built for the buildings (any collider under the
     /// generated root but the streets' own ground and steps). Each street that
@@ -27,7 +27,7 @@ namespace LevelGen
         /// streetsRoot. Returns whether every street is clear; adds a line per
         /// blocked street to report.
         /// </summary>
-        internal static bool Run(LayoutSpec spec, List<StreetSteps.Flight> flights, StoreyPlan plan, Transform root, Transform streetsRoot,
+        internal static bool Run(LayoutSpec spec, StreetHeights heights, StoreyPlan plan, Transform root, Transform streetsRoot,
             GeneratorSettings settings, List<string> report)
         {
             Physics.SyncTransforms();
@@ -38,7 +38,7 @@ namespace LevelGen
             foreach (StreetSpec street in spec.streets) {
                 List<string> blockers = new();
 
-                Walk(street, flights, plan, settings, step, radius + settings.OverlapTolerance, (surface, segment, travelled) => {
+                Walk(street, heights, plan, settings, step, radius + settings.OverlapTolerance, (surface, segment, travelled) => {
                     Vector3 centre = surface + Vector3.up * settings.StreetBallHeight;
                     int count = Physics.OverlapSphereNonAlloc(centre, radius, _hits, ~0, QueryTriggerInteraction.Ignore);
 
@@ -72,11 +72,12 @@ namespace LevelGen
         /// <summary>
         /// Walks a street's middle line from its first point to its last,
         /// every step metres, calling visit with the point on the street's
-        /// surface there (up and down the flights of steps as walked), the
+        /// surface there (up and down the flights of steps and the slopes as
+        /// walked), the
         /// segment and the distance along the street. Stops endGap short of
         /// a dead end's facade, which stands across the end point.
         /// </summary>
-        internal static void Walk(StreetSpec street, List<StreetSteps.Flight> flights, StoreyPlan plan, GeneratorSettings settings, float step,
+        internal static void Walk(StreetSpec street, StreetHeights heights, StoreyPlan plan, GeneratorSettings settings, float step,
             float endGap, System.Action<Vector3, int, float> visit)
         {
             float travelled = 0f;
@@ -91,12 +92,11 @@ namespace LevelGen
                 }
 
                 Vector2 axis = (b - a) / length;
-                StreetSteps.Flight flight = StreetSteps.Of(flights, street, i);
                 float from = i == 0 && IsDeadEnd(plan, street, 0) ? endGap : 0f;
                 float to = i + 2 == street.points.Count && IsDeadEnd(plan, street, i + 1) ? length - endGap : length;
 
                 for (float along = from; along <= to; along += step) {
-                    float surface = flight != null ? flight.SurfaceAt(along) : Mathf.Lerp(street.points[i].y, street.points[i + 1].y, along / length);
+                    float surface = heights.SurfaceAt(street, i, along);
                     Vector2 at = a + axis * along;
                     visit(new Vector3(at.x, surface, at.y), i, travelled + along);
                 }

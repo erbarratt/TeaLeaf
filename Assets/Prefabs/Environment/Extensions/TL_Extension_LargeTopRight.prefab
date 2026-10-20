@@ -100,6 +100,26 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 7706914398323657916, guid: 122f4c11553434b46937d99b81368c5d, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.88154006
+      objectReference: {fileID: 0}
+    - target: {fileID: 7706914398323657916, guid: 122f4c11553434b46937d99b81368c5d, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 1.53148
+      objectReference: {fileID: 0}
+    - target: {fileID: 7706914398323657916, guid: 122f4c11553434b46937d99b81368c5d, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 1.0513941
+      objectReference: {fileID: 0}
+    - target: {fileID: 7706914398323657916, guid: 122f4c11553434b46937d99b81368c5d, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 7706914398323657916, guid: 122f4c11553434b46937d99b81368c5d, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

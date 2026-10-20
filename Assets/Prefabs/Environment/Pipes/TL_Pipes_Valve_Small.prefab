@@ -70,7 +70,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1224802134256327813, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 1611088314219019248, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_ReceiveGI
@@ -94,7 +94,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2813788969376372811, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 3204925392343231628, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_Layer
@@ -114,7 +114,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3655125070589971180, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 3785328070713435345, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_ReceiveGI
@@ -126,7 +126,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3907876135567982276, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 4652918300020889497, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_Layer
@@ -134,7 +134,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4652918300020889497, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 5226767553375799694, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_Layer
@@ -142,7 +142,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5226767553375799694, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 5477892981387285248, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_Name
@@ -157,12 +157,28 @@ PrefabInstance:
       value: 87
       objectReference: {fileID: 0}
     - target: {fileID: 5508968219626753053, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
+      propertyPath: m_Size
+      value: 0.876353
+      objectReference: {fileID: 0}
+    - target: {fileID: 5508968219626753053, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_FadeMode
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5508968219626753053, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5508968219626753053, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.13487126
+      objectReference: {fileID: 0}
+    - target: {fileID: 5508968219626753053, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 5508968219626753053, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
       objectReference: {fileID: 0}
     - target: {fileID: 8446379628365439651, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_Layer
@@ -179,6 +195,14 @@ PrefabInstance:
     - target: {fileID: 8940243673396190794, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8940243673396190794, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 8940243673396190794, guid: 0add36db65aeff94c9317405c58ef4d3, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

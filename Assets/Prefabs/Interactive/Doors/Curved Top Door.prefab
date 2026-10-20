@@ -84,6 +84,26 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 3961812278318667413, guid: 822a0e80f0ca33846a3e362e3fcfbd64, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: 0.0019999743
+      objectReference: {fileID: 0}
+    - target: {fileID: 3961812278318667413, guid: 822a0e80f0ca33846a3e362e3fcfbd64, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: -0.0010000467
+      objectReference: {fileID: 0}
+    - target: {fileID: 3961812278318667413, guid: 822a0e80f0ca33846a3e362e3fcfbd64, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: -0.0019999966
+      objectReference: {fileID: 0}
+    - target: {fileID: 3961812278318667413, guid: 822a0e80f0ca33846a3e362e3fcfbd64, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 3961812278318667413, guid: 822a0e80f0ca33846a3e362e3fcfbd64, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
+      objectReference: {fileID: 0}
     - target: {fileID: 4980001516973330148, guid: 822a0e80f0ca33846a3e362e3fcfbd64, type: 3}
       propertyPath: m_Name
       value: Curved Top Door

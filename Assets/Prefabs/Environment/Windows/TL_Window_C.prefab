@@ -56,6 +56,10 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 2997040256865953368, guid: 778d75b4c51c31a4c997b4d189bb3570, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
     - target: {fileID: 2997040256865953383, guid: 778d75b4c51c31a4c997b4d189bb3570, type: 3}
       propertyPath: m_Name
       value: TL_Window_C
@@ -92,8 +96,39 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedComponents:
+    - {fileID: 8669664755298067600, guid: 778d75b4c51c31a4c997b4d189bb3570, type: 3}
+    m_RemovedGameObjects:
+    - {fileID: 4920288548078538514, guid: 778d75b4c51c31a4c997b4d189bb3570, type: 3}
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2997040256865953383, guid: 778d75b4c51c31a4c997b4d189bb3570, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7818287307608703593}
   m_SourcePrefab: {fileID: 100100000, guid: 778d75b4c51c31a4c997b4d189bb3570, type: 3}
+--- !u!1 &1176368983495207139 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2997040256865953383, guid: 778d75b4c51c31a4c997b4d189bb3570, type: 3}
+  m_PrefabInstance: {fileID: 4162712984550805124}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &7818287307608703593
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1176368983495207139}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.5250822, y: 1.9477943, z: 0.42902732}
+  m_Center: {x: 0.011800701, y: 0.0053715706, z: -0.022014651}

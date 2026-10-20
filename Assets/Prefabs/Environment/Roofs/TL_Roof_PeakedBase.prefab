@@ -10,7 +10,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 850422264500095191, guid: 1a7fed94a7e85d74ca52dd452bbe442d, type: 3}
       propertyPath: m_ReceiveGI
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 850422264500095191, guid: 1a7fed94a7e85d74ca52dd452bbe442d, type: 3}
       propertyPath: m_ScaleInLightmap
@@ -94,7 +94,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2926491901742882375, guid: 1a7fed94a7e85d74ca52dd452bbe442d, type: 3}
       propertyPath: m_ReceiveGI
-      value: 2
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2926491901742882375, guid: 1a7fed94a7e85d74ca52dd452bbe442d, type: 3}
       propertyPath: m_ScaleInLightmap
@@ -107,6 +107,22 @@ PrefabInstance:
     - target: {fileID: 7740045143943078600, guid: 1a7fed94a7e85d74ca52dd452bbe442d, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7740045143943078600, guid: 1a7fed94a7e85d74ca52dd452bbe442d, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7740045143943078600, guid: 1a7fed94a7e85d74ca52dd452bbe442d, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 1.7178079
+      objectReference: {fileID: 0}
+    - target: {fileID: 7740045143943078600, guid: 1a7fed94a7e85d74ca52dd452bbe442d, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: -0.0000027418137
+      objectReference: {fileID: 0}
+    - target: {fileID: 7740045143943078600, guid: 1a7fed94a7e85d74ca52dd452bbe442d, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

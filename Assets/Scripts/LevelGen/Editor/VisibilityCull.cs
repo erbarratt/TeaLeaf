@@ -15,7 +15,7 @@ namespace LevelGen
     /// The lamp posts are left alone: they are lights.
     ///
     /// A probe walks the middle of every street of the spec (up and down the
-    /// flights of steps as walked), looking every CullStep metres from
+    /// flights of steps and the slopes as walked), looking every CullStep metres from
     /// CullEyeHeight above the ground - at the middle of the street and at
     /// each edge, a ball's radius in from the buildings - and from CullHeight
     /// above the middle, for the roofs. A look inside something built (an
@@ -83,14 +83,14 @@ namespace LevelGen
         /// Culls the pieces under root, seen from the streets of spec. Adds
         /// one line to log.
         /// </summary>
-        internal static void Run(LayoutSpec spec, List<StreetSteps.Flight> flights, StoreyPlan plan, Transform root, GeneratorSettings settings,
+        internal static void Run(LayoutSpec spec, StreetHeights heights, StoreyPlan plan, Transform root, GeneratorSettings settings,
             List<string> log)
         {
             System.Diagnostics.Stopwatch watch = System.Diagnostics.Stopwatch.StartNew();
             Physics.SyncTransforms();
             List<Piece> pieces = Gather(root);
             int mask = LayerMask.GetMask("Environment");
-            List<Vector3> looks = Looks(spec, flights, plan, settings, mask, out int dropped);
+            List<Vector3> looks = Looks(spec, heights, plan, settings, mask, out int dropped);
             float range = settings.CullRange;
             SortLooks(pieces, looks, range);
 
@@ -172,7 +172,7 @@ namespace LevelGen
         /// cull height on the middle line. Eye looks inside something built
         /// are left out and counted in dropped.
         /// </summary>
-        private static List<Vector3> Looks(LayoutSpec spec, List<StreetSteps.Flight> flights, StoreyPlan plan, GeneratorSettings settings, int mask,
+        private static List<Vector3> Looks(LayoutSpec spec, StreetHeights heights, StoreyPlan plan, GeneratorSettings settings, int mask,
             out int dropped)
         {
             List<Vector3> looks = new();
@@ -180,7 +180,7 @@ namespace LevelGen
             float margin = settings.StreetBallRadius + settings.OverlapTolerance;
 
             foreach (StreetSpec street in spec.streets) {
-                StreetTest.Walk(street, flights, plan, settings, settings.CullStep, margin, (surface, segment, travelled) => {
+                StreetTest.Walk(street, heights, plan, settings, settings.CullStep, margin, (surface, segment, travelled) => {
                     looks.Add(surface + Vector3.up * settings.CullHeight);
                     Vector3 eye = surface + Vector3.up * settings.CullEyeHeight;
                     looks.Add(eye);

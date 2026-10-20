@@ -22,7 +22,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 815689769839482707, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
       propertyPath: m_ReceiveGI
-      value: 1
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 815689769839482707, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
       propertyPath: m_ScaleInLightmap
@@ -82,7 +82,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 1929342048827935624, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
       propertyPath: m_ReceiveGI
-      value: 1
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 1929342048827935624, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
       propertyPath: m_ScaleInLightmap
@@ -94,7 +94,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2220229030025242953, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 3950905091529385818, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
       propertyPath: m_Layer
@@ -102,7 +102,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3950905091529385818, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 4254863030643823737, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
       propertyPath: m_FadeMode
@@ -112,6 +112,14 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 4254863030643823737, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 4254863030643823737, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
+      objectReference: {fileID: 0}
     - target: {fileID: 7369713188001170076, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -126,18 +134,49 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7509528541622582491, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 9030595285140246215, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
       propertyPath: m_ReceiveGI
-      value: 1
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 9030595285140246215, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
       propertyPath: m_ScaleInLightmap
       value: 0.5
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedComponents:
+    - {fileID: 2555761997164320798, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
+    m_RemovedGameObjects:
+    - {fileID: 7369713188001170076, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 289124954096941615, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7317338612324089099}
   m_SourcePrefab: {fileID: 100100000, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
+--- !u!1 &2874331930614847437 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 289124954096941615, guid: 78b212a48af09a84eb4422b922b4a81c, type: 3}
+  m_PrefabInstance: {fileID: 2585207148321074658}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &7317338612324089099
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2874331930614847437}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.1260425, y: 0.30048844, z: 1.1395429}
+  m_Center: {x: 0, y: 0.12099981, z: 0}

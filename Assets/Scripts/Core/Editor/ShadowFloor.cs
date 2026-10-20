@@ -67,7 +67,7 @@ namespace Core
         /// Floors the open scene's lightmaps and light probes. Runs by itself
         /// when a bake completes; the menu item re-applies it by hand.
         /// </summary>
-        [MenuItem("TeaLeaf/Apply Shadow Floor")]
+        [MenuItem("TeaLeaf/Lighting/Apply Shadow Floor")]
         internal static void Apply()
         {
             if (_applying) {

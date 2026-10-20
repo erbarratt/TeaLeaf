@@ -52,6 +52,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: TL_IronFixtures_Chimney
       objectReference: {fileID: 0}
+    - target: {fileID: 7182557097407026967, guid: 5e5a644fc68449244b87285ab79464b0, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 83
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -73,6 +77,10 @@ PrefabInstance:
     - target: {fileID: 5501540775694749702, guid: d4a2454a3008e334fae5cb3320f2d2d4, type: 3}
       propertyPath: m_Name
       value: TL_IronFixtures_Chimney_Small
+      objectReference: {fileID: 0}
+    - target: {fileID: 5501540775694749702, guid: d4a2454a3008e334fae5cb3320f2d2d4, type: 3}
+      propertyPath: m_StaticEditorFlags
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 8205542615080417723, guid: d4a2454a3008e334fae5cb3320f2d2d4, type: 3}
       propertyPath: m_LocalPosition.x

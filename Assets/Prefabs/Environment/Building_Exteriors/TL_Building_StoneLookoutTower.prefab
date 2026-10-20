@@ -132,6 +132,26 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 1293448653372913011, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.00000047683716
+      objectReference: {fileID: 0}
+    - target: {fileID: 1293448653372913011, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.000018119812
+      objectReference: {fileID: 0}
+    - target: {fileID: 1293448653372913011, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 1.0298533
+      objectReference: {fileID: 0}
+    - target: {fileID: 1293448653372913011, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 1293448653372913011, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
+      objectReference: {fileID: 0}
     - target: {fileID: 1323881400833806833, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -141,12 +161,32 @@ PrefabInstance:
       value: 87
       objectReference: {fileID: 0}
     - target: {fileID: 1707014963735006484, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_Size
+      value: 2.2619736
+      objectReference: {fileID: 0}
+    - target: {fileID: 1707014963735006484, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_FadeMode
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1707014963735006484, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1707014963735006484, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: 0.0000008940697
+      objectReference: {fileID: 0}
+    - target: {fileID: 1707014963735006484, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 1.1066669
+      objectReference: {fileID: 0}
+    - target: {fileID: 1707014963735006484, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1707014963735006484, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
       objectReference: {fileID: 0}
     - target: {fileID: 1769259160729623534, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_Layer
@@ -456,6 +496,26 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 3315248463293907598, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -1.4942174
+      objectReference: {fileID: 0}
+    - target: {fileID: 3315248463293907598, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 1.5147669
+      objectReference: {fileID: 0}
+    - target: {fileID: 3315248463293907598, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.0000028312206
+      objectReference: {fileID: 0}
+    - target: {fileID: 3315248463293907598, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 3315248463293907598, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
+      objectReference: {fileID: 0}
     - target: {fileID: 3315248463293907599, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -479,6 +539,26 @@ PrefabInstance:
     - target: {fileID: 3315248464146918425, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 3315248464146918425, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -1.4942176
+      objectReference: {fileID: 0}
+    - target: {fileID: 3315248464146918425, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 1.5147669
+      objectReference: {fileID: 0}
+    - target: {fileID: 3315248464146918425, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.0000028312206
+      objectReference: {fileID: 0}
+    - target: {fileID: 3315248464146918425, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 3315248464146918425, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
       objectReference: {fileID: 0}
     - target: {fileID: 3394238246177427881, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_Layer
@@ -734,7 +814,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5124715774597483406, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
+      objectReference: {fileID: 0}
+    - target: {fileID: 5435911330829395288, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_Size
+      value: 4.5491986
       objectReference: {fileID: 0}
     - target: {fileID: 5435911330829395288, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_FadeMode
@@ -743,6 +827,22 @@ PrefabInstance:
     - target: {fileID: 5435911330829395288, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5435911330829395288, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -1.5375907
+      objectReference: {fileID: 0}
+    - target: {fileID: 5435911330829395288, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 2.2595632
+      objectReference: {fileID: 0}
+    - target: {fileID: 5435911330829395288, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.18228841
+      objectReference: {fileID: 0}
+    - target: {fileID: 5435911330829395288, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
       objectReference: {fileID: 0}
     - target: {fileID: 5435911330829395291, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_Layer
@@ -753,12 +853,32 @@ PrefabInstance:
       value: 87
       objectReference: {fileID: 0}
     - target: {fileID: 5435911331853275465, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_Size
+      value: 4.5491967
+      objectReference: {fileID: 0}
+    - target: {fileID: 5435911331853275465, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_FadeMode
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5435911331853275465, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5435911331853275465, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -1.5375907
+      objectReference: {fileID: 0}
+    - target: {fileID: 5435911331853275465, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 2.2595642
+      objectReference: {fileID: 0}
+    - target: {fileID: 5435911331853275465, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.18228841
+      objectReference: {fileID: 0}
+    - target: {fileID: 5435911331853275465, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
       objectReference: {fileID: 0}
     - target: {fileID: 5435911331853275466, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_Layer
@@ -996,6 +1116,22 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 6683580083308480030, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: 0.0018439293
+      objectReference: {fileID: 0}
+    - target: {fileID: 6683580083308480030, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 2.168959
+      objectReference: {fileID: 0}
+    - target: {fileID: 6683580083308480030, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: -0.000003993511
+      objectReference: {fileID: 0}
+    - target: {fileID: 6683580083308480030, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
     - target: {fileID: 6683580083709246073, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_FadeMode
       value: 1
@@ -1003,6 +1139,22 @@ PrefabInstance:
     - target: {fileID: 6683580083709246073, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6683580083709246073, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: 0.0018439293
+      objectReference: {fileID: 0}
+    - target: {fileID: 6683580083709246073, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 2.168959
+      objectReference: {fileID: 0}
+    - target: {fileID: 6683580083709246073, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: -0.0000044703484
+      objectReference: {fileID: 0}
+    - target: {fileID: 6683580083709246073, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
       objectReference: {fileID: 0}
     - target: {fileID: 6683580083709246078, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_Layer
@@ -1172,6 +1324,26 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 7620556392600685705, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.000037670135
+      objectReference: {fileID: 0}
+    - target: {fileID: 7620556392600685705, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 1.4191835
+      objectReference: {fileID: 0}
+    - target: {fileID: 7620556392600685705, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: -0.0000038146973
+      objectReference: {fileID: 0}
+    - target: {fileID: 7620556392600685705, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 7620556392600685705, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
+      objectReference: {fileID: 0}
     - target: {fileID: 7733467613703120329, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -1205,6 +1377,10 @@ PrefabInstance:
       value: 87
       objectReference: {fileID: 0}
     - target: {fileID: 7922904234830482380, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_Size
+      value: 4.703042
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922904234830482380, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_FadeMode
       value: 1
       objectReference: {fileID: 0}
@@ -1212,6 +1388,22 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 7922904234830482380, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: 0.0007238388
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922904234830482380, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: -0.000009536743
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922904234830482380, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.000009387732
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922904234830482380, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
     - target: {fileID: 7922904236221851054, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_FadeMode
       value: 1
@@ -1219,6 +1411,22 @@ PrefabInstance:
     - target: {fileID: 7922904236221851054, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922904236221851054, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: 0.0007238388
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922904236221851054, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: -0.000010371208
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922904236221851054, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.00001129508
+      objectReference: {fileID: 0}
+    - target: {fileID: 7922904236221851054, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
       objectReference: {fileID: 0}
     - target: {fileID: 8011373710892501893, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_Layer
@@ -1276,6 +1484,18 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 8075787971121965824, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: 0.0031062365
+      objectReference: {fileID: 0}
+    - target: {fileID: 8075787971121965824, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 8075787971121965824, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
+      objectReference: {fileID: 0}
     - target: {fileID: 8320049921236649780, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -1291,6 +1511,26 @@ PrefabInstance:
     - target: {fileID: 8320049921236649781, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8320049921236649781, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -1.5022546
+      objectReference: {fileID: 0}
+    - target: {fileID: 8320049921236649781, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 1.5073905
+      objectReference: {fileID: 0}
+    - target: {fileID: 8320049921236649781, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.000012814999
+      objectReference: {fileID: 0}
+    - target: {fileID: 8320049921236649781, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 8320049921236649781, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
       objectReference: {fileID: 0}
     - target: {fileID: 8327622077005195492, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_Layer
@@ -1315,6 +1555,18 @@ PrefabInstance:
     - target: {fileID: 8559428140670052994, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8559428140670052994, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.0006506443
+      objectReference: {fileID: 0}
+    - target: {fileID: 8559428140670052994, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.0029825717
+      objectReference: {fileID: 0}
+    - target: {fileID: 8559428140670052994, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
       objectReference: {fileID: 0}
     - target: {fileID: 8559428140670053021, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_Layer
@@ -1341,6 +1593,10 @@ PrefabInstance:
       value: 87
       objectReference: {fileID: 0}
     - target: {fileID: 8817609118278283964, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_Size
+      value: 2.425422
+      objectReference: {fileID: 0}
+    - target: {fileID: 8817609118278283964, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_FadeMode
       value: 1
       objectReference: {fileID: 0}
@@ -1348,6 +1604,26 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 8817609118278283964, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.05395937
+      objectReference: {fileID: 0}
+    - target: {fileID: 8817609118278283964, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.6350403
+      objectReference: {fileID: 0}
+    - target: {fileID: 8817609118278283964, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: -0.0055842176
+      objectReference: {fileID: 0}
+    - target: {fileID: 8817609118278283964, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 8817609118278283964, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
+      objectReference: {fileID: 0}
     - target: {fileID: 8825957402105031419, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -1372,6 +1648,22 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 8827593348240396941, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.005279422
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593348240396941, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.000012561679
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593348240396941, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.000014662743
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593348240396941, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
     - target: {fileID: 8827593348515528694, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -1388,6 +1680,22 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 8827593348515528695, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.0052793026
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593348515528695, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.000012561679
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593348515528695, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.00001513958
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593348515528695, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
     - target: {fileID: 8827593348586812874, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -1397,6 +1705,10 @@ PrefabInstance:
       value: 87
       objectReference: {fileID: 0}
     - target: {fileID: 8827593348586812875, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_Size
+      value: 3.459916
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593348586812875, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_FadeMode
       value: 1
       objectReference: {fileID: 0}
@@ -1404,6 +1716,26 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 8827593348586812875, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.0052793026
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593348586812875, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.000013276935
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593348586812875, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.000015318394
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593348586812875, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593349166147582, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_Size
+      value: 3.459917
+      objectReference: {fileID: 0}
     - target: {fileID: 8827593349166147582, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_FadeMode
       value: 1
@@ -1411,6 +1743,22 @@ PrefabInstance:
     - target: {fileID: 8827593349166147582, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593349166147582, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.0052791834
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593349166147582, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.000012561679
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593349166147582, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.000015318394
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593349166147582, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
       objectReference: {fileID: 0}
     - target: {fileID: 8827593349166147583, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_Layer
@@ -1429,6 +1777,10 @@ PrefabInstance:
       value: 87
       objectReference: {fileID: 0}
     - target: {fileID: 8827593349217683509, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_Size
+      value: 3.459916
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593349217683509, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_FadeMode
       value: 1
       objectReference: {fileID: 0}
@@ -1436,6 +1788,26 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 8827593349217683509, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.005279064
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593349217683509, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.000013276935
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593349217683509, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.000015199184
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593349217683509, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593349418880196, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_Size
+      value: 3.459917
+      objectReference: {fileID: 0}
     - target: {fileID: 8827593349418880196, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_FadeMode
       value: 1
@@ -1443,6 +1815,22 @@ PrefabInstance:
     - target: {fileID: 8827593349418880196, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593349418880196, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.0052793026
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593349418880196, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.000012561679
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593349418880196, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.000015318394
+      objectReference: {fileID: 0}
+    - target: {fileID: 8827593349418880196, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
       objectReference: {fileID: 0}
     - target: {fileID: 8827593349418880197, guid: 2fbc80574196a8844834e94b23d1e4f5, type: 3}
       propertyPath: m_Layer

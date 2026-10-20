@@ -40,6 +40,26 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 3376998445669394420, guid: a883a0f0d1919674f87fd9995ed0480f, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.7509875
+      objectReference: {fileID: 0}
+    - target: {fileID: 3376998445669394420, guid: a883a0f0d1919674f87fd9995ed0480f, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 1.5047505
+      objectReference: {fileID: 0}
+    - target: {fileID: 3376998445669394420, guid: a883a0f0d1919674f87fd9995ed0480f, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: -0.000023663044
+      objectReference: {fileID: 0}
+    - target: {fileID: 3376998445669394420, guid: a883a0f0d1919674f87fd9995ed0480f, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 3376998445669394420, guid: a883a0f0d1919674f87fd9995ed0480f, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
+      objectReference: {fileID: 0}
     - target: {fileID: 3376998445669394421, guid: a883a0f0d1919674f87fd9995ed0480f, type: 3}
       propertyPath: m_Name
       value: TL_PlasterWalls_B_MasonaryWall_Half
@@ -112,8 +132,39 @@ PrefabInstance:
       propertyPath: m_ScaleInLightmap
       value: 2
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedComponents:
+    - {fileID: 7381717765815928199, guid: a883a0f0d1919674f87fd9995ed0480f, type: 3}
+    m_RemovedGameObjects:
+    - {fileID: 2437408538140392141, guid: a883a0f0d1919674f87fd9995ed0480f, type: 3}
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3376998445669394421, guid: a883a0f0d1919674f87fd9995ed0480f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 957404610558110850}
   m_SourcePrefab: {fileID: 100100000, guid: a883a0f0d1919674f87fd9995ed0480f, type: 3}
+--- !u!1 &4021602924394589524 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3376998445669394421, guid: a883a0f0d1919674f87fd9995ed0480f, type: 3}
+  m_PrefabInstance: {fileID: 1806533599770282657}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &957404610558110850
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4021602924394589524}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.5507, y: 3.0129, z: 0.43074077}
+  m_Center: {x: -0.7793007, y: 1.4974976, z: -0.042785585}

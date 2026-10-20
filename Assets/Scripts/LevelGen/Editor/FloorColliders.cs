@@ -9,7 +9,7 @@ namespace LevelGen
     /// box per run of tiles: the tiles side by side along one row whose
     /// collider tops are at the same height (and whose surface is the same).
     /// The box is exactly what the run's tile colliders covered, in the row's
-    /// own frame, so no gap opens and no invisible floor appears; the tiles'
+    /// own frame (tilted with the row on a slope), so no gap opens and no invisible floor appears; the tiles'
     /// own colliders are removed from the placed instances (an override, the
     /// prefabs untouched). A street area's hundreds of tile colliders become
     /// about one box per row.
@@ -30,8 +30,11 @@ namespace LevelGen
 
         private readonly Transform _group;
         private Transform _parent;
-        private Vector2 _axisX;
-        private Vector2 _axisZ;
+        // The row's frame: X along the row, Y up (tilted with the row on a
+        // slope), Z across it. Tile corners are measured in it and the box
+        // is turned to it.
+        private Quaternion _frame;
+        private Quaternion _toFrame;
         // The run being gathered: its extent along and across the row, its
         // bottom and top, and what its box copies from its tiles.
         private bool _open;
@@ -62,9 +65,21 @@ namespace LevelGen
         /// </summary>
         internal void BeginRow(Vector2 direction)
         {
+            BeginRow(direction, Vector3.up);
+        }
+
+        /// <summary>
+        /// The same for a row of tilted tiles: up is the tiles' surface
+        /// normal, at right angles to the row's direction (a row across a
+        /// slope is tilted about its own length).
+        /// </summary>
+        internal void BeginRow(Vector2 direction, Vector3 up)
+        {
             Break();
-            _axisX = direction.normalized;
-            _axisZ = new Vector2(-_axisX.y, _axisX.x);
+            Vector3 along = new Vector3(direction.x, 0f, direction.y).normalized;
+            Vector3 across = Vector3.Cross(along, up).normalized;
+            _frame = Quaternion.LookRotation(across, up);
+            _toFrame = Quaternion.Inverse(_frame);
         }
 
         /// <summary>
@@ -97,15 +112,14 @@ namespace LevelGen
                 }
 
                 foreach (Vector3 corner in corners) {
-                    Vector2 ground = new(corner.x, corner.z);
-                    float along = Vector2.Dot(ground, _axisX);
-                    float across = Vector2.Dot(ground, _axisZ);
-                    alongMin = Mathf.Min(alongMin, along);
-                    alongMax = Mathf.Max(alongMax, along);
-                    acrossMin = Mathf.Min(acrossMin, across);
-                    acrossMax = Mathf.Max(acrossMax, across);
-                    bottom = Mathf.Min(bottom, corner.y);
-                    top = Mathf.Max(top, corner.y);
+                    // In the row's frame: x along it, z across, y up.
+                    Vector3 local = _toFrame * corner;
+                    alongMin = Mathf.Min(alongMin, local.x);
+                    alongMax = Mathf.Max(alongMax, local.x);
+                    acrossMin = Mathf.Min(acrossMin, local.z);
+                    acrossMax = Mathf.Max(acrossMax, local.z);
+                    bottom = Mathf.Min(bottom, local.y);
+                    top = Mathf.Max(top, local.y);
                 }
 
                 first ??= collider;
@@ -162,17 +176,14 @@ namespace LevelGen
             }
 
             // The run's middle, back in the world, and its box turned to the
-            // row: local X along it, Z across.
-            float along = (_alongMin + _alongMax) * 0.5f;
-            float across = (_acrossMin + _acrossMax) * 0.5f;
-            Vector2 middle = _axisX * along + _axisZ * across;
+            // row's frame: local X along it, Z across, Y up (tilted on a slope).
+            Vector3 middle = _frame * new Vector3((_alongMin + _alongMax) * 0.5f, (_bottom + _top) * 0.5f, (_acrossMin + _acrossMax) * 0.5f);
             GameObject box = new($"Floor {Boxes}") {
                 layer = _source.layer
             };
             GameObjectUtility.SetStaticEditorFlags(box, GameObjectUtility.GetStaticEditorFlags(_source));
             box.transform.SetParent(_parent, false);
-            box.transform.SetPositionAndRotation(new Vector3(middle.x, (_bottom + _top) * 0.5f, middle.y),
-                Quaternion.LookRotation(new Vector3(_axisZ.x, 0f, _axisZ.y), Vector3.up));
+            box.transform.SetPositionAndRotation(middle, _frame);
             box.AddComponent<BoxCollider>().size = new Vector3(_alongMax - _alongMin, _top - _bottom, _acrossMax - _acrossMin);
 
             // What it is made of: the tiles' tag copied, else Stone (what an

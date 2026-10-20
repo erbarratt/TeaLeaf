@@ -29,6 +29,7 @@ MonoBehaviour:
   groundStoreyHeight: 0.163
   foundationHeight: 0.3
   foundationFrontOffset: 0.1
+  foundationBury: 0.1
   foundationColliderTolerance: 0.1
   wallColliderTolerance: 0.15
   roofColliderTolerance: 0.1
@@ -42,6 +43,7 @@ MonoBehaviour:
   jettyShare: 0.603
   jettyInset: 0.05
   jettyStoreyDrop: 0.1
+  facadeLean: 5
   doorInsertMargin: 0.05
   doorSideMargin: 0.13
   doorInsertDepth: 0
@@ -58,6 +60,7 @@ MonoBehaviour:
   columnOutShare: 0.403
   columnHeightShare: 0.3
   columnStoreyVariation: 2
+  pipeBuildingShare: 0.4
   pipeRunsMax: 1
   pipeExtraRunShare: 0
   pipeMinRunShare: 0.5
@@ -102,7 +105,7 @@ MonoBehaviour:
   groundGridMinAngle: 15
   lotGroundMargin: 1
   minTileCoverage: 0.1
-  grassCover: 0.551
+  grassCover: 0
   grassClusterMin: 2
   grassClusterMax: 6
   grassClusterRadius: 0.5
@@ -116,6 +119,8 @@ MonoBehaviour:
   foliageScaleMax: 1.2
   foliageSink: 0.03
   landingDrop: 0.02
+  streetSlopeMaxGrade: 0.083
+  slopeDropMax: 0.6
   roofPitch: 60
   roofRows: 2
   roofEaveOverhang: 0.4

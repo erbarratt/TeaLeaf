@@ -349,6 +349,9 @@ namespace Core
                 loop.ApplyModifiedPropertiesWithoutUndo();
             }
 
+            // The visible light wavers like a flame.
+            light.AddComponent<FlameFlicker>();
+
             // Last, so its Reset() finds the parts above: what puts the
             // whole light out together (a water bolt).
             light.AddComponent<Flame>();

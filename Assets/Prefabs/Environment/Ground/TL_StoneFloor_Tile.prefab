@@ -40,6 +40,18 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 3609503161162942385, guid: a045a205c1e94454cbb239eb15d92593, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.005979702
+      objectReference: {fileID: 0}
+    - target: {fileID: 3609503161162942385, guid: a045a205c1e94454cbb239eb15d92593, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 3609503161162942385, guid: a045a205c1e94454cbb239eb15d92593, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
+      objectReference: {fileID: 0}
     - target: {fileID: 3609503161162942390, guid: a045a205c1e94454cbb239eb15d92593, type: 3}
       propertyPath: m_Name
       value: TL_StoneFloor_Tile
@@ -115,36 +127,10 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 3609503161162942390, guid: a045a205c1e94454cbb239eb15d92593, type: 3}
       insertIndex: -1
       addedObject: {fileID: 7924850002944569584}
-    - targetCorrespondingSourceObject: {fileID: 3183611012806452597, guid: a045a205c1e94454cbb239eb15d92593, type: 3}
+    - targetCorrespondingSourceObject: {fileID: 3609503161162942390, guid: a045a205c1e94454cbb239eb15d92593, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 3454136126279497039}
+      addedObject: {fileID: 6750338714609734265}
   m_SourcePrefab: {fileID: 100100000, guid: a045a205c1e94454cbb239eb15d92593, type: 3}
---- !u!1 &4911733197415859714 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 3183611012806452597, guid: a045a205c1e94454cbb239eb15d92593, type: 3}
-  m_PrefabInstance: {fileID: 7496116272177800055}
-  m_PrefabAsset: {fileID: 0}
---- !u!65 &3454136126279497039
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4911733197415859714}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Size: {x: 3.04, y: 0.4, z: 3.04}
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &6489693697807656129 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 3609503161162942390, guid: a045a205c1e94454cbb239eb15d92593, type: 3}
@@ -164,3 +150,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Core.SurfaceTag
   surface: 0
   supportsRopeBolt: 0
+--- !u!65 &6750338714609734265
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6489693697807656129}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 3.04, y: 0.4, z: 3.04}
+  m_Center: {x: -0.0067477226, y: 0.0030896068, z: 0.00081612915}

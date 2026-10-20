@@ -73,12 +73,32 @@ PrefabInstance:
       value: 87
       objectReference: {fileID: 0}
     - target: {fileID: 4610529400260214638, guid: a25c2d9f176ed3746af1788a54eef2c2, type: 3}
+      propertyPath: m_Size
+      value: 4.2373285
+      objectReference: {fileID: 0}
+    - target: {fileID: 4610529400260214638, guid: a25c2d9f176ed3746af1788a54eef2c2, type: 3}
       propertyPath: m_FadeMode
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4610529400260214638, guid: a25c2d9f176ed3746af1788a54eef2c2, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4610529400260214638, guid: a25c2d9f176ed3746af1788a54eef2c2, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.020690441
+      objectReference: {fileID: 0}
+    - target: {fileID: 4610529400260214638, guid: a25c2d9f176ed3746af1788a54eef2c2, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 2.0971594
+      objectReference: {fileID: 0}
+    - target: {fileID: 4610529400260214638, guid: a25c2d9f176ed3746af1788a54eef2c2, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.000011563301
+      objectReference: {fileID: 0}
+    - target: {fileID: 4610529400260214638, guid: a25c2d9f176ed3746af1788a54eef2c2, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
       objectReference: {fileID: 0}
     - target: {fileID: 4722516008569393422, guid: a25c2d9f176ed3746af1788a54eef2c2, type: 3}
       propertyPath: m_Layer
@@ -164,8 +184,65 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedComponents:
+    - {fileID: 3953383752458507579, guid: a25c2d9f176ed3746af1788a54eef2c2, type: 3}
+    - {fileID: 8477700753033302522, guid: a25c2d9f176ed3746af1788a54eef2c2, type: 3}
+    m_RemovedGameObjects:
+    - {fileID: 2082091203569706968, guid: a25c2d9f176ed3746af1788a54eef2c2, type: 3}
+    - {fileID: 3677294000229888903, guid: a25c2d9f176ed3746af1788a54eef2c2, type: 3}
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 9176590692927566989, guid: a25c2d9f176ed3746af1788a54eef2c2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2871653857750310067}
+    - targetCorrespondingSourceObject: {fileID: 9176590692927566989, guid: a25c2d9f176ed3746af1788a54eef2c2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1518823681889845658}
   m_SourcePrefab: {fileID: 100100000, guid: a25c2d9f176ed3746af1788a54eef2c2, type: 3}
+--- !u!1 &3484369932032957139 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 9176590692927566989, guid: a25c2d9f176ed3746af1788a54eef2c2, type: 3}
+  m_PrefabInstance: {fileID: 5693459652830441054}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &2871653857750310067
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3484369932032957139}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.55736, y: 0.7006015, z: 0.55736}
+  m_Center: {x: 0, y: 0.3436, z: 0.257}
+--- !u!65 &1518823681889845658
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3484369932032957139}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.3025157, y: 2.5353177, z: 0.29496837}
+  m_Center: {x: -0.012, y: 1.9244, z: 0.273}

@@ -7,10 +7,13 @@ namespace Core
 {
     /// <summary>
     /// Editor menu command (TeaLeaf > Place Light Probes) that fills the
-    /// level's light probe group: a probe at two heights above every
-    /// floor the player could stand on, on a regular grid, so moving
+    /// level's light probe group: a probe at three heights above every
+    /// floor the player could stand on, on a close regular grid, so moving
     /// things (guards, props, hands) and the small pieces lit by probes
-    /// pick up the baked light and shadow wherever they are.
+    /// pick up the baked light and shadow wherever they are. The lowest
+    /// layer is below the centre of anything small standing on the floor
+    /// (grass, a table), so such a thing is blended from the probes round
+    /// it rather than from a tetrahedron reaching down to a lower floor.
     ///
     /// Floors are found with rays straight down on Environment colliders,
     /// every floor in a column (cellar, ground, upper storeys, roofs). A
@@ -28,12 +31,19 @@ namespace Core
         private static readonly string[] _groupPath = { "Environment", "Sectors", "Global", "Lighting", "Light Probes" };
         private const string EnvironmentLayerName = "Environment";
 
-        // Grid spacing across the level, in metres.
-        private const float Spacing = 2.5f;
+        // Grid spacing across the level, in metres. A probe-lit thing takes one
+        // value for its whole body, blended across the cell it stands in, so
+        // the moon's shadow edge is blurred over one cell width: the closer
+        // the grid, the nearer a prop can stand to a shadow edge and still
+        // match the ground. The count only costs bake time and a little memory;
+        // a renderer's lookup is cached until it moves, whatever the count.
+        private const float Spacing = 1.25f;
 
-        // Heights above each floor: about knee height and above head height,
-        // so the light is blended between them for anything standing there.
-        private static readonly float[] _heights = { 0.5f, 2f };
+        // Heights above each floor: just above the ground (below the centre of
+        // grass, loot, a table or a chair), about waist height (a guard's or
+        // carried prop's centre, the hands) and above head height, so the light
+        // is blended between them for anything standing there.
+        private static readonly float[] _heights = { 0.2f, 1f, 2f };
 
         // A floor is anything flatter than this (the y of its normal; 0.7 is
         // about 45 degrees), which keeps the steps' ramps and leaves out walls.
@@ -56,7 +66,7 @@ namespace Core
             Vector3.up, Vector3.down, Vector3.left, Vector3.right, Vector3.forward, Vector3.back
         };
 
-        [MenuItem("TeaLeaf/Place Light Probes")]
+        [MenuItem("TeaLeaf/Lighting/Place Light Probes")]
         internal static void Place()
         {
             int layer = LayerMask.NameToLayer(EnvironmentLayerName);

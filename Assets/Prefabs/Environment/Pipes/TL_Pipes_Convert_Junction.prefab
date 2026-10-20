@@ -14,7 +14,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 56708970449179274, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 454416012096600097, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
       propertyPath: m_Layer
@@ -22,7 +22,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 454416012096600097, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 2094063486134169093, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
       propertyPath: m_ReceiveGI
@@ -46,7 +46,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 3769695772718269078, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 5638679016307284520, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
       propertyPath: m_FadeMode
@@ -55,6 +55,14 @@ PrefabInstance:
     - target: {fileID: 5638679016307284520, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5638679016307284520, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 5638679016307284520, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
       objectReference: {fileID: 0}
     - target: {fileID: 7688591254944050599, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
       propertyPath: m_ReceiveGI
@@ -112,8 +120,39 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedComponents:
+    - {fileID: 8918764031798905405, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
+    m_RemovedGameObjects:
+    - {fileID: 2321182549126203836, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 8430292185502756968, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3113776071671090479}
   m_SourcePrefab: {fileID: 100100000, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
+--- !u!1 &8966838236697003000 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 8430292185502756968, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
+  m_PrefabInstance: {fileID: 616696064133804944}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &3113776071671090479
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8966838236697003000}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.2065724, y: 1.1255, z: 0.66184944}
+  m_Center: {x: -0.00399971, y: -0.0039999485, z: -0.29199982}

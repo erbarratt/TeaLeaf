@@ -92,8 +92,55 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    - target: {fileID: 8858238962984620634, guid: 9f73fcf6ccf645e468db82cd15f4b3fa, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -2.3925989
+      objectReference: {fileID: 0}
+    - target: {fileID: 8858238962984620634, guid: 9f73fcf6ccf645e468db82cd15f4b3fa, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.98945755
+      objectReference: {fileID: 0}
+    - target: {fileID: 8858238962984620634, guid: 9f73fcf6ccf645e468db82cd15f4b3fa, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: -0.00006130338
+      objectReference: {fileID: 0}
+    - target: {fileID: 8858238962984620634, guid: 9f73fcf6ccf645e468db82cd15f4b3fa, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    m_RemovedComponents:
+    - {fileID: 193879234512176447, guid: 9f73fcf6ccf645e468db82cd15f4b3fa, type: 3}
+    m_RemovedGameObjects:
+    - {fileID: 6999602816187464096, guid: 9f73fcf6ccf645e468db82cd15f4b3fa, type: 3}
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4917756544396873699, guid: 9f73fcf6ccf645e468db82cd15f4b3fa, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6795640970033666919}
   m_SourcePrefab: {fileID: 100100000, guid: 9f73fcf6ccf645e468db82cd15f4b3fa, type: 3}
+--- !u!1 &841537603300995096 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4917756544396873699, guid: 9f73fcf6ccf645e468db82cd15f4b3fa, type: 3}
+  m_PrefabInstance: {fileID: 5733887684712300539}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &6795640970033666919
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 841537603300995096}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 4.798043, y: 1.9159833, z: 0.44905764}
+  m_Center: {x: -2.4020002, y: 0.97198486, z: -0.07147336}

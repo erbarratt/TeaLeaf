@@ -101,6 +101,10 @@ PrefabInstance:
       value: 87
       objectReference: {fileID: 0}
     - target: {fileID: 8296646490368649233, guid: 82d0b341002e9e740b57adb20be0e63f, type: 3}
+      propertyPath: m_Size
+      value: 3.02453
+      objectReference: {fileID: 0}
+    - target: {fileID: 8296646490368649233, guid: 82d0b341002e9e740b57adb20be0e63f, type: 3}
       propertyPath: m_FadeMode
       value: 1
       objectReference: {fileID: 0}
@@ -108,13 +112,34 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    - target: {fileID: 8296646490368649233, guid: 82d0b341002e9e740b57adb20be0e63f, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.000320673
+      objectReference: {fileID: 0}
+    - target: {fileID: 8296646490368649233, guid: 82d0b341002e9e740b57adb20be0e63f, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: -0.20748511
+      objectReference: {fileID: 0}
+    - target: {fileID: 8296646490368649233, guid: 82d0b341002e9e740b57adb20be0e63f, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.03016913
+      objectReference: {fileID: 0}
+    - target: {fileID: 8296646490368649233, guid: 82d0b341002e9e740b57adb20be0e63f, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    m_RemovedComponents:
+    - {fileID: 752571344055792800, guid: 82d0b341002e9e740b57adb20be0e63f, type: 3}
+    m_RemovedGameObjects:
+    - {fileID: 5302759551506140801, guid: 82d0b341002e9e740b57adb20be0e63f, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 8296646490368649232, guid: 82d0b341002e9e740b57adb20be0e63f, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5977247152504684402}
+    - targetCorrespondingSourceObject: {fileID: 8296646490368649232, guid: 82d0b341002e9e740b57adb20be0e63f, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4765272741198933464}
   m_SourcePrefab: {fileID: 100100000, guid: 82d0b341002e9e740b57adb20be0e63f, type: 3}
 --- !u!1 &171189335992763514 stripped
 GameObject:
@@ -135,3 +160,24 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Core.SurfaceTag
   surface: 1
   supportsRopeBolt: 0
+--- !u!65 &4765272741198933464
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 171189335992763514}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.9322393, y: 0.21787451, z: 1.5093198}
+  m_Center: {x: -0.020999905, y: 0.004699707, z: 0.007873553}

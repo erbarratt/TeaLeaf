@@ -167,7 +167,9 @@ block, and Phases 6, 8 and 10).
   limit; the moon counts as one if it is Mixed).
 - **Static level geometry** is marked Static, on `Environment`, with a small number of shared
   materials, so it batches, bakes and occlusion-culls. Editor builders that make level or
-  test geometry should set this. Runtime-made renderers turn shadow casting and receiving off
+  test geometry should set this. **A probe-lit renderer is never Batching Static** (static
+  batching reads its probes at the merged mesh's centre, not its own); the variants tool
+  keeps this, see `Assets/Scripts/Core/CLAUDE.md`. Runtime-made renderers turn shadow casting and receiving off
   unless they need them.
 - **Depth is modelled, detail is textured:** shapes the player gets close to are real
   geometry (cheap, and correct in stereo); normal maps are for fine surface detail only.
@@ -206,7 +208,10 @@ their assets. `*.blend` source files (`Blends/`) are ignored because they exceed
 100 MB limit — they need Git LFS before they can be tracked. `Assets/ASTROFISH_GAMES` (the
 bought level art packs, 3.9 GB) is ignored too: a fresh clone re-imports the packs from the
 Asset Store, then converts their materials to URP (Window > Rendering > Render Pipeline
-Converter, Material Upgrade) and caps their textures at 2048 again.
+Converter, Material Upgrade), caps their textures at 2048 and turns Read/Write off on
+every pack model again (their meshes are never read at runtime; readable meshes keep a
+second copy in memory). Mesh compression stays off: it saves nothing at runtime and can
+open seams between modular pieces.
 
 All gameplay scripts compile into the default `Assembly-CSharp` assembly — no `.asmdef` files
 exist, so there is only one compilation unit for `Assets/Scripts`.
@@ -330,7 +335,8 @@ movement and VR tracking both want per-frame updates, for lower latency.
 Player                 [Player layer] CharacterController, PlayerTracking, PlayerInputXR,
                        PlayerHaptics, PlayerLocomotion, PlayerClimbing, PlayerMantling,
                        PlayerFootsteps, PlayerVisibility, PlayerKeyholes, PlayerBodyPushing,
-                       PlayerInventory (Inventory namespace), PlayerController
+                       PlayerInventory (Inventory namespace), PlayerController,
+                       PcPlay (Debug; disables itself unless LevelManager's PC Play is on)
   Camera Offset        (saved at y 1.6m = standing eye height; crouch shifts it)
     Main Camera        Tracked Pose Driver (Tracking/Head* actions)
       Mantle Indicator (MantleIndicator - head-locked, placed a little below centre ~0.5m ahead)
@@ -522,7 +528,10 @@ fails and restarts. The mechanics:
   shoots; grip at the chest, palm to the
   chest, draws the blackjack; grip over a shoulder brings the pack out; **a click of the
   left stick toggles sprint**; X, Y, Menu and the right stick's
-  click are unassigned.
+  click are unassigned. **PC Play** (a development switch on `LevelManager`, off for a
+  build): Play Mode from the desk with no headset - WASD walks, the mouse looks, Space
+  jumps, C crouches, Left Shift toggles sprint; movement only, the hands just ride under
+  the camera (`PcPlay`, `Scripts/Player/Debug`).
 - **Tools:** the lockpicks are the only tool; no others are planned. Two-handed
   lockpicking with haptics (built, in `PlayerLockpicking`, `Interaction.BigLock`
   and `PickableLock`): two picks worn on the back of the left hand snap into a simple lock's
@@ -589,7 +598,7 @@ fails and restarts. The mechanics:
   prefab variant of a pack prefab** holding what the game adds - Static and the
   `Environment` layer, a collider, a `SurfaceTag` where it is walked on or shot at, and
   scripts such as `Door` or `Ladder` - and levels are built from those variants, never
-  straight from the pack. **TeaLeaf > Make Environment Variants** makes the variants for
+  straight from the pack. **TeaLeaf > Modify Prefab > Make Environment Variants** makes the variants for
   static pieces in bulk from the pack prefabs or folders selected in the Project window
   (`Environment` layer and Static set; see `Assets/Scripts/Core/CLAUDE.md`). The packs' materials are URP Lit and their textures are
   imported at 2048 at most; keep both so. **The project's own copies and colour
@@ -615,7 +624,7 @@ other system fades out or reloads the scene itself.
 
 ### Scenes
 
-`Assets/Scenes/Main.unity` is the sole scene in the project, and the only scene in the build
+`Assets/Scenes/Main.unity` is the game's scene, and the only scene in the build
 list. **It holds the start of the docks level**, built by hand from the `Assets/Prefabs`
 variants and laid out as `Assets/Scenes/CLAUDE.md` describes (`Environment`, `Gameplay`
 and `Sound` roots, with `Sector 1` the only sector), beside the Player, `Level Manager`,
@@ -634,3 +643,10 @@ listeners and a physical hands area. **TeaLeaf > Dev Room > Set Up Test Guard** 
 (`NavMesh` object at the scene root; run it again after level geometry changes). Don't
 assume any of them is there. **TeaLeaf > Dev Room > Add Hand Tools To Player** adds the crossbow, blackjack and compass
 components to the `Hands` object if they are missing.
+
+Two more scenes, neither in the build list: **`Assets/Scenes/Intro.unity`** holds the
+`three-streets` level laid out by the level generator (sector `Three Streets` under
+`Environment` > `Generated`, with its own lightmap and occlusion bake in
+`Assets/Scenes/Intro/`) and nothing else yet - no Player, `Level Manager`, sound rooms or
+gameplay; **`Assets/Scenes/Level Gen Test.unity`** is the generator's test scene, where the
+example specs are generated (`Assets/Scripts/LevelGen/CLAUDE.md`).

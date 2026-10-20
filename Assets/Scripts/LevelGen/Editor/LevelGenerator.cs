@@ -120,7 +120,10 @@ namespace LevelGen
             // The foliage in a tree of its own, to hide in one go.
             Transform foliage = new GameObject("Foliage").transform;
             foliage.SetParent(rootObject.transform, false);
-            StreetGround.Build(spec, styles, settings, random, foliageRandom, placer, streets, foliage, log);
+            // How the streets change height: their flights of steps and their
+            // slopes, found once and read by everything below.
+            StreetHeights heights = StreetHeights.Find(spec.streets, styles, placer, settings);
+            StreetGround.Build(spec, styles, heights, settings, random, foliageRandom, placer, streets, foliage, log);
 
             Transform facades = new GameObject("Facades").transform;
             facades.SetParent(rootObject.transform, false);
@@ -129,7 +132,7 @@ namespace LevelGen
             // The roofs in a tree of their own, to hide in one go.
             Transform roofs = new GameObject("Roofs").transform;
             roofs.SetParent(rootObject.transform, false);
-            FacadeBuilder.Build(spec, styles, annotations, plan, settings, random, placer, facades, lots, roofs, log);
+            FacadeBuilder.Build(spec, styles, annotations, plan, heights, settings, random, placer, facades, lots, roofs, log);
             // Every foundation and walkway placed, the street test then checks
             // the boxes that replace their colliders.
             MergedColliders.RunFoundations(rootObject.transform, annotations, settings, log);
@@ -147,12 +150,11 @@ namespace LevelGen
 
             // The street test: a ball down every street must touch nothing built.
             List<string> test = new();
-            List<StreetSteps.Flight> flights = StreetSteps.Find(spec.streets, styles, placer, settings);
-            bool valid = StreetTest.Run(spec, flights, plan, rootObject.transform, streets, settings, test);
+            bool valid = StreetTest.Run(spec, heights, plan, rootObject.transform, streets, settings, test);
 
             // Always last of everything built: every piece no one in the
             // streets can see is taken out.
-            VisibilityCull.Run(spec, flights, plan, rootObject.transform, settings, log);
+            VisibilityCull.Run(spec, heights, plan, rootObject.transform, settings, log);
             // Then the roofs left that face the void beyond the level lose
             // their colliders.
             RoofEdgeColliders.Run(roofs, settings, log);

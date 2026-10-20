@@ -57,11 +57,10 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 3,
+            "objectCount": 2,
             "maxDepth": 1,
             "topChildren": [
-                "Medieval_Chimney_Slab",
-                "Medieval_Chimney_Slab_Collision"
+                "Medieval_Chimney_Slab"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -71,7 +70,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 2
+                    "count": 1
                 },
                 {
                     "name": "MeshRenderer",
@@ -1884,7 +1883,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 11,
+            "objectCount": 9,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Chimney_Supports_LOD0",
@@ -2114,7 +2113,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 12,
+            "objectCount": 10,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Chimney_Supports_Cropped_LOD0",
@@ -2786,12 +2785,12 @@
             },
             "colliderMax": {
                 "x": 0.643,
-                "y": 2.901,
+                "y": 2.238,
                 "z": 0.634
             },
             "colliderSize": {
                 "x": 1.291,
-                "y": 2.917,
+                "y": 2.254,
                 "z": 1.299
             },
             "rootEuler": {
@@ -2850,7 +2849,7 @@
             "colliders": [
                 {
                     "name": "MeshCollider",
-                    "count": 3
+                    "count": 1
                 }
             ],
             "triggerColliders": 0,
@@ -2969,7 +2968,7 @@
             "openings": [],
             "hasWalkSurface": true,
             "walkHeight": 2.238,
-            "walkShare": 0.895,
+            "walkShare": 1,
             "walkMin": {
                 "x": -0.648,
                 "y": 2.238,
@@ -3976,7 +3975,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 9,
+            "objectCount": 8,
             "maxDepth": 2,
             "topChildren": [
                 "MCastle_CliffRock_Sml_01_LOD0",
@@ -4672,13 +4671,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Door_RectangleShort_LOD0",
                 "Medieval_Door_RectangleShort_LOD1",
-                "Medieval_Door_RectangleShort_LOD2",
-                "Medieval_Door_RectangleShort_Collision"
+                "Medieval_Door_RectangleShort_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -4692,7 +4690,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -4905,13 +4903,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Door_RectangleTall_LOD0",
                 "Medieval_Door_RectangleTall_LOD1",
-                "Medieval_Door_RectangleTall_LOD2",
-                "Medieval_Door_RectangleTall_Collision"
+                "Medieval_Door_RectangleTall_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -5601,7 +5598,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 11,
+            "objectCount": 7,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Extension_LargeStruts_LOD0",
@@ -5620,7 +5617,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 9
+                    "count": 5
                 },
                 {
                     "name": "MeshRenderer",
@@ -5832,7 +5829,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 13,
+            "objectCount": 10,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Extension_LargeStrutsCorner_LOD0",
@@ -5851,7 +5848,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 11
+                    "count": 8
                 },
                 {
                     "name": "MeshRenderer",
@@ -6063,7 +6060,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 9,
+            "objectCount": 6,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Extension_LargeStruts_Half_LOD0",
@@ -6082,7 +6079,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 7
+                    "count": 4
                 },
                 {
                     "name": "MeshRenderer",
@@ -6990,12 +6987,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Extension_Small_LOD0",
-                "Medieval_Extension_Small_LOD1",
-                "Medieval_Extension_Small_Collision"
+                "Medieval_Extension_Small_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -7219,7 +7215,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 9,
+            "objectCount": 6,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Extension_SmallStruts_LOD0",
@@ -7238,7 +7234,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 7
+                    "count": 4
                 },
                 {
                     "name": "MeshRenderer",
@@ -7450,12 +7446,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 8,
+            "objectCount": 6,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Extension_Small_LOD0",
                 "Medieval_Extension_Small_LOD1",
-                "Medieval_Extension_Small_Collision",
                 "TL_Window_D"
             ],
             "nestedPrefabs": [
@@ -7479,7 +7474,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 5
+                    "count": 4
                 },
                 {
                     "name": "MeshRenderer",
@@ -7695,12 +7690,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Extension_Smaller_LOD0",
-                "Medieval_Extension_Smaller_LOD1",
-                "Medieval_Extension_Smaller_Collision"
+                "Medieval_Extension_Smaller_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -7853,7 +7847,7 @@
             "walkMin": {
                 "x": -0.644,
                 "y": -0.272,
-                "z": 0.467
+                "z": 0.468
             },
             "walkMax": {
                 "x": 0.651,
@@ -7926,7 +7920,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 11,
+            "objectCount": 10,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Fences_Broken_LOD0",
@@ -7946,7 +7940,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 9
+                    "count": 8
                 },
                 {
                     "name": "MeshRenderer",
@@ -8611,7 +8605,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 11,
+            "objectCount": 9,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Fences_Broken_B_LOD0",
@@ -8630,7 +8624,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 9
+                    "count": 7
                 },
                 {
                     "name": "MeshRenderer",
@@ -8842,13 +8836,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Fences_Broken_C_LOD0",
-                "Medieval_Fences_Broken_C_LOD1",
-                "Medieval_Fences_Broken_C_Collision_1",
-                "Medieval_Fences_Broken_C_Collision_2"
+                "Medieval_Fences_Broken_C_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -8862,7 +8854,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -9074,7 +9066,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 10,
+            "objectCount": 8,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Fences_Fixed_LOD0",
@@ -9094,7 +9086,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 8
+                    "count": 6
                 },
                 {
                     "name": "MeshRenderer",
@@ -9306,7 +9298,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 8,
+            "objectCount": 7,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Fences_Fixed_B_LOD0",
@@ -9326,7 +9318,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 6
+                    "count": 5
                 },
                 {
                     "name": "MeshRenderer",
@@ -9693,7 +9685,7 @@
             "openings": [],
             "hasWalkSurface": true,
             "walkHeight": 0.616,
-            "walkShare": 0.102,
+            "walkShare": 0.101,
             "walkMin": {
                 "x": -6.17,
                 "y": 0.616,
@@ -12884,9 +12876,9 @@
                 "z": 0
             },
             "rootScale": {
-                "x": 1,
-                "y": 1,
-                "z": 1
+                "x": 0.302,
+                "y": 0.302,
+                "z": 0.302
             },
             "objectCount": 3,
             "maxDepth": 1,
@@ -13106,9 +13098,9 @@
                 "z": 0
             },
             "rootScale": {
-                "x": 1,
-                "y": 1,
-                "z": 1
+                "x": 0.293,
+                "y": 0.293,
+                "z": 0.293
             },
             "objectCount": 3,
             "maxDepth": 1,
@@ -13327,9 +13319,9 @@
                 "z": 0
             },
             "rootScale": {
-                "x": 1,
-                "y": 1,
-                "z": 1
+                "x": 0.311,
+                "y": 0.311,
+                "z": 0.311
             },
             "objectCount": 37,
             "maxDepth": 2,
@@ -18292,7 +18284,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 7,
+            "objectCount": 6,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_IronFixtures_Armature_LOD0",
@@ -18312,7 +18304,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 5
+                    "count": 4
                 },
                 {
                     "name": "MeshRenderer",
@@ -18500,21 +18492,21 @@
                 "y": 0.027,
                 "z": 0.541
             },
-            "hasColliderBounds": true,
+            "hasColliderBounds": false,
             "colliderMin": {
-                "x": -1.23,
-                "y": -0.037,
-                "z": -0.055
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "colliderMax": {
-                "x": 1.128,
-                "y": 1.237,
-                "z": 0.062
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "colliderSize": {
-                "x": 2.358,
-                "y": 1.274,
-                "z": 0.118
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "rootEuler": {
                 "x": 0,
@@ -18526,27 +18518,22 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_IronFixtures_ArowRailing_Long_LOD0",
                 "Medieval_IronFixtures_ArowRailing_Long_LOD1",
-                "Medieval_IronFixtures_ArowRailing_Long_LOD2",
-                "Medieval_IronFixtures_ArowRailing_Long_Collision"
+                "Medieval_IronFixtures_ArowRailing_Long_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
-                {
-                    "name": "BoxCollider",
-                    "count": 1
-                },
                 {
                     "name": "LODGroup",
                     "count": 1
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -18559,12 +18546,7 @@
             "renderersLod0": 1,
             "trianglesLod0": 940,
             "materialsLod0": 1,
-            "colliders": [
-                {
-                    "name": "BoxCollider",
-                    "count": 1
-                }
-            ],
+            "colliders": [],
             "triggerColliders": 0,
             "lights": [],
             "orientation": "unsure",
@@ -18679,18 +18661,18 @@
             "frontAssumed": true,
             "suggestedCategory": "detail",
             "openings": [],
-            "hasWalkSurface": true,
-            "walkHeight": 1.237,
-            "walkShare": 1,
+            "hasWalkSurface": false,
+            "walkHeight": 0,
+            "walkShare": 0,
             "walkMin": {
-                "x": -1.23,
-                "y": 1.237,
-                "z": -0.055
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "walkMax": {
-                "x": 1.128,
-                "y": 1.237,
-                "z": 0.062
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "ramps": [],
             "rotatedRenderers": 0,
@@ -18701,6 +18683,7 @@
             "missingMeshes": 0,
             "missingScripts": 0,
             "flags": [
+                "no-colliders",
                 "front-unsure"
             ]
         },
@@ -18732,21 +18715,21 @@
                 "y": 0.022,
                 "z": 0.461
             },
-            "hasColliderBounds": true,
+            "hasColliderBounds": false,
             "colliderMin": {
-                "x": -0.119,
-                "y": 0.003,
-                "z": -0.092
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "colliderMax": {
-                "x": 1.089,
-                "y": 1.317,
-                "z": 0.024
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "colliderSize": {
-                "x": 1.208,
-                "y": 1.314,
-                "z": 0.117
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "rootEuler": {
                 "x": 0,
@@ -18758,27 +18741,22 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_IronFixtures_ArowRailing_Short_LOD0",
                 "Medieval_IronFixtures_ArowRailing_Short_LOD1",
-                "Medieval_IronFixtures_ArowRailing_Short_LOD2",
-                "Medieval_IronFixtures_ArowRailing_Short_Collision"
+                "Medieval_IronFixtures_ArowRailing_Short_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
-                {
-                    "name": "BoxCollider",
-                    "count": 1
-                },
                 {
                     "name": "LODGroup",
                     "count": 1
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -18791,12 +18769,7 @@
             "renderersLod0": 1,
             "trianglesLod0": 470,
             "materialsLod0": 1,
-            "colliders": [
-                {
-                    "name": "BoxCollider",
-                    "count": 1
-                }
-            ],
+            "colliders": [],
             "triggerColliders": 0,
             "lights": [],
             "orientation": "unsure",
@@ -18911,18 +18884,18 @@
             "frontAssumed": true,
             "suggestedCategory": "detail",
             "openings": [],
-            "hasWalkSurface": true,
-            "walkHeight": 1.317,
-            "walkShare": 1,
+            "hasWalkSurface": false,
+            "walkHeight": 0,
+            "walkShare": 0,
             "walkMin": {
-                "x": -0.119,
-                "y": 1.317,
-                "z": -0.092
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "walkMax": {
-                "x": 1.089,
-                "y": 1.317,
-                "z": 0.024
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "ramps": [],
             "rotatedRenderers": 0,
@@ -18933,6 +18906,7 @@
             "missingMeshes": 0,
             "missingScripts": 0,
             "flags": [
+                "no-colliders",
                 "front-unsure"
             ]
         },
@@ -18990,12 +18964,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_IronFixtures_CellarBars_LOD0",
-                "Medieval_IronFixtures_CellarBars_LOD1",
-                "Medieval_IronFixtures_CellarBars_Collision"
+                "Medieval_IronFixtures_CellarBars_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -19009,7 +18982,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -19419,21 +19392,21 @@
                 "y": 0.5,
                 "z": 0.5
             },
-            "hasColliderBounds": true,
+            "hasColliderBounds": false,
             "colliderMin": {
-                "x": -0.231,
-                "y": -0.358,
-                "z": -0.235
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "colliderMax": {
-                "x": 0.231,
-                "y": 0.358,
-                "z": 0.235
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "colliderSize": {
-                "x": 0.462,
-                "y": 0.716,
-                "z": 0.469
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "rootEuler": {
                 "x": 0,
@@ -19469,12 +19442,7 @@
             "renderersLod0": 1,
             "trianglesLod0": 226,
             "materialsLod0": 1,
-            "colliders": [
-                {
-                    "name": "MeshCollider",
-                    "count": 1
-                }
-            ],
+            "colliders": [],
             "triggerColliders": 0,
             "lights": [],
             "orientation": "not-a-slab",
@@ -19589,18 +19557,18 @@
             "frontAssumed": true,
             "suggestedCategory": "detail",
             "openings": [],
-            "hasWalkSurface": true,
-            "walkHeight": 0.358,
-            "walkShare": 0.467,
+            "hasWalkSurface": false,
+            "walkHeight": 0,
+            "walkShare": 0,
             "walkMin": {
-                "x": -0.183,
-                "y": 0.358,
-                "z": -0.183
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "walkMax": {
-                "x": 0.183,
-                "y": 0.358,
-                "z": 0.183
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "ramps": [],
             "rotatedRenderers": 0,
@@ -19611,7 +19579,8 @@
             "missingMeshes": 0,
             "missingScripts": 0,
             "flags": [
-                "pivot-not-on-base"
+                "pivot-not-on-base",
+                "no-colliders"
             ]
         },
         {
@@ -19642,21 +19611,21 @@
                 "y": 0.5,
                 "z": 0.5
             },
-            "hasColliderBounds": true,
+            "hasColliderBounds": false,
             "colliderMin": {
-                "x": -0.136,
-                "y": -0.25,
-                "z": -0.138
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "colliderMax": {
-                "x": 0.136,
-                "y": 0.25,
-                "z": 0.138
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "colliderSize": {
-                "x": 0.273,
-                "y": 0.501,
-                "z": 0.276
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "rootEuler": {
                 "x": 0,
@@ -19692,12 +19661,7 @@
             "renderersLod0": 1,
             "trianglesLod0": 142,
             "materialsLod0": 1,
-            "colliders": [
-                {
-                    "name": "MeshCollider",
-                    "count": 1
-                }
-            ],
+            "colliders": [],
             "triggerColliders": 0,
             "lights": [],
             "orientation": "not-a-slab",
@@ -19812,18 +19776,18 @@
             "frontAssumed": true,
             "suggestedCategory": "detail",
             "openings": [],
-            "hasWalkSurface": true,
-            "walkHeight": 0.25,
-            "walkShare": 0.725,
+            "hasWalkSurface": false,
+            "walkHeight": 0,
+            "walkShare": 0,
             "walkMin": {
-                "x": -0.125,
-                "y": 0.25,
-                "z": -0.125
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "walkMax": {
-                "x": 0.125,
-                "y": 0.25,
-                "z": 0.125
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "ramps": [],
             "rotatedRenderers": 0,
@@ -19834,7 +19798,8 @@
             "missingMeshes": 0,
             "missingScripts": 0,
             "flags": [
-                "pivot-not-on-base"
+                "pivot-not-on-base",
+                "no-colliders"
             ]
         },
         {
@@ -19891,12 +19856,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_IronFixtures_Knocker_LOD0",
-                "Medieval_IronFixtures_Knocker_LOD1",
-                "Medieval_IronFixtures_Knocker_Collision"
+                "Medieval_IronFixtures_Knocker_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -19910,7 +19874,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -20122,7 +20086,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 10,
+            "objectCount": 8,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_IronFixtures_Lamp_LOD0",
@@ -20149,7 +20113,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 7
+                    "count": 5
                 },
                 {
                     "name": "MeshRenderer",
@@ -20308,14 +20272,13 @@
             "unevenScaleRenderers": 1,
             "mirroredRenderers": 0,
             "offLayerObjects": 0,
-            "nonStaticObjects": 1,
+            "nonStaticObjects": 0,
             "missingMeshes": 0,
             "missingScripts": 0,
             "flags": [
                 "front-not-plus-z",
                 "pivot-not-on-base",
                 "uneven-scale",
-                "not-batching-static",
                 "assembly",
                 "front-unsure"
             ]
@@ -20374,14 +20337,13 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 7,
+            "objectCount": 6,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_IronFixtures_LargeTorch_LOD0",
                 "Medieval_IronFixtures_LargeTorch_LOD1",
                 "Fire_Effect",
                 "Point Light",
-                "Medieval_IronFixtures_LargeTorch_Collision",
                 "Flame Visual"
             ],
             "nestedPrefabs": [
@@ -20405,7 +20367,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -20573,14 +20535,13 @@
             "unevenScaleRenderers": 1,
             "mirroredRenderers": 0,
             "offLayerObjects": 0,
-            "nonStaticObjects": 1,
+            "nonStaticObjects": 0,
             "missingMeshes": 0,
             "missingScripts": 0,
             "flags": [
                 "pivot-not-on-base",
                 "has-lights",
                 "uneven-scale",
-                "not-batching-static",
                 "assembly"
             ]
         },
@@ -20638,12 +20599,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_IronFixtures_Lock_LOD0",
-                "Medieval_IronFixtures_Lock_LOD1",
-                "Medieval_IronFixtures_Lock_Collision"
+                "Medieval_IronFixtures_Lock_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -20657,7 +20617,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -20870,7 +20830,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 10,
+            "objectCount": 9,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_IronFixtures_Torch_LOD0",
@@ -20902,7 +20862,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 7
+                    "count": 6
                 },
                 {
                     "name": "MeshRenderer",
@@ -21065,13 +21025,12 @@
             "unevenScaleRenderers": 1,
             "mirroredRenderers": 0,
             "offLayerObjects": 0,
-            "nonStaticObjects": 1,
+            "nonStaticObjects": 0,
             "missingMeshes": 0,
             "missingScripts": 0,
             "flags": [
                 "pivot-not-on-base",
                 "uneven-scale",
-                "not-batching-static",
                 "assembly"
             ]
         },
@@ -21430,7 +21389,7 @@
                     "objectPath": "Point Light",
                     "type": "Point",
                     "mode": "Mixed",
-                    "shadows": "Soft",
+                    "shadows": "Hard",
                     "range": 5,
                     "enabled": true
                 }
@@ -21565,13 +21524,12 @@
             "unevenScaleRenderers": 1,
             "mirroredRenderers": 0,
             "offLayerObjects": 0,
-            "nonStaticObjects": 1,
+            "nonStaticObjects": 0,
             "missingMeshes": 0,
             "missingScripts": 0,
             "flags": [
                 "has-lights",
                 "uneven-scale",
-                "not-batching-static",
                 "has-gameplay-scripts",
                 "assembly"
             ]
@@ -21630,12 +21588,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Masonary_CellarWall_LOD0",
-                "Medieval_Masonary_CellarWall_LOD1",
-                "Medieval_Masonary_CellarWall_Collision"
+                "Medieval_Masonary_CellarWall_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -21649,7 +21606,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -21861,8 +21818,8 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 8,
-            "maxDepth": 2,
+            "objectCount": 5,
+            "maxDepth": 1,
             "topChildren": [
                 "Medieval_Masonary_CellarWindow_LOD0",
                 "Medieval_Masonary_CellarWindow_LOD1",
@@ -21881,7 +21838,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 6
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -22091,8 +22048,8 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 7,
-            "maxDepth": 2,
+            "objectCount": 5,
+            "maxDepth": 1,
             "topChildren": [
                 "Medieval_Masonary_CellarWindow_LeftHalf_LOD0",
                 "Medieval_Masonary_CellarWindow_LeftHalf_LOD1",
@@ -22111,7 +22068,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 5
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -22321,8 +22278,8 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 7,
-            "maxDepth": 2,
+            "objectCount": 5,
+            "maxDepth": 1,
             "topChildren": [
                 "Medieval_Masonary_CellarWindow_RightHalf_LOD0",
                 "Medieval_Masonary_CellarWindow_RightHalf_LOD1",
@@ -22341,7 +22298,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 5
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -22551,7 +22508,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 13,
+            "objectCount": 7,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Masonary_DoorOrnate_LOD0",
@@ -22571,7 +22528,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 11
+                    "count": 5
                 },
                 {
                     "name": "MeshRenderer",
@@ -22808,7 +22765,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 8,
+            "objectCount": 6,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Masonary_DoorOrnate_HalfLeft_LOD0",
@@ -22828,7 +22785,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 6
+                    "count": 4
                 },
                 {
                     "name": "MeshRenderer",
@@ -23038,7 +22995,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 8,
+            "objectCount": 6,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Masonary_DoorOrnate_HalfRight_LOD0",
@@ -23058,7 +23015,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 6
+                    "count": 4
                 },
                 {
                     "name": "MeshRenderer",
@@ -23268,13 +23225,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Masonary_ShortSideWall_A_LOD0",
                 "Medieval_Masonary_ShortSideWall_A_LOD1",
-                "Medieval_Masonary_ShortSideWall_A_LOD2",
-                "Medieval_Masonary_ShortSideWall_A_Collision"
+                "Medieval_Masonary_ShortSideWall_A_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -23288,7 +23244,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -23498,13 +23454,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Masonary_ShortSideWall_B_LOD0",
                 "Medieval_Masonary_ShortSideWall_B_LOD1",
-                "Medieval_Masonary_ShortSideWall_B_LOD2",
-                "Medieval_Masonary_ShortSideWall_B_Collision"
+                "Medieval_Masonary_ShortSideWall_B_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -23518,7 +23473,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -23728,7 +23683,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 7,
+            "objectCount": 6,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Masonary_WallCorner_LOD0",
@@ -23748,7 +23703,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 5
+                    "count": 4
                 },
                 {
                     "name": "MeshRenderer",
@@ -23963,7 +23918,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 7,
+            "objectCount": 6,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Masonary_WallCorner_Cropped_LOD0",
@@ -23982,7 +23937,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 5
+                    "count": 4
                 },
                 {
                     "name": "MeshRenderer",
@@ -24197,8 +24152,8 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 8,
-            "maxDepth": 2,
+            "objectCount": 5,
+            "maxDepth": 1,
             "topChildren": [
                 "Medieval_Masonary_WallDoorArch_LOD0",
                 "Medieval_Masonary_WallDoorArch_LOD1",
@@ -24217,7 +24172,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 6
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -24454,8 +24409,8 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 7,
-            "maxDepth": 2,
+            "objectCount": 5,
+            "maxDepth": 1,
             "topChildren": [
                 "Medieval_Masonary_WallDoorArch_Left_LOD0",
                 "Medieval_Masonary_WallDoorArch_Left_LOD1",
@@ -24474,7 +24429,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 5
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -24684,8 +24639,8 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 7,
-            "maxDepth": 2,
+            "objectCount": 5,
+            "maxDepth": 1,
             "topChildren": [
                 "Medieval_Masonary_WallDoorArch_Right_LOD0",
                 "Medieval_Masonary_WallDoorArch_Right_LOD1",
@@ -24704,7 +24659,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 5
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -24914,7 +24869,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 10,
+            "objectCount": 9,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Masonary_WoodLargeWall_Corner_LOD0",
@@ -24933,7 +24888,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 8
+                    "count": 7
                 },
                 {
                     "name": "MeshRenderer",
@@ -25148,7 +25103,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 10,
+            "objectCount": 9,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Masonary_WoodLargeWall_CornerLow_LOD0",
@@ -25167,7 +25122,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 8
+                    "count": 7
                 },
                 {
                     "name": "MeshRenderer",
@@ -25382,7 +25337,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 10,
+            "objectCount": 8,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Masonary_WoodLargeWall_CornerLower_LOD0",
@@ -25401,7 +25356,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 8
+                    "count": 6
                 },
                 {
                     "name": "MeshRenderer",
@@ -25616,12 +25571,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Masonary_WoodLargeWall_Curved_LOD1",
-                "Medieval_Masonary_WoodLargeWall_Curved_LOD0",
-                "Medieval_Masonary_WoodLargeWall_Curved_Collision"
+                "Medieval_Masonary_WoodLargeWall_Curved_LOD0"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -25635,7 +25589,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -25845,7 +25799,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 10,
+            "objectCount": 5,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Masonary_WoodLarge_StrongSupportColumn_LOD0",
@@ -25864,7 +25818,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 8
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -26074,8 +26028,8 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 6,
-            "maxDepth": 2,
+            "objectCount": 4,
+            "maxDepth": 1,
             "topChildren": [
                 "Medieval_Masonary_WoodLarge_StrongSupportLow_LOD0",
                 "Medieval_Masonary_WoodLarge_StrongSupportLow_LOD1",
@@ -26093,7 +26047,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -26303,13 +26257,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Masonary_WoodLarge_Wall_LOD0",
                 "Medieval_Masonary_WoodLarge_Wall_LOD1",
-                "Medieval_Masonary_WoodLarge_Wall_LOD2",
-                "Medieval_Masonary_WoodLarge_Wall_Collision"
+                "Medieval_Masonary_WoodLarge_Wall_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -26533,13 +26486,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Masonary_WoodLarge_WallHalf_LOD0",
                 "Medieval_Masonary_WoodLarge_WallHalf_LOD1",
-                "Medieval_Masonary_WoodLarge_WallHalf_LOD2",
-                "Medieval_Masonary_WoodLarge_WallHalf_Collision"
+                "Medieval_Masonary_WoodLarge_WallHalf_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -26553,7 +26505,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -26763,12 +26715,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Masonary_WoodLarge_WallLow_LOD0",
-                "Medieval_Masonary_WoodLarge_WallLow_LOD1",
-                "Medieval_Masonary_WoodLarge_WallLow_Collision"
+                "Medieval_Masonary_WoodLarge_WallLow_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -26782,7 +26733,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -26992,12 +26943,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Masonary_WoodLarge_WallLower_LOD0",
-                "Medieval_Masonary_WoodLarge_WallLower_LOD1",
-                "Medieval_Masonary_WoodLarge_WallLower_Collision"
+                "Medieval_Masonary_WoodLarge_WallLower_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -27011,7 +26961,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -27221,12 +27171,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Masonary_WoodLarge_WallWindows_LOD0",
-                "Medieval_Masonary_WoodLarge_WallWindows_LOD1",
-                "Medieval_Masonary_WoodLarge_WallWindows_Collision"
+                "Medieval_Masonary_WoodLarge_WallWindows_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -27240,7 +27189,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -27985,13 +27934,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_Capped_End_LOD0",
                 "S_MVillage_Pipes_Capped_End_LOD1",
-                "S_MVillage_Pipes_Capped_End_LOD2",
-                "S_MVillage_Pipes_Capped_End_Collision"
+                "S_MVillage_Pipes_Capped_End_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -28005,7 +27953,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -28209,13 +28157,12 @@
                 "y": 0.6,
                 "z": 0.6
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_Capped_End_LOD0",
                 "S_MVillage_Pipes_Capped_End_LOD1",
-                "S_MVillage_Pipes_Capped_End_LOD2",
-                "S_MVillage_Pipes_Capped_End_Collision"
+                "S_MVillage_Pipes_Capped_End_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -28229,7 +28176,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -28435,13 +28382,12 @@
                 "y": 0.3,
                 "z": 0.3
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_Capped_End_LOD0",
                 "S_MVillage_Pipes_Capped_End_LOD1",
-                "S_MVillage_Pipes_Capped_End_LOD2",
-                "S_MVillage_Pipes_Capped_End_Collision"
+                "S_MVillage_Pipes_Capped_End_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -28455,7 +28401,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -28661,13 +28607,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_Convert_Junction_LOD0",
                 "S_MVillage_Pipes_Convert_Junction_LOD1",
-                "S_MVillage_Pipes_Convert_Junction_LOD2",
-                "S_MVillage_Pipes_Convert_Junction_Collision"
+                "S_MVillage_Pipes_Convert_Junction_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -28681,7 +28626,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -28894,7 +28839,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 8,
+            "objectCount": 6,
             "maxDepth": 2,
             "topChildren": [
                 "S_MVillage_Pipes_Corner_Large_LOD0",
@@ -28914,7 +28859,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 6
+                    "count": 4
                 },
                 {
                     "name": "MeshRenderer",
@@ -29126,7 +29071,7 @@
                 "y": 0.6,
                 "z": 0.6
             },
-            "objectCount": 8,
+            "objectCount": 6,
             "maxDepth": 2,
             "topChildren": [
                 "S_MVillage_Pipes_Corner_Large_LOD0",
@@ -29146,7 +29091,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 6
+                    "count": 4
                 },
                 {
                     "name": "MeshRenderer",
@@ -29358,13 +29303,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_Corner_Small_LOD0",
                 "S_MVillage_Pipes_Corner_Small_LOD1",
-                "S_MVillage_Pipes_Corner_Small_LOD2",
-                "S_MVillage_Pipes_Corner_Small_Collision"
+                "S_MVillage_Pipes_Corner_Small_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -29378,7 +29322,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -29590,13 +29534,12 @@
                 "y": 0.6,
                 "z": 0.6
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_Corner_Small_LOD0",
                 "S_MVillage_Pipes_Corner_Small_LOD1",
-                "S_MVillage_Pipes_Corner_Small_LOD2",
-                "S_MVillage_Pipes_Corner_Small_Collision"
+                "S_MVillage_Pipes_Corner_Small_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -29610,7 +29553,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -29823,13 +29766,12 @@
                 "y": 0.3,
                 "z": 0.3
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_Corner_Small_LOD0",
                 "S_MVillage_Pipes_Corner_Small_LOD1",
-                "S_MVillage_Pipes_Corner_Small_LOD2",
-                "S_MVillage_Pipes_Corner_Small_Collision"
+                "S_MVillage_Pipes_Corner_Small_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -29843,7 +29785,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -30056,13 +29998,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_Junction_LOD0",
                 "S_MVillage_Pipes_Junction_LOD1",
-                "S_MVillage_Pipes_Junction_LOD2",
-                "S_MVillage_Pipes_Junction_Collision"
+                "S_MVillage_Pipes_Junction_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -30076,7 +30017,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -30288,13 +30229,12 @@
                 "y": 0.6,
                 "z": 0.6
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_Junction_LOD0",
                 "S_MVillage_Pipes_Junction_LOD1",
-                "S_MVillage_Pipes_Junction_LOD2",
-                "S_MVillage_Pipes_Junction_Collision"
+                "S_MVillage_Pipes_Junction_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -30308,7 +30248,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -30520,13 +30460,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_Large_A_LOD0",
                 "S_MVillage_Pipes_Large_A_LOD1",
-                "S_MVillage_Pipes_Large_A_LOD2",
-                "S_MVillage_Pipes_Large_A_Collision"
+                "S_MVillage_Pipes_Large_A_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -30540,7 +30479,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -30754,13 +30693,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_Small_A_LOD0",
                 "S_MVillage_Pipes_Small_A_LOD1",
-                "S_MVillage_Pipes_Small_A_LOD2",
-                "S_MVillage_Pipes_Small_A_Collision"
+                "S_MVillage_Pipes_Small_A_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -30774,7 +30712,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -30989,13 +30927,12 @@
                 "y": 0.5,
                 "z": 0.5
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_Small_A_LOD0",
                 "S_MVillage_Pipes_Small_A_LOD1",
-                "S_MVillage_Pipes_Small_A_LOD2",
-                "S_MVillage_Pipes_Small_A_Collision"
+                "S_MVillage_Pipes_Small_A_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -31009,7 +30946,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -31224,13 +31161,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_TJunction_LOD0",
                 "S_MVillage_Pipes_TJunction_LOD1",
-                "S_MVillage_Pipes_TJunction_LOD2",
-                "S_MVillage_Pipes_TJunction_Collision"
+                "S_MVillage_Pipes_TJunction_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -31244,7 +31180,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -31456,13 +31392,12 @@
                 "y": 0.6,
                 "z": 0.6
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_TJunction_LOD0",
                 "S_MVillage_Pipes_TJunction_LOD1",
-                "S_MVillage_Pipes_TJunction_LOD2",
-                "S_MVillage_Pipes_TJunction_Collision"
+                "S_MVillage_Pipes_TJunction_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -31476,7 +31411,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -31689,13 +31624,12 @@
                 "y": 0.3,
                 "z": 0.3
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_TJunction_LOD0",
                 "S_MVillage_Pipes_TJunction_LOD1",
-                "S_MVillage_Pipes_TJunction_LOD2",
-                "S_MVillage_Pipes_TJunction_Collision"
+                "S_MVillage_Pipes_TJunction_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -31709,7 +31643,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -31922,13 +31856,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_Valve_LOD0",
                 "S_MVillage_Pipes_Valve_LOD1",
-                "S_MVillage_Pipes_Valve_LOD2",
-                "S_MVillage_Pipes_Valve_Collision"
+                "S_MVillage_Pipes_Valve_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -31942,7 +31875,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -32146,13 +32079,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_Valve_Base_LOD0",
                 "S_MVillage_Pipes_Valve_Base_LOD1",
-                "S_MVillage_Pipes_Valve_Base_LOD2",
-                "S_MVillage_Pipes_Valve_Base_Collision"
+                "S_MVillage_Pipes_Valve_Base_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -32166,7 +32098,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -33335,13 +33267,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_Vent_LOD0",
                 "S_MVillage_Pipes_Vent_LOD1",
-                "S_MVillage_Pipes_Vent_LOD2",
-                "S_MVillage_Pipes_Vent_Collision"
+                "S_MVillage_Pipes_Vent_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -33355,7 +33286,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -33559,13 +33490,12 @@
                 "y": 0.6,
                 "z": 0.6
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "S_MVillage_Pipes_Vent_LOD0",
                 "S_MVillage_Pipes_Vent_LOD1",
-                "S_MVillage_Pipes_Vent_LOD2",
-                "S_MVillage_Pipes_Vent_Collision"
+                "S_MVillage_Pipes_Vent_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -33579,7 +33509,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -34018,13 +33948,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Fixtures_WoodenPlatform_LOD0",
                 "Medieval_Fixtures_WoodenPlatform_LOD1",
-                "Medieval_Fixtures_WoodenPlatform_LOD2",
-                "Medieval_Fixtures_WoodenPlatform_Collision"
+                "Medieval_Fixtures_WoodenPlatform_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -34244,13 +34173,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Fixtures_WoodenPlatform_Corner_LOD0",
                 "Medieval_Fixtures_WoodenPlatform_Corner_LOD1",
-                "Medieval_Fixtures_WoodenPlatform_Corner_LOD2",
-                "Medieval_Fixtures_WoodenPlatform_Corner_Collision"
+                "Medieval_Fixtures_WoodenPlatform_Corner_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -34470,7 +34398,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 8,
+            "objectCount": 6,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Fixtures_WoodenSideCorner_LOD0",
@@ -34489,7 +34417,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 6
+                    "count": 4
                 },
                 {
                     "name": "MeshRenderer",
@@ -34701,8 +34629,8 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
-            "maxDepth": 2,
+            "objectCount": 3,
+            "maxDepth": 1,
             "topChildren": [
                 "Medieval_Fixtures_WoodenSideSupport_Straight",
                 "Medieval_Fixtures_WoodenSideSupport_Straight_Collision"
@@ -34715,7 +34643,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 1
                 },
                 {
                     "name": "MeshRenderer",
@@ -34928,7 +34856,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 8,
+            "objectCount": 6,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Fixtures_WoodenSmallSupport_LOD0",
@@ -34947,7 +34875,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 6
+                    "count": 4
                 },
                 {
                     "name": "MeshRenderer",
@@ -35159,7 +35087,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 8,
+            "objectCount": 7,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Fixtures_WoodenSmallSupport_Corner_LOD0",
@@ -35178,7 +35106,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 6
+                    "count": 5
                 },
                 {
                     "name": "MeshRenderer",
@@ -35622,12 +35550,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_PlanedWood_BeamBrackets_02_LOD0",
-                "Medieval_PlanedWood_BeamBrackets_LOD1",
-                "Medieval_PlanedWood_BeamBrackets02_Collision"
+                "Medieval_PlanedWood_BeamBrackets_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -35641,7 +35568,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -35854,12 +35781,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_PlanedWood_BeamBracketsLong_LOD0",
-                "Medieval_PlanedWood_BeamBracketsLong_LOD1",
-                "Medieval_PlanedWood_BeamBracketsLong_Collision"
+                "Medieval_PlanedWood_BeamBracketsLong_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -36319,11 +36245,9 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 2,
-            "maxDepth": 1,
-            "topChildren": [
-                "Medieval_PlanedWood_BeamShort_Collision"
-            ],
+            "objectCount": 1,
+            "maxDepth": 0,
+            "topChildren": [],
             "nestedPrefabs": [],
             "components": [
                 {
@@ -36332,7 +36256,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 2
+                    "count": 1
                 },
                 {
                     "name": "MeshRenderer",
@@ -36545,7 +36469,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 9,
+            "objectCount": 8,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_PlanedWood_FenceBracketsLong_LOD0",
@@ -36565,7 +36489,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 7
+                    "count": 6
                 },
                 {
                     "name": "MeshRenderer",
@@ -36778,7 +36702,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 7,
+            "objectCount": 6,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_PlanedWood_Rails01_LOD0",
@@ -36797,7 +36721,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 5
+                    "count": 4
                 },
                 {
                     "name": "MeshRenderer",
@@ -37696,7 +37620,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 10,
+            "objectCount": 8,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_PlanedWood_SupportCornerShort_LOD0",
@@ -37716,7 +37640,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 8
+                    "count": 6
                 },
                 {
                     "name": "MeshRenderer",
@@ -38158,7 +38082,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 10,
+            "objectCount": 8,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_PlanedWood_SupportMiddleShort_LOD0",
@@ -38178,7 +38102,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 8
+                    "count": 6
                 },
                 {
                     "name": "MeshRenderer",
@@ -38390,12 +38314,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Platforms_BoardPlanks_LOD0",
-                "Medieval_Platforms_BoardPlanks_LOD1",
-                "Medieval_Platforms_BoardPlanks_Collision"
+                "Medieval_Platforms_BoardPlanks_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -38409,7 +38332,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -39526,12 +39449,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Platforms_Planks_LOD0",
-                "Medieval_Platforms_Planks_LOD1",
-                "Medieval_Platforms_Planks_Collision"
+                "Medieval_Platforms_Planks_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -39545,7 +39467,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -39980,12 +39902,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Platforms_Planks_Ground_LOD0",
-                "Medieval_Platforms_Planks_Ground_LOD1",
-                "Medieval_Platforms_Planks_Ground_Collision"
+                "Medieval_Platforms_Planks_Ground_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -39999,7 +39920,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -40434,12 +40355,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Platforms_Planks_HalfGround_LOD0",
-                "Medieval_Platforms_Planks_HalfGround_LOD1",
-                "Medieval_Platforms_Planks_HalfGround_Collision"
+                "Medieval_Platforms_Planks_HalfGround_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -40453,7 +40373,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -40659,12 +40579,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Platforms_ShortBoardPlanks_LOD0",
-                "Medieval_Platforms_ShortBoardPlanks_LOD1",
-                "Medieval_Platforms_ShortBoardPlanks_Collision"
+                "Medieval_Platforms_ShortBoardPlanks_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -40678,7 +40597,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -40884,7 +40803,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 6,
+            "objectCount": 5,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Platforms_ShortBoardPlanks_Supports_LOD0",
@@ -40903,7 +40822,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -41119,12 +41038,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Platforms_SideWall_LOD0",
-                "Medieval_Platforms_SideWall_LOD1",
-                "Medieval_Platforms_SideWall_Collision"
+                "Medieval_Platforms_SideWall_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -41138,7 +41056,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -41798,7 +41716,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 9,
+            "objectCount": 5,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Platforms_Steps_Half_LOD0",
@@ -41817,7 +41735,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 7
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -42027,7 +41945,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 10,
+            "objectCount": 5,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Platforms_Steps_Narrow_LOD0",
@@ -42046,7 +41964,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 8
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -42258,7 +42176,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 8,
+            "objectCount": 6,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Platforms_Steps_Short_LOD0",
@@ -42277,7 +42195,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 6
+                    "count": 4
                 },
                 {
                     "name": "MeshRenderer",
@@ -42489,7 +42407,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 7,
+            "objectCount": 5,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Platforms_Steps_Wide_LOD0",
@@ -42512,7 +42430,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -42663,7 +42581,7 @@
             "missingScripts": 0,
             "flags": [
                 "off-environment-layer",
-                "not-batching-static"
+                "not-static"
             ]
         },
         {
@@ -42720,8 +42638,8 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 6,
-            "maxDepth": 2,
+            "objectCount": 4,
+            "maxDepth": 1,
             "topChildren": [
                 "Medieval_PortchColumn_Medium_LOD0",
                 "Medieval_PortchColumn_Medium_LOD1",
@@ -42739,7 +42657,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -42949,13 +42867,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_PortchColumn_MediumBeam_LOD0",
                 "Medieval_PortchColumn_MediumBeam_LOD1",
-                "Medieval_PortchColumn_MediumBeam_LOD2",
-                "Medieval_PortchColumn_MediumBeam_Collision"
+                "Medieval_PortchColumn_MediumBeam_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -43179,8 +43096,8 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 6,
-            "maxDepth": 2,
+            "objectCount": 4,
+            "maxDepth": 1,
             "topChildren": [
                 "Medieval_PortchColumn_Short_LOD0",
                 "Medieval_PortchColumn_Short_LOD1",
@@ -43198,7 +43115,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -43408,12 +43325,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_PortchColumn_Small_LOD0",
-                "Medieval_PortchColumn_Small_LOD1",
-                "Medieval_PortchColumn_Small_Collision"
+                "Medieval_PortchColumn_Small_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -43427,7 +43343,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -43862,7 +43778,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 7,
+            "objectCount": 5,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_PortchCorner_Medium_LOD0",
@@ -43881,7 +43797,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 5
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -44093,7 +44009,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 7,
+            "objectCount": 5,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_PortchCorner_Short_LOD0",
@@ -44112,7 +44028,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 5
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -44322,7 +44238,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 13,
+            "objectCount": 11,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_PortchCorner_Tall_LOD0",
@@ -44341,7 +44257,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 11
+                    "count": 9
                 },
                 {
                     "name": "MeshRenderer",
@@ -44551,7 +44467,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 9,
+            "objectCount": 7,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_PortchCorner_Tall_Cropped_LOD0",
@@ -44570,7 +44486,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 7
+                    "count": 5
                 },
                 {
                     "name": "MeshRenderer",
@@ -44780,7 +44696,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_PortchStraight_Extension_Collision"
@@ -44793,7 +44709,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -45011,7 +44927,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 13,
+            "objectCount": 11,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_PortchStraight_Tall_LOD0",
@@ -45030,7 +44946,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 11
+                    "count": 9
                 },
                 {
                     "name": "MeshRenderer",
@@ -46306,19 +46222,19 @@
             },
             "hasColliderBounds": true,
             "colliderMin": {
-                "x": -3.026,
-                "y": -0.162,
-                "z": -0.653
+                "x": -2.949,
+                "y": 0.081,
+                "z": -0.515
             },
             "colliderMax": {
-                "x": 2.98,
+                "x": 2.949,
                 "y": 6.867,
-                "z": 0.694
+                "z": -0.015
             },
             "colliderSize": {
-                "x": 6.006,
-                "y": 7.029,
-                "z": 1.348
+                "x": 5.899,
+                "y": 6.786,
+                "z": 0.5
             },
             "rootEuler": {
                 "x": 0,
@@ -46330,8 +46246,8 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 12,
-            "maxDepth": 2,
+            "objectCount": 6,
+            "maxDepth": 1,
             "topChildren": [
                 "Medieval_RoofWall_LargeA_Collision",
                 "Medieval_RoofWall_LargeA_Collision_1",
@@ -46347,7 +46263,7 @@
                 },
                 {
                     "name": "MeshCollider",
-                    "count": 7
+                    "count": 1
                 },
                 {
                     "name": "MeshFilter",
@@ -46367,7 +46283,7 @@
             "colliders": [
                 {
                     "name": "MeshCollider",
-                    "count": 7
+                    "count": 1
                 }
             ],
             "triggerColliders": 0,
@@ -46484,18 +46400,18 @@
             "frontAssumed": false,
             "suggestedCategory": "roof",
             "openings": [],
-            "hasWalkSurface": true,
-            "walkHeight": 0.585,
-            "walkShare": 0.19,
+            "hasWalkSurface": false,
+            "walkHeight": 0,
+            "walkShare": 0,
             "walkMin": {
-                "x": -2.729,
-                "y": 0.585,
-                "z": -0.653
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "walkMax": {
-                "x": 2.726,
-                "y": 0.585,
-                "z": 0.694
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "ramps": [],
             "rotatedRenderers": 0,
@@ -46539,19 +46455,19 @@
             },
             "hasColliderBounds": true,
             "colliderMin": {
-                "x": -3.041,
-                "y": -0.202,
-                "z": -0.585
+                "x": -3.007,
+                "y": 0.031,
+                "z": -0.241
             },
             "colliderMax": {
-                "x": 3.029,
+                "x": 2.891,
                 "y": 6.817,
-                "z": 0.623
+                "z": 0.259
             },
             "colliderSize": {
-                "x": 6.07,
-                "y": 7.019,
-                "z": 1.208
+                "x": 5.899,
+                "y": 6.786,
+                "z": 0.5
             },
             "rootEuler": {
                 "x": 0,
@@ -46563,7 +46479,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 12,
+            "objectCount": 6,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_RoofWall_LargeB_Collision",
@@ -46579,7 +46495,7 @@
                 },
                 {
                     "name": "MeshCollider",
-                    "count": 7
+                    "count": 1
                 },
                 {
                     "name": "MeshFilter",
@@ -46599,7 +46515,7 @@
             "colliders": [
                 {
                     "name": "MeshCollider",
-                    "count": 7
+                    "count": 1
                 }
             ],
             "triggerColliders": 0,
@@ -46716,18 +46632,18 @@
             "frontAssumed": false,
             "suggestedCategory": "roof",
             "openings": [],
-            "hasWalkSurface": true,
-            "walkHeight": 0.47,
-            "walkShare": 0.167,
+            "hasWalkSurface": false,
+            "walkHeight": 0,
+            "walkShare": 0,
             "walkMin": {
-                "x": -2.775,
-                "y": 0.47,
-                "z": -0.585
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "walkMax": {
-                "x": 2.798,
-                "y": 0.47,
-                "z": 0.623
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "ramps": [],
             "rotatedRenderers": 0,
@@ -46771,19 +46687,19 @@
             },
             "hasColliderBounds": true,
             "colliderMin": {
-                "x": -2.638,
-                "y": -0.195,
-                "z": -0.54
+                "x": -2.636,
+                "y": -0.059,
+                "z": -0.513
             },
             "colliderMax": {
-                "x": 2.628,
+                "x": 2.623,
                 "y": 4.536,
-                "z": 0.464
+                "z": -0.013
             },
             "colliderSize": {
-                "x": 5.266,
-                "y": 4.73,
-                "z": 1.004
+                "x": 5.259,
+                "y": 4.595,
+                "z": 0.5
             },
             "rootEuler": {
                 "x": 0,
@@ -46795,7 +46711,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 9,
+            "objectCount": 5,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_RoofWall_MedA_Collision",
@@ -46810,7 +46726,7 @@
                 },
                 {
                     "name": "MeshCollider",
-                    "count": 5
+                    "count": 1
                 },
                 {
                     "name": "MeshFilter",
@@ -46830,7 +46746,7 @@
             "colliders": [
                 {
                     "name": "MeshCollider",
-                    "count": 5
+                    "count": 1
                 }
             ],
             "triggerColliders": 0,
@@ -46947,18 +46863,18 @@
             "frontAssumed": false,
             "suggestedCategory": "roof",
             "openings": [],
-            "hasWalkSurface": true,
-            "walkHeight": 0.407,
-            "walkShare": 0.138,
+            "hasWalkSurface": false,
+            "walkHeight": 0,
+            "walkShare": 0,
             "walkMin": {
-                "x": 1.902,
-                "y": 0.407,
-                "z": -0.54
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "walkMax": {
-                "x": 2.356,
-                "y": 0.407,
-                "z": 0.464
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "ramps": [],
             "rotatedRenderers": 0,
@@ -47002,19 +46918,19 @@
             },
             "hasColliderBounds": true,
             "colliderMin": {
-                "x": -2.614,
-                "y": -0.196,
-                "z": -0.404
+                "x": -2.613,
+                "y": -0.06,
+                "z": -0.376
             },
             "colliderMax": {
-                "x": 2.651,
+                "x": 2.646,
                 "y": 4.535,
-                "z": 0.601
+                "z": 0.124
             },
             "colliderSize": {
-                "x": 5.266,
-                "y": 4.73,
-                "z": 1.004
+                "x": 5.259,
+                "y": 4.595,
+                "z": 0.5
             },
             "rootEuler": {
                 "x": 0,
@@ -47026,7 +46942,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 9,
+            "objectCount": 5,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_RoofWall_MedB_Collision",
@@ -47041,7 +46957,7 @@
                 },
                 {
                     "name": "MeshCollider",
-                    "count": 5
+                    "count": 1
                 },
                 {
                     "name": "MeshFilter",
@@ -47061,7 +46977,7 @@
             "colliders": [
                 {
                     "name": "MeshCollider",
-                    "count": 5
+                    "count": 1
                 }
             ],
             "triggerColliders": 0,
@@ -47178,18 +47094,18 @@
             "frontAssumed": false,
             "suggestedCategory": "roof",
             "openings": [],
-            "hasWalkSurface": true,
-            "walkHeight": 0.406,
-            "walkShare": 0.138,
+            "hasWalkSurface": false,
+            "walkHeight": 0,
+            "walkShare": 0,
             "walkMin": {
-                "x": 1.926,
-                "y": 0.406,
-                "z": -0.404
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "walkMax": {
-                "x": 2.38,
-                "y": 0.406,
-                "z": 0.601
+                "x": 0,
+                "y": 0,
+                "z": 0
             },
             "ramps": [],
             "rotatedRenderers": 0,
@@ -47257,12 +47173,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_RoofTiles_Middle_LOD0",
-                "Medieval_RoofTiles_Middle_LOD1",
-                "Medieval_RoofTiles_Middle_Collision"
+                "Medieval_RoofTiles_Middle_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -47276,7 +47191,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -47436,12 +47351,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_RoofTiles_MiddleSide_LOD0",
-                "Medieval_RoofTiles_MiddleSide_LOD1",
-                "Medieval_RoofTiles_MiddleSide_Collision"
+                "Medieval_RoofTiles_MiddleSide_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -47455,7 +47369,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -47615,12 +47529,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_RoofTiles_MiddleSide_Cropped_LOD0",
-                "Medieval_RoofTiles_MiddleSide_Cropped_LOD1",
-                "Medieval_RoofTiles_MiddleSide_Cropped_Collision"
+                "Medieval_RoofTiles_MiddleSide_Cropped_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -47634,7 +47547,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -47794,12 +47707,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_RoofTiles_MiddleSide_Half_LOD0",
-                "Medieval_RoofTiles_MiddleSide_Half_LOD1",
-                "Medieval_RoofTiles_MiddleSide_Half_Collision"
+                "Medieval_RoofTiles_MiddleSide_Half_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -47813,7 +47725,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -47973,12 +47885,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_RoofTiles_MiddleWindowHole_LOD0",
-                "Medieval_RoofTiles_MiddleWindowHole_LOD1",
-                "Medieval_RoofTiles_MiddleWindowHole_Collision"
+                "Medieval_RoofTiles_MiddleWindowHole_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -47992,7 +47903,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -48488,17 +48399,17 @@
             "colliderMin": {
                 "x": -2.235,
                 "y": -2.298,
-                "z": -0.317
+                "z": -0.277
             },
             "colliderMax": {
-                "x": 2.301,
-                "y": 2.414,
-                "z": 0.335
+                "x": 2.129,
+                "y": 1.803,
+                "z": 0.271
             },
             "colliderSize": {
-                "x": 4.536,
-                "y": 4.712,
-                "z": 0.652
+                "x": 4.364,
+                "y": 4.101,
+                "z": 0.548
             },
             "rootEuler": {
                 "x": 0,
@@ -48510,8 +48421,8 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 6,
-            "maxDepth": 2,
+            "objectCount": 4,
+            "maxDepth": 1,
             "topChildren": [
                 "Medieval_RoofTiles_TopCorner_LOD0",
                 "Medieval_RoofTiles_TopCorner_LOD1",
@@ -48521,7 +48432,7 @@
             "components": [
                 {
                     "name": "BoxCollider",
-                    "count": 2
+                    "count": 1
                 },
                 {
                     "name": "LODGroup",
@@ -48529,7 +48440,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -48545,7 +48456,7 @@
             "colliders": [
                 {
                     "name": "BoxCollider",
-                    "count": 2
+                    "count": 1
                 }
             ],
             "triggerColliders": 0,
@@ -48611,7 +48522,7 @@
             "openings": [],
             "hasWalkSurface": true,
             "walkHeight": 1.803,
-            "walkShare": 0.66,
+            "walkShare": 1,
             "walkMin": {
                 "x": -2.235,
                 "y": 1.803,
@@ -48667,17 +48578,17 @@
             "colliderMin": {
                 "x": -0.404,
                 "y": -2.232,
-                "z": -0.337
+                "z": -0.297
             },
             "colliderMax": {
-                "x": 2.201,
-                "y": 2.386,
-                "z": 0.315
+                "x": 2.054,
+                "y": 1.869,
+                "z": 0.251
             },
             "colliderSize": {
-                "x": 2.605,
-                "y": 4.618,
-                "z": 0.652
+                "x": 2.458,
+                "y": 4.101,
+                "z": 0.548
             },
             "rootEuler": {
                 "x": 0,
@@ -48689,8 +48600,8 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 6,
-            "maxDepth": 2,
+            "objectCount": 4,
+            "maxDepth": 1,
             "topChildren": [
                 "Medieval_RoofTiles_TopCorner_Half_LOD0",
                 "Medieval_RoofTiles_TopCorner_Half_LOD1",
@@ -48700,7 +48611,7 @@
             "components": [
                 {
                     "name": "BoxCollider",
-                    "count": 2
+                    "count": 1
                 },
                 {
                     "name": "LODGroup",
@@ -48708,7 +48619,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -48724,7 +48635,7 @@
             "colliders": [
                 {
                     "name": "BoxCollider",
-                    "count": 2
+                    "count": 1
                 }
             ],
             "triggerColliders": 0,
@@ -48790,7 +48701,7 @@
             "openings": [],
             "hasWalkSurface": true,
             "walkHeight": 1.869,
-            "walkShare": 0.522,
+            "walkShare": 1,
             "walkMin": {
                 "x": -0.404,
                 "y": 1.869,
@@ -49224,12 +49135,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Roof_PeakedTop_LOD0",
-                "Medieval_Roof_PeakedTop_LOD1",
-                "Medieval_Roof_PeakedTop_Collision"
+                "Medieval_Roof_PeakedTop_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -49402,12 +49312,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Roof_PeakedWindow_LOD0",
-                "Medieval_Roof_PeakedWindow_LOD1",
-                "Medieval_Roof_PeakedWindow_Collision"
+                "Medieval_Roof_PeakedWindow_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -49747,11 +49656,11 @@
             "unevenScaleRenderers": 0,
             "mirroredRenderers": 0,
             "offLayerObjects": 0,
-            "nonStaticObjects": 5,
+            "nonStaticObjects": 2,
             "missingMeshes": 0,
             "missingScripts": 0,
             "flags": [
-                "not-batching-static"
+                "not-static"
             ]
         },
         {
@@ -49808,7 +49717,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 7,
+            "objectCount": 6,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Platforms_Steps_Narrow_LOD0",
@@ -49831,7 +49740,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -49981,7 +49890,7 @@
             "missingMeshes": 0,
             "missingScripts": 0,
             "flags": [
-                "not-batching-static",
+                "not-static",
                 "shares-source"
             ]
         },
@@ -50039,7 +49948,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Masonary_Foundations_CornerIn_01_Collision"
@@ -50052,7 +49961,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -50267,7 +50176,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Masonary_Foundations_CornerOut_01_Collision"
@@ -50280,7 +50189,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -50936,13 +50845,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_PlasterWall_B_LowCurves_LOD0",
                 "Medieval_PlasterWall_B_LowCurves_LOD1",
-                "Medieval_PlasterWall_B_LowCurves_LOD2",
-                "Medieval_PlasterWall_B_LowCurves_Collision"
+                "Medieval_PlasterWall_B_LowCurves_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -50956,7 +50864,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -51166,12 +51074,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_PlasterWalls_A_Cross_LOD0",
-                "Medieval_PlasterWalls_A_Cross_LOD1",
-                "Medieval_PlasterWalls_A_Cross_Collision"
+                "Medieval_PlasterWalls_A_Cross_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -51185,7 +51092,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -51395,12 +51302,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_PlasterWalls_A_MidBeam_LOD0",
-                "Medieval_PlasterWalls_A_MidBeam_LOD1",
-                "Medieval_PlasterWalls_A_MidBeam_Collision"
+                "Medieval_PlasterWalls_A_MidBeam_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -51627,12 +51533,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_PlasterWalls_A_MidColumn_LOD0",
-                "Medieval_PlasterWalls_A_MidColumn_LOD1",
-                "Medieval_PlasterWalls_A_MidColumn_Collision"
+                "Medieval_PlasterWalls_A_MidColumn_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -51646,7 +51551,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -51811,12 +51716,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_PlasterWalls_A_MidColumn_LOD0",
-                "Medieval_PlasterWalls_A_MidColumn_LOD1",
-                "Medieval_PlasterWalls_A_MidColumn_Collision"
+                "Medieval_PlasterWalls_A_MidColumn_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -51830,7 +51734,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -51994,12 +51898,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_PlasterWalls_A_PlanksHalf_LOD0",
-                "Medieval_PlasterWalls_A_PlanksHalf_LOD1",
-                "Medieval_PlasterWalls_A_PlanksHalf_Collision"
+                "Medieval_PlasterWalls_A_PlanksHalf_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -52013,7 +51916,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -52223,12 +52126,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_PlasterWalls_A_PlanksMiddle_LOD0",
-                "Medieval_PlasterWalls_A_PlanksMiddle_LOD1",
-                "Medieval_PlasterWalls_A_PlanksMiddle_Collision"
+                "Medieval_PlasterWalls_A_PlanksMiddle_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -52242,7 +52144,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -52452,12 +52354,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_PlasterWalls_A_PlanksWindow_LOD0",
-                "Medieval_PlasterWalls_A_PlanksWindow_LOD1",
-                "Medieval_PlasterWalls_A_PlanksWindow_Collision"
+                "Medieval_PlasterWalls_A_PlanksWindow_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -52471,7 +52372,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -52681,12 +52582,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_PlasterWalls_A_WindowBase_LOD0",
-                "Medieval_PlasterWalls_A_WindowBase_LOD1",
-                "Medieval_PlasterWalls_A_WindowBase_Collision"
+                "Medieval_PlasterWalls_A_WindowBase_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -52700,7 +52600,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -53131,8 +53031,8 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 8,
-            "maxDepth": 2,
+            "objectCount": 4,
+            "maxDepth": 1,
             "topChildren": [
                 "Medieval_PlasterWalls_A_WindowBase_Hole_LOD0",
                 "Medieval_PlasterWalls_A_WindowBase_Hole_LOD1",
@@ -53150,7 +53050,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 6
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -53387,12 +53287,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_PlasterWalls_A_Zbar_LOD0",
-                "Medieval_PlasterWalls_A_Zbar_LOD1",
-                "Medieval_PlasterWalls_A_Zbar_Collision"
+                "Medieval_PlasterWalls_A_Zbar_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -53406,7 +53305,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -53616,7 +53515,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 7,
+            "objectCount": 6,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_PlasterWalls_B_Corner_LOD0",
@@ -53636,7 +53535,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 5
+                    "count": 4
                 },
                 {
                     "name": "MeshRenderer",
@@ -53851,13 +53750,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_PlasterWalls_B_MasonaryWall_LOD0",
                 "Medieval_PlasterWalls_B_MasonaryWall_LOD1",
-                "Medieval_PlasterWalls_B_MasonaryWall_LOD2",
-                "Medieval_PlasterWalls_B_MasonaryWall_Collision"
+                "Medieval_PlasterWalls_B_MasonaryWall_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -53871,7 +53769,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -54081,13 +53979,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_PlasterWalls_B_MasonaryWall_Cropped_LOD0",
                 "Medieval_PlasterWalls_B_MasonaryWall_Cropped_LOD1",
-                "Medieval_PlasterWalls_B_MasonaryWall_Cropped_LOD2",
-                "Medieval_PlasterWalls_B_MasonaryWall_Cropped_Collision"
+                "Medieval_PlasterWalls_B_MasonaryWall_Cropped_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -54101,7 +53998,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -54311,13 +54208,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_PlasterWalls_B_MasonaryWall_Half_LOD0",
                 "Medieval_PlasterWalls_B_MasonaryWall_Half_LOD1",
-                "Medieval_PlasterWalls_B_MasonaryWall_Half_LOD2",
-                "Medieval_PlasterWalls_B_MasonaryWall_Half_Collision"
+                "Medieval_PlasterWalls_B_MasonaryWall_Half_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -54331,7 +54227,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -54541,13 +54437,12 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 5,
+            "objectCount": 4,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_PlasterWalls_B_PlanksCorner_LOD0",
                 "Medieval_PlasterWalls_B_PlanksCorner_LOD1",
-                "Medieval_PlasterWalls_B_PlanksCorner_LOD2",
-                "Medieval_PlasterWalls_B_PlanksCorner_collision"
+                "Medieval_PlasterWalls_B_PlanksCorner_LOD2"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -54561,7 +54456,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -54771,8 +54666,8 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 8,
-            "maxDepth": 2,
+            "objectCount": 5,
+            "maxDepth": 1,
             "topChildren": [
                 "Medieval_PlasterWalls_B_WindowRoof_LOD0",
                 "Medieval_PlasterWalls_B_WindowRoof_LOD1",
@@ -54791,7 +54686,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 6
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -55001,8 +54896,8 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 7,
-            "maxDepth": 2,
+            "objectCount": 4,
+            "maxDepth": 1,
             "topChildren": [
                 "Medieval_WallTall_Door_LOD0",
                 "Medieval_WallTall_Door_LOD1",
@@ -55020,7 +54915,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 5
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -55257,8 +55152,8 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 8,
-            "maxDepth": 2,
+            "objectCount": 5,
+            "maxDepth": 1,
             "topChildren": [
                 "Medieval_WallTall_DoorCropped_LOD0",
                 "Medieval_WallTall_DoorCropped_LOD1",
@@ -55277,7 +55172,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 6
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -55514,12 +55409,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_WallTall_StoneWindowBase_LOD0",
-                "Medieval_WalTall_StoneWindowBase_LOD1",
-                "Medieval_WallTall_StoneWindowBase_Collision"
+                "Medieval_WalTall_StoneWindowBase_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -55533,7 +55427,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -55745,12 +55639,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_WallTall_WindowBase_LOD0",
-                "Medieval_WallTall_WindowBase_LOD1",
-                "Medieval_WallTall_WindowBase_Collision"
+                "Medieval_WallTall_WindowBase_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -55764,7 +55657,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -55974,7 +55867,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 6,
+            "objectCount": 5,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_WallsTall_CornerNarrow_LOD0",
@@ -55993,7 +55886,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 4
+                    "count": 3
                 },
                 {
                     "name": "MeshRenderer",
@@ -56208,12 +56101,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Window_A_LOD0",
-                "Medieval_Window_A_LOD1",
-                "Medieval_Window_A_Collision"
+                "Medieval_Window_A_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -56227,7 +56119,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -56439,12 +56331,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Window_A_LOD0",
-                "Medieval_Window_A_LOD1",
-                "Medieval_Window_A_Collision"
+                "Medieval_Window_A_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -56458,7 +56349,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -56670,12 +56561,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Window_B_LOD0",
-                "Medieval_Window_B_LOD1",
-                "Medieval_Window_B_Collision"
+                "Medieval_Window_B_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -56689,7 +56579,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -56901,12 +56791,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Window_B_LOD0",
-                "Medieval_Window_B_LOD1",
-                "Medieval_Window_B_Collision"
+                "Medieval_Window_B_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -56920,7 +56809,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -57132,12 +57021,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Window_C_LOD0",
-                "Medieval_Window_C_LOD1",
-                "Medieval_Window_C_Collision"
+                "Medieval_Window_C_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -57151,7 +57039,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -57363,12 +57251,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Window_C_LOD0",
-                "Medieval_Window_C_LOD1",
-                "Medieval_Window_C_Collision"
+                "Medieval_Window_C_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -57382,7 +57269,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -57594,7 +57481,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 9,
+            "objectCount": 7,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Window_C_Open_LOD0",
@@ -57614,7 +57501,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 7
+                    "count": 5
                 },
                 {
                     "name": "MeshRenderer",
@@ -57826,7 +57713,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 9,
+            "objectCount": 7,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Window_C_Open_LOD0",
@@ -57846,7 +57733,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 7
+                    "count": 5
                 },
                 {
                     "name": "MeshRenderer",
@@ -58058,12 +57945,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Window_D_LOD0",
-                "Medieval_Window_D_LOD1",
-                "Medieval_Window_D_Collision"
+                "Medieval_Window_D_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -58077,7 +57963,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -58289,12 +58175,11 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 4,
+            "objectCount": 3,
             "maxDepth": 1,
             "topChildren": [
                 "Medieval_Window_D_LOD0",
-                "Medieval_Window_D_LOD1",
-                "Medieval_Window_D_Collision"
+                "Medieval_Window_D_LOD1"
             ],
             "nestedPrefabs": [],
             "components": [
@@ -58308,7 +58193,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 3
+                    "count": 2
                 },
                 {
                     "name": "MeshRenderer",
@@ -58520,7 +58405,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 9,
+            "objectCount": 7,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Window_D_Open_LOD0",
@@ -58540,7 +58425,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 7
+                    "count": 5
                 },
                 {
                     "name": "MeshRenderer",
@@ -58752,7 +58637,7 @@
                 "y": 1,
                 "z": 1
             },
-            "objectCount": 9,
+            "objectCount": 7,
             "maxDepth": 2,
             "topChildren": [
                 "Medieval_Window_D_Open_LOD0",
@@ -58772,7 +58657,7 @@
                 },
                 {
                     "name": "MeshFilter",
-                    "count": 7
+                    "count": 5
                 },
                 {
                     "name": "MeshRenderer",

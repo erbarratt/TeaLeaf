@@ -85,12 +85,28 @@ PrefabInstance:
       value: 87
       objectReference: {fileID: 0}
     - target: {fileID: 7911528930090577743, guid: 80eb87f91dd603547b9f65dca1e4cec9, type: 3}
+      propertyPath: m_Size
+      value: 2.1571546
+      objectReference: {fileID: 0}
+    - target: {fileID: 7911528930090577743, guid: 80eb87f91dd603547b9f65dca1e4cec9, type: 3}
       propertyPath: m_FadeMode
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 7911528930090577743, guid: 80eb87f91dd603547b9f65dca1e4cec9, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7911528930090577743, guid: 80eb87f91dd603547b9f65dca1e4cec9, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.050790668
+      objectReference: {fileID: 0}
+    - target: {fileID: 7911528930090577743, guid: 80eb87f91dd603547b9f65dca1e4cec9, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.036659896
+      objectReference: {fileID: 0}
+    - target: {fileID: 7911528930090577743, guid: 80eb87f91dd603547b9f65dca1e4cec9, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

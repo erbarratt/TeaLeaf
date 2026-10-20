@@ -107,6 +107,8 @@ Phase 1 - Locomotion and physical hands (Player)
     rotation, elastic band, snap-back, rays from the visual hand, ghost
     hands, contact haptics.
 [x] In-headset gizmos (DebugLines, InHeadsetGizmos).
+[x] PC Play: a development switch on LevelManager to walk the level in
+    Play Mode with the mouse and keyboard, no headset (PcPlay).
 [x] View calibration at level start and on recentre.
 [x] Test builders: Locomotion Test Course, Town Test Area, Physical
     Hands Test Area.
@@ -454,6 +456,11 @@ Phase 8 - Level: the docks warehouse
     storybook-crooked shapes with the gameplay surfaces kept true, and
     painted textures.
 [ ] Restyle the other test areas, the props and the guard to match.
+[x] Props generated outside (Tripo, in Assets/TripoModels) get LOD meshes
+    from TeaLeaf > Modify Prefab > Make LOD Meshes and live in
+    Assets/Prefabs/Dressing (barrel, broom, two chairs, table, shelf).
+[x] Intro.unity: the three-streets level generated and baked (sector
+    Three Streets); no Player, gameplay or sound in it yet.
 Design (on paper first):
 [ ] Layout sketch with a critical path and at least one alternate route per
     area. Each beat below should teach or test one mechanic, roughly in
@@ -489,7 +496,7 @@ Greybox build:
     naming, collision, layers, static flags, LODs, lighting, culling,
     sound and a review checklist, measured against a shipped VR
     stealth level.
-[x] TeaLeaf > Make Environment Variants: prefab variants for static
+[x] TeaLeaf > Modify Prefab > Make Environment Variants: prefab variants for static
     pieces in bulk, on the Environment layer and marked Static, named
     TL_. 237 made from the village pack.
 [x] Collision helpers: RampCollider (a flight of steps as one wedge)
@@ -576,6 +583,23 @@ Greybox build:
         [x] Gaps closed: every free wall end bridged (pairs facing each
             other within 3m) or given a return wall before the street
             test and the cull; the report lists none on three-levels.
+        [x] Sloped streets: a segment no steeper than 1 in 12 climbs by
+            tilted tile rows with a landing (else steps); buildings
+            beside it stand level, each at the highest the street
+            comes under it, foundations stacked down to the street
+            (example-slope, three-streets).
+        [x] Pipes on pipeBuildingShare of the buildings only.
+        [ ] Facade lean (facadeLean, 5 in the asset): the upper
+            storeys, beams, doors and inserts tilt out over the street
+            on one plane; one side per corner, the upright side's end
+            and the side walls sheared through ShearedMeshes; ground
+            storey, roofs and dressing upright. Judge in the headset;
+            check a sharp corner's notch cover and the top of inside
+            bends and dead ends with one side leaning; then the roofs
+            and ground storey for the storybook lean proper.
+        [ ] A storey's corner filler left out at a shallow inside bend
+            with a jettied building (example-slope's hill street, left
+            side at its bend).
         [ ] Moon shafts over the alleys (MoonShafts pass, Core.MoonShaft,
             TeaLeaf/MoonShaft): built, switched off
             (moonShaftStreetMaxWidth 0) - the beams read as flat bright
@@ -611,6 +635,9 @@ Greybox build:
 [ ] Give the variants their colliders and SurfaceTags (the bulk tool
     adds neither). Box/capsule colliders where they fit; mesh
     colliders only where the shape needs one.
+[x] Variant colliders sit on the prefab root (TeaLeaf > Modify Prefab >
+    Flatten Variant Colliders), the packs' empty collider children gone;
+    every LOD Group transitions at 7 / 3.5 / 1 %.
 [ ] Keep to a small number of shared materials.
 [ ] Player blockers round clutter, across gaps that look closed and
     along the level's edge.
@@ -662,13 +689,19 @@ Lighting:
     [ ] Keep the lights reaching any one object few (URP Forward drops
         the extra ones, and they pop). Keep torch ranges short and don't
         merge the level into a few huge meshes - or test Forward+.
-    [x] Light probes over every floor (TeaLeaf > Place Light Probes),
-        and small pieces lit by them rather than lightmapped (TeaLeaf >
-        Set Small Pieces To Light Probes).
+    [x] Light probes over every floor (TeaLeaf > Lighting > Place Light Probes),
+        and small pieces lit by them rather than lightmapped (TeaLeaf > Lighting >
+        Set Small Pieces To Light Probes). A grid every 1.25m with layers
+        at 0.2, 1 and 2m, so a small thing's centre is never under the
+        lowest layer. A probe-lit piece is never Batching Static (static
+        batching would light it from its batch's centre).
+    [x] Lit windows carry a Baked spot light pooling their glow on the
+        street; lamp flames flicker (FlameFlicker: the visible light
+        only, the LightSource steady).
     [x] Walls baked at twice the texel density and roofs at half
         (Scale In Lightmap 2 and 0.5 on the prefab variants).
     [x] Shadow floor: after every bake no lightmap texel or light probe
-        is darker than Moonlight.shadowFloor (TeaLeaf > Apply Shadow
+        is darker than Moonlight.shadowFloor (TeaLeaf > Lighting > Apply Shadow
         Floor re-applies it), so deep shade keeps its detail without a
         sky ambient washing out the shade everywhere else.
     [ ] One baked reflection probe, or none.

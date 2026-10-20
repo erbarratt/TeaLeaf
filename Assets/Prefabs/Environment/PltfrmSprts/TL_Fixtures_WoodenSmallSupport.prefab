@@ -17,12 +17,32 @@ PrefabInstance:
       value: 87
       objectReference: {fileID: 0}
     - target: {fileID: 1711913649545413022, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
+      propertyPath: m_Size
+      value: 3.0493362
+      objectReference: {fileID: 0}
+    - target: {fileID: 1711913649545413022, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
       propertyPath: m_FadeMode
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 1711913649545413022, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1711913649545413022, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -1.5185221
+      objectReference: {fileID: 0}
+    - target: {fileID: 1711913649545413022, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.6948503
+      objectReference: {fileID: 0}
+    - target: {fileID: 1711913649545413022, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.5353241
+      objectReference: {fileID: 0}
+    - target: {fileID: 1711913649545413022, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
       objectReference: {fileID: 0}
     - target: {fileID: 1711913649545413023, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
       propertyPath: m_Name
@@ -124,8 +144,65 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedComponents:
+    - {fileID: 5383074421849252693, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
+    - {fileID: 2809007663190237884, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
+    m_RemovedGameObjects:
+    - {fileID: 7505250521783075263, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
+    - {fileID: 473938562147788938, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 1711913649545413023, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6903511556482854300}
+    - targetCorrespondingSourceObject: {fileID: 1711913649545413023, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3370058240686617784}
   m_SourcePrefab: {fileID: 100100000, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
+--- !u!1 &4292862838558606733 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 1711913649545413023, guid: 6becd0f54095f8c47a0f3857bdcbbd2b, type: 3}
+  m_PrefabInstance: {fileID: 3193791442326570002}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &6903511556482854300
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4292862838558606733}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.8741794, y: 0.36829665, z: 0.5131}
+  m_Center: {x: -1.4319992, y: 0.18392658, z: -0.24351132}
+--- !u!65 &3370058240686617784
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4292862838558606733}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 3.0259361, y: 0.20304194, z: 0.2293044}
+  m_Center: {x: -1.5317994, y: 1.3036165, z: 1.4889104}

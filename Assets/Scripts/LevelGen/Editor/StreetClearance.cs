@@ -43,9 +43,11 @@ namespace LevelGen
             public float Length;
             public float StartHeight;
             public float EndHeight;
-            // Its flight of steps, if it has one: the street is level either
-            // side of it rather than sloping.
+            // Its flight of steps or its slope, if it has one: the street is
+            // level either side of a flight, and climbs a slope to a landing,
+            // rather than sloping evenly between its points.
             public StreetSteps.Flight Flight;
+            public StreetSlopes.Slope Slope;
             // Its corners, anticlockwise seen from above (x right, z up): cut
             // through the point on the outside of a corner (for cutting runs,
             // which are carried to that corner themselves), and filled out
@@ -59,7 +61,11 @@ namespace LevelGen
             /// </summary>
             public float SurfaceAt(float along)
             {
-                return Flight != null ? Flight.SurfaceAt(along) : Mathf.Lerp(StartHeight, EndHeight, Mathf.Clamp01(along / Length));
+                if (Flight != null) {
+                    return Flight.SurfaceAt(along);
+                }
+
+                return Slope != null ? Slope.SurfaceAt(along) : Mathf.Lerp(StartHeight, EndHeight, Mathf.Clamp01(along / Length));
             }
         }
 
@@ -81,9 +87,9 @@ namespace LevelGen
 
         /// <summary>
         /// The clearance for a spec's streets at their resolved widths, and
-        /// their flights of steps.
+        /// their flights of steps and slopes.
         /// </summary>
-        internal StreetClearance(List<StreetSpec> streets, List<StreetSteps.Flight> flights, GeneratorSettings settings)
+        internal StreetClearance(List<StreetSpec> streets, StreetHeights heights, GeneratorSettings settings)
         {
             _settings = settings;
 
@@ -111,7 +117,8 @@ namespace LevelGen
                         Length = length,
                         StartHeight = street.points[i].y,
                         EndHeight = street.points[i + 1].y,
-                        Flight = StreetSteps.Of(flights, street, i),
+                        Flight = heights.FlightOf(street, i),
+                        Slope = heights.SlopeOf(street, i),
                         Corners = corners,
                         Filled = filled
                     });

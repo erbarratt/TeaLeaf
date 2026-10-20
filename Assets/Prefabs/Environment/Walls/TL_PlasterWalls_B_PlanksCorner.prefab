@@ -60,6 +60,26 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 4164031649820722598, guid: 93f75c517ccf64249bff719ce0bf0460, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -1.4942173
+      objectReference: {fileID: 0}
+    - target: {fileID: 4164031649820722598, guid: 93f75c517ccf64249bff719ce0bf0460, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 1.5147667
+      objectReference: {fileID: 0}
+    - target: {fileID: 4164031649820722598, guid: 93f75c517ccf64249bff719ce0bf0460, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.0000026524067
+      objectReference: {fileID: 0}
+    - target: {fileID: 4164031649820722598, guid: 93f75c517ccf64249bff719ce0bf0460, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 4164031649820722598, guid: 93f75c517ccf64249bff719ce0bf0460, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
+      objectReference: {fileID: 0}
     - target: {fileID: 4164031649820722599, guid: 93f75c517ccf64249bff719ce0bf0460, type: 3}
       propertyPath: m_Name
       value: TL_PlasterWalls_B_PlanksCorner
@@ -112,8 +132,39 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedComponents:
+    - {fileID: 5374407372555159713, guid: 93f75c517ccf64249bff719ce0bf0460, type: 3}
+    m_RemovedGameObjects:
+    - {fileID: 4094191951994026006, guid: 93f75c517ccf64249bff719ce0bf0460, type: 3}
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4164031649820722599, guid: 93f75c517ccf64249bff719ce0bf0460, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8960283040230238477}
   m_SourcePrefab: {fileID: 100100000, guid: 93f75c517ccf64249bff719ce0bf0460, type: 3}
+--- !u!1 &7714844839805763008 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4164031649820722599, guid: 93f75c517ccf64249bff719ce0bf0460, type: 3}
+  m_PrefabInstance: {fileID: 5969871193525516391}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &8960283040230238477
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7714844839805763008}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 3.0136, y: 3.0136, z: 0.52364206}
+  m_Center: {x: -1.4907992, y: 1.4968262, z: -0.094416976}

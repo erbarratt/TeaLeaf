@@ -168,6 +168,8 @@ namespace LevelGen
                 CheckLot(lot, styles, ids, usedStyles, lotRects, report);
             }
 
+            CheckLotsBesideSlopes(spec, styles, report);
+
             for (int i = 0; i < lotRects.Count; i++) {
                 for (int j = i + 1; j < lotRects.Count; j++) {
                     if (Overlap(lotRects[i], lotRects[j])) {
@@ -241,10 +243,12 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// Each segment that rises or falls (StreetSteps): only a street of
-        /// ground tiles can, by a whole number of flights of one of its
-        /// style's steps pieces, on a segment long enough for those flights
-        /// (at the piece's ramp run) and their landing.
+        /// Each segment that rises or falls: only a street of ground tiles
+        /// can, by a slope where its grade over the segment less the landing
+        /// is no steeper than StreetSlopeMaxGrade (StreetSlopes), else by a
+        /// whole number of flights of one of its style's steps pieces
+        /// (StreetSteps), on a segment long enough for those flights (at the
+        /// piece's ramp run) and their landing.
         /// </summary>
         private static void CheckRises(string label, StreetSpec street, BuildingStyle style, Report report)
         {
@@ -262,6 +266,10 @@ namespace LevelGen
                     continue;
                 }
 
+                if (StreetSlopes.IsSlope(street, i - 1, style, _settings)) {
+                    continue;
+                }
+
                 PieceAnnotation piece = StreetSteps.Choose(style, rise, _settings, out int count);
 
                 if (piece == null) {
@@ -271,9 +279,13 @@ namespace LevelGen
                         rises.Add($"{steps.height:0.##}m");
                     }
 
+                    float grade = StreetSlopes.Grade(street, i - 1, style, _settings);
+                    string slope = float.IsInfinity(grade)
+                        ? $"too short to slope (its landing takes {StreetSteps.LandingDepth(style, _settings):0.##}m)"
+                        : $"too steep to slope (1 in {1f / grade:0.#} over the segment less its landing; 1 in {1f / _settings.StreetSlopeMaxGrade:0.#} at most)";
                     report.Errors.Add(rises.Count == 0
-                        ? $"{segment} rises {rise:0.##}m, but style '{style.Name}' has no usable steps piece."
-                        : $"{segment} rises {rise:0.##}m, not a whole number of flights of style '{style.Name}''s steps ({string.Join(", ", rises)} each).");
+                        ? $"{segment} rises {rise:0.##}m, {slope}, and style '{style.Name}' has no usable steps piece."
+                        : $"{segment} rises {rise:0.##}m, {slope}, and not a whole number of flights of style '{style.Name}''s steps ({string.Join(", ", rises)} each).");
                     continue;
                 }
 
@@ -362,6 +374,134 @@ namespace LevelGen
                     report.Errors.Add($"{label}: its buildings are {length:0.##}m long, {length - stretch:0.##}m more than its {stretch:0.##}m stretch of street.");
                 } else if (stretch - length >= smallestSpacing) {
                     report.Warnings.Add($"{label}: {stretch - length:0.##}m is left at its end, more than a module; the generator fills it, but another building may suit.");
+                }
+
+                CheckSlopeDrops(label, street, frontage, styles, report);
+            }
+        }
+
+        /// <summary>
+        /// A building beside a slope stands level at the highest the street
+        /// comes under it, so the street falls below its level by as much of
+        /// its width as lies on the slope times the grade: a warning where
+        /// that passes SlopeDropMax (a shorter building suits a slope). Where
+        /// each building stands is taken roughly, laid end to end from the
+        /// frontage's first point along the street's middle line.
+        /// </summary>
+        private static void CheckSlopeDrops(string label, StreetSpec street, FrontageSpec frontage, Dictionary<string, BuildingStyle> styles, Report report)
+        {
+            if (!styles.TryGetValue(street.style ?? "", out BuildingStyle ground)) {
+                return;
+            }
+
+            // Each sloped segment's stretch along the frontage, and its grade.
+            List<(float From, float To, float Grade)> slopes = new();
+            float along = 0f;
+
+            for (int i = frontage.from; i < frontage.to && i + 1 < street.points.Count; i++) {
+                float length = (Ground(street.points[i + 1]) - Ground(street.points[i])).magnitude;
+
+                if (StreetSlopes.IsSlope(street, i, ground, _settings)) {
+                    slopes.Add((along, along + length, StreetSlopes.Grade(street, i, ground, _settings)));
+                }
+
+                along += length;
+            }
+
+            if (slopes.Count == 0) {
+                return;
+            }
+
+            float start = 0f;
+
+            for (int i = 0; i < frontage.buildings.Count; i++) {
+                BuildingSpec building = frontage.buildings[i];
+
+                if (building.storeys.Count == 0 || !styles.TryGetValue(building.storeys[0], out BuildingStyle style) || style.ModuleSpacing <= 0f) {
+                    continue;
+                }
+
+                float end = start + building.widthModules * style.ModuleSpacing;
+                float drop = 0f;
+                float grade = 0f;
+
+                foreach ((float from, float to, float slopeGrade) in slopes) {
+                    float onSlope = Mathf.Min(end, to) - Mathf.Max(start, from);
+
+                    if (onSlope > 0f && onSlope * slopeGrade > drop) {
+                        drop = onSlope * slopeGrade;
+                        grade = slopeGrade;
+                    }
+                }
+
+                if (drop > _settings.SlopeDropMax) {
+                    report.Warnings.Add($"{label}, building {i}: beside a slope of 1 in {1f / grade:0.#} the street falls about {drop:0.##}m below its level "
+                        + $"(more than {_settings.SlopeDropMax:0.##}m); fewer modules would suit.");
+                }
+
+                start = end;
+            }
+        }
+
+        /// <summary>
+        /// A lot's ground is a ring at its one street level, so no slope may
+        /// come near it: an error for a lot whose footprint comes within
+        /// LotGroundMargin plus half a tile of a sloping segment's rectangle.
+        /// </summary>
+        private static void CheckLotsBesideSlopes(LayoutSpec spec, Dictionary<string, BuildingStyle> styles, Report report)
+        {
+            foreach (LotSpec lot in spec.lots) {
+                if (lot.storeys.Count == 0 || !styles.TryGetValue(lot.storeys[0], out BuildingStyle style) || style.ModuleSpacing <= 0f
+                    || (!lot.HasOutline && (lot.widthModules < 1 || lot.depthModules < 1))) {
+                    continue;
+                }
+
+                // The footprint itself (a block's bounding rectangle would
+                // cross the streets at its corners).
+                List<Vector2> footprint = lot.Corners(style.ModuleSpacing, _settings.WallOverlap);
+                string label = string.IsNullOrEmpty(lot.id) ? "A lot" : $"Lot '{lot.id}'";
+
+                foreach (StreetSpec street in spec.streets) {
+                    if (!styles.TryGetValue(street.style ?? "", out BuildingStyle ground)) {
+                        continue;
+                    }
+
+                    float grow = _settings.LotGroundMargin + StreetSteps.TileDiagonal(ground) * 0.5f + _settings.OverlapTolerance;
+
+                    for (int i = 0; i + 1 < street.points.Count; i++) {
+                        if (!StreetSlopes.IsSlope(street, i, ground, _settings)) {
+                            continue;
+                        }
+
+                        // The sloped stretch only (the landing is level with
+                        // the high point), and not its first metres from the
+                        // foot, where the surface is still within a lip of
+                        // the low point's level: a lane sloping away from a
+                        // lot's ring starts at the ring's middle line, and
+                        // its foot would otherwise reach the lot.
+                        Vector2 a = Ground(street.points[i]);
+                        Vector2 b = Ground(street.points[i + 1]);
+                        float length = (b - a).magnitude;
+                        Vector2 axis = (b - a) / length;
+                        float landing = StreetSteps.LandingDepth(ground, _settings);
+                        bool climbs = street.points[i + 1].y > street.points[i].y;
+                        float from = climbs ? grow : landing;
+                        float to = climbs ? length - landing : length - grow;
+
+                        if (to <= from) {
+                            continue;
+                        }
+
+                        GroundRect segment = new() {
+                            Centre = a + axis * ((from + to) * 0.5f), AxisX = axis, AxisZ = new Vector2(-axis.y, axis.x),
+                            HalfX = (to - from) * 0.5f + grow, HalfZ = street.SegmentWidth(i) * 0.5f + grow
+                        };
+
+                        if (OverlapConvex(footprint, segment)) {
+                            report.Errors.Add($"{label} stands beside street '{street.id}' segment {i}-{i + 1}, which slopes: a lot's ground is laid at one level, "
+                                + "so its streets must stay level (steps are fine).");
+                        }
+                    }
                 }
             }
         }
@@ -991,6 +1131,45 @@ namespace LevelGen
         {
             float distance = Mathf.Abs(Vector2.Dot(b.Centre - a.Centre, axis));
             return distance < Radius(a, axis) + Radius(b, axis) - _settings.OverlapTolerance;
+        }
+
+        /// <summary>
+        /// Whether a convex polygon (its corners in order round it) and a
+        /// ground rectangle overlap by more than the tolerance: the
+        /// separating axis test on the polygon's edge normals and the
+        /// rectangle's axes.
+        /// </summary>
+        private static bool OverlapConvex(List<Vector2> polygon, GroundRect rect)
+        {
+            List<Vector2> axes = new() { rect.AxisX, rect.AxisZ };
+
+            for (int i = 0; i < polygon.Count; i++) {
+                Vector2 edge = polygon[(i + 1) % polygon.Count] - polygon[i];
+
+                if (edge.sqrMagnitude > 0f) {
+                    axes.Add(new Vector2(-edge.y, edge.x).normalized);
+                }
+            }
+
+            foreach (Vector2 axis in axes) {
+                float min = float.MaxValue;
+                float max = float.MinValue;
+
+                foreach (Vector2 corner in polygon) {
+                    float along = Vector2.Dot(corner, axis);
+                    min = Mathf.Min(min, along);
+                    max = Mathf.Max(max, along);
+                }
+
+                float centre = Vector2.Dot(rect.Centre, axis);
+                float radius = Radius(rect, axis);
+
+                if (max <= centre - radius + _settings.OverlapTolerance || min >= centre + radius - _settings.OverlapTolerance) {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         /// <summary>

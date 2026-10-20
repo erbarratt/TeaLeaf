@@ -1,5 +1,13 @@
 {
   "dependencies": {
+    "com.tripo3d.unitybridge": {
+      "version": "file:C:/Users/ellio/Desktop/Tripo3d_Unity_Bridge",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "com.unity.modules.jsonserialize": "1.0.0"
+      }
+    },
     "com.unity.ai.navigation": {
       "version": "2.0.14",
       "depth": 0,
@@ -209,6 +217,13 @@
         "com.unity.xr.legacyinputhelpers": "2.1.2"
       },
       "url": "https://packages.unity.com"
+    },
+    "com.whinarn.unitymeshsimplifier": {
+      "version": "https://github.com/Whinarn/UnityMeshSimplifier.git#v3.1.1",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "53fdb3122645bcd3ad2c258235200dff3dfbaa9b"
     },
     "com.unity.modules.accessibility": {
       "version": "1.0.0",

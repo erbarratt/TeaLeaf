@@ -36,6 +36,14 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 3556284817403839447, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 3556284817403839447, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
+      objectReference: {fileID: 0}
     - target: {fileID: 3617289145223096927, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
       propertyPath: m_ReceiveGI
       value: 2
@@ -118,7 +126,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7905420426050618263, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 8533793685432615261, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
       propertyPath: m_Layer
@@ -126,7 +134,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8533793685432615261, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 8770505011708356126, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
       propertyPath: m_Layer
@@ -134,10 +142,67 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8770505011708356126, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedComponents:
+    - {fileID: 4704699444052963101, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+    - {fileID: 3598443681833755830, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+    m_RemovedGameObjects:
+    - {fileID: 3105064106856426183, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+    - {fileID: 4418461653537390138, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 5527559509298493969, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2341324155630130629}
+    - targetCorrespondingSourceObject: {fileID: 5527559509298493969, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5009699021081896076}
   m_SourcePrefab: {fileID: 100100000, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+--- !u!1 &981845799478553478 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 5527559509298493969, guid: 6f520b11a713cd34d9f14a2d08a14bf7, type: 3}
+  m_PrefabInstance: {fileID: 4689902643159585175}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &2341324155630130629
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 981845799478553478}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.1515319, y: 1.0980408, z: 1.1043836}
+  m_Center: {x: 0.9273084, y: -0.005000035, z: -1.5138149}
+--- !u!65 &5009699021081896076
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 981845799478553478}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.1034429, y: 1.153442, z: 0.9335143}
+  m_Center: {x: -0.020001728, y: -0.005000035, z: -0.4954815}

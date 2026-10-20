@@ -997,6 +997,25 @@ handedness-dependent.
 systems in Play Mode — not part of the runtime gameplay path. The in-headset gizmo view
 (`InHeadsetGizmos`) is shared by every system, so it lives in `Scripts/Core/Debug`.
 
+- **`PcPlay`** (on the Player root, in the Player prefab; global namespace, like the other
+  Debug scripts) — **PC Play**: walking the level in Play Mode with the mouse and keyboard,
+  no headset. Switched by `Core.LevelManager.IsPcPlay` (the `pcPlay` field on the Level
+  Manager, off by default): read in `Start()`, and the component disables itself when it
+  is off. On, at start it stops XR (`XRGeneralSettings.Instance.Manager`:
+  `StopSubsystems()`, `DeinitializeLoader()`, so the camera draws to the Game view),
+  disables the three Tracked Pose Drivers and `PlayerTracking` (before its `Start()` - the
+  component runs at `DefaultExecutionOrder(-100)` - so no tracking mode is set and the
+  level-start fade isn't held for a headset; `PlayerController` still calls its `Tick()`,
+  which then only smooths the hands' poses), puts the camera at Camera Offset's origin
+  looking level, and locks the cursor (Escape frees it, a click takes it back). Each
+  frame, before `PlayerController.Update()`: the mouse's x turns the Player root (so
+  walking forward follows the look - `PlayerLocomotion` already moves relative to the
+  root), its y pitches the camera (`mouseSensitivity` 0.1°/pixel, `maxPitch` 85°), and
+  both controller objects are put at `handOffset` ((0.2, -0.25, 0.35), x mirrored for the
+  left) from the camera, facing where it looks, so the hand visuals are in view. Nothing
+  else: movement only. The keyboard needs no code - the Player map's `Move` (WASD),
+  `Sprint` (Left Shift), `Jump` (Space) and `Crouch` (C) actions carry keyboard bindings,
+  read by `PlayerInputXR` as usual. Mouse delta is read straight from `Mouse.current`.
 - **`PhysicalHandsTrace`** (on the Debug object, enable *before* Play) turns on
   `HandPhysicalFollow.TraceEnabled`: one log line per hand per frame whose sweep hits a
   collider whose name contains `colliderNameFilter` (default "Gap") - contact state,

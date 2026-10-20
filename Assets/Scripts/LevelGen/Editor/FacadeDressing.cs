@@ -11,9 +11,10 @@ namespace LevelGen
     /// modules (ModuleSpot: its wall piece per storey, its depth, its reach),
     /// so it follows every step, jetty and column as built.
     ///
-    /// - Pipes (BuildPipes): every building gets at least one run of pipe,
-    ///   and runs are added until together they are PipeMinRunShare of its
-    ///   width (and further ones at PipeExtraRunShare, up to PipeRunsMax).
+    /// - Pipes (BuildPipes): PipeBuildingShare of the buildings get pipes,
+    ///   the rest none. One that does gets at least one run, and runs are
+    ///   added until together they are PipeMinRunShare of its width (and
+    ///   further ones at PipeExtraRunShare, up to PipeRunsMax).
     ///   A run is vertical, horizontal or an L, made of straight sections and
     ///   elbows, always level or plumb, standing PipeWallGap off the frontmost
     ///   face of the walls it passes (their timbers; a plumb run stands on
@@ -985,8 +986,11 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// Every building's pipes (see the class summary). Logs how many runs
-        /// were placed and the buildings that got none.
+        /// The pipes of the buildings that get any (see the class summary):
+        /// each building is rolled against PipeBuildingShare before anything
+        /// else, always, so the random sequence doesn't depend on what fits.
+        /// Logs how many buildings got pipes, how many runs were placed and
+        /// the buildings given pipes that could fit none.
         /// </summary>
         private static void BuildPipes(List<Frontage> frontages, GeneratorSettings settings, System.Random random, PiecePlacer placer, List<string> log)
         {
@@ -1018,10 +1022,21 @@ namespace LevelGen
             }
 
             int runsPlaced = 0;
+            int buildings = 0;
+            int piped = 0;
             List<string> none = new();
 
             foreach (Frontage frontage in frontages) {
                 for (int b = 0; b < frontage.Buildings.Count; b++) {
+                    buildings++;
+
+                    // Rolled for every building, so skipping one changes
+                    // nothing else in the sequence.
+                    if (random.NextDouble() >= settings.PipeBuildingShare) {
+                        continue;
+                    }
+
+                    piped++;
                     int first = frontage.Spots.FindIndex(spot => spot.Building == b);
                     int last = frontage.Spots.FindLastIndex(spot => spot.Building == b);
 
@@ -1038,7 +1053,7 @@ namespace LevelGen
                 }
             }
 
-            log.Add($"Pipes: {runsPlaced} run(s), {_valves} valve(s) ({_valveRuns} run(s) given one, {_valveTries} with a stretch clear of the lane), {_caps} capped end(s) where a straight goes into a wall, {_runsDropped} run(s) dropped for fewer than two straight pieces"
+            log.Add($"Pipes: {piped} of {buildings} building(s) given pipes, {runsPlaced} run(s), {_valves} valve(s) ({_valveRuns} run(s) given one, {_valveTries} with a stretch clear of the lane), {_caps} capped end(s) where a straight goes into a wall, {_runsDropped} run(s) dropped for fewer than two straight pieces"
                 + (none.Count > 0 ? $"; none fitted on {string.Join(", ", none)}." : "."));
         }
 
@@ -1899,7 +1914,7 @@ namespace LevelGen
 
                     // The post is lowered LampSink into the ground, so its base
                     // is hidden in the tiles rather than resting on them.
-                    Vector3 position = new(at.x, Height(run, middle) - settings.LampSink, at.y);
+                    Vector3 position = new(at.x, Surface(run, middle) - settings.LampSink, at.y);
                     float yaw = Yaw(Level(run.Front)) - Yaw(post.fronts[0]);
                     float range = LampLight(post, out Vector3 lightOffset);
                     Vector3 lightAt = position + Quaternion.Euler(0f, yaw, 0f) * lightOffset;

@@ -18,7 +18,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 351614150896414517, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 550468626742039306, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_Layer
@@ -26,7 +26,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 550468626742039306, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 948155338392880695, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_Layer
@@ -60,6 +60,14 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 1730574217497872415, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 1730574217497872415, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
+      objectReference: {fileID: 0}
     - target: {fileID: 1792273140753730759, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -76,13 +84,21 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 1889591686226693723, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 1889591686226693723, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
+      objectReference: {fileID: 0}
     - target: {fileID: 1970203292799778454, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 1970203292799778454, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 2935891085561320351, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_Layer
@@ -90,7 +106,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2935891085561320351, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 2952908816082479875, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_LocalPosition.x
@@ -166,7 +182,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5836204245960148980, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 6360295986409220531, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_ReceiveGI
@@ -188,13 +204,25 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 7085202825544742661, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: 0.124658465
+      objectReference: {fileID: 0}
+    - target: {fileID: 7085202825544742661, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 7085202825544742661, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
+      objectReference: {fileID: 0}
     - target: {fileID: 7150887975570655176, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 7150887975570655176, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 7607569934846281629, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_ReceiveGI
@@ -206,7 +234,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7622951742771904424, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 7691309031313162900, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_ReceiveGI
@@ -230,7 +258,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 8974461278106719851, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 9207951946413386324, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_Layer
@@ -238,7 +266,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 9207951946413386324, guid: e6df04f9d5435e249bb4d216ee559979, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

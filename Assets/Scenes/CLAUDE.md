@@ -45,7 +45,7 @@ Environment
       Lighting
         Baked         fill lights that only exist for the bake
         Gameplay Lights   the lamps and torches the player sees and can put out
-        Light Probes      the level's one light probe group (TeaLeaf > Place Light Probes)
+        Light Probes      the level's one light probe group (TeaLeaf > Lighting > Place Light Probes)
       VFX
     <Sector name>     one per part of the level that can be culled as a whole
       Geometry        buildings and structure, one group per building
@@ -193,7 +193,9 @@ like:
 ## Static, batching and materials
 
 - **Every static renderer has every static flag** (3,355 of 3,755 in the reference; the
-  rest are LOD parents). In TeaLeaf, TeaLeaf > Make Environment Variants sets this.
+  rest are LOD parents). In TeaLeaf, TeaLeaf > Modify Prefab > Make Environment Variants sets this,
+  less Batching Static on probe-lit renderers, which static batching would light from
+  their batch's centre.
 - **Few materials, shared widely.** The reference draws a whole district with four
   structural materials plus atlases for props (`BarrelsCratesBaskets_Atlas`,
   `MarketStalls_Atlas`). A new material for one prop is the thing to question.
@@ -268,8 +270,9 @@ Check, in this order:
    culled; nothing loose, no default names.
 2. **Layers**: nothing with a collider left on `Default`; static pieces on `Environment`
    all the way down; doors and props on `Interactable`; climbables on `Climbable`.
-3. **Static flags**: every renderer that never moves has them all; nothing that moves
-   (doors, swaying foliage) has any.
+3. **Static flags**: every renderer that never moves has them all, except that a
+   probe-lit one (Receive GI: Light Probes, or not Contribute GI) is not Batching Static
+   (`Assets/Scripts/Core/CLAUDE.md`); nothing that moves (doors, swaying foliage) has any.
 4. **Collision**: no render mesh used as its own collider; colliders under a `Collision`
    child, one per object; nothing reachable without collision, nothing unreachable with
    it; steps are ramps; no gap a 0.5 m wide body could wedge into.

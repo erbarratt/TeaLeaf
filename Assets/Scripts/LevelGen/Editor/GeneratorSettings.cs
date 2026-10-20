@@ -56,6 +56,8 @@ namespace LevelGen
         [SerializeField, Range(0f, 1.2f)] private float foundationHeight = 0.3f;
         [Tooltip("How far the foundations' fronts stand out past the walls' front line, towards the street (below 0, back behind it).")]
         [SerializeField, Range(-0.5f, 0.5f)] private float foundationFrontOffset = 0.1f;
+        [Tooltip("Where the street falls below a building's level (beside a slope, or where a corner raised the building), more foundations are stacked under its own until the lowest one's bottom reaches this far below the lowest the street comes in front of the module, so the stone always meets the tiles.")]
+        [SerializeField, Range(0f, 1f)] private float foundationBury = 0.1f;
         [Tooltip("Once everything is built, the foundations' colliders, and the walkways' flat deck colliders, are replaced by as few boxes as possible: two boxes become one where the box round both stands out past them by no more than this anywhere. The foundation pieces differ by about 9cm at their buried bottoms, so it must be more than that for neighbours to merge.")]
         [SerializeField, Range(0f, 0.3f)] private float foundationColliderTolerance = 0.1f;
         [Tooltip("The same for the walls' colliders (every piece under a building's Storey and Corner groups, windows and doors included), merged after the visibility cull: along a storey, and storey onto storey where the fronts line up. Within a storey, a window-base wall's collider front stands 12-14cm proud of a plain wall's (its sill), so below 0.15 the two kinds stay apart and little merges; at 0.15 a storey is one box whose front lies at the sills, about where the timbers stand anyway.")]
@@ -86,6 +88,10 @@ namespace LevelGen
         [SerializeField, Range(0f, 0.3f)] private float jettyInset = 0.05f;
         [Tooltip("How far a jettied building's first upper storey - its beam band and walls - stands down into the jetty supports' deck, so the beam and walls cut into the planks instead of resting on them with a seam showing. The supports stay where they are.")]
         [SerializeField, Range(0f, 0.3f)] private float jettyStoreyDrop = 0.1f;
+
+        [Header("Lean")]
+        [Tooltip("How far, in degrees, a facade's street-facing walls lean out over the street from the first upper storey up: each upper storey's walls and beams tip forward by this about the base of the first upper storey, one tilted plane, so their tops stand out over the street, and the side walls beside them are moved forward and sheared to lean with them. Of the two sides of a corner only one leans; the other stands upright with its end wall sheared to follow the leaning face. 0 is upright. Roofs and dressing stay where they would be upright (a preview of the look).")]
+        [SerializeField, Range(0f, 5f)] private float facadeLean;
 
         [Header("Doors")]
         [Tooltip("Every doorway in a placed wall gets a plain door (a verified piece of the door category; never a gameplay door), at random, scaled to the doorway: this much taller than it at the top, so its top tucks into the frame.")]
@@ -124,7 +130,9 @@ namespace LevelGen
         [SerializeField, Range(1, 4)] private int columnStoreyVariation = 1;
 
         [Header("Dressing: pipes, valves, vents, walkways, lamp posts")]
-        [Tooltip("Every building gets one run of pipe; each further run, up to this many in all, comes at pipeExtraRunShare.")]
+        [Tooltip("The share of buildings that get pipes at all; the rest get none.")]
+        [SerializeField, Range(0f, 1f)] private float pipeBuildingShare = 0.4f;
+        [Tooltip("A building that gets pipes gets one run; each further run, up to this many in all, comes at pipeExtraRunShare.")]
         [SerializeField, Range(1, 5)] private int pipeRunsMax = 2;
         [Tooltip("The chance of each run of pipe beyond a building's first.")]
         [SerializeField, Range(0f, 1f)] private float pipeExtraRunShare = 0.35f;
@@ -251,9 +259,13 @@ namespace LevelGen
         [Tooltip("How far each piece of foliage is sunk below the ground's walking surface, so its roots hide in the uneven stones rather than floating over them.")]
         [SerializeField, Range(0f, 0.1f)] private float foliageSink = 0.03f;
 
-        [Header("Steps (streets changing height)")]
-        [Tooltip("The landing of ground tiles laid square to a flight of steps at its top, in the steps' own frame, stands this far below the street's level, so where the street's own grid of tiles overlaps it the grid's tiles lie on top.")]
+        [Header("Steps and slopes (streets changing height)")]
+        [Tooltip("The landing of ground tiles laid square to a flight of steps or a slope at its top, in the segment's own frame, stands this far below the street's level, so where the street's own grid of tiles overlaps it the grid's tiles lie on top.")]
         [SerializeField, Range(0f, 0.1f)] private float landingDrop = 0.02f;
+        [Tooltip("A segment that rises no more steeply than this (its rise over its length less the landing: 0.083 is 1 in 12, about 4.8 degrees) is climbed by a slope of tilted ground tiles; a steeper one needs whole flights of steps.")]
+        [SerializeField, Range(0.01f, 0.25f)] private float streetSlopeMaxGrade = 0.083f;
+        [Tooltip("A building beside a slope stands level at the highest the street comes under it, its foundations stacked down to the street; the validator warns of a building whose street falls further than this below its level (one course of the masonry foundations is about a metre).")]
+        [SerializeField, Range(0.1f, 2f)] private float slopeDropMax = 0.6f;
 
         [Header("Roofs")]
         [Tooltip("The roofs' pitch, in degrees from level. The pack's own roofs lie between about 52 and 68.")]
@@ -368,6 +380,7 @@ namespace LevelGen
         internal float GroundStoreyHeight => groundStoreyHeight;
         internal float FoundationHeight => foundationHeight;
         internal float FoundationFrontOffset => foundationFrontOffset;
+        internal float FoundationBury => foundationBury;
         internal float FoundationColliderTolerance => foundationColliderTolerance;
         internal float WallColliderTolerance => wallColliderTolerance;
         internal float RoofColliderTolerance => roofColliderTolerance;
@@ -378,6 +391,7 @@ namespace LevelGen
         internal float JettyShare => jettyShare;
         internal float JettyInset => jettyInset;
         internal float JettyStoreyDrop => jettyStoreyDrop;
+        internal float FacadeLean => facadeLean;
         internal float CornerAngleTolerance => cornerAngleTolerance;
         internal float CornerMaxReach => cornerMaxReach;
         internal float CornerOverrun => cornerOverrun;
@@ -402,6 +416,7 @@ namespace LevelGen
         internal float SideWallTuck => sideWallTuck;
         internal float GapBridgeMax => gapBridgeMax;
         internal float GapStoreyTolerance => gapStoreyTolerance;
+        internal float PipeBuildingShare => pipeBuildingShare;
         internal int PipeRunsMax => pipeRunsMax;
         internal float PipeExtraRunShare => pipeExtraRunShare;
         internal float PipeMinRunShare => pipeMinRunShare;
@@ -457,6 +472,8 @@ namespace LevelGen
         internal float FoliageScaleMax => foliageScaleMax;
         internal float FoliageSink => foliageSink;
         internal float LandingDrop => landingDrop;
+        internal float StreetSlopeMaxGrade => streetSlopeMaxGrade;
+        internal float SlopeDropMax => slopeDropMax;
         internal float RoofPitch => roofPitch;
         internal int RoofRows => roofRows;
         internal float RoofEaveOverhang => roofEaveOverhang;

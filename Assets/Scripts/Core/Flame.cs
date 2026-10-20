@@ -23,6 +23,10 @@ namespace Core
         // The light the player sees. Found on this object if left empty.
         [SerializeField] private Light visibleLight;
 
+        // What makes that light waver. Found on this object if left empty;
+        // optional. Paused while the fire is out.
+        [SerializeField] private FlameFlicker flicker;
+
         // The fire's sound. Found on this object if left empty.
         [SerializeField] private SoundLoop soundLoop;
 
@@ -84,6 +88,10 @@ namespace Core
 
             if (visibleLight == null) {
                 visibleLight = GetComponent<Light>();
+            }
+
+            if (flicker == null) {
+                flicker = GetComponent<FlameFlicker>();
             }
 
             if (soundLoop == null) {
@@ -163,6 +171,12 @@ namespace Core
 
             if (visibleLight != null) {
                 visibleLight.enabled = lit;
+            }
+
+            // Off, the flicker puts the intensity back where the editor
+            // set it, so the light comes back steady when relit.
+            if (flicker != null) {
+                flicker.enabled = lit;
             }
 
             if (soundLoop != null) {

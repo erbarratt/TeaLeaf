@@ -96,6 +96,14 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 5571905395652572898, guid: 171b343bbdc8b2f4bb16ec13ae5c7dd2, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 5571905395652572898, guid: 171b343bbdc8b2f4bb16ec13ae5c7dd2, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
+      objectReference: {fileID: 0}
     - target: {fileID: 6893908670022007938, guid: 171b343bbdc8b2f4bb16ec13ae5c7dd2, type: 3}
       propertyPath: m_Layer
       value: 6

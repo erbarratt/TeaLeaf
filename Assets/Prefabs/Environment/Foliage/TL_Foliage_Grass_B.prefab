@@ -9,6 +9,10 @@ PrefabInstance:
     m_TransformParent: {fileID: 0}
     m_Modifications:
     - target: {fileID: 2264724831526327508, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
+      propertyPath: m_Size
+      value: 0.58748037
+      objectReference: {fileID: 0}
+    - target: {fileID: 2264724831526327508, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
       propertyPath: m_FadeMode
       value: 1
       objectReference: {fileID: 0}
@@ -16,17 +20,37 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 2264724831526327508, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.0042795837
+      objectReference: {fileID: 0}
+    - target: {fileID: 2264724831526327508, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.29310355
+      objectReference: {fileID: 0}
+    - target: {fileID: 2264724831526327508, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.004398614
+      objectReference: {fileID: 0}
+    - target: {fileID: 2264724831526327508, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
     - target: {fileID: 4078498068761764714, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 4078498068761764714, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 5819225849145105626, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
       propertyPath: m_ReceiveGI
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5819225849145105626, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
+      propertyPath: m_StaticShadowCaster
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5943665439620790559, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
       propertyPath: m_Name
@@ -38,19 +62,31 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5943665439620790559, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
+      objectReference: {fileID: 0}
+    - target: {fileID: 6428875915541652389, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 0.29289
+      objectReference: {fileID: 0}
+    - target: {fileID: 6428875915541652389, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 0.29289
+      objectReference: {fileID: 0}
+    - target: {fileID: 6428875915541652389, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 0.29289
       objectReference: {fileID: 0}
     - target: {fileID: 6428875915541652389, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -14.402216
+      value: -14.405
       objectReference: {fileID: 0}
     - target: {fileID: 6428875915541652389, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 3.9996624
+      value: 4.2069
       objectReference: {fileID: 0}
     - target: {fileID: 6428875915541652389, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -29.455837
+      value: -29.453
       objectReference: {fileID: 0}
     - target: {fileID: 6428875915541652389, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
       propertyPath: m_LocalRotation.w
@@ -86,11 +122,15 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7186788831917358838, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 87
+      value: 83
       objectReference: {fileID: 0}
     - target: {fileID: 8708383040776351788, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
       propertyPath: m_ReceiveGI
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 8708383040776351788, guid: 1c81efec9fb6d7040b50ecfe1d5bc0de, type: 3}
+      propertyPath: m_StaticShadowCaster
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

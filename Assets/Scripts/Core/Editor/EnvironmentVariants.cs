@@ -174,41 +174,43 @@ namespace Core
             }
 
             AssetDatabase.SaveAssets();
-            Debug.Log($"EnvironmentVariants: set {piecesChanged} small piece(s) in {prefabsChanged} prefab(s) to light probes.");
+            Debug.Log($"EnvironmentVariants: changed {piecesChanged} renderer(s) in {prefabsChanged} prefab(s): small pieces to light probes, probe-lit pieces not batched.");
         }
 
         /// <summary>
-        /// Sets every small piece under root to take its baked light from
-        /// light probes (Receive Global Illumination: Light Probes) and
-        /// returns how many were changed. Only static pieces that
-        /// contribute to the bake are looked at, so anything that moves
-        /// is left alone.
+        /// Sets every small static piece under root to take its baked light
+        /// from light probes (Receive Global Illumination: Light Probes),
+        /// then takes Batching Static off every probe-lit renderer - one set
+        /// to probes, or one that doesn't contribute to the bake, which is
+        /// lit by probes whatever it is set to. Static batching merges such
+        /// a piece into one mesh with its neighbours, and the probes are then
+        /// read at the merged mesh's centre, far from most of the pieces in
+        /// it. Returns how many renderers were changed. Pieces that move
+        /// have no static flags and are left alone.
         /// </summary>
         private static int SetSmallPiecesToLightProbes(GameObject root)
         {
             int changed = 0;
 
             foreach (MeshRenderer meshRenderer in root.GetComponentsInChildren<MeshRenderer>(true)) {
-                if (meshRenderer.receiveGI == ReceiveGI.LightProbes) {
-                    continue;
-                }
-
                 StaticEditorFlags flags = GameObjectUtility.GetStaticEditorFlags(meshRenderer.gameObject);
+                bool contributes = (flags & StaticEditorFlags.ContributeGI) != 0;
 
-                if ((flags & StaticEditorFlags.ContributeGI) == 0) {
-                    continue;
+                if (contributes
+                    && meshRenderer.receiveGI != ReceiveGI.LightProbes
+                    && meshRenderer.TryGetComponent(out MeshFilter meshFilter)
+                    && meshFilter.sharedMesh != null
+                    && IsSmallPiece(meshFilter.sharedMesh.bounds.size, meshRenderer.transform.lossyScale)) {
+                    meshRenderer.receiveGI = ReceiveGI.LightProbes;
+                    changed++;
                 }
 
-                if (!meshRenderer.TryGetComponent(out MeshFilter meshFilter) || meshFilter.sharedMesh == null) {
-                    continue;
-                }
+                bool probeLit = !contributes || meshRenderer.receiveGI == ReceiveGI.LightProbes;
 
-                if (!IsSmallPiece(meshFilter.sharedMesh.bounds.size, meshRenderer.transform.lossyScale)) {
-                    continue;
+                if (probeLit && (flags & StaticEditorFlags.BatchingStatic) != 0) {
+                    GameObjectUtility.SetStaticEditorFlags(meshRenderer.gameObject, flags & ~StaticEditorFlags.BatchingStatic);
+                    changed++;
                 }
-
-                meshRenderer.receiveGI = ReceiveGI.LightProbes;
-                changed++;
             }
 
             return changed;

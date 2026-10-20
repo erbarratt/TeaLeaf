@@ -17,12 +17,32 @@ PrefabInstance:
       value: 87
       objectReference: {fileID: 0}
     - target: {fileID: 2031056723692991760, guid: 8da3d49b979f04441970a15c1fecff31, type: 3}
+      propertyPath: m_Size
+      value: 2.9491303
+      objectReference: {fileID: 0}
+    - target: {fileID: 2031056723692991760, guid: 8da3d49b979f04441970a15c1fecff31, type: 3}
       propertyPath: m_FadeMode
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2031056723692991760, guid: 8da3d49b979f04441970a15c1fecff31, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2031056723692991760, guid: 8da3d49b979f04441970a15c1fecff31, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: 1.3177174
+      objectReference: {fileID: 0}
+    - target: {fileID: 2031056723692991760, guid: 8da3d49b979f04441970a15c1fecff31, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.3646825
+      objectReference: {fileID: 0}
+    - target: {fileID: 2031056723692991760, guid: 8da3d49b979f04441970a15c1fecff31, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.37992263
+      objectReference: {fileID: 0}
+    - target: {fileID: 2031056723692991760, guid: 8da3d49b979f04441970a15c1fecff31, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
       objectReference: {fileID: 0}
     - target: {fileID: 2031056723692991761, guid: 8da3d49b979f04441970a15c1fecff31, type: 3}
       propertyPath: m_Name
@@ -124,8 +144,65 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedComponents:
+    - {fileID: 2534056031084690965, guid: 8da3d49b979f04441970a15c1fecff31, type: 3}
+    - {fileID: 4752394710578572064, guid: 8da3d49b979f04441970a15c1fecff31, type: 3}
+    m_RemovedGameObjects:
+    - {fileID: 7451908794929537264, guid: 8da3d49b979f04441970a15c1fecff31, type: 3}
+    - {fileID: 302708522700181026, guid: 8da3d49b979f04441970a15c1fecff31, type: 3}
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 2031056723692991761, guid: 8da3d49b979f04441970a15c1fecff31, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4830683600877263031}
+    - targetCorrespondingSourceObject: {fileID: 2031056723692991761, guid: 8da3d49b979f04441970a15c1fecff31, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 774407269566546952}
   m_SourcePrefab: {fileID: 100100000, guid: 8da3d49b979f04441970a15c1fecff31, type: 3}
+--- !u!1 &2997971624324208126 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 2031056723692991761, guid: 8da3d49b979f04441970a15c1fecff31, type: 3}
+  m_PrefabInstance: {fileID: 3870047948010692847}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &4830683600877263031
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2997971624324208126}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.934831, y: 0.6459977, z: 1}
+  m_Center: {x: 1.3204191, y: 0.023313709, z: 0.403}
+--- !u!65 &774407269566546952
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2997971624324208126}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 2.934831, y: 0.27493662, z: 0.5527}
+  m_Center: {x: 1.3204191, y: 0.4520137, z: 0.6267}

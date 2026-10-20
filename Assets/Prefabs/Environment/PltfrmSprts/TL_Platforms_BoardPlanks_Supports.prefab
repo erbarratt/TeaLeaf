@@ -81,12 +81,32 @@ PrefabInstance:
       value: 87
       objectReference: {fileID: 0}
     - target: {fileID: 5702144602793232786, guid: e3242ee2b0980694e96556ac55d102bc, type: 3}
+      propertyPath: m_Size
+      value: 3.0306795
+      objectReference: {fileID: 0}
+    - target: {fileID: 5702144602793232786, guid: e3242ee2b0980694e96556ac55d102bc, type: 3}
       propertyPath: m_FadeMode
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5702144602793232786, guid: e3242ee2b0980694e96556ac55d102bc, type: 3}
       propertyPath: m_AnimateCrossFading
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5702144602793232786, guid: e3242ee2b0980694e96556ac55d102bc, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: 1.5220474
+      objectReference: {fileID: 0}
+    - target: {fileID: 5702144602793232786, guid: e3242ee2b0980694e96556ac55d102bc, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.6928561
+      objectReference: {fileID: 0}
+    - target: {fileID: 5702144602793232786, guid: e3242ee2b0980694e96556ac55d102bc, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.6283314
+      objectReference: {fileID: 0}
+    - target: {fileID: 5702144602793232786, guid: e3242ee2b0980694e96556ac55d102bc, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
       objectReference: {fileID: 0}
     - target: {fileID: 5702144602793232797, guid: e3242ee2b0980694e96556ac55d102bc, type: 3}
       propertyPath: m_Name

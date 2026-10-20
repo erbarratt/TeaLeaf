@@ -24,6 +24,26 @@ PrefabInstance:
       propertyPath: m_AnimateCrossFading
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 1526551110669747693, guid: f4f3bb02d5dd0cc40bb7cd807eb4c04e, type: 3}
+      propertyPath: m_LocalReferencePoint.x
+      value: -0.75298953
+      objectReference: {fileID: 0}
+    - target: {fileID: 1526551110669747693, guid: f4f3bb02d5dd0cc40bb7cd807eb4c04e, type: 3}
+      propertyPath: m_LocalReferencePoint.y
+      value: 0.84510183
+      objectReference: {fileID: 0}
+    - target: {fileID: 1526551110669747693, guid: f4f3bb02d5dd0cc40bb7cd807eb4c04e, type: 3}
+      propertyPath: m_LocalReferencePoint.z
+      value: 0.0000005364418
+      objectReference: {fileID: 0}
+    - target: {fileID: 1526551110669747693, guid: f4f3bb02d5dd0cc40bb7cd807eb4c04e, type: 3}
+      propertyPath: m_LODs.Array.data[0].screenRelativeHeight
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 1526551110669747693, guid: f4f3bb02d5dd0cc40bb7cd807eb4c04e, type: 3}
+      propertyPath: m_LODs.Array.data[1].screenRelativeHeight
+      value: 0.035
+      objectReference: {fileID: 0}
     - target: {fileID: 3111080201641385633, guid: f4f3bb02d5dd0cc40bb7cd807eb4c04e, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -116,8 +136,65 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedComponents:
+    - {fileID: 6940822935362967841, guid: f4f3bb02d5dd0cc40bb7cd807eb4c04e, type: 3}
+    - {fileID: 1631221158801781379, guid: f4f3bb02d5dd0cc40bb7cd807eb4c04e, type: 3}
+    m_RemovedGameObjects:
+    - {fileID: 5547132541008280207, guid: f4f3bb02d5dd0cc40bb7cd807eb4c04e, type: 3}
+    - {fileID: 8434657680637162577, guid: f4f3bb02d5dd0cc40bb7cd807eb4c04e, type: 3}
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 4871815476705747107, guid: f4f3bb02d5dd0cc40bb7cd807eb4c04e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4029665504184765291}
+    - targetCorrespondingSourceObject: {fileID: 4871815476705747107, guid: f4f3bb02d5dd0cc40bb7cd807eb4c04e, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2369699380271607418}
   m_SourcePrefab: {fileID: 100100000, guid: f4f3bb02d5dd0cc40bb7cd807eb4c04e, type: 3}
+--- !u!1 &7161691211699523981 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 4871815476705747107, guid: f4f3bb02d5dd0cc40bb7cd807eb4c04e, type: 3}
+  m_PrefabInstance: {fileID: 2377718545160663342}
+  m_PrefabAsset: {fileID: 0}
+--- !u!65 &4029665504184765291
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7161691211699523981}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1.0405, y: 1.7152, z: 0.72058743}
+  m_Center: {x: -0.9248, y: 0.8606, z: -0.02702432}
+--- !u!65 &2369699380271607418
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7161691211699523981}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 0.5396, y: 0.7941376, z: 0.72058743}
+  m_Center: {x: -0.2518, y: 1.3215, z: -0.02702432}

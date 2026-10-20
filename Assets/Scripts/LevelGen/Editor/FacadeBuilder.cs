@@ -103,9 +103,23 @@ namespace LevelGen
         // facades and lots (Roofs/<frontage or lot>/<building>), so they can
         // be hidden in one go while working on the level.
         private static Transform _roofParent;
-        // The streets' flights of steps, set the same way: a run beside one
-        // stands its modules on the level of their side of it.
-        private static List<StreetSteps.Flight> _flights = new();
+        // How the streets change height (their flights of steps and slopes),
+        // set the same way: a run beside a flight stands its modules on the
+        // level of their side of it; beside a slope each building stands at
+        // the highest the street comes under it.
+        private static StreetHeights _heights = StreetHeights.None;
+
+        /// <summary>
+        /// One stretch of a run at one level: from a distance along the run
+        /// (to the next stretch's start) its buildings stand at Level. Set
+        /// per building on the run (LevelBuildings), and raised at corners
+        /// (EqualCornerLevels).
+        /// </summary>
+        private struct RunLevel
+        {
+            public float At;
+            public float Level;
+        }
 
         /// <summary>
         /// One straight stretch of a frontage's street edge.
@@ -118,7 +132,7 @@ namespace LevelGen
             public float Length;
             // The way the facade faces: into the street.
             public Vector2 Front;
-            // The street's height at the run's start and end.
+            // The street's surface height at the run's start and end.
             public float StartHeight;
             public float EndHeight;
             // Beside a flight of steps the street is level on either side of
@@ -127,14 +141,26 @@ namespace LevelGen
             // and EndHeight from there, instead of sloping between them.
             public bool Stepped;
             public float StepAt;
-            // That flight, and how far along its segment the run starts, so
-            // the street's surface beside the run can be found (Surface).
+            // Otherwise, on a street frontage, the level each building on the
+            // run stands at (LevelBuildings): the street's surface may fall
+            // below it beside a slope, the foundations stacking down to it.
+            // Null for a lot's or a dead end's run, which is level.
+            public List<RunLevel> Levels;
+            // That flight or slope, and how far along its segment the run
+            // starts, so the street's surface beside the run can be found
+            // (Surface).
             public StreetSteps.Flight Flight;
-            public float FlightOffset;
+            public StreetSlopes.Slope Slope;
+            public float SegmentStart;
             // The street and segment whose edge it lines (null for a dead end,
             // and for a lot's side that lines no street), for clearance checks.
             public StreetSpec Street;
             public int Segment;
+            // Whether the run stands upright where the facades lean
+            // (FacadeLean): of the two runs meeting at a corner only one
+            // leans (AssignLeans), the other's end walls sheared to follow
+            // the leaning face (FollowLeanStart / End on its end modules).
+            public bool Upright;
         }
 
         /// <summary>
@@ -169,6 +195,14 @@ namespace LevelGen
             // Null where no corner widens it.
             public float[] WidenStart;
             public float[] WidenEnd;
+            // Per storey, how the wall at the run's start or end follows the
+            // leaning face of the other side of a corner, where this run
+            // stands upright and that side leans (AssignLeans): 0 not at
+            // all (the ground storey, no corner, or the other side upright
+            // too), 1 the module's own wall is widened and sheared to it, 2
+            // the corner's last filler is. Null where no corner asks it.
+            public int[] FollowLeanStart;
+            public int[] FollowLeanEnd;
             // Its index among its building's spec modules, or -1 for a module
             // the generator added (filling a frontage's end, an inside bend's
             // overrun, a side return).
@@ -299,16 +333,16 @@ namespace LevelGen
         /// and dead end to log, and one listing any piece refused.
         /// </summary>
         internal static void Build(LayoutSpec spec, Dictionary<string, BuildingStyle> styles, PieceAnnotations annotations, StoreyPlan plan,
-            GeneratorSettings settings, System.Random random, PiecePlacer placer, Transform parent, Transform lotParent, Transform roofParent,
-            List<string> log)
+            StreetHeights heights, GeneratorSettings settings, System.Random random, PiecePlacer placer, Transform parent, Transform lotParent,
+            Transform roofParent, List<string> log)
         {
             _inserts.Clear();
             _jetties.Clear();
             _doors.Clear();
             _throughOpenings.Clear();
             _dressing.Clear();
-            _flights = StreetSteps.Find(spec.streets, styles, placer, settings);
-            _clearance = new StreetClearance(spec.streets, _flights, settings);
+            _heights = heights;
+            _clearance = new StreetClearance(spec.streets, heights, settings);
             _roofParent = roofParent;
 
             foreach (PieceAnnotation piece in annotations.pieces) {
@@ -368,8 +402,11 @@ namespace LevelGen
             List<Joint> joints = FindJoints(frontages, spec.streets, settings, log);
             MatchCornerStoreys(frontages, joints, styles, settings, placer, log);
             EqualCornerHeights(joints);
+            EqualCornerLevels(joints, settings);
             TrimCornerEnds(joints, settings, placer);
             WidenCornerEnds(joints, settings, placer);
+            AssignLeans(frontages, joints, settings, log);
+            FollowLeans(joints, settings, placer);
             // From here every piece is checked against the streets as it is
             // placed, against the street its facade faces (Facing) more
             // loosely than the others.
@@ -562,6 +599,7 @@ namespace LevelGen
             }
 
             StepFlights(spots, runs, buildings, settings);
+            LevelBuildings(spots, runs, buildings);
             List<Column> columns = SplitColumns(spots, runs, buildings, MaxColumnDepth(buildings, settings), settings, random);
 
             return new Frontage {
@@ -983,6 +1021,64 @@ namespace LevelGen
         }
 
         /// <summary>
+        /// Corners stand at one level: the buildings either side of every
+        /// joint (bends, street corners) are given the same level, the
+        /// higher of the two - a building on a slope stands at the highest
+        /// the street comes under it, and the building it meets at a corner
+        /// is raised to it, its foundations stacked down to its own street -
+        /// repeated until no joint changes, since a building can end at two.
+        /// A stepped run and a lot keep their own.
+        /// </summary>
+        private static void EqualCornerLevels(List<Joint> joints, GeneratorSettings settings)
+        {
+            bool changed = true;
+
+            while (changed) {
+                changed = false;
+
+                foreach (Joint joint in joints) {
+                    float level = Mathf.Max(LevelAt(joint.A), LevelAt(joint.B));
+                    changed |= RaiseLevel(joint.A, level, settings);
+                    changed |= RaiseLevel(joint.B, level, settings);
+                }
+            }
+        }
+
+        /// <summary>
+        /// The level the module at a run's end stands at.
+        /// </summary>
+        private static float LevelAt(RunEnd end)
+        {
+            ModuleSpot spot = end.Frontage.Spots[end.Spot];
+            return Height(end.Frontage.Runs[spot.Run], spot.Position + Spacing(spot, end.Frontage.Buildings) * 0.5f);
+        }
+
+        /// <summary>
+        /// Raises the level of the stretch of run the module at an end
+        /// stands in (its building on that run) to level, if it is lower.
+        /// Returns whether it changed; a stepped run, a lot's or a dead
+        /// end's never does.
+        /// </summary>
+        private static bool RaiseLevel(RunEnd end, float level, GeneratorSettings settings)
+        {
+            ModuleSpot spot = end.Frontage.Spots[end.Spot];
+            Run run = end.Frontage.Runs[spot.Run];
+
+            if (run.Stepped || run.Levels == null || run.Levels.Count == 0) {
+                return false;
+            }
+
+            int stretch = StretchAt(run, spot.Position + Spacing(spot, end.Frontage.Buildings) * 0.5f);
+
+            if (run.Levels[stretch].Level >= level - settings.SizeTolerance) {
+                return false;
+            }
+
+            run.Levels[stretch] = new RunLevel { At = run.Levels[stretch].At, Level = level };
+            return true;
+        }
+
+        /// <summary>
         /// Where a corner's two sides already reach past each other - the
         /// run ends on the bend's bisector, but the walls' lines at their
         /// columns' depths meet behind an end (a shallow outside bend with a
@@ -1065,6 +1161,139 @@ namespace LevelGen
             }
 
             spots[me.Spot] = spot;
+        }
+
+        /// <summary>
+        /// Decides which runs lean (FacadeLean): of two runs meeting at a
+        /// corner only one may, or at the top of the corner their leaning
+        /// walls would pull apart and open a wedge between them. Runs are
+        /// taken in the spec's order (frontages, then lots, each run in
+        /// turn), and a run leans unless a run already joined to it at a
+        /// corner leans; so corners alternate along a chain and a four-sided
+        /// lot leans on two opposite sides. Two runs nearly in line (their
+        /// fronts within the branch angle of parallel: one street running on
+        /// into another, a slight bend) are one facade and don't constrain
+        /// each other. Inside bends and dead ends overlap behind their fronts
+        /// and have no joint, so both sides there lean. With no lean every
+        /// run is upright. One log line.
+        /// </summary>
+        private static void AssignLeans(List<Frontage> frontages, List<Joint> joints, GeneratorSettings settings, List<string> log)
+        {
+            int leaning = 0;
+            int upright = 0;
+
+            foreach (Frontage frontage in frontages) {
+                for (int r = 0; r < frontage.Runs.Count; r++) {
+                    Run run = frontage.Runs[r];
+                    run.Upright = settings.FacadeLean <= 0f;
+
+                    if (!run.Upright) {
+                        foreach (Joint joint in joints) {
+                            if (JoinedLeaningRun(joint.A, joint.B, frontage, r, settings) || JoinedLeaningRun(joint.B, joint.A, frontage, r, settings)) {
+                                run.Upright = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    frontage.Runs[r] = run;
+
+                    if (run.Upright) {
+                        upright++;
+                    } else {
+                        leaning++;
+                    }
+                }
+            }
+
+            if (settings.FacadeLean > 0f) {
+                log.Add($"Facade lean: {leaning} run(s) lean, {upright} stand upright beside a leaning corner neighbour.");
+            }
+        }
+
+        /// <summary>
+        /// Whether one end of a joint is the given run and the other end's
+        /// run, already decided, leans - at a corner, not nearly in line.
+        /// </summary>
+        private static bool JoinedLeaningRun(RunEnd me, RunEnd other, Frontage frontage, int run, GeneratorSettings settings)
+        {
+            if (me.Frontage != frontage || me.Frontage.Spots[me.Spot].Run != run) {
+                return false;
+            }
+
+            Run otherRun = other.Frontage.Runs[other.Frontage.Spots[other.Spot].Run];
+            return !otherRun.Upright && !NearlyInLine(frontage.Runs[run], otherRun, settings);
+        }
+
+        /// <summary>
+        /// Whether two runs' fronts are within the branch angle of parallel
+        /// (one facade carried on, not a corner).
+        /// </summary>
+        private static bool NearlyInLine(Run a, Run b, GeneratorSettings settings)
+        {
+            return Vector2.Dot(a.Front, b.Front) > Mathf.Cos(Mathf.Asin(settings.BranchDot));
+        }
+
+        /// <summary>
+        /// Marks, on the upright side of every corner whose other side leans,
+        /// which piece at each upper storey follows the leaning face
+        /// (ModuleSpot.FollowLeanStart / End): its last corner filler where
+        /// the corner lays fillers at that storey, else the end module's own
+        /// wall. Only storeys the other side also stands (above its top the
+        /// end is closed by side walls instead). The piece is widened along
+        /// the run by the lean's forward at the storey's base and sheared by
+        /// the lean's angle, so its end edge stays inside the leaning wall
+        /// at every height (BuildStorey, PlaceFiller, BuildBeams).
+        /// </summary>
+        private static void FollowLeans(List<Joint> joints, GeneratorSettings settings, PiecePlacer placer)
+        {
+            foreach (Joint joint in joints) {
+                bool firstCovers = FirstCovers(joint);
+                FollowLean(joint.A, joint.B, firstCovers, settings, placer);
+                FollowLean(joint.B, joint.A, !firstCovers, settings, placer);
+            }
+        }
+
+        private static void FollowLean(RunEnd me, RunEnd other, bool cover, GeneratorSettings settings, PiecePlacer placer)
+        {
+            List<ModuleSpot> spots = me.Frontage.Spots;
+            ModuleSpot spot = spots[me.Spot];
+            ModuleSpot otherSpot = other.Frontage.Spots[other.Spot];
+            Run run = me.Frontage.Runs[spot.Run];
+            Run otherRun = other.Frontage.Runs[otherSpot.Run];
+
+            if (!run.Upright || otherRun.Upright || NearlyInLine(run, otherRun, settings)) {
+                return;
+            }
+
+            Building building = me.Frontage.Buildings[spot.Building];
+            int[] follow = new int[building.Levels.Count];
+
+            for (int s = 1; s < spot.Storeys && s < otherSpot.Storeys; s++) {
+                // Fillers are laid where the carry is longer than a widened
+                // wall covers (WidenCornerEnd); else the wall itself ends
+                // the run, carried or not.
+                bool fillers = !Widened(me, s) && CornerWalls(me, other, cover, s, settings, placer) > settings.SizeTolerance;
+                follow[s] = fillers ? 2 : 1;
+            }
+
+            if (me.AtStart) {
+                spot.FollowLeanStart = follow;
+            } else {
+                spot.FollowLeanEnd = follow;
+            }
+
+            spots[me.Spot] = spot;
+        }
+
+        /// <summary>
+        /// How a run end's wall follows a leaning neighbour at a storey
+        /// (FollowLean): 0 not at all, 1 the module's wall, 2 the fillers.
+        /// </summary>
+        private static int Follows(ModuleSpot spot, bool atStart, int storey)
+        {
+            int[] follow = atStart ? spot.FollowLeanStart : spot.FollowLeanEnd;
+            return follow != null && storey < follow.Length ? follow[storey] : 0;
         }
 
         /// <summary>
@@ -1653,7 +1882,7 @@ namespace LevelGen
 
                     if (toEnd > settings.SizeTolerance) {
                         PlaceFiller(building, s, spot, run, position, me.AtStart, Widened(me, s) ? 0f : toEnd, toEnd, depth, 0f, setback, settings,
-                            random, placer, group, missing);
+                            random, placer, group, missing, Follows(spot, me.AtStart, s) == 2);
                     }
 
                     position += me.AtStart ? -toEnd : toEnd;
@@ -1742,7 +1971,7 @@ namespace LevelGen
                 if (reach > settings.SizeTolerance) {
                     PlaceFiller(building, s, spot, run, position, me.AtStart, walls > settings.SizeTolerance ? walls : 0f,
                         FoundationCarry(me, depth, other, otherDepth, reach, settings), depth, CornerFaceReach(other, otherStorey, placer), setback, settings,
-                        random, placer, group, missing);
+                        random, placer, group, missing, Follows(spot, me.AtStart, s) == 2);
                 }
 
                 if (above) {
@@ -1869,15 +2098,28 @@ namespace LevelGen
         /// forward so their fronts reach as far as faceReach from the back
         /// line (the other side's end wall at the corner, so a shallower
         /// filler's post meets it face to face; 0 for none), the beams with
-        /// them; the foundations and supports stay.
+        /// them; the foundations and supports stay. On a leaning run the
+        /// walls and beams lean with its modules (Lean, LeanForward). With
+        /// followLean (an upright run whose corner neighbour leans,
+        /// FollowLean) the filler at the corner end is widened by the lean's
+        /// forward at the storey's base and sheared towards the corner, the
+        /// beam under it widened the same, so the end stays inside the
+        /// leaning wall at every height.
         /// </summary>
         private static void PlaceFiller(Building building, int storey, ModuleSpot spot, Run run, float position, bool atStart, float length,
             float foundationLength, float depth, float faceReach, float setback, GeneratorSettings settings, System.Random random, PiecePlacer placer,
-            Transform group, HashSet<string> missing)
+            Transform group, HashSet<string> missing, bool followLean = false)
         {
             StoreyLevel level = building.Levels[storey];
             float overlap = settings.WallOverlap;
             float shift = 0f;
+            Quaternion lean = Lean(storey, run, settings);
+            float leanForward = LeanForward(building, run, level.Base, settings);
+            // The corner-end piece's extra width where it follows a leaning
+            // neighbour, and the shear towards that end (PlaceWall).
+            float follow = followLean ? LeanOffset(building, level.Base, settings) : 0f;
+            float followBeam = followLean ? LeanOffset(building, level.BeamBottom, settings) : 0f;
+            float shear = followLean ? (atStart ? -settings.FacadeLean : settings.FacadeLean) : 0f;
 
             if (storey == 0 && foundationLength > 0f) {
                 IReadOnlyList<PieceAnnotation> foundations = building.Ground.Pieces("foundation");
@@ -1908,16 +2150,30 @@ namespace LevelGen
                     float from = atStart ? position - length : position;
                     PieceAnnotation previous = null;
                     float laid = 0f;
+                    List<float> widths = FitWidths(length + overlap, level.Style.ModuleWidth, overlap, settings);
 
-                    foreach (float width in FitWidths(length + overlap, level.Style.ModuleWidth, overlap, settings)) {
+                    for (int i = 0; i < widths.Count; i++) {
+                        float width = widths[i];
                         PieceAnnotation wall = PickForWidth(choices, width, previous, random, settings);
                         previous = wall;
                         ModuleSpot filler = spot;
                         filler.Position = from + laid;
                         float forward = wall != null ? Mathf.Max(0f, faceReach - Reach(wall, placer)) : 0f;
                         shift = Mathf.Max(shift, forward);
-                        filler.Depth = depth + forward;
-                        PlaceWall(wall, level.Style, run, filler, width - overlap, level.Base, setback, overlap, placer, group, width);
+                        filler.Depth = depth + forward + leanForward;
+                        // The piece at the corner end (the first laid from
+                        // the start, the last towards the end) follows the
+                        // leaning neighbour: wider by follow, out of the
+                        // end, and sheared that way.
+                        bool atCorner = atStart ? i == 0 : i == widths.Count - 1;
+                        float extra = atCorner ? follow : 0f;
+
+                        if (atCorner && atStart) {
+                            filler.Position -= extra;
+                        }
+
+                        PlaceWall(wall, level.Style, run, filler, width - overlap + extra, level.Base, setback, overlap, placer, group, width + extra, lean,
+                            atCorner ? shear : 0f);
                         laid += width - overlap;
                     }
                 }
@@ -1938,8 +2194,10 @@ namespace LevelGen
             PieceAnnotation previousBeam = null;
             PieceAnnotation previousSupport = null;
             float bandLaid = 0f;
+            List<float> bandWidths = FitWidths(length + overlap, level.Style.ModuleWidth, overlap, settings);
 
-            foreach (float width in FitWidths(length + overlap, level.Style.ModuleWidth, overlap, settings)) {
+            for (int i = 0; i < bandWidths.Count; i++) {
+                float width = bandWidths[i];
                 float advance = width - overlap;
                 float middle = bandFrom + bandLaid + advance * 0.5f;
 
@@ -1948,8 +2206,14 @@ namespace LevelGen
                     previousBeam = beam;
 
                     if (beam != null) {
-                        PlaceInRun(beam, placer, run, middle, depth + shift - setback, true, level.BeamBottom, false, width / beam.width,
-                            level.BeamHeight / beam.height, group);
+                        // The beam at the corner end widened out of the end
+                        // with the wall above it (followBeam), on a leaning
+                        // run leaning with its storey.
+                        bool atCorner = atStart ? i == 0 : i == bandWidths.Count - 1;
+                        float extra = atCorner ? followBeam : 0f;
+                        float beamMiddle = middle + (atStart ? -extra : extra) * 0.5f;
+                        PlaceInRun(beam, placer, run, beamMiddle, depth + shift - setback + LeanForward(building, run, level.BeamBottom, settings), true,
+                            level.BeamBottom, false, (width + extra) / beam.width, level.BeamHeight / beam.height, group, lean);
                     }
                 }
 
@@ -2010,7 +2274,7 @@ namespace LevelGen
         /// top (fromTop) or bottom of it height above the street.
         /// </summary>
         private static void PlaceInRun(PieceAnnotation piece, PiecePlacer placer, Run run, float middle, float line, bool backOnLine, float height,
-            bool fromTop, float widthScale, float heightScale, Transform group)
+            bool fromTop, float widthScale, float heightScale, Transform group, Quaternion? lean = null)
         {
             CatalogueEntry entry = placer.Entry(piece);
 
@@ -2025,8 +2289,12 @@ namespace LevelGen
                 + (backOnLine ? -pieceFront * Extent(entry, -pieceFront) : pieceFront * Extent(entry, pieceFront))
                 + Vector3.up * (fromTop ? entry.renderMax.y : entry.renderMin.y);
             Vector2 onLine = run.Start + run.Along * middle + run.Front * line;
+            // Turned to face the street, then leaned (a leaning run's beam,
+            // Lean) about the point placed, on its bottom line.
+            Vector3 front = Level(run.Front);
+            Quaternion rotation = (lean ?? Quaternion.identity) * Quaternion.Euler(0f, Yaw(front) - Yaw(pieceFront), 0f);
 
-            placer.PlaceAt(piece, local, new Vector3(onLine.x, Height(run, middle) + height, onLine.y), Yaw(Level(run.Front)) - Yaw(pieceFront),
+            placer.PlaceAt(piece, local, new Vector3(onLine.x, Height(run, middle) + height, onLine.y), rotation,
                 PieceScale(piece, widthScale, heightScale), group);
         }
 
@@ -2391,8 +2659,8 @@ namespace LevelGen
             BuildFoundations(building.Ground, spots, runs, settings, random, placer, Group(building.Group, "Foundations"));
 
             for (int s = 0; s < building.Levels.Count; s++) {
-                BuildStorey(building, s, building.Levels[s], spots, runs, StoreyJetty(building, s), wallSetback,
-                    leftToRight, settings, random, placer, Group(building.Group, $"Storey {s}"), label, log);
+                BuildStorey(building, s, building.Levels[s], spots, runs, StoreyJetty(building, s), wallSetback, leftToRight, settings, random, placer,
+                    Group(building.Group, $"Storey {s}"), label, log);
             }
 
             BuildJetty(building, spots, runs, wallSetback, settings, random, placer);
@@ -2406,6 +2674,52 @@ namespace LevelGen
         private static float StoreyJetty(Building building, int storey)
         {
             return storey > 0 ? building.Jetty : 0f;
+        }
+
+        /// <summary>
+        /// How far forward (towards the street) the lean (FacadeLean) puts a
+        /// building's street-facing wall at a height above its base: the
+        /// upper storeys' walls and beams lie on one plane tilted out over
+        /// the street about the first upper storey's base, so a point that
+        /// high up the plane stands this much forward of where it would
+        /// upright. 0 on the ground storey (below the hinge), or with no lean.
+        /// </summary>
+        private static float LeanForward(Building building, Run run, float height, GeneratorSettings settings)
+        {
+            return run.Upright ? 0f : LeanOffset(building, height, settings);
+        }
+
+        /// <summary>
+        /// The same for a leaning run, whichever run is asked about: what an
+        /// upright run's end wall is widened by to follow its leaning
+        /// neighbour (FollowLean), the corner's buildings standing at the
+        /// same storey heights (MatchCornerStoreys).
+        /// </summary>
+        private static float LeanOffset(Building building, float height, GeneratorSettings settings)
+        {
+            if (settings.FacadeLean <= 0f || building.Levels.Count < 2) {
+                return 0f;
+            }
+
+            return Mathf.Max(0f, height - building.Levels[1].Base) * Mathf.Tan(settings.FacadeLean * Mathf.Deg2Rad);
+        }
+
+        /// <summary>
+        /// The turn that leans a street-facing piece of a run out over the
+        /// street by FacadeLean degrees: about its base line, along the
+        /// street, its top tipping the way the run faces. Identity for the
+        /// ground storey, an upright run (AssignLeans) or no lean.
+        /// </summary>
+        private static Quaternion Lean(int storey, Run run, GeneratorSettings settings)
+        {
+            if (storey == 0 || settings.FacadeLean <= 0f || run.Upright) {
+                return Quaternion.identity;
+            }
+
+            // Cross(up, front) points along the street to the viewer's left
+            // (seen from the street); turning about it by a positive angle
+            // takes "up" towards front.
+            return Quaternion.AngleAxis(settings.FacadeLean, Vector3.Cross(Vector3.up, Level(run.Front)));
         }
 
         /// <summary>
@@ -2531,20 +2845,30 @@ namespace LevelGen
                     Vector3 local = pieceRight * Vector3.Dot(centre, pieceRight) + pieceFront * inDepth + Vector3.up * entry.renderMin.y;
                     // Widened with the wall above it where a corner widens
                     // that (WidenCornerEnds), so the band runs on to the
-                    // corner with the wall.
-                    float widenStart = spot.WidenStart != null ? spot.WidenStart[s] : 0f;
-                    float widenEnd = spot.WidenEnd != null ? spot.WidenEnd[s] : 0f;
+                    // corner with the wall; and where that wall follows a
+                    // leaning neighbour (FollowLean), by the lean's forward
+                    // at the band's bottom (not sheared: over a beam's
+                    // height the lean is a centimetre or two).
+                    float widenStart = (spot.WidenStart != null ? spot.WidenStart[s] : 0f)
+                        + (Follows(spot, true, s) == 1 ? LeanOffset(building, level.BeamBottom, settings) : 0f);
+                    float widenEnd = (spot.WidenEnd != null ? spot.WidenEnd[s] : 0f)
+                        + (Follows(spot, false, s) == 1 ? LeanOffset(building, level.BeamBottom, settings) : 0f);
                     float spacing = Spacing(spot, building) + widenStart + widenEnd;
                     float widthScale = (spacing + settings.WallOverlap) / piece.width;
 
                     Run run = runs[spot.Run];
                     float middle = spot.Position - widenStart + spacing * 0.5f;
+                    // On the leaning facade's plane at its own height, tilted
+                    // with the walls (LeanForward, Lean).
                     Vector2 onBackLine = run.Start + run.Along * middle
-                        + run.Front * (spot.Depth + StoreyJetty(building, s) - wallSetback + Mathf.Max(0f, wallMiddle));
+                        + run.Front * (spot.Depth + StoreyJetty(building, s) + LeanForward(building, run, level.BeamBottom, settings) - wallSetback
+                            + Mathf.Max(0f, wallMiddle));
                     float height = Height(run, middle) + level.BeamBottom;
+                    Vector3 front = Level(run.Front);
 
                     group ??= Group(building.Group, "Beams");
-                    placer.PlaceAt(piece, local, new Vector3(onBackLine.x, height, onBackLine.y), Yaw(Level(run.Front)) - Yaw(pieceFront),
+                    placer.PlaceAt(piece, local, new Vector3(onBackLine.x, height, onBackLine.y),
+                        Lean(s, run, settings) * Quaternion.Euler(0f, Yaw(front) - Yaw(pieceFront), 0f),
                         PieceScale(piece, widthScale, level.BeamHeight / (entry.renderMax.y - entry.renderMin.y)), group);
                 }
             }
@@ -2854,6 +3178,14 @@ namespace LevelGen
                 thick = Mathf.Max(thick, choice.depth);
             }
 
+            // On a leaning facade (FacadeLean) the storey's front walls stand
+            // forward by their height above the hinge, so its side walls
+            // start that much nearer the street, their beams likewise at
+            // their own height, and each wall is sheared to lean with it
+            // (PlaceSideWall); the ground storey stands where it would upright.
+            float lean = storey > 0 && !run.Upright ? settings.FacadeLean : 0f;
+            float beamStart = start + LeanForward(building, run, level.BeamBottom, settings);
+            start += LeanForward(building, run, level.Base, settings);
             Vector2 from = onJoin + run.Front * start;
             // A storey standing StreetHeadroom above the street may run over
             // it (as the clearance lets a jetty overhang); lower ones stop at
@@ -2891,7 +3223,7 @@ namespace LevelGen
 
                 middles.Sort();
                 float wallMiddle = middles.Count > 0 ? middles[(middles.Count - 1) / 2] : -1f;
-                LaySideBeams(building.Levels[storey - 1].Style.Pieces("beam"), onJoin, run, start, widths, height + level.BeamBottom, level.BeamHeight,
+                LaySideBeams(building.Levels[storey - 1].Style.Pieces("beam"), onJoin, run, beamStart, widths, height + level.BeamBottom, level.BeamHeight,
                     face, backOnJoin, wallMiddle, settings, random, placer, group);
             }
 
@@ -2901,7 +3233,7 @@ namespace LevelGen
                 Vector2 corner = onJoin + run.Front * (start - laid);
                 float heightScale = level.Style.FitScale(wall.height, level.Style.ModuleHeight);
                 float thickness = PlaceSideWall(wall, corner, height + level.Base, width / wall.width, heightScale, face, -run.Front, backOnJoin, placer,
-                    group);
+                    group, lean);
 
                 if (thickness <= 0f) {
                     // Not placed (no entry, no connection point, or refused
@@ -3200,7 +3532,12 @@ namespace LevelGen
                 // so is a narrow one added to close a run's end (a door or
                 // window squeezed into it would show).
                 float spacing = Spacing(spots[k], building);
-                bool overrun = spots[k].Overrun || spacing < building.Ground.ModuleSpacing - settings.SizeTolerance;
+                // A wall that follows a leaning neighbour at a corner
+                // (FollowLean) is widened and sheared, so it is plain too: a
+                // sheared window hole would take no insert.
+                bool followsStart = Follows(spots[k], true, storey) == 1;
+                bool followsEnd = Follows(spots[k], false, storey) == 1;
+                bool overrun = spots[k].Overrun || spacing < building.Ground.ModuleSpacing - settings.SizeTolerance || followsStart || followsEnd;
                 bool door = storey == 0 && !overrun && (fromLeft == spec.doorModule || (doorDrawn && filler == null));
 
                 // Above its column's top.
@@ -3238,13 +3575,20 @@ namespace LevelGen
 
                 previous = piece;
                 ModuleSpot placed = spots[k];
-                placed.Depth += jetty;
-                // Widened at a corner, out past the run's start or end.
-                float widenStart = placed.WidenStart != null ? placed.WidenStart[storey] : 0f;
-                float widenEnd = placed.WidenEnd != null ? placed.WidenEnd[storey] : 0f;
+                Run run = runs[placed.Run];
+                // Forward by the jetty, and on a leaning run by the lean at
+                // the storey's base (LeanForward).
+                placed.Depth += jetty + LeanForward(building, run, level.Base, settings);
+                // Widened at a corner, out past the run's start or end; and
+                // where it follows a leaning neighbour, by the lean's forward
+                // at its base, then sheared towards that end (PlaceWall).
+                float follow = LeanOffset(building, level.Base, settings);
+                float widenStart = (placed.WidenStart != null ? placed.WidenStart[storey] : 0f) + (followsStart ? follow : 0f);
+                float widenEnd = (placed.WidenEnd != null ? placed.WidenEnd[storey] : 0f) + (followsEnd ? follow : 0f);
                 placed.Position -= widenStart;
-                GameObject wall = PlaceWall(piece, style, runs[placed.Run], placed, spacing + widenStart + widenEnd, level.Base, wallSetback,
-                    settings.WallOverlap, placer, group);
+                GameObject wall = PlaceWall(piece, style, run, placed, spacing + widenStart + widenEnd, level.Base, wallSetback,
+                    settings.WallOverlap, placer, group, 0f, Lean(storey, run, settings),
+                    followsEnd ? settings.FacadeLean : followsStart ? -settings.FacadeLean : 0f);
 
                 if (wall != null) {
                     spots[k].Reach[storey] = Reach(piece, placer);
@@ -3325,9 +3669,10 @@ namespace LevelGen
                 Vector3 local = centre + front * ((Extent(entry, front) - back) * 0.5f + settings.WindowInsertDepth);
                 CatalogueEntry insertEntry = placer.Entry(chosen);
                 Vector3 insertCentre = (insertEntry.renderMin + insertEntry.renderMax) * 0.5f;
-                float yaw = wall.eulerAngles.y + Yaw(front) - Yaw(chosen.fronts[0]);
+                // Turned as the wall is (its lean included), then to face its way.
+                Quaternion rotation = wall.rotation * Quaternion.Euler(0f, Yaw(front) - Yaw(chosen.fronts[0]), 0f);
 
-                placer.PlaceAt(chosen, insertCentre, wall.TransformPoint(local), yaw, group);
+                placer.PlaceAt(chosen, insertCentre, wall.TransformPoint(local), rotation, Vector3.one, group);
             }
 
             // A blind window wall has no hole, so the scan gives it no
@@ -3361,9 +3706,10 @@ namespace LevelGen
                 Vector3 local = point.position + front * settings.WindowInsertDepth;
                 CatalogueEntry insertEntry = placer.Entry(chosen);
                 Vector3 insertCentre = (insertEntry.renderMin + insertEntry.renderMax) * 0.5f;
-                float yaw = wall.eulerAngles.y + Yaw(front) - Yaw(chosen.fronts[0]);
+                // Turned as the wall is (its lean included), then to face its way.
+                Quaternion rotation = wall.rotation * Quaternion.Euler(0f, Yaw(front) - Yaw(chosen.fronts[0]), 0f);
 
-                placer.PlaceAt(chosen, insertCentre, wall.TransformPoint(local), yaw, group);
+                placer.PlaceAt(chosen, insertCentre, wall.TransformPoint(local), rotation, Vector3.one, group);
             }
         }
 
@@ -3408,9 +3754,10 @@ namespace LevelGen
             // The door's own bottom middle.
             Vector3 doorCentre = (doorEntry.renderMin + doorEntry.renderMax) * 0.5f;
             Vector3 doorBottom = new(doorCentre.x, doorEntry.renderMin.y, doorCentre.z);
-            float yaw = wall.eulerAngles.y + Yaw(front) - Yaw(door.fronts[0]);
+            // Turned as the wall is (its lean included), then to face its way.
+            Quaternion rotation = wall.rotation * Quaternion.Euler(0f, Yaw(front) - Yaw(door.fronts[0]), 0f);
 
-            placer.PlaceAt(door, doorBottom, wall.TransformPoint(local), yaw, PieceScale(door, width / door.width, height / door.height), group);
+            placer.PlaceAt(door, doorBottom, wall.TransformPoint(local), rotation, PieceScale(door, width / door.width, height / door.height), group);
             return door;
         }
 
@@ -3511,11 +3858,15 @@ namespace LevelGen
         /// another width than the ground storey, a module widened or
         /// narrowed to close a run's end) is scaled along its width to fill
         /// the module exactly (spacing plus the overlap), so the storeys'
-        /// joints always line up with no gap. Returns the placed wall, or
-        /// null.
+        /// joints always line up with no gap. With a shear (degrees: towards
+        /// the run's end when positive, its start when negative) its mesh
+        /// is sheared by that angle, its top corner at that end out along
+        /// the run by its height times the angle's tangent, to follow a
+        /// leaning neighbour's face at a corner (FollowLean; ShearedMeshes).
+        /// Returns the placed wall, or null.
         /// </summary>
         private static GameObject PlaceWall(PieceAnnotation piece, BuildingStyle style, Run run, ModuleSpot spot, float spacing, float storeyBase,
-            float wallSetback, float wallOverlap, PiecePlacer placer, Transform group, float fitWidth = 0f)
+            float wallSetback, float wallOverlap, PiecePlacer placer, Transform group, float fitWidth = 0f, Quaternion? lean = null, float shear = 0f)
         {
             if (piece.fronts.Count != 1 || !Connection(piece, "left", out Vector3 left)) {
                 return null;
@@ -3532,12 +3883,31 @@ namespace LevelGen
             // Seen from the street, the viewer's right is up x the way they look.
             Vector3 front = Level(run.Front);
             Vector3 right = Vector3.Cross(Vector3.up, -front);
-            Vector2 leftEnd = Vector3.Dot(Level(end - start), right) > 0f ? start : end;
+            bool endOnRight = Vector3.Dot(Level(end - start), right) > 0f;
+            Vector2 leftEnd = endOnRight ? start : end;
             Vector2 onBackLine = leftEnd + run.Front * (spot.Depth - wallSetback);
             float height = Height(run, spot.Position + spacing * 0.5f) + storeyBase;
 
-            return placer.PlaceAt(piece, left, new Vector3(onBackLine.x, height, onBackLine.y), Yaw(front) - Yaw(piece.fronts[0]),
-                PieceScale(piece, widthScale, heightScale), group);
+            // Turned to face the street, then leaned (Lean; none leaves it
+            // upright) about its base line: the connection point placed is
+            // on it.
+            Quaternion rotation = (lean ?? Quaternion.identity) * Quaternion.Euler(0f, Yaw(front) - Yaw(piece.fronts[0]), 0f);
+            Vector3 scale = PieceScale(piece, widthScale, heightScale);
+            GameObject wall = placer.PlaceAt(piece, left, new Vector3(onBackLine.x, height, onBackLine.y), rotation, scale, group);
+
+            if (wall != null && !Mathf.Approximately(shear, 0f)) {
+                // Towards the run's end: the piece's right if the end lies
+                // to the viewer's right. The angle in the mesh is the world
+                // angle scaled by the height scale over the width scale
+                // (ShearedMeshes bakes it before the piece's scale).
+                Vector3 pieceRight = Vector3.Cross(Vector3.up, -piece.fronts[0]);
+                bool towardsRight = (shear > 0f) == endOnRight;
+                float alongScale = Mathf.Abs(Vector3.Dot(scale, new Vector3(Mathf.Abs(pieceRight.x), 0f, Mathf.Abs(pieceRight.z))));
+                float localAngle = Mathf.Atan(Mathf.Tan(Mathf.Abs(shear) * Mathf.Deg2Rad) * heightScale / alongScale) * Mathf.Rad2Deg;
+                ShearedMeshes.Apply(wall, towardsRight ? pieceRight : -pieceRight, left.y, localAngle);
+            }
+
+            return wall;
         }
 
         /// <summary>
@@ -3558,10 +3928,15 @@ namespace LevelGen
         /// thickness behind it, in the column it faces out of), or with
         /// backOnJoin its back plane is (its thickness in front, in the column
         /// it faces into). Scaled up by heightScale (to its storey's height).
-        /// Returns its thickness, or 0 if not placed.
+        /// With a lean (degrees, the facade's), its mesh is sheared so its top
+        /// corner at the street end (the end at corner, opposite the way it
+        /// runs back) stands out towards the street by its height times the
+        /// lean's tangent, its base and back edge where they were - its front
+        /// edge then leans with the facade's walls (ShearedMeshes). Returns
+        /// its thickness, or 0 if not placed.
         /// </summary>
         internal static float PlaceSideWall(PieceAnnotation piece, Vector2 corner, float height, float widthScale, float heightScale, Vector2 face,
-            Vector2 back, bool backOnJoin, PiecePlacer placer, Transform group)
+            Vector2 back, bool backOnJoin, PiecePlacer placer, Transform group, float lean = 0f)
         {
             Vector3 front = Level(face);
             Vector3 right = Vector3.Cross(Vector3.up, -front);
@@ -3583,8 +3958,22 @@ namespace LevelGen
             // front on the join, the back plane goes that far in from it.
             float thickness = Extent(entry, pieceFront) - Vector3.Dot(end, pieceFront);
             Vector2 onBackPlane = backOnJoin ? corner : corner - face * thickness;
-            placer.PlaceAt(piece, local, new Vector3(onBackPlane.x, height, onBackPlane.y), Yaw(front) - Yaw(pieceFront),
-                PieceScale(piece, widthScale, heightScale), group);
+            Vector3 scale = PieceScale(piece, widthScale, heightScale);
+            GameObject instance = placer.PlaceAt(piece, local, new Vector3(onBackPlane.x, height, onBackPlane.y), Yaw(front) - Yaw(pieceFront), scale,
+                group);
+
+            if (instance != null && lean > 0f) {
+                // The shear is baked into the mesh before the piece's scale,
+                // so the angle in the mesh is the world angle scaled by the
+                // height scale over the width scale (the shear runs along
+                // the width: pieceRight is a local axis, so its scale is the
+                // component along it). Towards the street end: the piece's
+                // left, if the wall runs back to its right.
+                float alongScale = Mathf.Abs(Vector3.Dot(scale, new Vector3(Mathf.Abs(pieceRight.x), 0f, Mathf.Abs(pieceRight.z))));
+                float localAngle = Mathf.Atan(Mathf.Tan(lean * Mathf.Deg2Rad) * heightScale / alongScale) * Mathf.Rad2Deg;
+                ShearedMeshes.Apply(instance, runsRight ? -pieceRight : pieceRight, end.y, localAngle);
+            }
+
             return thickness;
         }
 
@@ -3662,22 +4051,29 @@ namespace LevelGen
                 // neighbours neither gap nor overlap.
                 placer.PlaceAt(piece, local, new Vector3(onEdge.x, height, onEdge.y), Yaw(Level(run.Front)) - Yaw(pieceFront),
                     PieceScale(piece, (spacing + settings.WallOverlap) / piece.width, 1f), group);
-                previous = StackBesideSteps(ground, run, spot, spacing, height, onEdge, previous, settings, random, placer, group);
+                // More courses above or below where the street leaves its level.
+                previous = StackFoundations(ground, run, spot, spacing, height, height - (entry.renderMax.y - entry.renderMin.y), onEdge, previous,
+                    settings, random, placer, group);
             }
         }
 
         /// <summary>
-        /// The highest the street's surface comes in front of a module beside
-        /// a flight of steps (StreetSteps.Flight.SurfaceAt), else its level.
+        /// The highest the street's surface comes in front of a module
+        /// (Surface, at either end of it): above its level beside a flight of
+        /// steps, on its low side.
         /// </summary>
         private static float SurfaceInFront(Run run, ModuleSpot spot, float spacing)
         {
-            if (run.Flight == null) {
-                return Height(run, spot.Position + spacing * 0.5f);
-            }
+            return Mathf.Max(Surface(run, spot.Position), Surface(run, spot.Position + spacing));
+        }
 
-            float from = run.FlightOffset + spot.Position;
-            return Mathf.Max(run.Flight.SurfaceAt(from), run.Flight.SurfaceAt(from + spacing));
+        /// <summary>
+        /// The lowest the street's surface comes in front of a module: below
+        /// its level beside a slope, or where a corner raised its building.
+        /// </summary>
+        private static float LowestInFront(Run run, ModuleSpot spot, float spacing)
+        {
+            return Mathf.Min(Surface(run, spot.Position), Surface(run, spot.Position + spacing));
         }
 
         /// <summary>
@@ -3690,26 +4086,30 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// Beside a flight of steps a module standing on the low level has the
-        /// street rising in front of it: the gap between the steps or their
-        /// landing and its walls is filled with more of its style's
-        /// foundations stacked on its own, the top one's top FoundationHeight
-        /// above the highest the street's surface comes in front of the module
-        /// (StreetSteps.Flight.SurfaceAt), each below it overlapping the one
-        /// above by WallOverlap, down to the module's own foundation (whose top
-        /// is at baseTop). Placed like it, centred on the module, its front at
-        /// onEdge; at random, never the one before. Returns the last placed.
+        /// More of the module's style's foundations stacked on its own where
+        /// the street's surface in front of it leaves its level. Up: beside a
+        /// flight of steps a module standing on the low level has the street
+        /// rising in front of it, and the gap between the steps or their
+        /// landing and its walls is filled with foundations stacked above its
+        /// own, the top one's top FoundationHeight above the highest the
+        /// street comes in front of the module, each below it overlapping the
+        /// one above by WallOverlap, down to the module's own (whose top is at
+        /// baseTop). Down: beside a slope, or where a corner raised the
+        /// building, the street falls below its level, and foundations are
+        /// stacked under its own (whose bottom is at baseBottom), each
+        /// overlapping the one above, until the lowest reaches FoundationBury
+        /// below the lowest the street comes in front of the module - so the
+        /// stone always meets the tiles. Each placed like the module's own,
+        /// centred on it and scaled to its width, its front at onEdge; at
+        /// random, never the one before. Returns the last placed.
         /// </summary>
-        private static PieceAnnotation StackBesideSteps(BuildingStyle ground, Run run, ModuleSpot spot, float spacing, float baseTop, Vector2 onEdge,
-            PieceAnnotation previous, GeneratorSettings settings, System.Random random, PiecePlacer placer, Transform group)
+        private static PieceAnnotation StackFoundations(BuildingStyle ground, Run run, ModuleSpot spot, float spacing, float baseTop, float baseBottom,
+            Vector2 onEdge, PieceAnnotation previous, GeneratorSettings settings, System.Random random, PiecePlacer placer, Transform group)
         {
-            if (!RisesInFront(run, spot, spacing, settings)) {
-                return previous;
-            }
-
+            float yaw = Yaw(Level(run.Front));
             float top = SurfaceInFront(run, spot, spacing) + settings.FoundationHeight;
 
-            while (top > baseTop + settings.SizeTolerance) {
+            while (RisesInFront(run, spot, spacing, settings) && top > baseTop + settings.SizeTolerance) {
                 PieceAnnotation piece = PiecePlacer.Pick(ground.Pieces("foundation"), previous, random);
                 CatalogueEntry entry = piece != null ? placer.Entry(piece) : null;
 
@@ -3718,15 +4118,45 @@ namespace LevelGen
                 }
 
                 previous = piece;
-                Vector3 pieceFront = piece.fronts[0];
-                Vector3 pieceRight = Vector3.Cross(Vector3.up, -pieceFront);
-                Vector3 centre = (entry.renderMin + entry.renderMax) * 0.5f;
-                Vector3 local = pieceRight * Vector3.Dot(centre, pieceRight) + pieceFront * Extent(entry, pieceFront) + Vector3.up * entry.renderMax.y;
-                placer.PlaceAt(piece, local, new Vector3(onEdge.x, top, onEdge.y), Yaw(Level(run.Front)) - Yaw(pieceFront), group);
+                PlaceFoundationCourse(piece, entry, top, onEdge, yaw, spacing, settings, placer, group);
                 top -= entry.renderMax.y - entry.renderMin.y - settings.WallOverlap;
             }
 
+            float bottom = baseBottom;
+            float reach = LowestInFront(run, spot, spacing) - settings.FoundationBury;
+
+            while (bottom > reach) {
+                PieceAnnotation piece = PiecePlacer.Pick(ground.Pieces("foundation"), previous, random);
+                CatalogueEntry entry = piece != null ? placer.Entry(piece) : null;
+
+                if (entry == null || piece.fronts.Count != 1 || piece.height <= settings.WallOverlap) {
+                    break;
+                }
+
+                previous = piece;
+                // Its top overlaps the course above by the wall overlap.
+                float courseTop = bottom + settings.WallOverlap;
+                PlaceFoundationCourse(piece, entry, courseTop, onEdge, yaw, spacing, settings, placer, group);
+                bottom = courseTop - (entry.renderMax.y - entry.renderMin.y);
+            }
+
             return previous;
+        }
+
+        /// <summary>
+        /// One course of a module's foundations: the middle of the top of its
+        /// front face at onEdge and top, facing the street (yaw), scaled
+        /// along its width to the module.
+        /// </summary>
+        private static void PlaceFoundationCourse(PieceAnnotation piece, CatalogueEntry entry, float top, Vector2 onEdge, float yaw, float spacing,
+            GeneratorSettings settings, PiecePlacer placer, Transform group)
+        {
+            Vector3 pieceFront = piece.fronts[0];
+            Vector3 pieceRight = Vector3.Cross(Vector3.up, -pieceFront);
+            Vector3 centre = (entry.renderMin + entry.renderMax) * 0.5f;
+            Vector3 local = pieceRight * Vector3.Dot(centre, pieceRight) + pieceFront * Extent(entry, pieceFront) + Vector3.up * entry.renderMax.y;
+            placer.PlaceAt(piece, local, new Vector3(onEdge.x, top, onEdge.y), yaw - Yaw(pieceFront),
+                PieceScale(piece, (spacing + settings.WallOverlap) / piece.width, 1f), group);
         }
 
         /// <summary>
@@ -3832,18 +4262,23 @@ namespace LevelGen
 
                 // Beside a flight of steps each side is level, changing at the
                 // flight's top (moved onto a module's end once they are laid).
-                StreetSteps.Flight flight = StreetSteps.Of(_flights, street, j);
+                // Beside a slope the surface climbs to the landing; the
+                // buildings' levels on it are set once the modules are laid
+                // (LevelBuildings).
+                StreetSteps.Flight flight = _heights.FlightOf(street, j);
+                StreetSlopes.Slope slope = _heights.SlopeOf(street, j);
                 runs.Add(new Run {
                     Start = lineStart + along * start,
                     Along = along,
                     Length = end - start,
                     Front = -outward,
-                    StartHeight = flight != null ? street.points[j].y : Mathf.Lerp(street.points[j].y, street.points[j + 1].y, start / length),
-                    EndHeight = flight != null ? street.points[j + 1].y : Mathf.Lerp(street.points[j].y, street.points[j + 1].y, end / length),
+                    StartHeight = flight != null ? street.points[j].y : _heights.SurfaceAt(street, j, start),
+                    EndHeight = flight != null ? street.points[j + 1].y : _heights.SurfaceAt(street, j, end),
                     Stepped = flight != null,
                     StepAt = flight != null ? flight.Top - start : 0f,
                     Flight = flight,
-                    FlightOffset = start,
+                    Slope = slope,
+                    SegmentStart = start,
                     Street = street,
                     Segment = j
                 });
@@ -4178,8 +4613,12 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// The street's height at a distance along a run: either side of a
-        /// flight of steps, the level of that side.
+        /// The level the buildings stand at, at a distance along a run:
+        /// either side of a flight of steps, the level of that side; on a
+        /// street frontage's run, the level of the building standing there
+        /// (LevelBuildings: beside a slope, the highest the street comes
+        /// under it); else the street's surface. The storeys, beams, jetties,
+        /// side walls, corners and roofs stand on it.
         /// </summary>
         private static float Height(Run run, float position)
         {
@@ -4187,7 +4626,94 @@ namespace LevelGen
                 return position < run.StepAt ? run.StartHeight : run.EndHeight;
             }
 
+            if (run.Levels != null && run.Levels.Count > 0) {
+                return run.Levels[StretchAt(run, position)].Level;
+            }
+
             return Mathf.Lerp(run.StartHeight, run.EndHeight, run.Length > 0f ? Mathf.Clamp01(position / run.Length) : 0f);
+        }
+
+        /// <summary>
+        /// Which of a run's level stretches a distance along it falls in: the
+        /// last that starts at or before it (the first for anything before
+        /// the first, an overrun module).
+        /// </summary>
+        private static int StretchAt(Run run, float position)
+        {
+            int stretch = 0;
+
+            for (int i = 1; i < run.Levels.Count; i++) {
+                if (run.Levels[i].At <= position) {
+                    stretch = i;
+                }
+            }
+
+            return stretch;
+        }
+
+        /// <summary>
+        /// The street's surface at a distance along a run, as walked: up a
+        /// flight's steps or a slope beside it, else level between the run's
+        /// ends. What stands in the street itself (the lamp posts) and the
+        /// foundations' stacks read it; the buildings stand at Height().
+        /// </summary>
+        private static float Surface(Run run, float position)
+        {
+            if (run.Flight != null) {
+                return run.Flight.SurfaceAt(run.SegmentStart + position);
+            }
+
+            if (run.Slope != null) {
+                return run.Slope.SurfaceAt(run.SegmentStart + position);
+            }
+
+            return Mathf.Lerp(run.StartHeight, run.EndHeight, run.Length > 0f ? Mathf.Clamp01(position / run.Length) : 0f);
+        }
+
+        /// <summary>
+        /// Gives every run that isn't stepped its level stretches, one per
+        /// building on it (a building spanning a bend has one on each run):
+        /// each at the highest the street's surface comes under any of its
+        /// modules there, so the street never rises above a wall's base and
+        /// a building beside a slope stands level, its foundations stacked
+        /// down to the street (StackFoundations). On a level street every
+        /// stretch is at the street's height.
+        /// </summary>
+        private static void LevelBuildings(List<ModuleSpot> spots, List<Run> runs, List<Building> buildings)
+        {
+            for (int r = 0; r < runs.Count; r++) {
+                Run run = runs[r];
+
+                if (run.Stepped) {
+                    continue;
+                }
+
+                run.Levels = new List<RunLevel>();
+                int building = -1;
+
+                foreach (ModuleSpot spot in spots) {
+                    if (spot.Run != r) {
+                        continue;
+                    }
+
+                    float spacing = Spacing(spot, buildings);
+                    float surface = Mathf.Max(Surface(run, spot.Position), Surface(run, spot.Position + spacing));
+
+                    if (spot.Building != building || run.Levels.Count == 0) {
+                        building = spot.Building;
+                        run.Levels.Add(new RunLevel { At = spot.Position, Level = surface });
+                        continue;
+                    }
+
+                    int last = run.Levels.Count - 1;
+
+                    if (surface > run.Levels[last].Level) {
+                        run.Levels[last] = new RunLevel { At = run.Levels[last].At, Level = surface };
+                    }
+                }
+
+                runs[r] = run;
+            }
         }
 
         /// <summary>

@@ -1,0 +1,258 @@
+{
+    "format": 2,
+    "seed": 4321,
+    "sector": "Example Slope",
+    "streets": [
+        {
+            "id": "hill-street",
+            "style": "cobbles",
+            "width": 0,
+            "points": [
+                {
+                    "x": -150,
+                    "y": 0,
+                    "z": -60
+                },
+                {
+                    "x": -122.811,
+                    "y": 0,
+                    "z": -72.679
+                },
+                {
+                    "x": -95.622,
+                    "y": 1.5,
+                    "z": -85.357
+                },
+                {
+                    "x": -70.719,
+                    "y": 1.5,
+                    "z": -87.535
+                }
+            ],
+            "frontages": [
+                {
+                    "side": "left",
+                    "from": 0,
+                    "to": 3,
+                    "buildings": [
+                        {
+                            "widthModules": 4,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster-planks",
+                                "plaster"
+                            ],
+                            "doorModule": 0
+                        },
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 2
+                        },
+                        {
+                            "widthModules": 2,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 0
+                        },
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster-masonry",
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 2,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster-planks",
+                                "plaster"
+                            ],
+                            "doorModule": 0
+                        },
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        }
+                    ]
+                },
+                {
+                    "side": "right",
+                    "from": 0,
+                    "to": 1,
+                    "buildings": [
+                        {
+                            "widthModules": 4,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster-planks",
+                                "plaster"
+                            ],
+                            "doorModule": 0
+                        }
+                    ]
+                },
+                {
+                    "side": "right",
+                    "from": 1,
+                    "to": 3,
+                    "buildings": [
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 2,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 0
+                        },
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster-masonry",
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 2,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 0
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "lane",
+            "style": "cobbles",
+            "width": 0,
+            "points": [
+                {
+                    "x": -122.811,
+                    "y": 0,
+                    "z": -72.679
+                },
+                {
+                    "x": -133.376,
+                    "y": -1,
+                    "z": -95.336
+                }
+            ],
+            "frontages": [
+                {
+                    "side": "left",
+                    "from": 0,
+                    "to": 1,
+                    "buildings": [
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 2,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 0
+                        },
+                        {
+                            "widthModules": 2,
+                            "storeys": [
+                                "plaster-planks",
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        }
+                    ]
+                },
+                {
+                    "side": "right",
+                    "from": 0,
+                    "to": 1,
+                    "buildings": [
+                        {
+                            "widthModules": 2,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        },
+                        {
+                            "widthModules": 3,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 0
+                        },
+                        {
+                            "widthModules": 2,
+                            "storeys": [
+                                "plaster"
+                            ],
+                            "doorModule": 1
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "lots": []
+}
