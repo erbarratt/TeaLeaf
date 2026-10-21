@@ -55,8 +55,9 @@ namespace AI
         // forward is the way the guard faces.
         [SerializeField] private Transform eye;
 
-        // The parts that are drawn, under one object, so a knocked-out
-        // guard can be laid down by turning that one object.
+        // Optional: greybox shapes under one object, laid flat when the
+        // guard is knocked out. Left empty on the animated guard, whose
+        // Animator plays the fall instead (GuardAnimation).
         [SerializeField] private Transform visual;
 
         // The body's collider (Guard layer) and the head's (GuardHead
@@ -65,7 +66,8 @@ namespace AI
         [SerializeField] private Collider headCollider;
 
         // Optional: a renderer tinted by state, so the state can be read
-        // at a glance while there are no proper animations.
+        // at a glance on a greybox guard. Left empty on the animated
+        // guard: the tint would darken its texture.
         [SerializeField] private Renderer stateRenderer;
 
         [Header("Patrol")]
@@ -75,10 +77,9 @@ namespace AI
 
         [Header("Speeds")]
 
-        // Metres a second in each state, and how fast it turns on the
-        // spot, in degrees a second.
+        // Metres a second walking (patrolling and searching) and running
+        // (chasing), and how fast it turns on the spot, in degrees a second.
         [SerializeField] private float patrolSpeed = 1.2f;
-        [SerializeField] private float searchSpeed = 1.8f;
         [SerializeField] private float chaseSpeed = 3.6f;
         [SerializeField] private float turnSpeed = 240f;
 
@@ -320,6 +321,11 @@ namespace AI
         public float Detection { get; private set; }
 
         public bool IsKnockedOut => State == GuardState.KnockedOut;
+
+        // Standing and looking about: turned towards what it noticed
+        // (Suspicious), or at a place in a search. Read by
+        // GuardAnimation for the look-around clip.
+        public bool IsLookingAbout => State == GuardState.Suspicious || (State == GuardState.Search && _isLookingAbout);
 
         /// Where its ears are (INoiseListener).
         public Vector3 EarPosition => eye.position;
@@ -829,7 +835,7 @@ namespace AI
         private void EnterSearch(bool withBark)
         {
             SetState(GuardState.Search);
-            _agent.speed = searchSpeed;
+            _agent.speed = patrolSpeed;
             _searchTimer = searchTimeout * (_isAlerted ? alertedSearchScale : 1f);
 
             if (withBark) {

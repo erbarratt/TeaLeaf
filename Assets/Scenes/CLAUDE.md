@@ -44,7 +44,7 @@ Environment
       Decals
       Lighting
         Baked         fill lights that only exist for the bake
-        Gameplay Lights   the lamps and torches the player sees and can put out
+        Gameplay Lights   the lamps and torches the player sees (open flames can be put out)
         Light Probes      the level's one light probe group (TeaLeaf > Lighting > Place Light Probes)
       VFX
     <Sector name>     one per part of the level that can be culled as a whole
@@ -225,7 +225,8 @@ like:
 - **Fog is on**: exponential, density 0.015 (a haze that takes the far end off a long
   street). In TeaLeaf distance haze is a reserve, tried only when profiling asks.
 - In TeaLeaf a lamp or torch is a `LightSource` with a Unity `Light` beside it, and a
-  `Flame` if it can be put out; it goes under `Lighting/Gameplay Lights`. The level
+  `Flame` if it can be put out (only an open flame - a torch, a fire pit - can; a
+  lamp post burns on); it goes under `Lighting/Gameplay Lights`. The level
   generator's lamp posts (`TL_Lampost`) are such lights, Mixed, kept `lampSpacing`
   apart with no two lights overlapping, and live under the generated root instead
   (`Assets/Scripts/LevelGen/CLAUDE.md`).
@@ -247,7 +248,11 @@ like:
   expect a room for every street segment and every interior room, not one per building.
 - **Outdoors is split into rooms too** (the reference has more outdoor rooms than indoor
   ones). In TeaLeaf two points that are both in no room always hear each other directly,
-  so streets that should not hear each other need rooms.
+  so streets that should not hear each other need rooms. **A generated sector's
+  streets get theirs from the level generator** (a room per straight run, a junction
+  room where streets meet, portals between and to the sky:
+  `Assets/Scripts/LevelGen/CLAUDE.md`, Sound rooms); the rooms inside its buildings,
+  and the portals at their doors and windows, are placed by hand.
 - **Loops sit on the thing that makes the sound** (74 in the reference: fans, fires,
   drips), not in a separate audio group.
 

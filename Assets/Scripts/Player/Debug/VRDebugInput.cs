@@ -6,7 +6,9 @@ namespace Player
 
     public class VRDebugInput : MonoBehaviour
     {
+        [Tooltip("The left trigger action, logged whenever its value moves by more than 0.05.")]
         [SerializeField] private InputActionReference leftTrigger;
+        [Tooltip("The right trigger action, logged likewise.")]
         [SerializeField] private InputActionReference rightTrigger;
 
         private float _lastLeft;

@@ -11,17 +11,17 @@ namespace AI
 {
     /// <summary>
     /// Editor menu command (TeaLeaf > Dev Room > Set Up Test Guard) that puts a
-    /// greybox guard in the scene and bakes the NavMesh it walks on.
+    /// guard in the scene and bakes the NavMesh it walks on.
     ///
     /// With a Sound Test House in the scene, the guard patrols the route
     /// the house lays out (Bedroom, Landing, stairs, Hall, Kitchen, and
     /// back). Without one, the guard stands 4m ahead of the main camera.
     ///
-    /// The guard is built the way Guard expects: a root on the Guard
-    /// layer with a NavMeshAgent, a kinematic Rigidbody and a capsule
-    /// collider; a Head object on the GuardHead layer (its collider is
-    /// what the blackjack hits, and its forward is the way the guard
-    /// looks); and a Visual object holding the shapes that are drawn.
+    /// The guard is an instance of the Guard prefab
+    /// (Assets/Prefabs/Characters/Guard.prefab): the model, its
+    /// Animator, colliders, agent and components are all in there; this
+    /// only places it, gives it the route and the placeholder sounds,
+    /// and adds a GuardDebug.
     ///
     /// The NavMesh is baked from every collider on the Environment layer
     /// by a NavMeshSurface on a NavMesh object at the scene root, and
@@ -47,23 +47,22 @@ namespace AI
         private const string GuardName = "Test Guard";
         private const string RouteName = "Test Guard Route";
         private const string NavMeshName = "NavMesh";
-
-        // The guard's size, in metres. The NavMesh agent settings
-        // (ProjectSettings/NavMeshAreas.asset) match.
-        private const float Radius = 0.3f;
-        private const float Height = 1.8f;
-        private const float HeadHeight = 1.65f;
-        private const float HeadRadius = 0.14f;
+        private const string GuardPrefabPath = "Assets/Prefabs/Characters/Guard.prefab";
 
         [MenuItem("TeaLeaf/Dev Room/Set Up Test Guard")]
         private static void Build()
         {
-            int guardLayer = LayerMask.NameToLayer("Guard");
-            int headLayer = LayerMask.NameToLayer("GuardHead");
             int environment = LayerMask.NameToLayer("Environment");
 
-            if (guardLayer < 0 || headLayer < 0 || environment < 0) {
-                Debug.LogError("GuardTestSetup: the 'Guard', 'GuardHead' and 'Environment' layers must exist.");
+            if (environment < 0) {
+                Debug.LogError("GuardTestSetup: the 'Environment' layer must exist.");
+                return;
+            }
+
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(GuardPrefabPath);
+
+            if (prefab == null) {
+                Debug.LogError($"GuardTestSetup: no guard prefab at {GuardPrefabPath}.");
                 return;
             }
 
@@ -102,7 +101,7 @@ namespace AI
                 }
             }
 
-            GameObject guard = BuildGuard(position, rotation, route, guardLayer, headLayer);
+            GameObject guard = PlaceGuard(prefab, position, rotation, route);
 
             PlayerHandTools.Add();
             GiveBlackjackItsThud();
@@ -209,97 +208,48 @@ namespace AI
         }
 
         /// <summary>
-        /// The guard: see the class comment for how it's put together.
+        /// An instance of the guard prefab at the place, with the route
+        /// and, where the prefab has none, the placeholder sounds.
         /// Guard's settings are private serialized fields, so they're
         /// set the way the Inspector would set them.
         /// </summary>
-        private static GameObject BuildGuard(Vector3 position, Quaternion rotation, PatrolRoute route, int guardLayer, int headLayer)
+        private static GameObject PlaceGuard(GameObject prefab, Vector3 position, Quaternion rotation, PatrolRoute route)
         {
-            GameObject guard = new(GuardName) { layer = guardLayer };
+            GameObject guard = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+            guard.name = GuardName;
             Undo.RegisterCreatedObjectUndo(guard, "Set Up Test Guard");
             guard.transform.SetPositionAndRotation(position, rotation);
 
-            // Moved by its agent every frame: a Rigidbody tells physics
-            // it's a moving thing, which is much cheaper than moving a
-            // bare collider.
-            Rigidbody body = guard.AddComponent<Rigidbody>();
-            body.isKinematic = true;
-            body.useGravity = false;
-
-            CapsuleCollider capsule = guard.AddComponent<CapsuleCollider>();
-            capsule.center = new Vector3(0f, Height * 0.5f, 0f);
-            capsule.radius = Radius;
-            capsule.height = Height;
-
-            NavMeshAgent agent = guard.AddComponent<NavMeshAgent>();
-            agent.radius = Radius;
-            agent.height = Height;
-            agent.angularSpeed = 360f;
-            agent.acceleration = 12f;
-            agent.stoppingDistance = 0.1f;
-
-            // The head: the blackjack's target, and where it looks from.
-            GameObject head = new("Head") { layer = headLayer };
-            head.transform.SetParent(guard.transform, false);
-            head.transform.localPosition = new Vector3(0f, HeadHeight, 0f);
-
-            SphereCollider headCollider = head.AddComponent<SphereCollider>();
-            headCollider.radius = HeadRadius + 0.03f;
-
-            // What's drawn: a capsule body, a ball head and a nose to
-            // show which way it faces. No colliders of their own.
-            GameObject visual = new("Visual") { layer = guardLayer };
-            visual.transform.SetParent(guard.transform, false);
-
-            // A primitive capsule is 2m tall and 1m across.
-            GameObject bodyShape = Shape(PrimitiveType.Capsule, "Body", visual.transform, guardLayer);
-            bodyShape.transform.localPosition = new Vector3(0f, 0.75f, 0f);
-            bodyShape.transform.localScale = new Vector3(0.5f, 0.75f, 0.35f);
-
-            GameObject headShape = Shape(PrimitiveType.Sphere, "Head Shape", visual.transform, guardLayer);
-            headShape.transform.localPosition = new Vector3(0f, HeadHeight, 0f);
-            headShape.transform.localScale = Vector3.one * (HeadRadius * 2f);
-
-            GameObject nose = Shape(PrimitiveType.Cube, "Nose", visual.transform, guardLayer);
-            nose.transform.localPosition = new Vector3(0f, HeadHeight, HeadRadius);
-            nose.transform.localScale = new Vector3(0.05f, 0.05f, 0.1f);
-
             SoundCue bark = AssetDatabase.LoadAssetAtPath<SoundCue>(PlaceholderSounds.BarkCuePath);
 
-            SerializedObject settings = new(guard.AddComponent<Guard>());
-            settings.FindProperty("eye").objectReferenceValue = head.transform;
-            settings.FindProperty("visual").objectReferenceValue = visual.transform;
-            settings.FindProperty("bodyCollider").objectReferenceValue = capsule;
-            settings.FindProperty("headCollider").objectReferenceValue = headCollider;
-            settings.FindProperty("stateRenderer").objectReferenceValue = headShape.GetComponent<MeshRenderer>();
+            SerializedObject settings = new(guard.GetComponent<Guard>());
             settings.FindProperty("patrolRoute").objectReferenceValue = route;
-            settings.FindProperty("sightLayers").intValue = LayerMask.GetMask("Environment", "Interactable");
-            settings.FindProperty("groundLayers").intValue = LayerMask.GetMask("Environment", "Interactable");
-            settings.FindProperty("surfaceSounds").objectReferenceValue = AssetDatabase.LoadAssetAtPath<SurfaceSounds>(PlaceholderSounds.SurfaceSoundsPath);
+            FillIfEmpty(settings.FindProperty("surfaceSounds"), AssetDatabase.LoadAssetAtPath<SurfaceSounds>(PlaceholderSounds.SurfaceSoundsPath));
 
             // One placeholder grunt stands in for every line.
-            settings.FindProperty("suspiciousBark").objectReferenceValue = bark;
-            settings.FindProperty("searchBark").objectReferenceValue = bark;
-            settings.FindProperty("gaveUpBark").objectReferenceValue = bark;
-            settings.FindProperty("spottedBark").objectReferenceValue = bark;
-            settings.FindProperty("foundBodyBark").objectReferenceValue = bark;
+            FillIfEmpty(settings.FindProperty("suspiciousBark"), bark);
+            FillIfEmpty(settings.FindProperty("searchBark"), bark);
+            FillIfEmpty(settings.FindProperty("gaveUpBark"), bark);
+            FillIfEmpty(settings.FindProperty("spottedBark"), bark);
+            FillIfEmpty(settings.FindProperty("foundBodyBark"), bark);
             settings.ApplyModifiedPropertiesWithoutUndo();
 
             // Writes what the guard does to the Console while playing.
-            guard.AddComponent<GuardDebug>();
+            if (guard.GetComponent<GuardDebug>() == null) {
+                guard.AddComponent<GuardDebug>();
+            }
 
             return guard;
         }
 
         /// <summary>
-        /// One drawn shape: a primitive in the test material with its
-        /// collider removed.
+        /// Sets an object reference only where the prefab left it empty.
         /// </summary>
-        private static GameObject Shape(PrimitiveType type, string shapeName, Transform parent, int layer)
+        private static void FillIfEmpty(SerializedProperty property, Object value)
         {
-            GameObject shape = TestGeometry.Primitive(type, shapeName, parent, layer);
-            Object.DestroyImmediate(shape.GetComponent<Collider>());
-            return shape;
+            if (property.objectReferenceValue == null) {
+                property.objectReferenceValue = value;
+            }
         }
 
         /// <summary>

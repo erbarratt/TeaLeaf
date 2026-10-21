@@ -12,7 +12,7 @@ using Player;
 /// </summary>
 public class TrackingTest : MonoBehaviour
 {
-    // Reference to our tracking system.
+    [Tooltip("The tracking whose head and hand positions are logged once a second.")]
     [SerializeField] private PlayerTracking tracking;
 
     // Used to count elapsed time.

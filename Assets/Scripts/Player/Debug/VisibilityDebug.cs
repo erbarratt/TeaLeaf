@@ -17,17 +17,22 @@ namespace Player
     /// </summary>
     public class VisibilityDebug : MonoBehaviour, IDebugDrawable
     {
+        [Tooltip("The visibility on the Player root that the gauge shows.")]
         [SerializeField] private PlayerVisibility playerVisibility;
 
-        // The Main Camera: the gauge is placed relative to it.
+        [Tooltip("The Main Camera: the gauge is placed relative to it, so it stays in view.")]
         [SerializeField] private Transform head;
 
         // Where the gauge sits in the head's own space, and how big it is,
         // in metres.
+        [Tooltip("Where the gauge's centre sits in the head's own space, in metres (x right, y up, z ahead).")]
         [SerializeField] private Vector3 offset = new(0f, -0.12f, 0.6f);
+        [Tooltip("The gauge's width, in metres.")]
         [SerializeField] private float width = 0.16f;
+        [Tooltip("The gauge's height, in metres. The light-level tick below it is the same height.")]
         [SerializeField] private float height = 0.015f;
 
+        [Tooltip("On, logs to the Console each time Visibility crosses into a different tenth.")]
         [SerializeField] private bool logChanges = true;
 
         private static readonly Color _frameColor = new(1f, 1f, 1f, 0.5f);

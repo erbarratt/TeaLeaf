@@ -1,0 +1,107 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: StreetGround
+  m_Shader: {fileID: 4800000, guid: 3855cf616d995ee4c754a10dae73dc57, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - _PARALLAX
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _CobbleAlbedo:
+        m_Texture: {fileID: 2800000, guid: 1ee6ff3ca1823441ed5fbb6196fd9745, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CobbleHeight:
+        m_Texture: {fileID: 2800000, guid: f92375e375c92cd3334c60290973270b, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CobbleNormal:
+        m_Texture: {fileID: 2800000, guid: fceb9a92ec60f5119c546d11de2a8858, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CobbleOcclusion:
+        m_Texture: {fileID: 2800000, guid: b774f28048aa753a495d549996913972, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _CobbleSmoothness:
+        m_Texture: {fileID: 2800000, guid: 14332cdabc80dcad42e1aafd9819b407, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DirtAlbedo:
+        m_Texture: {fileID: 2800000, guid: 2e1d1a3aabddcc0b15e76116b58305ff, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DirtHeight:
+        m_Texture: {fileID: 2800000, guid: ec432486b1f7e61a23017142dfb2f53f, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DirtNormal:
+        m_Texture: {fileID: 2800000, guid: 5572294ad6bce86bbf3c3b0f031e6b9a, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DirtOcclusion:
+        m_Texture: {fileID: 2800000, guid: cc2bc0baeecbf3511507c3881a29817c, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _DirtSmoothness:
+        m_Texture: {fileID: 2800000, guid: 76650af3398c0c5b44ff4e824e118320, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _WetAlbedo:
+        m_Texture: {fileID: 2800000, guid: 67dd4f33d074da3056e5fb8649791172, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _WetHeight:
+        m_Texture: {fileID: 2800000, guid: ffc27536b6d478ca76537c6e67a78430, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _WetNormal:
+        m_Texture: {fileID: 2800000, guid: 402e5b292931180ff3193e537e045f6b, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _WetOcclusion:
+        m_Texture: {fileID: 2800000, guid: fe9bffa0befbe58c5626e8c0d42402b6, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _WetSmoothness:
+        m_Texture: {fileID: 2800000, guid: a1e06c78033069c148295abf20b51361, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _CobbleRotation: 0
+    - _CobbleSharpness: 0.85
+    - _CobbleTile: 3
+    - _DirtRotation: 0
+    - _DirtTile: 3
+    - _NormalStrength: 1
+    - _Occlusion: 0.7
+    - _Parallax: 1
+    - _ParallaxDepth: 0.1
+    - _Smoothness: 1
+    - _WetRotation: 0
+    - _WetSharpness: 0.6
+    - _WetTile: 3
+    m_Colors:
+    - _CobbleTint: {r: 1, g: 1, b: 1, a: 1}
+    - _DirtTint: {r: 1, g: 1, b: 1, a: 1}
+    - _WetTint: {r: 1, g: 1, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

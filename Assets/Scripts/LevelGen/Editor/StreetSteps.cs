@@ -5,21 +5,21 @@ namespace LevelGen
 {
     /// <summary>
     /// Streets that change height. Where a segment's two points stand at
-    /// different heights (by more than the size tolerance), the change is made
-    /// by a flight of steps across the whole street: whole flights of one of
-    /// the street style's usable steps pieces (a RampCollider in it), stacked
-    /// until they make the rise, which must be a whole number of them (within
-    /// the size tolerance; the flights are scaled in height to make it
-    /// exactly). The ground on either side stays flat, at each point's height,
-    /// so streets always meet level at their shared points. Only a street of
-    /// ground tiles (cobbles) can change height.
+    /// different heights (by more than the size tolerance) and the rise is
+    /// too steep for a slope (StreetSlopes), the change is made by a flight
+    /// of steps across the whole street: whole flights of one of the street
+    /// style's usable steps pieces (a RampCollider in it), stacked until they
+    /// make the rise, which must be a whole number of them (within the size
+    /// tolerance; the flights are scaled in height to make it exactly). The
+    /// ground on either side stays flat, at each point's height, so streets
+    /// always meet level at their shared points. Only a street of ground
+    /// (cobbles) can change height.
     ///
-    /// The flights and, at their top, a landing of ground tiles laid in the
-    /// segment's own frame (so its edge meets the top step in a straight line,
-    /// which the street's turned grid can't) are centred on the segment. The
-    /// landing is deep enough that no tile of the grid kept beyond it reaches
-    /// back over the steps. Geometry and choice only; StreetGround lays them
-    /// and FacadeBuilder stands the buildings beside them on the right level.
+    /// The flights are centred on the segment; the ground mesh stands at the
+    /// low level up to halfway along them and at the high level beyond, the
+    /// jump hidden inside the solid steps. Geometry and choice only;
+    /// StreetGround lays them and FacadeBuilder stands the buildings beside
+    /// them on the right level.
     /// </summary>
     internal static class StreetSteps
     {
@@ -48,9 +48,6 @@ namespace LevelGen
             // flight's back (its top step's edge) stand along the segment.
             public float Front;
             public float Top;
-            // The landing's depth beyond the top, and its rows of tiles.
-            public float Landing;
-            public int LandingRows;
 
             /// <summary>
             /// Halfway up the flights: ground before it is at the low level,
@@ -113,41 +110,11 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// How many rows of tiles a landing needs so that no tile of the
-        /// street's grid kept beyond it reaches back over the steps: its depth
-        /// must be at least a tile's diagonal (a grid tile reaches half a
-        /// diagonal from its middle, and the grid's tiles are dropped up to half
-        /// a diagonal short of the landing's far edge).
-        /// </summary>
-        internal static int LandingRows(BuildingStyle style, GeneratorSettings settings)
-        {
-            float pitch = style.TileDepth - settings.GroundOverlap;
-            return pitch > 0f ? Mathf.Max(1, Mathf.CeilToInt((TileDiagonal(style) - settings.GroundOverlap) / pitch)) : 1;
-        }
-
-        /// <summary>
-        /// A landing's depth along the street: its rows less their overlaps.
-        /// </summary>
-        internal static float LandingDepth(BuildingStyle style, GeneratorSettings settings)
-        {
-            return LandingRows(style, settings) * (style.TileDepth - settings.GroundOverlap) + settings.GroundOverlap;
-        }
-
-        /// <summary>
-        /// The diagonal of the style's tile.
-        /// </summary>
-        internal static float TileDiagonal(BuildingStyle style)
-        {
-            return Mathf.Sqrt(style.TileWidth * style.TileWidth + style.TileDepth * style.TileDepth);
-        }
-
-        /// <summary>
         /// Every flight of steps the spec's streets need, in the spec's order:
-        /// each rising segment of a street of ground tiles too steep to slope
+        /// each rising segment of a street of ground too steep to slope
         /// (StreetSlopes.IsSlope) whose style has a steps piece that makes the
         /// rise, with a RampCollider measured in the catalogue, and that is
-        /// long enough for the flights and their landing (the validator
-        /// reports the rest).
+        /// long enough for the flights (the validator reports the rest).
         /// </summary>
         internal static List<Flight> Find(List<StreetSpec> streets, Dictionary<string, BuildingStyle> styles, PiecePlacer placer,
             GeneratorSettings settings)
@@ -180,15 +147,14 @@ namespace LevelGen
                     // Each flight's depth along the street: its render box
                     // along the way up, so the stacked flights' steps meet.
                     float depth = Span(entry, Way(entry));
-                    float landing = LandingDepth(style, settings);
-                    float block = count * depth + landing;
+                    float block = count * depth;
 
                     if (length < settings.MinSegmentLength || block > length) {
                         continue;
                     }
 
                     float up = to > from ? 1f : -1f;
-                    // The flights and the landing together, centred on the segment.
+                    // The flights centred on the segment.
                     float front = up > 0f ? (length - block) * 0.5f : length - (length - block) * 0.5f;
                     flights.Add(new Flight {
                         Street = street,
@@ -204,9 +170,7 @@ namespace LevelGen
                         Low = Mathf.Min(from, to),
                         High = Mathf.Max(from, to),
                         Front = front,
-                        Top = front + up * count * depth,
-                        Landing = landing,
-                        LandingRows = LandingRows(style, settings)
+                        Top = front + up * block
                     });
                 }
             }

@@ -15,14 +15,18 @@ namespace Interaction
     /// </summary>
     public class BigLockDebug : MonoBehaviour, IDebugDrawable
     {
+        [Tooltip("The big lock to show the readout for. Filled in from this object when the component is added.")]
         [SerializeField] private BigLock bigLock;
 
         // How far out from the lock's middle the lines reach, and how far
         // in front of its middle they're drawn (towards the player), in
         // metres - clear of the face, so they aren't buried in it.
+        [Tooltip("How far out from the lock's middle the readout's lines reach, in metres. The pin squares and the hold bar are placed above and below the lock by the same amount.")]
         [SerializeField] private float radius = 0.16f;
+        [Tooltip("How far in front of the lock's middle the readout is drawn (towards the player), in metres, so it stands clear of the face instead of being buried in it.")]
         [SerializeField] private float standOff = 0.04f;
 
+        [Tooltip("Whether each change of stage (the lock shown or hidden, a stop reached, a pin set) is written to the Console.")]
         [SerializeField] private bool logChanges = true;
 
         private static readonly Color _pickColor = new(1f, 1f, 1f, 1f);

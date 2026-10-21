@@ -231,24 +231,20 @@ namespace LevelGen
 
             BuildingStyle style = FindStyle(label, street.style, styles, usedStyles, report);
 
-            // A street is laid with ground pieces (cobbles) or floor pieces
-            // (plank decking, for a wooden street, walkway or bridge).
-            if (style != null && style.Pieces("ground").Count == 0 && style.Pieces("floor").Count == 0) {
-                report.Errors.Add($"{label}: style '{style.Name}' has no usable ground or floor piece.");
-            }
-
+            // A street is laid as the ground mesh (cobbles), or with floor
+            // pieces (plank decking, for a wooden street, walkway or bridge)
+            // where its style has them.
             if (style != null) {
                 CheckRises(label, street, style, report);
             }
         }
 
         /// <summary>
-        /// Each segment that rises or falls: only a street of ground tiles
-        /// can, by a slope where its grade over the segment less the landing
-        /// is no steeper than StreetSlopeMaxGrade (StreetSlopes), else by a
-        /// whole number of flights of one of its style's steps pieces
-        /// (StreetSteps), on a segment long enough for those flights (at the
-        /// piece's ramp run) and their landing.
+        /// Each segment that rises or falls: only a street of ground can,
+        /// by a slope where its grade is no steeper than StreetSlopeMaxGrade
+        /// (StreetSlopes), else by a whole number of flights of one of its
+        /// style's steps pieces (StreetSteps), on a segment long enough for
+        /// those flights (at the piece's ramp run).
         /// </summary>
         private static void CheckRises(string label, StreetSpec street, BuildingStyle style, Report report)
         {
@@ -261,7 +257,7 @@ namespace LevelGen
                 string segment = $"{label}, segment {i - 1}-{i}";
 
                 if (style.TileCategory != "ground") {
-                    report.Errors.Add($"{segment} rises {rise:0.##}m, but only a street of ground tiles (cobbles) can change height: "
+                    report.Errors.Add($"{segment} rises {rise:0.##}m, but only a street of ground (cobbles) can change height: "
                         + $"style '{style.Name}' is decked.");
                     continue;
                 }
@@ -279,10 +275,8 @@ namespace LevelGen
                         rises.Add($"{steps.height:0.##}m");
                     }
 
-                    float grade = StreetSlopes.Grade(street, i - 1, style, _settings);
-                    string slope = float.IsInfinity(grade)
-                        ? $"too short to slope (its landing takes {StreetSteps.LandingDepth(style, _settings):0.##}m)"
-                        : $"too steep to slope (1 in {1f / grade:0.#} over the segment less its landing; 1 in {1f / _settings.StreetSlopeMaxGrade:0.#} at most)";
+                    float grade = StreetSlopes.Grade(street, i - 1, _settings);
+                    string slope = $"too steep to slope (1 in {1f / grade:0.#}; 1 in {1f / _settings.StreetSlopeMaxGrade:0.#} at most)";
                     report.Errors.Add(rises.Count == 0
                         ? $"{segment} rises {rise:0.##}m, {slope}, and style '{style.Name}' has no usable steps piece."
                         : $"{segment} rises {rise:0.##}m, {slope}, and not a whole number of flights of style '{style.Name}''s steps ({string.Join(", ", rises)} each).");
@@ -290,10 +284,10 @@ namespace LevelGen
                 }
 
                 float length = (Ground(street.points[i]) - Ground(street.points[i - 1])).magnitude;
-                float needed = count * piece.depth + StreetSteps.LandingDepth(style, _settings);
+                float needed = count * piece.depth;
 
                 if (needed > length) {
-                    report.Errors.Add($"{segment} is {length:0.##}m long, too short for its {count} flight(s) of steps and their landing ({needed:0.##}m).");
+                    report.Errors.Add($"{segment} is {length:0.##}m long, too short for its {count} flight(s) of steps ({needed:0.##}m).");
                 }
             }
         }
@@ -402,7 +396,7 @@ namespace LevelGen
                 float length = (Ground(street.points[i + 1]) - Ground(street.points[i])).magnitude;
 
                 if (StreetSlopes.IsSlope(street, i, ground, _settings)) {
-                    slopes.Add((along, along + length, StreetSlopes.Grade(street, i, ground, _settings)));
+                    slopes.Add((along, along + length, StreetSlopes.Grade(street, i, _settings)));
                 }
 
                 along += length;
@@ -446,7 +440,8 @@ namespace LevelGen
         /// <summary>
         /// A lot's ground is a ring at its one street level, so no slope may
         /// come near it: an error for a lot whose footprint comes within
-        /// LotGroundMargin plus half a tile of a sloping segment's rectangle.
+        /// LotGroundMargin plus the ground's edge margin of a sloping
+        /// segment's rectangle.
         /// </summary>
         private static void CheckLotsBesideSlopes(LayoutSpec spec, Dictionary<string, BuildingStyle> styles, Report report)
         {
@@ -466,27 +461,25 @@ namespace LevelGen
                         continue;
                     }
 
-                    float grow = _settings.LotGroundMargin + StreetSteps.TileDiagonal(ground) * 0.5f + _settings.OverlapTolerance;
+                    float grow = _settings.LotGroundMargin + _settings.GroundEdgeMargin + _settings.OverlapTolerance;
 
                     for (int i = 0; i + 1 < street.points.Count; i++) {
                         if (!StreetSlopes.IsSlope(street, i, ground, _settings)) {
                             continue;
                         }
 
-                        // The sloped stretch only (the landing is level with
-                        // the high point), and not its first metres from the
-                        // foot, where the surface is still within a lip of
-                        // the low point's level: a lane sloping away from a
-                        // lot's ring starts at the ring's middle line, and
-                        // its foot would otherwise reach the lot.
+                        // Not the slope's first metres from its foot, where
+                        // the surface is still within a lip of the low
+                        // point's level: a lane sloping away from a lot's
+                        // ring starts at the ring's middle line, and its foot
+                        // would otherwise reach the lot.
                         Vector2 a = Ground(street.points[i]);
                         Vector2 b = Ground(street.points[i + 1]);
                         float length = (b - a).magnitude;
                         Vector2 axis = (b - a) / length;
-                        float landing = StreetSteps.LandingDepth(ground, _settings);
                         bool climbs = street.points[i + 1].y > street.points[i].y;
-                        float from = climbs ? grow : landing;
-                        float to = climbs ? length - landing : length - grow;
+                        float from = climbs ? grow : 0f;
+                        float to = climbs ? length : length - grow;
 
                         if (to <= from) {
                             continue;
@@ -1007,7 +1000,7 @@ namespace LevelGen
                 report.Warnings.Add($"Style '{style.Name}': {names.Count} tagged piece(s) not verified (or excluded) yet, so not placed: {string.Join(", ", names)}.");
             }
 
-            if (style.TileCategory != "") {
+            if (style.TileCategory == "floor") {
                 foreach (PieceAnnotation piece in style.Pieces(style.TileCategory)) {
                     if (!style.Tiles.Contains(piece)) {
                         report.Warnings.Add($"Style '{style.Name}': {piece.name} is {piece.width:0.###} x {piece.depth:0.###}m, the tile {style.TileWidth:0.###} x {style.TileDepth:0.###}m, so it won't be laid as a tile.");

@@ -45,12 +45,19 @@ namespace LevelGen
         private static readonly string[] _axisNames = { "+X", "-X", "+Y", "-Y", "+Z", "-Z" };
 
         // Filters and the chosen piece, serialized so they survive a script reload.
+        [Tooltip("The GUID of the piece chosen in the list, so the same piece is shown again after a script reload. Empty when none is chosen.")]
         [SerializeField] private string selectedGuid;
+        [Tooltip("Shows only the pieces in this folder under Assets/Prefabs, as the catalogue names it (e.g. Environment/Walls). Empty shows every folder.")]
         [SerializeField] private string folderFilter = "";
+        [Tooltip("Shows only the pieces whose orientation the scanner suggested is this (wall, corner, unsure, not-a-slab or no-mesh-data). Empty shows them all.")]
         [SerializeField] private string orientationFilter = "";
+        [Tooltip("Shows only the pieces the scanner gave this flag, a reason to look by eye such as pivot-not-on-base. Empty shows them all.")]
         [SerializeField] private string flagFilter = "";
+        [Tooltip("Shows only the pieces tagged with this building style; a piece not yet looked at is filtered by the styles its name suggests. Empty shows every style.")]
         [SerializeField] private string styleFilter = "";
+        [Tooltip("Which pieces are listed by their review status: 0 = all, 1 = not looked at or not yet verified, 2 = verified, 3 = excluded.")]
         [SerializeField] private int statusFilter = 1;
+        [Tooltip("Shows only the pieces whose name contains this text (case does not matter). Empty shows them all.")]
         [SerializeField] private string search = "";
 
         private PrefabCatalogue _catalogue;

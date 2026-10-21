@@ -6,6 +6,89 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-21 (level generator: street ground as blended meshes, generated
+            sound rooms, the guards' NavMesh over the streets, lamp
+            lights kept on; the guard model and its animation;
+            tooltips on every inspector field; Tripo dressing props)
+---------------------------------------------------------------------------
+- The streets' ground is built, not tiled. GroundMesh and a rewritten
+  StreetGround make one mesh per level and per slope, vertex-painted
+  (red cobbles, blue wet dirt, dirt beneath) for TeaLeaf/GroundBlend:
+  a hand-written URP PBR shader blending three textured layers by
+  their height maps, with world-space UVs - the way Thief VR's
+  prologue streets are made (Mat_Pr_StreetGround_01a). Material
+  Assets/Art/Materials/Environment/Ground/StreetGround.mat; its fifteen
+  textures (Assets/Art/Textures/Ground/*_REPLACEME.png, albedo, normal,
+  height, occlusion, smoothness per layer, the greyscale ones split
+  from Thief's packed maps) are stand-ins. Offset parallax is on
+  (_PARALLAX, 0.015m), unjudged in the headset. The cobble tiles are
+  no longer laid: a street style with no floor pieces is ground.
+  Colliders are a few boxes (27 for three-streets); a flight of steps
+  parts two level meshes, their vertices moved onto its front and top
+  lines; landings are gone (slopes and flights span whole segments);
+  grass per 3m patch; the report's standing spots come from the
+  ground's vertices.
+- Generated sound rooms (SoundRooms pass, after the moon shafts): a
+  SoundRoom per straight run of street, a junction room wherever runs
+  meet (new SoundRoom.priority: higher wins an overlap, then the
+  smallest), a portal on the junction box's face for each street
+  leaving it, open-sky portals over each street room's stretches not
+  under a junction, and a self-check that logs wrong portals and
+  street points in no room. Three-streets: 3 street and 2 junction
+  rooms, 11 portals, 3802 of 3802 points covered; in Play Mode paths
+  go round through the junctions.
+- The guards' NavMesh over the generated streets (StreetNavMesh): a
+  NavMeshSurface on the Generated root over its own Environment
+  colliders, with Not Walkable modifier volumes carving away all that
+  isn't street (edge boxes, dead-end boxes, boxes over the street from
+  head height); 0.05m voxels and a height mesh; data in
+  Assets/Scenes/Intro/NavMesh - Three Streets.asset.
+- Lamp posts: PiecePlacer switched off every Light without a
+  LightSource on its own object, and the lamp's LightSource is on the
+  post, so no mixed light reached the Intro bake and its shadowmasks
+  vanished (the lit windows' spots went the same way). A light now
+  stays on if a LightSource is on it or a parent, or it is Baked. The
+  lamp's second light is a Baked shadowless spot round the post (as
+  Mixed it never baked direct light in Shadowmask mode), and the lamp
+  lost its Flame: lamps burn on, only open flames can be put out.
+- The guard is a model: Tripo-generated guard_1 (21k triangles, 67
+  bones), Generic rig at scale 1.8, in the guard prefab
+  (Assets/Prefabs/Characters/Guard.prefab), which every guard and the
+  test guard are instances of. Clips copied into
+  Assets/Art/Animations/Guard with the hips' ground motion frozen so
+  they play in place; Guard.controller blends idle/walk/run on the
+  agent's speed at the clips' own speeds (1.07, 3.58), with bools for
+  look-around, stunned and knocked out (the fall holds its last frame).
+  GuardAnimation drives it, so Guard knows nothing of animation; Guard
+  gained IsLookingAbout, and searching walks at patrolSpeed. The state
+  tint and the greybox visual are optional, left empty on the model.
+  TeaLeaf > Dev Room > Guard Tests lays a floor with one guard per
+  clip, each looping and walking its lane, for matching feet to
+  speeds. Checked in Play Mode from the desk only.
+- Tooltips on the inspector fields of the player, interaction, AI and
+  debug scripts, replacing the comments above them.
+- Dressing props from Tripo models: the barrel's mesh replaced, and new
+  Crate, Kettle, Stool and Tankard prefabs. TMP Essential Resources are
+  now in the project (Assets/TextMesh Pro).
+- Bugs hit: URP's MetaInput.hlsl #defines MetaFragment, which clashed
+  with the shader's entry point of that name; a junction's collider box
+  grown by the margin buried a flight's ramp top and broke the NavMesh
+  (capped by FlightClearance); a slope band's fringe made 227 tiny
+  regions (cells now sorted by nearest segment); first sound rooms put
+  a sky portal over a junction, took a junction's height from a whole
+  climbing run and let a run's box poke into the next street (junctions
+  are shaped first, take their height from the point, run boxes stop
+  at the junction face, sky portals go per free stretch); a Not
+  Walkable default area with Walkable volumes bakes an empty NavMesh,
+  and a modifier volume off the surface's layer mask is ignored.
+- Open: Intro.unity was regenerated after its last bake, so its
+  lightmaps are stale - rebake; Main.unity's lamps carry the Baked spot
+  but are not rebaked; the mirrored half of a steps pair renders darker
+  than the other; Level Gen Test.unity still holds the old tile-based
+  sectors until regenerated; the ground's look and the guard's
+  animation are unjudged in the headset.
+
+
 2026-10-20 (level generator: sloped streets, facade lean with sheared
             side walls, pipes per building, the three-streets level in
             Intro.unity; lit window spots, flipbook smoke, flame

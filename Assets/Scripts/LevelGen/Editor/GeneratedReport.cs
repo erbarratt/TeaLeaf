@@ -55,6 +55,8 @@ namespace LevelGen
         private const int ViewPoints = 6;
         private const float ViewSpread = 30f;
         private const float StandClear = 0.75f;
+        // The ground mesh is dealt out in cells this big for standing spots.
+        private const float GroundSpot = 3f;
         // The spatial grid's cell size, in metres.
         private const float Cell = 4f;
         // How many of the worst finds are written to the Console.
@@ -327,6 +329,47 @@ namespace LevelGen
                         Front = annotation != null && annotation.fronts.Count == 1 ? annotation.fronts[0] : Vector3.zero, Min = min, Max = max, World = world
                     };
                     (street ? tiles : pieces).Add(piece);
+                }
+
+                if (street) {
+                    GroundSpots(child, root, tiles);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Standing spots on the streets' ground meshes (the chunks under
+        /// the "Ground ..." region objects of the streets group, not inside
+        /// any placed piece): one tile-sized spot per GroundSpot-square cell
+        /// of the world that holds a mesh vertex, at that vertex, so the
+        /// ground mesh can be stood on like the decking tiles.
+        /// </summary>
+        private static void GroundSpots(Transform streets, Transform root, Grid tiles)
+        {
+            HashSet<(int, int)> taken = new();
+
+            foreach (MeshFilter filter in streets.GetComponentsInChildren<MeshFilter>(true)) {
+                if (filter.sharedMesh == null || IsInsidePiece(filter.transform, root) || filter.transform.parent == null
+                    || !filter.transform.parent.name.StartsWith("Ground ")) {
+                    continue;
+                }
+
+                Vector3[] vertices = filter.sharedMesh.vertices;
+                Matrix4x4 toWorld = filter.transform.localToWorldMatrix;
+
+                foreach (Vector3 vertex in vertices) {
+                    Vector3 at = toWorld.MultiplyPoint3x4(vertex);
+                    (int, int) cell = (Mathf.FloorToInt(at.x / GroundSpot), Mathf.FloorToInt(at.z / GroundSpot));
+
+                    if (!taken.Add(cell)) {
+                        continue;
+                    }
+
+                    Vector3 half = new(GroundSpot * 0.5f, 0.01f, GroundSpot * 0.5f);
+                    tiles.Add(new Piece {
+                        Root = filter.transform, Path = PathUnder(filter.transform, root), Category = "ground", Front = Vector3.zero,
+                        Min = -half, Max = half, World = new Bounds(at, half * 2f)
+                    });
                 }
             }
         }

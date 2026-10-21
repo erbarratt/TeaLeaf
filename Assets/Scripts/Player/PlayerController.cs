@@ -27,31 +27,53 @@ namespace Player
     /// </summary>
     public class PlayerController : MonoBehaviour
     {
+        [Tooltip("The input system on the Player root, ticked first every frame so every other system reads this frame's controller input.")]
         [SerializeField] private PlayerInputXR playerInput;
+        [Tooltip("The tracking on the Player root: smooths the hands' poses and recalibrates the view after a recentre, ticked straight after input.")]
         [SerializeField] private PlayerTracking playerTracking;
+        [Tooltip("The locomotion on the Player root: thumbstick movement, turning, gravity and crouch. Its movement is applied in this component's one Move() call.")]
         [SerializeField] private PlayerLocomotion playerLocomotion;
+        [Tooltip("The hand rays and targets, on the Hands object. Ticked before the grab systems, so their targets are this frame's.")]
         [SerializeField] private PlayerHandInteraction playerHandInteraction;
+        [Tooltip("The climbing on the Player root. Its climb movement is added to the frame's movement while a hand grips a climbable.")]
         [SerializeField] private PlayerClimbing playerClimbing;
+        [Tooltip("The mantling on the Player root. While a mantle runs it positions the rig itself and the rest of the body tick is skipped.")]
         [SerializeField] private PlayerMantling playerMantling;
+        [Tooltip("The footsteps on the Player root, ticked with this frame's real movement. Optional: a Player without one is silent.")]
         [SerializeField] private PlayerFootsteps playerFootsteps;
+        [Tooltip("How visible the player is, on the Player root, ticked after the body has moved. Optional.")]
         [SerializeField] private PlayerVisibility playerVisibility;
+        [Tooltip("Looking through keyholes, on the Player root, ticked after the body has moved. Optional.")]
         [SerializeField] private PlayerKeyholes playerKeyholes;
+        [Tooltip("Picking up and carrying props, on the Hands object. Optional: without it nothing is carried, thrown or put in the pack.")]
         [SerializeField] private PlayerHandHolding playerHandHolding;
+        [Tooltip("Aimed throwing, on the Hands object. Optional, and does nothing without Player Hand Holding.")]
         [SerializeField] private PlayerHandThrowing playerHandThrowing;
+        [Tooltip("The pack, on the Hands object. Optional, and does nothing without Player Hand Holding.")]
         [SerializeField] private PlayerPack playerPack;
+        [Tooltip("Door handles, bolts and chest lids, on the Hands object. Optional.")]
         [SerializeField] private PlayerHandDoors playerHandDoors;
+        [Tooltip("The lockpicks, on the Hands object. Optional.")]
         [SerializeField] private PlayerLockpicking playerLockpicking;
+        [Tooltip("The keyring and keys, on the Hands object. Optional.")]
         [SerializeField] private PlayerKeys playerKeys;
+        [Tooltip("The hand crossbow, on the Hands object. Optional.")]
         [SerializeField] private PlayerCrossbow playerCrossbow;
+        [Tooltip("The blackjack, on the Hands object. Optional.")]
         [SerializeField] private PlayerBlackjack playerBlackjack;
+        [Tooltip("The compass worn on the wrist, on the Hands object. Optional.")]
         [SerializeField] private PlayerCompass playerCompass;
+        [Tooltip("Places the hand visuals, on the Hands object. Ticked after the body has moved and turned.")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
+        [Tooltip("The hands' finger animation, on the Hands object. Ticked last, so it reads this frame's snap weight.")]
         [SerializeField] private PlayerHandAnimation playerHandAnimation;
+        [Tooltip("The CharacterController on the Player root. This component makes its one Move() call a frame.")]
         [SerializeField] private CharacterController characterController;
 
         // The rig root that characterController.Move() displaces. Read
         // before and after Move() to measure how far the player actually
         // moved, which PlayerClimbing needs - see ReportAppliedMovement().
+        [Tooltip("The Player root, the transform Move() displaces. Normally this object's own transform.")]
         [SerializeField] private Transform playerTransform;
 
         // Everything the player should move by this frame, summed from each

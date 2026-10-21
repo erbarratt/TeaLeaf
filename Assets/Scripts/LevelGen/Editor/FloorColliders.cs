@@ -5,7 +5,7 @@ using UnityEngine;
 namespace LevelGen
 {
     /// <summary>
-    /// Replaces the colliders of the floor tiles StreetGround lays with one
+    /// Replaces the colliders of the decking tiles StreetGround lays with one
     /// box per run of tiles: the tiles side by side along one row whose
     /// collider tops are at the same height (and whose surface is the same).
     /// The box is exactly what the run's tile colliders covered, in the row's

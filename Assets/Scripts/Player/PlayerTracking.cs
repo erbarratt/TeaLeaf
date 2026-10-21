@@ -19,29 +19,21 @@ namespace Player
     {
         [Header("Tracked XR Objects")]
 
-        // Reference to the player's VR headset camera.
-        // This transform moves and rotates with the user's head.
+        [Tooltip("The Main Camera: the tracked headset.")]
         [SerializeField] private Transform head;
 
-        // Reference to the left controller transform.
-        // Updated automatically by OpenXR every frame.
+        [Tooltip("The Left Hand object, the tracked left controller. Its pose is overwritten with a smoothed one each frame.")]
         [SerializeField] private Transform leftHand;
 
-        // Reference to the right controller transform.
-        // Updated automatically by OpenXR every frame.
+        [Tooltip("The Right Hand object, the tracked right controller, smoothed likewise.")]
         [SerializeField] private Transform rightHand;
 
         [Header("Calibration")]
 
-        // Check the view when the level starts, behind the level-start fade,
-        // and again whenever the headset is recentred: upright, and at
-        // standing eye height - see Calibrate(). Off, the view is left
-        // exactly as the tracking reports it.
+        [Tooltip("On, the view is checked at level start, behind the fade, and again whenever the headset is recentred: turned upright if it is upside down, and put at standing eye height. Off, the view is left exactly as the tracking reports it.")]
         [SerializeField] private bool calibrateView = true;
 
-        // The longest to wait for the headset to report a tracked pose
-        // before calibrating anyway, in seconds - the screen stays black
-        // meanwhile (e.g. the headset is off the player's head).
+        [Tooltip("The longest to wait at level start for the headset to report a tracked pose before calibrating anyway, in seconds. The screen stays black meanwhile.")]
         [SerializeField] private float trackingTimeout = 3f;
 
         /// Which device's smoothing settings to use.
@@ -57,16 +49,17 @@ namespace Player
 
         [Header("Hand Smoothing")]
 
-        // Auto picks by what the game is running on. Pcvr and Quest force
-        // one set - e.g. to try the Quest's numbers in the editor.
+        [Tooltip("Whose hand smoothing settings are used. Auto picks by what the game is running on: an Android build is a Quest, anything else PCVR. Pcvr and Quest force one set, to try the other device's numbers.")]
         [SerializeField] private SmoothingTarget smoothingTarget = SmoothingTarget.Auto;
 
         // Smoothing of the controllers' tracking, per device - see
         // HandSmoothingSettings and SmoothHands(). Read every frame, so
         // they can be tuned while playing. PCVR starts a little stronger:
         // streaming adds shake of its own.
+        [Tooltip("Hand smoothing used on PCVR, including a Quest streamed to the PC. Read every frame, so it can be tuned while playing.")]
         [SerializeField] private HandSmoothingSettings pcvrSmoothing = new();
 
+        [Tooltip("Hand smoothing used on a Quest standalone build. Untuned.")]
         [SerializeField] private HandSmoothingSettings questSmoothing = new() {
             positionMinCutoff = 5f,
             rotationMinCutoff = 5f

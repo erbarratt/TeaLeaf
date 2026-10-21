@@ -42,29 +42,21 @@ namespace Interaction
             Cylinder
         }
 
+        [Tooltip("How the hand takes hold. Point: always at the Grip Point, so the prop is held one way, right for something with a handle. Cylinder: anywhere round a cylinder on the player's side, at the height the hand reached for, as a hand grips a hanging rope, right for a bottle or candlestick with no front.")]
         [SerializeField] private GripShape gripShape;
 
-        // The grip frame: a child placed where the hand holds the prop. Left
-        // empty, the prop's own origin and rotation are used. For a
-        // cylinder it's the middle of the part that can be gripped, with
-        // its Y axis along the cylinder, pointing to the prop's top.
+        [Tooltip("A child placed where the hand holds the prop: the grip frame. Left empty, the prop's own origin and rotation are used. For a cylinder it is the middle of the part that can be gripped, with its Y axis along the cylinder pointing to the prop's top.")]
         [SerializeField] private Transform gripPoint;
 
         [Header("Cylinder")]
 
-        // The cylinder's radius, in metres: the grip frame sits on its
-        // surface, so one profile fits cylinders of different widths.
+        [Tooltip("The cylinder's radius, in metres. The grip frame sits on the cylinder's surface, so one profile fits cylinders of different widths.")]
         [SerializeField] private float cylinderRadius = 0.04f;
 
-        // How much of the cylinder's length can be gripped, in metres,
-        // centred on the grip point. The hand grips level with where it
-        // aimed, kept within this. 0 = always at the grip point's height.
+        [Tooltip("How much of the cylinder's length can be gripped, in metres, centred on the grip point. The hand grips level with where it aimed, kept within this. 0 always grips at the grip point's height.")]
         [SerializeField] private float cylinderGripLength = 0.1f;
 
-        // How far round the cylinder each hand's grip is turned from
-        // pointing its wrist straight at the player's head, in degrees, so
-        // the wrist points at that hand's shoulder instead - as for a
-        // hanging rope (ClimbableRope.shoulderAngle).
+        [Tooltip("How far round the cylinder each hand's grip is turned from pointing its wrist straight at the player's head, in degrees, so the wrist points at that hand's shoulder instead, as for a hanging rope. 0 points both wrists straight at the head.")]
         [SerializeField] private float shoulderAngle = 20f;
 
         // Gizmo colour for the cylinder's grippable part.
@@ -72,14 +64,10 @@ namespace Interaction
 
         [Header("Holding")]
 
-        // Per-hand offsets from the grip frame to the hand visual, shared by
-        // every prop held the same way. Left empty, the hand sits exactly
-        // on the grip frame.
+        [Tooltip("The per-hand offsets from the grip frame to the hand visual and the finger pose, shared by every prop held the same way. Left empty, the hand sits exactly on the grip frame with the default pose.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
-        // The prop's size for the hand's collision while it's carried: the
-        // hand stops when a ball this big round the prop's middle would
-        // touch a surface, so the prop doesn't go into walls. In metres.
+        [Tooltip("The prop's size for the hand's collision while it is carried, in metres: the hand stops when a ball this big round the prop's middle would touch a surface, so the prop never goes into walls. Guessed from the colliders when the component is added.")]
         [SerializeField] private float holdRadius = 0.15f;
 
         // How far beyond the prop's bounds WakeNeighbours() looks, in

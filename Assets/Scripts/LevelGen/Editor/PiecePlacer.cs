@@ -136,7 +136,7 @@ namespace LevelGen
         /// <summary>
         /// Instantiates a piece's prefab under a parent with its pivot at a
         /// world position and rotation, scaled along its own axes, its lights
-        /// disabled but gameplay ones (a LightSource beside them). Null if its prefab can't be found, or if the clearance
+        /// disabled but gameplay ones (a LightSource on them or a parent) and Baked ones. Null if its prefab can't be found, or if the clearance
         /// refuses it (it would stand in a street).
         /// </summary>
         private GameObject Place(PieceAnnotation piece, Vector3 position, Quaternion rotation, Vector3 scale, Transform parent)
@@ -164,10 +164,15 @@ namespace LevelGen
 
             // Level lighting is placed by hand: a light in a piece is switched
             // off on this instance (an override), the prefab left as it is -
-            // unless it's a gameplay light the piece brings with it (a
-            // LightSource beside it, as on a lamp post), which stays on.
+            // unless the piece brings it on purpose: a gameplay light (a
+            // LightSource on it or on a parent, as on a lamp post, whose
+            // LightSource is on the post and its lights on children) or a
+            // Baked light (a lit window's spot, a lamp's ambience; it costs
+            // nothing at runtime, and exists only to go into the bake).
             foreach (Light light in instance.GetComponentsInChildren<Light>(true)) {
-                if (light.GetComponent<LightSource>() == null) {
+                bool gameplay = light.GetComponentInParent<LightSource>(true) != null;
+                bool baked = light.lightmapBakeType == LightmapBakeType.Baked;
+                if (!gameplay && !baked) {
                     light.enabled = false;
                 }
             }

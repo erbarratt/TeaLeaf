@@ -20,6 +20,7 @@ MonoBehaviour:
   streetWidth: 6
   streetWidthVariance: 1.98
   minStreetWidth: 2.9
+  edgeWallProbe: 1.5
   minStoreys: 2
   maxStoreys: 4
   maxBuildingHeight: 28
@@ -98,14 +99,21 @@ MonoBehaviour:
   streetBallHeight: 1
   sharpCornerAngle: 60
   sharpCornerShare: 0.25
-  groundOverlap: 0.18
-  groundTileTurns: 1
-  groundSlideMin: 0.2
-  groundSlideMax: 0.8
+  groundCell: 0.75
+  groundEdgeMargin: 1.5
   groundGridMinAngle: 15
   lotGroundMargin: 1
-  minTileCoverage: 0.1
+  groundThickness: 0.25
+  groundOverlap: 0.18
+  groundStepsOverlap: 0.3
+  groundCobbleShare: 0.8
+  groundPaintWobble: 0.8
+  groundPaintScale: 4
+  groundPaintFade: 1
+  groundPuddleCover: 0.2
+  groundPuddleScale: 5
   grassCover: 0
+  grassPatch: 3
   grassClusterMin: 2
   grassClusterMax: 6
   grassClusterRadius: 0.5
@@ -118,7 +126,6 @@ MonoBehaviour:
   foliageScaleMin: 0.8
   foliageScaleMax: 1.2
   foliageSink: 0.03
-  landingDrop: 0.02
   streetSlopeMaxGrade: 0.083
   slopeDropMax: 0.6
   roofPitch: 60
@@ -157,9 +164,14 @@ MonoBehaviour:
   roofEdgeReach: 20
   moonShaftStreetMaxWidth: 0
   moonShaftMaxLength: 40
-  moonShaftWallProbe: 1.5
   moonShaftInset: 0.3
   moonShaftMinEaves: 2
+  soundAlleyMaxWidth: 4.5
+  soundStreetMuffle: 0.15
+  soundSkyMuffle: 0.3
+  soundRoomMinHeight: 3
+  soundStreetAmbience: {fileID: 11400000, guid: d0caedbf1b9cc2b47ab9b4423c4c63cb, type: 2}
+  soundStreetAmbienceVolume: 1
   deckingOverlap: 0.03
   deckingQuarterTurn: 0
   deckingSlideMin: 0

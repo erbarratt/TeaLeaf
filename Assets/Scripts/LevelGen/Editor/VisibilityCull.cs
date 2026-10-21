@@ -9,7 +9,7 @@ namespace LevelGen
     /// <summary>
     /// The visibility cull, the last thing a generation does
     /// (LevelGenerator): every piece the generator placed that no one in the
-    /// streets can see is removed - ground tiles under and behind the
+    /// streets can see is removed - decking tiles under and behind the
     /// buildings, the back slopes of roofs, walls, beams, pipes and walkway
     /// parts hidden behind other pieces - so what nobody sees costs nothing.
     /// The lamp posts are left alone: they are lights.

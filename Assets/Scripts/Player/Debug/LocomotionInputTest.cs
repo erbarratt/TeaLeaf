@@ -7,6 +7,7 @@ namespace Player
     /// start moving the player.
     public class LocomotionInputTest : MonoBehaviour
     {
+        [Tooltip("The input system whose thumbsticks are logged once a second.")]
         [SerializeField] private PlayerInputXR playerInput;
 
         private float _timer;

@@ -46,85 +46,71 @@ namespace Interaction
 
         // What kind of lock the door has, and whether it starts locked. A
         // door with no lock can't be locked at all.
+        [Tooltip("What kind of lock the door has: None (the handle always opens it), Simple (can be picked, through a PickableLock child) or Keyed (its own key only, through a KeyLock child). A door with no lock can't be locked at all.")]
         [SerializeField] private DoorLock lockType;
+        [Tooltip("Whether the door starts the level locked. Only matters with a lock.")]
         [SerializeField] private bool startsLocked;
 
-        // Which key opens a Keyed lock. Not used yet: keys come with the
-        // inventory.
+        [Tooltip("For a Keyed lock, the id its key must have: the same text as the Key's Key Id. Ignored for the other lock kinds.")]
         [SerializeField] private string keyId;
 
         [Header("Swing")]
 
-        // The door's solid part. Its box is what's checked against the
-        // player's body - see IsBlockedAt().
+        [Tooltip("The door's solid part. Its box is what is checked against the Blocking Layers before every move, so the door never swings into the player. Found when the component is added: the first non-trigger box below the door.")]
         [SerializeField] private BoxCollider leaf;
 
-        // Where the hinge is, from this object's origin, along its own
-        // axes. Zero = the object is on the hinge. For a door whose origin
-        // is the middle of the leaf, half the leaf's width along X: plus
-        // or minus picks which edge is hinged. Only X and Z matter - the
-        // hinge line runs straight up through this point.
+        [Tooltip("Where the hinge is from this object's origin, along the door's own axes, in metres. Zero means the object sits on the hinge; for a pack door whose origin is the middle of the leaf, half the leaf's width along X, with the sign choosing which edge is hinged. Only X and Z matter: the hinge line runs straight up through this point.")]
         [SerializeField] private Vector3 hingeOffset;
 
-        // Which way the door opens: either way, or only out to one side
-        // of the doorway (a door that shuts against a stop in its frame).
+        [Tooltip("Which way the door opens: either way, or only out to one side of the doorway along the door's local Z (a door that shuts against a stop in its frame).")]
         [SerializeField] private DoorSwing swing;
 
-        // How far the door opens from closed, in degrees.
+        [Tooltip("How far the door opens from closed, in degrees, each way it is allowed to swing.")]
         [SerializeField] private float maxOpenAngle = 110f;
 
-        // Let go of within this many degrees of closed, the door shuts
-        // itself and latches. Further open, it stays where it was left.
+        [Tooltip("Let go of, or come to rest, within this many degrees of closed, the door shuts itself and latches. Further open, it stays where it was left.")]
         [SerializeField] private float closeAngle = 10f;
 
-        // How fast it shuts itself, in degrees a second.
+        [Tooltip("How fast the door turns itself shut from within the Close Angle, in degrees a second.")]
         [SerializeField] private float closeSpeed = 60f;
 
-        // What stops the door: it won't swing into anything on these
-        // layers. The player's body, so a door pulled towards the player
-        // stops against them instead of passing through.
+        [Tooltip("The layers the door will not swing into: the player's body, so a door pulled towards the player stops against them instead of passing through. Set to Player when the component is added.")]
         [SerializeField] private LayerMask blockingLayers;
 
         [Header("Free Swing")]
 
-        // How quickly a door swinging by itself slows down: each second
-        // it loses this many times its speed (so 3 = down to a twentieth
-        // after a second). Higher = stiffer hinges.
+        [Tooltip("How quickly a door swinging by itself slows down: each second it loses this many times its speed, so 3 is down to a twentieth after a second. Higher is stiffer hinges.")]
         [SerializeField] private float swingDrag = 3f;
 
-        // Slower than this, in degrees a second, a door swinging by
-        // itself counts as stopped.
+        [Tooltip("Slower than this, in degrees a second, a door swinging by itself counts as stopped, and either shuts itself or stays put.")]
         [SerializeField] private float minSwingSpeed = 5f;
 
-        // The fastest a hand's push can turn the door, in degrees a
-        // second - so a hand shoved deep into it can't fling it round in
-        // one frame.
+        [Tooltip("The fastest a hand's or the body's push can turn the door, in degrees a second, so a hand shoved deep into it can't fling it round in one frame.")]
         [SerializeField] private float maxPushSpeed = 360f;
 
         [Header("Handle")]
 
-        // How far the handle has to be turned to free the latch, in
-        // degrees, either way.
+        [Tooltip("How far the handle has to be turned to free the latch, in degrees, either way.")]
         [SerializeField] private float unlatchTwist = 60f;
 
-        // How far the handle of a locked door turns before it stops, in
-        // degrees - enough to feel that it's locked.
+        [Tooltip("How far the handle of a locked or bolted door turns before it stops, in degrees: enough to feel that it is held shut.")]
         [SerializeField] private float lockedTwist = 10f;
 
         [Header("Sound")]
 
-        // The sound opening this doorway joins two rooms for. Optional:
-        // closed while the door is latched, open while it isn't, so a shut
-        // door muffles what's behind it.
+        [Tooltip("The sound portal in this doorway. Closed while the door is latched and open while it isn't, so a shut door muffles what is behind it. Optional.")]
         [SerializeField] private SoundPortal soundPortal;
 
         // The latch freeing and catching, the rattle of a locked handle,
         // and the hinges. All optional (empty = silent).
+        [Tooltip("The sound of the latch freeing and catching, played from the handle or the leaf so guards hear it too. Optional: empty is silent.")]
         [SerializeField] private SoundCue latchCue;
+        [Tooltip("The rattle of the handle being turned while the door is locked or bolted. Optional: empty is silent.")]
         [SerializeField] private SoundCue lockedCue;
+        [Tooltip("The creak of the hinges as the door moves, played once every Creak Interval of travel. Optional: empty is silent.")]
         [SerializeField] private SoundCue creakCue;
 
-        // The hinges sound once every this many degrees the door moves.
+        [Tooltip("The hinges sound once every this many degrees the door moves.")]
         [SerializeField] private float creakInterval = 25f;
 
         // A point this close to the hinge line (metres) has no usable

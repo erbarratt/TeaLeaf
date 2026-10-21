@@ -22,19 +22,15 @@ namespace Player
     [Serializable]
     public class HandSmoothingSettings
     {
-        // Off = the hands follow the tracking exactly, as before.
+        [Tooltip("Off, this device's hands follow the tracking exactly.")]
         public bool enabled = true;
 
         [Header("Position")]
 
-        // How much a STILL hand's position is smoothed, as a frequency in
-        // hertz: shake faster than about this many wobbles a second is
-        // removed. Lower = steadier but more trailing.
+        [Tooltip("How much a still hand's position is smoothed, as a frequency in hertz: shake faster than about this many wobbles a second is removed. Lower is steadier but trails more.")]
         public float positionMinCutoff = 3f;
 
-        // How fast the smoothing is given up as the hand speeds up: this
-        // many hertz are added to the cutoff for every metre a second the
-        // hand is moving. Higher = less lag in movement.
+        [Tooltip("How fast the position smoothing is given up as the hand speeds up: hertz added to the cutoff for every metre a second the hand moves. Higher means less lag in movement.")]
         public float positionSpeedCoefficient = 40f;
 
         [Header("Rotation")]
@@ -42,10 +38,10 @@ namespace Player
         // The same two for the hand's rotation. Rotation shake usually
         // shows most: a small wrist tremor swings whatever is held or
         // aimed a long way.
+        [Tooltip("How much a still hand's rotation is smoothed, as a frequency in hertz. Lower is steadier but trails more.")]
         public float rotationMinCutoff = 3f;
 
-        // Hertz added to the cutoff for every radian a second the hand is
-        // turning (about 57 degrees a second).
+        [Tooltip("Hertz added to the rotation cutoff for every radian a second (about 57 degrees a second) the hand turns. Higher means less lag.")]
         public float rotationSpeedCoefficient = 15f;
     }
 }

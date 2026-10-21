@@ -25,11 +25,13 @@ debug drawing.
   level, not Distance Shadowmask, so static pieces are never drawn into the realtime
   shadow map; their shadows come from the bake. Every point light in the pack's prefabs
   (buildings, lampposts, the tower bridge's torch) is overridden to **Baked** in the scene
-  - the `TL_Lampost` variant's own light is **Mixed** (Indirect Multiplier 0, soft
-  shadows, 5m) with a `LightSource`, a `Flame` and a `FlameFlicker`, the level
-  generator's gameplay lamp (`Assets/Scripts/LevelGen/CLAUDE.md`), and `Main.unity`'s
-  three instances override it to Baked while keeping the `LightSource` and `Flame` (so
-  their flicker switches itself off). Each lit window variant (`TL_Window_*_Lit`)
+  - the `TL_Lampost` variant's own light is **Mixed** (intensity 10, Indirect
+  Multiplier 2, hard shadows, 5m) with a `LightSource` and a `FlameFlicker` and a
+  second, **Baked** shadowless spot for ambience round the post, the level
+  generator's gameplay lamp (`Assets/Scripts/LevelGen/CLAUDE.md`); **a lamp post has
+  no `Flame`, since it can't be put out** (only open flames can). `Main.unity`'s
+  three instances override the point light to Baked while keeping the `LightSource`
+  (so their flicker switches itself off). Each lit window variant (`TL_Window_*_Lit`)
   carries a **Baked** spot light that pools its glow on the street below, no
   `LightSource` (`Assets/Scripts/LevelGen/CLAUDE.md`).
   Settings asset `Assets/Settings/Docks Lighting.lighting` (GPU lightmapper, 10 texels/m,
@@ -200,6 +202,47 @@ post-processing, correct in stereo. The level generator lays them over its alley
 
 ## Level surface shaders
 
+- **`TeaLeaf/GroundBlend`** (`Assets/Art/Shaders/GroundBlend.shader`; the material
+  `Assets/Art/Materials/Environment/Ground/StreetGround.mat`, which the level
+  generator's ground meshes draw with - `Assets/Scripts/LevelGen/CLAUDE.md`) — **the
+  streets' ground: three textured layers blended by vertex colour**, the way Thief
+  VR's prologue streets are made. Dirt is the base everywhere; **red** paints
+  cobbles over it, **blue** wet dirt (puddles) over that. Each layer has an albedo,
+  a tangent-space normal map and **greyscale height, occlusion and smoothness
+  maps** (single-channel textures; the ground isn't metal, so no metallic map),
+  read at the pixel's **world x
+  and z** (no mesh UVs but the lightmap's; a repeat size in metres and a turn per
+  layer, so the three don't line up and pieces join seamlessly), the tangent frame
+  made in the shader from the world axes (no mesh tangents). **The blend follows
+  the height maps** (`HeightBlend`: the classic score-and-transition height blend,
+  a sharpness per layer): where cobbles fade to dirt, the dirt fills the joints
+  first and the stones' tops show last; the wet layer is blended by the height of
+  what lies under it turned upside down, so water collects in the joints and low
+  places. A layer painted to nothing on a triangle isn't read (`[branch]` on the
+  interpolated paint). **Parallax** (`_PARALLAX` toggle, **on** in the material,
+  `_ParallaxDepth` 0.015m): offset mapping per layer - the view direction in the
+  layer's own frame, one height read at the plain coordinates, and the
+  coordinates slid along the view by how far the surface stands off the middle
+  height, over the repeat size, the out-of-surface part softened by 0.42 as
+  Unity's `ParallaxOffset` does so a floor at a grazing angle never smears - so
+  the joints look sunk below the stones; one shift, never parallax occlusion
+  (the project's rule for a view-filling surface), one extra read per painted
+  layer, nothing when off. Not yet judged in the headset (offset parallax on a
+  floor can swim at grazing angles; the depth is the knob). Lit with `UniversalFragmentPBR` (the pack's materials are
+  URP Lit; the puddles reflect the reflection probes), occlusion and smoothness
+  from the PBR texture scaled by `_Occlusion` and `_Smoothness`, `_NormalStrength`
+  on every normal map. SRP Batcher compatible, stereo instanced, fog-aware;
+  ForwardLit, ShadowCaster, DepthOnly, DepthNormals and **a Meta pass** (the bake
+  sees the blended colour; its entry points are `GroundMetaVertex` /
+  `GroundMetaFragment` because URP's `MetaInput.hlsl` defines `MetaFragment` as a
+  macro). **Textures:** `Assets/Art/Textures/Ground/<Dirt|Cobbles|WetDirt>_<Albedo|Normal|Height|Occlusion|Smoothness>_REPLACEME.png`
+  - 2048 each, repeat, trilinear, anisotropic 4; the normals imported as normal
+  maps, the three greyscale maps as single-channel (red), linear - are the Thief VR
+  prologue's ground textures (the greyscale ones split out of its packed PBR
+  texture: green occlusion, blue height, alpha smoothness; the wet dirt's height
+  is flat), **stand-ins to be replaced** (the suffix marks them). Cost: five to
+  fifteen texture reads and one PBR evaluation per pixel of a view-filling
+  surface, unmeasured.
 - **`TeaLeaf/Cobblestone`** (`Assets/Art/Shaders/Cobblestone.shader`; not in `Resources`; no
   material uses it at present, and one made for it lives in `Assets/Art/Materials`) — a cobbled floor with no
   textures: rounded irregular stones, each a colour from a range, a separate gap colour, no
@@ -388,7 +431,7 @@ night. The player's side (`Player.PlayerVisibility`) is in `Scripts/Player/CLAUD
   starts at its own point in the noise**, hashed from its world position in `Awake()`,
   so neighbouring lamps never flicker in step. Its own `Update()` (one float write a
   frame; not a player system). Disabling it puts the intensity back where the editor
-  set it. On the `TL_Lampost` variant beside its `Flame`; the Sound Test House builder
+  set it. On the `TL_Lampost` variant (which has no `Flame`); the Sound Test House builder
   adds one to each of its lights. **A flame is drawn by one quad
   with the `TeaLeaf/Flame` shader** (`Assets/Art/Shaders/Flame.shader`,
   `Assets/Art/Materials/Flame.mat`, the noise `Assets/Art/Textures/FlameNoise.png`, a
@@ -621,8 +664,10 @@ the player truthfully where it is, on stereo headphones.
   audible range and the noise radius are separate on purpose.
 - **`SoundRoom`** — a maths box like `ExitZone` (serialized `size`, `IDebugDrawable`, blue),
   self-registering, `[ExecuteAlways]` so rooms are also registered in Edit Mode.
-  `SoundRoom.Find(worldPoint)` = the room containing a point, the smallest where rooms
-  overlap, **null = outside, which acts as one big room**. Neighbouring rooms should meet in
+  `SoundRoom.Find(worldPoint)` = the room containing a point; where rooms overlap, the one
+  with the higher `priority` (an int, 0 by default; the level generator's junction rooms are
+  1, so each wins over the street rooms running into it), then the smallest, **null =
+  outside, which acts as one big room**. Neighbouring rooms should meet in
   the middle of the wall between them. Outdoor areas that should block each other need their
   own rooms (two points both "outside" always hear each other directly). It also holds the
   room's `reverb` and `ambience` (below). **In Play Mode a room's box is worked out once and

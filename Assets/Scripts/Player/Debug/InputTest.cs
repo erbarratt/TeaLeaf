@@ -7,6 +7,7 @@ namespace Player
 {
     public class InputTest : MonoBehaviour
     {
+        [Tooltip("The input system whose right trigger is watched and logged when it passes half way.")]
         [SerializeField] private PlayerInputXR playerInput;
 
         private bool _lastState;

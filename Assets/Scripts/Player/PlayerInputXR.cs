@@ -23,21 +23,25 @@ namespace Player
         // the other way round. Read once, at startup, by the systems that
         // put things on the hands. A player setting, like
         // PlayerLocomotion's useSmoothTurn.
+        [Tooltip("Off, a right-handed player: the lockpicks and compass on the left hand, the crossbow on the right. On, the other way round. Read once at startup.")]
         [SerializeField] private bool leftHanded;
 
         [Header("Left Hand")]
         // Player/LeftGrip and Player/LeftTrigger - analogue 0-1.
+        [Tooltip("The Player map's Left Grip action, an analogue 0-1.")]
         [SerializeField] private InputActionReference leftGrip;
+        [Tooltip("The Player map's Left Trigger action, an analogue 0-1.")]
         [SerializeField] private InputActionReference leftTrigger;
 
         [Header("Right Hand")]
         // Player/RightGrip and Player/RightTrigger - analogue 0-1.
+        [Tooltip("The Player map's Right Grip action, an analogue 0-1.")]
         [SerializeField] private InputActionReference rightGrip;
+        [Tooltip("The Player map's Right Trigger action, an analogue 0-1.")]
         [SerializeField] private InputActionReference rightTrigger;
 
         [Header("Locomotion")]
-        // Reference to the movement thumbstick action - Player/Move (left
-        // stick).
+        [Tooltip("The Player map's Move action: the left thumbstick, which moves the player.")]
         [SerializeField] private InputActionReference moveAction;
 
         // Reference to the turning thumbstick action - the project-wide
@@ -48,6 +52,7 @@ namespace Player
         // otherwise - so pushing forward first and then sweeping round to
         // the side never turned, and the stick's Y (used to trigger a
         // mantle) never came through at all.
+        [Tooltip("The Player map's Turn action: the right thumbstick. Sideways turns, up starts a mantle, down toggles crouch.")]
         [SerializeField] private InputActionReference turnAction;
 
         [Header("Stance")]
@@ -56,23 +61,28 @@ namespace Player
         // crouchStickThreshold). The action still gives the keyboard's
         // crouch key. A single press either way, since crouch is a toggle
         // - see PlayerLocomotion.
+        [Tooltip("The Player map's Crouch action, a single press. Only the keyboard binds it: on a controller, crouch is the right stick pushed down.")]
         [SerializeField] private InputActionReference crouchAction;
 
         // How far down the right stick must be pushed to toggle crouch
         // (0-1), and how far it must come back up before another push
         // counts. Two values with a gap between them, so a stick held
         // near one point can't toggle over and over.
+        [Tooltip("How far down (0-1) the right stick must be pushed to toggle crouch. Only counts when it is further down than to either side.")]
         [SerializeField, Range(0.1f, 1f)] private float crouchStickThreshold = 0.7f;
+        [Tooltip("How far the right stick must come back up (0-1) after a crouch toggle before another push counts. Below Crouch Stick Threshold, so a stick held near one point cannot toggle over and over.")]
         [SerializeField, Range(0f, 1f)] private float crouchStickRearm = 0.4f;
 
         // Reference to the sprint button action (left stick click). Read
         // as a single press, since sprint is a click-to-toggle that ends
         // by itself - see PlayerLocomotion.UpdateSprint().
+        [Tooltip("The Player map's Sprint action: the left stick's click, a single press that toggles sprint.")]
         [SerializeField] private InputActionReference sprintAction;
 
         // Reference to the jump button action (right A). A single press -
         // PlayerLocomotion buffers it briefly so an early press still jumps
         // on landing.
+        [Tooltip("The Player map's Jump action: the right A button, a single press.")]
         [SerializeField] private InputActionReference jumpAction;
 
         // An action found by name in the Player map (the map the actions

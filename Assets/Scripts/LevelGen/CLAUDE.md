@@ -7,16 +7,17 @@ touching anything placed by hand. Of set dressing it places only what sits on it
 buildings and streets: the facade dressing (pipes, vents, walkways, lamp posts; below),
 the lamp posts being gameplay lights, the roofs' chimneys, dormers and ridge railings,
 chimney smoke and vent steam, grass and nettles in the streets, and shafts of moonlight
-over its narrow streets (Moon shafts, below); it generates no other lighting, dressing
-or gameplay.
+over its narrow streets (Moon shafts, below), and it lays the sound rooms and portals over
+its streets (Sound rooms, below) and bakes the guards' NavMesh over
+its streets (NavMesh, below); it generates no other lighting, dressing or gameplay.
 
 **State:** being built in stages (below). Stage 1 (the catalogue scanner) is built and
 run: `catalogue.json` holds the `Environment` prefabs (188 once `Containers` and
 `Interactive` are no longer scanned). Stage 2 (the
 Review Pieces window) is built; the pieces the generator places are verified in it.
 Stage 3 (the layout spec, building styles and the validator) is built. Stage 4 (the
-streets' ground, the generate command and the `Generated` root) is built; the cobbles
-generate in the editor, the segment widths, storey counts and decking are untested.
+streets' ground, the generate command and the `Generated` root) is built; the ground
+generates in the editor, the segment widths, storey counts and decking are untested.
 Stage 5 (the facades, corners, side walls, lots and roofs) is built. Stage 6 (the
 report on what was built: free wall ends, open roof ends, refused pieces, with a marker
 at each) is built. **Every placed piece follows one fitting rule** (`FitWidths`,
@@ -48,10 +49,12 @@ the post of a corner.
   catalogue, and a prefab made of other prefabs (flagged `assembly`) is only used if
   it is marked so by hand.
 - **Lights inside placed prefabs are disabled on the instance** (an override on the
-  placed object, the prefab untouched) - **except a light with a `Core.LightSource`
-  beside it, a gameplay light, which stays on**: the generator's lamp posts are such
-  lights (Facade dressing, Lamp posts, below), kept to the shadowmask's limit. All
-  other level lighting is placed by hand, to the rules in `Assets/Scenes/CLAUDE.md`.
+  placed object, the prefab untouched) - **except a gameplay light (a
+  `Core.LightSource` on it or on a parent) and a Baked light, which stay on**: the
+  generator's lamp posts are gameplay lights (Facade dressing, Lamp posts, below),
+  kept to the shadowmask's limit, and the lit windows' spots and the lamps' ambience
+  spots are Baked (they cost nothing at runtime and exist only to go into the bake).
+  All other level lighting is placed by hand, to the rules in `Assets/Scenes/CLAUDE.md`.
 - **Gameplay doors are never generated** (`Assets/Prefabs/Interactive`, outside the
   catalogue).
 - **Every tunable value lives in the settings asset** (`GeneratorSettings`, below), not in
@@ -66,15 +69,17 @@ the post of a corner.
   foundations, and **the report (stage 6) should list no free wall end**; one it lists is
   looked at (a top-down or street-level render from a temporary camera, with the
   `Roofs` group hidden for the top-down, is how) before the work is called done - then
-  check the scene (gaps along street edges, hidden ground tiles). The rolled
+  check the scene (gaps along street edges, the ground meeting the steps). The rolled
   segment widths come from `LayoutSpecValidator.ValidateFile` the same way, since the
   spec's widths are only the base. The finishing passes each log one line (`Foundation
   colliders`, `Walkway colliders`, `Wall colliders`, `Roof colliders`, `Nettles`,
   `Gaps`, `Visibility cull`, `Roof edge`, `Roof
   features`, `Roof railings`, `Pipes`, `Vents`, `Lamp posts`, `Building colours`, `Moon
-  shafts`), read with the rest. An eval sent straight after a script edit can run
-  the old assembly: check the new code is in (a new field or type seen by reflection)
-  before trusting a generation.
+  shafts`, `Sound rooms`, `NavMesh`), read with the rest. An eval sent straight after a script edit
+  can run the old assembly, and an asset refresh can race a set of edits and compile
+  only the first of them: run `unity command recompile`, poll `recompile_status`,
+  and check the new code is in (a new field or type seen by reflection, the
+  assembly's write time after the last source edit) before trusting a generation.
 - Editor-only code in `LevelGen/Editor`, namespace `LevelGen`; the one runtime component is
   the `GeneratedRoot` marker (`LevelGen/GeneratedRoot.cs`).
 
@@ -160,11 +165,11 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   level and its upper storey and roof stand in the raised street (the maintainer is
   to choose between the generator standing each module beside a flight at the
   flight's surface height there, and specs splitting a climb into one-flight
-  segments with landings).
+  segments).
   `example-slope.json` (sector `Example Slope`, laid out in a frame turned 25
   degrees, 150m west and 60m south of the street): sloping streets - a hill street
-  of three segments, level, then rising 1.5m over 30m (a slope of 1 in 16 over the
-  segment less its landing), then level again after a 20-degree bend, and a lane
+  of three segments, level, then rising 1.5m over 30m (a slope of 1 in 20), then
+  level again after a 20-degree bend, and a lane
   leaving its first bend square and falling 1m over 25m, with facades of two- and
   three-module buildings on every side and three dead ends.
   `three-streets.json` (sector `Three Streets`, centred on the world origin, its main
@@ -175,8 +180,8 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   east 1.5m then 1.8m), and the middle street between them, leaving the west
   street at 80 degrees and, after a 6-degree bend, meeting the east street at 80
   degrees: it climbs 4.86m off the west street by three one-flight segments of
-  10m (a flight and its landing each), slopes 1.6m over 34m, and climbs 4.86m
-  more by three such segments onto the east street. Facades on every side (two-
+  10m, slopes 1.6m over 34m, and climbs 4.86m more by three such segments onto
+  the east street. Facades on every side (two-
   and three-module buildings), four dead ends.
   **The examples' sectors stand apart in world space, so all six can be in one scene
   without overlapping; a new example spec is placed clear of them. `three-streets`
@@ -203,6 +208,11 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   leaning facades' side walls use (`ShearedMeshes`; Facade lean, below), written by
   the generator as it needs them and read again by later generations. Generated
   data: never edited by hand, and the folder can be deleted to have them remade.
+- `Assets/Data/LevelGen/Ground/*.asset` — the streets' ground meshes (`GroundMesh`;
+  Generation and the streets' ground, below), one per region chunk, named
+  `<sector> - <area> <region> <x>_<z>`, rewritten by every generation of the sector
+  (the area's old ones deleted first). Generated data too: the folder can be deleted,
+  and the scene's ground then shows nothing until the level is generated again.
 - `Assets/Data/LevelGen/GeneratorSettings.asset` — the tunable values (`GeneratorSettings`,
   a ScriptableObject edited in the Inspector; menu **TeaLeaf > Level Gen > Generator
   Settings** selects it, making it with the defaults if missing). Generation and
@@ -212,7 +222,9 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   module or tile size and be used as it is), `wallScaleLimit` (0.12: how far, as a share
   of the module, a wall may be off its module and still be used, scaled to fit; side
   walls the same against the storey's height). **Streets:** `streetWidth` (5m, when a spec gives 0),
-  `streetWidthVariance` (1m either way, per segment), `minStreetWidth` (2m).
+  `streetWidthVariance` (1m either way, per segment), `minStreetWidth` (2m),
+  `edgeWallProbe` (1.5m: how far from a street's edge the walls along it are looked
+  for, whose tops set the moon shafts' openings and the sound rooms' tops).
   **Storeys:** `minStoreys` (1) and `maxStoreys` (3) for a
   facade, `maxBuildingHeight` (13m: a building's or column's storeys stop where the
   next one's top would pass this above its street, whatever its count - so tall
@@ -233,7 +245,7 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   `roofColliderTolerance` (0.1m: the roof slope panels' merged boxes - the two rows'
   collider tops differ by 7cm), `fillStretchShare` (0.3: the fitting rule's share - the length left under a
   piece widens the last piece below it, adds a scaled-down piece above it),
-  `groundDoorShare` (0.1), `groundWindowShare` (0.3), `upperWindowShare` (0.4), `storeyBeamOverlap` (4cm), `maxStoreyWidthMismatch` (0.3m: how far a storey's module width may differ from the ground storey's). **Corners:** `cornerAngleTolerance` (20°: a corner this close to a right angle counts as square - its walls meet as at a right angle, its roofs meet along a hip or valley), `cornerMaxReach` (8m), `cornerOverrun` (0.5: the share of the way from the other side's back line to its face that each side's walls run at a corner, both ends hidden inside the other wall). **Jetties:** `jettyShare` (0.3: buildings whose upper storeys jut out), `jettyInset` (5cm: how far the supports' backs sink behind the ground walls' main front surface), `jettyStoreyDrop` (10cm: how far the first upper storey - its beam band, else its walls - stands down into the supports' deck). **Lean:** `facadeLean` (0-5°, 0: how far the street-facing walls lean out over the street from the first upper storey up; 0 is upright). **Columns:** `columnWidthMin` / `Max` (1-2 modules), `columnShare` (0.15: off the line), `columnMinRunModules` (6), `columnDepthMin` / `Max` (0.3-0.8m), `columnOutShare` (0.5), `columnHeightShare` (0.3: taller or lower than the building), `columnStoreyVariation` (1 storey). **Doors:** `doorInsertMargin` (5cm, at the top), `doorSideMargin` (0.13m, each side), `doorInsertDepth` (0m). **Window inserts:** `windowInsertShare` (1), `windowInsertMaxMargin` (0.45m), `windowInsertDepth` (0m), `litWindowShare` (0.3: the share of the holes filled whose insert is a lit one). **Side walls:** `sideWallMultiplier` (0-5, 1), `sideWallTuck` (0.26m: how far into its column a side wall at the column's left end stands). **Gaps:** `gapBridgeMax` (3m: two free wall ends facing each other no further apart than this are bridged by one plain wall), `gapStoreyTolerance` (0.3m: how far their bottoms and tops may differ and still count as one storey). **Dressing:** `pipeBuildingShare` (0.4: the share of buildings that get pipes at all), `pipeRunsMax` (2), `pipeExtraRunShare` (0.35), `pipeMinRunShare` (0.5), `pipeLargeShare` (0.1; nothing while only the thin pipe kit is verified), `pipePanelInset` (0.6m: how far from a module's left end a plumb run stands, on the plaster past the end post), `pipeWallGap` (5cm), `pipeOpeningMargin` (0.25m), `pipeEndSpread` (0.5), `valveShare` (0.3), `valveHeight` (1.3m), `ventShare` (0.4), `ventsMax` (2), `ventLargeShare` (0.3), `ventFlatTolerance` (3cm), `walkwayShare` (0.3), `lampSpacing` (14m; the asset has 20m: the least distance between any two lamp posts, over every street), `lampEdgeInset` (0.6m), `lampSink` (0.2m: how far a post is lowered into the ground tiles). **Smoke and steam:** `chimneySmokePrefab` / `chimneySmokeShare` (0.5), `ventSteamPrefab` / `ventSteamShare` (0.5). **Foliage:** `grassCover` (0.05 of the ground tiles), `grassClusterMin` / `Max` (2-4 tufts), `grassClusterRadius` (0.5m), `grassEdgeMargin` (1m), `nettlesPerStreetMin` / `Max` (2-4), `nettleOut` (0.2m), `nettleSpacing` (2m), `nettleDoorClear` (0.6m), `foliageScaleMin` / `Max` (0.8-1.2), `foliageSink` (3cm). **Layout checks:** `overlapTolerance` (5cm),
+  `groundDoorShare` (0.1), `groundWindowShare` (0.3), `upperWindowShare` (0.4), `storeyBeamOverlap` (4cm), `maxStoreyWidthMismatch` (0.3m: how far a storey's module width may differ from the ground storey's). **Corners:** `cornerAngleTolerance` (20°: a corner this close to a right angle counts as square - its walls meet as at a right angle, its roofs meet along a hip or valley), `cornerMaxReach` (8m), `cornerOverrun` (0.5: the share of the way from the other side's back line to its face that each side's walls run at a corner, both ends hidden inside the other wall). **Jetties:** `jettyShare` (0.3: buildings whose upper storeys jut out), `jettyInset` (5cm: how far the supports' backs sink behind the ground walls' main front surface), `jettyStoreyDrop` (10cm: how far the first upper storey - its beam band, else its walls - stands down into the supports' deck). **Lean:** `facadeLean` (0-5°, 0: how far the street-facing walls lean out over the street from the first upper storey up; 0 is upright). **Columns:** `columnWidthMin` / `Max` (1-2 modules), `columnShare` (0.15: off the line), `columnMinRunModules` (6), `columnDepthMin` / `Max` (0.3-0.8m), `columnOutShare` (0.5), `columnHeightShare` (0.3: taller or lower than the building), `columnStoreyVariation` (1 storey). **Doors:** `doorInsertMargin` (5cm, at the top), `doorSideMargin` (0.13m, each side), `doorInsertDepth` (0m). **Window inserts:** `windowInsertShare` (1), `windowInsertMaxMargin` (0.45m), `windowInsertDepth` (0m), `litWindowShare` (0.3: the share of the holes filled whose insert is a lit one). **Side walls:** `sideWallMultiplier` (0-5, 1), `sideWallTuck` (0.26m: how far into its column a side wall at the column's left end stands). **Gaps:** `gapBridgeMax` (3m: two free wall ends facing each other no further apart than this are bridged by one plain wall), `gapStoreyTolerance` (0.3m: how far their bottoms and tops may differ and still count as one storey). **Dressing:** `pipeBuildingShare` (0.4: the share of buildings that get pipes at all), `pipeRunsMax` (2), `pipeExtraRunShare` (0.35), `pipeMinRunShare` (0.5), `pipeLargeShare` (0.1; nothing while only the thin pipe kit is verified), `pipePanelInset` (0.6m: how far from a module's left end a plumb run stands, on the plaster past the end post), `pipeWallGap` (5cm), `pipeOpeningMargin` (0.25m), `pipeEndSpread` (0.5), `valveShare` (0.3), `valveHeight` (1.3m), `ventShare` (0.4), `ventsMax` (2), `ventLargeShare` (0.3), `ventFlatTolerance` (3cm), `walkwayShare` (0.3), `lampSpacing` (14m; the asset has 20m: the least distance between any two lamp posts, over every street), `lampEdgeInset` (0.6m), `lampSink` (0.2m: how far a post is lowered into the ground). **Smoke and steam:** `chimneySmokePrefab` / `chimneySmokeShare` (0.5), `ventSteamPrefab` / `ventSteamShare` (0.5). **Foliage:** `grassCover` (0.05 of the ground's patches; **0 in the asset**, so no grass is laid), `grassPatch` (3m: the square patches the ground is dealt out in for grass), `grassClusterMin` / `Max` (2-4 tufts), `grassClusterRadius` (0.5m), `grassEdgeMargin` (1m), `nettlesPerStreetMin` / `Max` (2-4), `nettleOut` (0.2m), `nettleSpacing` (2m), `nettleDoorClear` (0.6m), `foliageScaleMin` / `Max` (0.8-1.2), `foliageSink` (3cm). **Layout checks:** `overlapTolerance` (5cm),
   `minSegmentLength` (0.1m), `junctionDistance` (0.1m), `branchAngle` (17.5°), `branchSquareTolerance` (20°: a
   street ending at a junction where at least two other ways leave the point - another
   street running on through it, or more streets meeting - must meet the street it
@@ -245,8 +257,7 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   **Sharp corners (for layout specs):** `sharpCornerAngle` (60°: a corner between two
   streets narrower than this is sharp) and `sharpCornerShare` (0.25: the share of a
   layout's corners Claude makes sharp; the generator clears any angle).
-  **Ground tiles:** `groundOverlap` (3cm), `groundTileTurns` (on), `groundSlideMin` /
-  `Max` (0.2-0.8 of a tile), `minTileCoverage` (0.1m), `groundGridMinAngle` (15°: the ground grid's least turn off the world axes), `lotGroundMargin` (1m: ground laid round a lot). **Steps and slopes:** `landingDrop` (2cm: how far a flight's or a slope's landing lies below the street, so the grid's tiles overlapping it lie on top), `streetSlopeMaxGrade` (0.083, 1 in 12: a segment rising no more steeply than this over its length less the landing is a slope of tilted tiles; a steeper one needs whole flights of steps), `slopeDropMax` (0.6m: the validator warns of a building beside a slope whose street falls further than this below its level). **Roofs:** `roofPitch` (60°), `roofRows` (2), `roofEaveOverhang` (0.4m), `roofEaveDrop` (1m), `roofVergeOverhang` (0.2m), `roofRowOverlap` (0.25m), `roofPanelOverlap` (0.45m: enough to cover a verge end's set-back top tiles where it faces the next panel), `roofGableSink` (5cm), `roofHipOut` (0.75m) and `roofHipRaise` (0.2m: how far out of the corner, along each slope's front, and above the eaves a hip strip's lowest piece stands), `roofHipStep` (2.5m: the most one piece of a hip strip rises above the one below) and `roofHipLean` (10°: how far back each piece leans, its outer corner up), `roofHipAngleMin` / `Max` (50-135°: the corner angles, between the eaves, whose roofs meet along a hip under a strip; outside them, gables), `roofFeatureMinPanels` (2: a roof this many panels long may get a chimney or dormer), `roofFeatureSpread` (0.5: how much of the roof about its middle one may stand along), `roofDormerUp` (2m up the slope) and `roofDormerSink` (0.1m), `roofChimneyUp` / `UpMax` (4-8m up the slope), `roofChimneySink` (0.15m), `roofChimneyRise` / `RiseMax` (0.8-2.5m above the tiles at its back), `roofRailingShare` (0.5 of buildings), `roofRailingSink` (0.15m below the ridge cap), `roofRailingLean` (12°), `roofRailingInset` (0.4m from the ridge's ends), `roofRailingGap` (1m). **Visibility cull** (last of all): `cullEyeHeight` (1.6m: the probe looks from this high above the street, along its middle and both edges), `cullHeight` (9m: and from this high above the middle, for the roofs), `cullStep` (2m: between looks), `cullRange` (80m: the farthest it looks), `roofEdgeGap` (1.5m) and `roofEdgeReach` (20m: a roof piece with nothing but empty space from the gap past its building out to the reach loses its colliders). **Moon shafts:** `moonShaftStreetMaxWidth` (**0 in the asset: the shafts are switched off**, their look not yet right; the code's default 4.5m gives a shaft over each segment of a street whose spec width - its own, or the settings' `streetWidth` when 0 - is no more than it), `moonShaftMaxLength` (40m), `moonShaftWallProbe` (1.5m: how far from a street's edge the walls along it are looked for), `moonShaftInset` (0.3m: how far in from each edge the opening stops) and `moonShaftMinEaves` (2m: no shaft where the eaves stand lower than this above the street). **Decking:** `deckingOverlap`
+  **Ground (the streets' mesh):** `groundCell` (0.75m: the mesh grid's cell), `groundEdgeMargin` (1.5m: how far the ground runs on past the streets' edges under the buildings, and the top-step boxes with it), `groundGridMinAngle` (15°: the ground grid's least turn off the world axes), `lotGroundMargin` (1m: ground laid round a lot), `groundThickness` (0.25m: the top-step boxes), `groundOverlap` (3cm: how far a flight's steps pieces overlap side by side), `groundStepsOverlap` (0.3m: how far the top-step box runs back from a flight's top step's back edge, under its flat tread, so the ramp meets the ground with no gap). **Ground paint** (the vertex colours the shader blends): `groundCobbleShare` (0.8: cobbles cover the middle of a street out to this share of its half-width, a dirt gutter beyond), `groundPaintWobble` (0.8m: how far noise moves the cobbles' edge in and out), `groundPaintScale` (4m per blob), `groundPaintFade` (1m: the paint's fade from all cobbles to all dirt), `groundPuddleCover` (0.2: the share of the ground given to wet-dirt puddles, roughly), `groundPuddleScale` (5m per blob). **Steps and slopes:** `streetSlopeMaxGrade` (0.083, 1 in 12: a segment rising no more steeply than this over its length is a slope in the ground mesh; a steeper one needs whole flights of steps), `slopeDropMax` (0.6m: the validator warns of a building beside a slope whose street falls further than this below its level). **Roofs:** `roofPitch` (60°), `roofRows` (2), `roofEaveOverhang` (0.4m), `roofEaveDrop` (1m), `roofVergeOverhang` (0.2m), `roofRowOverlap` (0.25m), `roofPanelOverlap` (0.45m: enough to cover a verge end's set-back top tiles where it faces the next panel), `roofGableSink` (5cm), `roofHipOut` (0.75m) and `roofHipRaise` (0.2m: how far out of the corner, along each slope's front, and above the eaves a hip strip's lowest piece stands), `roofHipStep` (2.5m: the most one piece of a hip strip rises above the one below) and `roofHipLean` (10°: how far back each piece leans, its outer corner up), `roofHipAngleMin` / `Max` (50-135°: the corner angles, between the eaves, whose roofs meet along a hip under a strip; outside them, gables), `roofFeatureMinPanels` (2: a roof this many panels long may get a chimney or dormer), `roofFeatureSpread` (0.5: how much of the roof about its middle one may stand along), `roofDormerUp` (2m up the slope) and `roofDormerSink` (0.1m), `roofChimneyUp` / `UpMax` (4-8m up the slope), `roofChimneySink` (0.15m), `roofChimneyRise` / `RiseMax` (0.8-2.5m above the tiles at its back), `roofRailingShare` (0.5 of buildings), `roofRailingSink` (0.15m below the ridge cap), `roofRailingLean` (12°), `roofRailingInset` (0.4m from the ridge's ends), `roofRailingGap` (1m). **Visibility cull** (last of all): `cullEyeHeight` (1.6m: the probe looks from this high above the street, along its middle and both edges), `cullHeight` (9m: and from this high above the middle, for the roofs), `cullStep` (2m: between looks), `cullRange` (80m: the farthest it looks), `roofEdgeGap` (1.5m) and `roofEdgeReach` (20m: a roof piece with nothing but empty space from the gap past its building out to the reach loses its colliders). **Moon shafts:** `moonShaftStreetMaxWidth` (**0 in the asset: the shafts are switched off**, their look not yet right; the code's default 4.5m gives a shaft over each segment of a street whose spec width - its own, or the settings' `streetWidth` when 0 - is no more than it), `moonShaftMaxLength` (40m), `moonShaftInset` (0.3m: how far in from each edge the opening stops) and `moonShaftMinEaves` (2m: no shaft where the eaves stand lower than this above the street). **Sound rooms:** `soundAlleyMaxWidth` (4.5m: a street whose spec width is no more than this echoes as an alley, a wider one and its junctions as outdoors), `soundStreetMuffle` (0.15: the junction portals' open muffle), `soundSkyMuffle` (0.3: the sky portals'), `soundRoomMinHeight` (3m: a street room reaches at least this high above its street's highest surface), `soundStreetAmbience` / `Volume` (the street rooms' ambience: the outdoor placeholder wind, 1). **Decking:** `deckingOverlap`
   (3cm), `deckingQuarterTurn` (off), `deckingSlideMin` / `Max` (0-0).
 
 ## Stages
@@ -256,7 +267,8 @@ can't fill, and any overlap, is shown in the report rather than hidden.
    measured bounds and assumed front for the maintainer to confirm into
    `annotations.json`.
 3. **Layout spec** — the format and its validation.
-4. **Streets and ground** — ground tiles along each street segment and at junctions.
+4. **Streets and ground** — the streets' ground as meshes the generator builds, one
+   per level and per slope, painted for the ground shader; plank decking as tiles.
 5. **Buildings and hierarchy** — each frontage's facades laid side by side along the
    street's edge, each in its own frame, with a corner and a short side return
    where a frontage ends at a branching street; the wedge at each bend and the length
@@ -309,7 +321,9 @@ can't fill, and any overlap, is shown in the report rather than hidden.
    street test, the visibility cull (every piece no one in a street can see removed),
    the roof edge colliders (roofs facing the void lose theirs), then the facade walls'
    and the roof slope panels' colliders merged into few boxes, then the shafts of
-   moonlight over the narrow streets (Moon shafts, below); and, last in the
+   moonlight over the narrow streets (Moon shafts, below), then the sound rooms and
+   portals over the streets (Sound rooms, below), then the guards' NavMesh
+   baked over the streets (NavMesh, below); and, last in the
    facades' build, one colour per set of joined buildings and the lamp posts as
    gameplay lights.
 
@@ -366,14 +380,14 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   columns compare their tops in metres above each one's own street level
   (`FillSide`), so the higher column's storeys above the lower one's top are closed
   as for any taller column. **A module on the low level with the street rising in
-  front of it** (beside the flight or its landing; `RisesInFront`, from the run's
+  front of it** (beside the flight; `RisesInFront`, from the run's
   `Flight` and `FlightOffset` and `StreetSteps.Flight.SurfaceAt`, the steps' line as
   walked) **gets more masonry foundations stacked on its own** (`StackBesideSteps`):
   its style's foundations, at random, never the one before, the top one's top
   `foundationHeight` above the highest the street comes in front of the module, each
   below overlapping the one above by `wallOverlap`, down to its own foundation,
-  placed like it - so a stone cheek closes the gap between the steps or the landing
-  and the walls. A jettied building's supports run on beside the steps like the
+  placed like it - so a stone cheek closes the gap between the steps and the
+  walls. A jettied building's supports run on beside the steps like the
   storeys they carry.
 - **Beside a slope** (`Run.Slope`, `Run.Levels`; `LevelBuildings`): the street's
   surface climbs evenly past the facade (`Surface()`: the flight's or the slope's
@@ -995,10 +1009,10 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   - Anywhere else roofs meet they overlap (the pack has no hip or valley tile panels).
   - **The visibility cull** (`VisibilityCull.cs`, run by `LevelGenerator` last of
     everything built, after the street test): **every piece the generator placed that
-    no one in the streets can see is removed** - ground tiles under and behind the
-    buildings, back slopes, walls, beams, pipes, walkway parts and foliage hidden
-    behind other pieces; the lamp posts (the `Lamps` group) are never culled, being
-    lights. A probe walks every street (`StreetTest.Walk`, up and down the flights,
+    no one in the streets can see is removed** - decking tiles, back slopes, walls,
+    beams, pipes, walkway parts and foliage hidden behind other pieces; the lamp
+    posts (the `Lamps` group) are never culled, being lights, and the ground meshes
+    aren't pieces (they stay, and occlude). A probe walks every street (`StreetTest.Walk`, up and down the flights,
     stopping a ball's radius plus `overlapTolerance` short of a dead end), looking
     every `cullStep` (2m) from `cullEyeHeight` (1.6m) above the ground at the middle
     of the street and at each edge (a ball's radius in from the buildings) and from
@@ -1007,16 +1021,16 @@ can't fill, and any overlap, is shown in the report rather than hidden.
     through it. Each piece gets a grid of sample points through its LOD0 render box
     (shrunk to 0.8, in its own space); it is seen from a look when a ray (Environment
     layer) to one of them hits nothing, the piece's own collider, or a point on its
-    render box within 5cm (the merged box that stands in for a tile's, a foundation's
-    or a walkway's own colliders); a piece further than `cullRange` (80m) from a look
+    render box within 5cm (the merged box that stands in for a decking tile's, a
+    foundation's or a walkway's own colliders); a piece further than `cullRange` (80m) from a look
     isn't tried from it. Each piece is tried from its nearest eight looks one ray at
     a time, stopping at the first that sees it, and whatever is still unseen is tried
     from every other look in range as parallel `RaycastCommand` jobs. Unseen pieces
     are removed (Undo), emptied groups with them (a group holding merged colliders
     stays), then railings left on a removed ridge; one log line (`Visibility cull: n
-    of m piece(s) removed ... (streets a of b, foliage, facades, lots, roofs; looks;
-    time)`). Three-levels loses 841 of 9831 pieces in about 19s, with no hole seen
-    from a street.
+    of m piece(s) removed ... (foliage, facades, lots, roofs; looks; time)`).
+    Three-streets loses 342 of 2929 pieces in about 2s, with no hole seen from a
+    street.
   - **Roof edge colliders** (`RoofEdgeColliders.cs`, straight after the cull): **a roof
     piece facing the void beyond the level loses its colliders** (every collider on the
     instance removed, an override; its renderers stay), so nothing invisible is climbed
@@ -1141,12 +1155,14 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   angle or scale is measured true) are sampled 2cm outside, at three depths by three
   heights. A sample is **bare** when no covering piece's box holds it (everything
   placed but doors, window inserts and roofs; grown 8cm) **and it can be seen from a
-  street**: a straight line from it to one of up to six street tiles within 14m,
-  spread at least 30° apart round it, at eye height (1.6m) over the tile, that no
+  street**: a straight line from it to one of up to six standing spots within 14m,
+  spread at least 30° apart round it, at eye height (1.6m) over the spot, that no
   covering piece's box crosses - the wall's own box included, since an end face is
-  only seen from in front of it. One can stand only on a tile whose middle lies in a
-  street segment's rectangle at its resolved width and at least 0.75m from every
-  wall's footprint (the ground tiles overrun the edges under and behind the facades).
+  only seen from in front of it. A standing spot is a decking tile, or a vertex of
+  the ground meshes under `Streets` (one per 3m cell of the world holding one,
+  `GroundSpots`); one can stand only on a spot that lies in a street segment's
+  rectangle at its resolved width and at least 0.75m from every wall's footprint
+  (the ground runs on past the edges under and behind the facades).
   An end with over a third of its samples bare is a find, with its bare share and
   where it is seen from - **except an end that another wall meets** (any sample
   covered): a corner's post, or the strip of wall end the corner overrun leaves
@@ -1338,12 +1354,17 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   facing the street, each post lowered `lampSink` (0.2m) into the ground tiles so its
   base never floats. **They are gameplay lights:** the `TL_Lampost` variant
   (`Assets/Prefabs/Environment/Iron`) carries a
-  **Mixed** point light (Indirect Multiplier 0, soft shadows, range 5m) with a
-  `Core.LightSource` (range 5) and a `Core.Flame` (its `flameVisual` the `Flame
-  Visual` quad drawn by the `TeaLeaf/Flame` shader, `Assets/Scripts/Core/CLAUDE.md`;
-  the pack's `Fire_Effect` particles are turned off), and its lantern meshes cast no
-  shadows (the light sits inside them);
-  `PiecePlacer` leaves the light on. **No two lamps light the same spot, and none
+  **Mixed** point light (`Point Light`: intensity 10, Indirect Multiplier 2, hard
+  shadows, range 5m - the light the player sees and guards and hands throw shadows
+  from) and a **Baked** spot light beside it (`Spot Light`: 0.81, a 125° cone pointing
+  down, no shadows - ambience round the post, baked into the lightmap and probes and
+  costing nothing at runtime), with a `Core.LightSource` (range 5) and a
+  `Core.FlameFlicker` on the post, the `Flame Visual` quad drawn by the `TeaLeaf/Flame`
+  shader (`Assets/Scripts/Core/CLAUDE.md`; the pack's `Fire_Effect` particles are
+  turned off), and its lantern meshes cast no shadows (the light sits inside them).
+  **A lamp post has no `Core.Flame`: it can't be put out** (only open flames - torches
+  and fire pits - can), so a water bolt leaves it burning. `PiecePlacer` leaves both
+  lights on. **No two lamps light the same spot, and none
   stand across a narrow street from each other:** a post is placed only if it stands
   at least `lampSpacing` (level distance; 20m in the settings asset) from every other
   post over every street and its light is clear of every other's (the lights' centres
@@ -1366,12 +1387,14 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   piece gets a random yaw, a scale between `foliageScaleMin` and `Max`, and its pivot
   sunk `foliageSink` below the ground; placed under `Generated/Foliage/Grass -
   <street>` and `Nettles - <street>`.
-- **Grass** (`StreetGround.LayArea`, as each grid tile is laid): at `grassCover` a
-  cluster of `grassClusterMin`-`Max` tufts within `grassClusterRadius` of a random
-  point on the tile, only where that point is in open street (`InOpenStreet`:
-  `grassEdgeMargin` inside the street outline, outside every lot's footprint, off any
-  flight and its landing); decking and landings get none. The margin passes about a
-  third of the draws, so the cover laid is nearer 1.5% of tiles.
+- **Grass** (`StreetGround.LayArea`, once an area's ground is built): the area is
+  dealt out in `grassPatch` (3m) squares of its grid, and each patch whose middle is
+  in the area gets, at `grassCover`, a cluster of `grassClusterMin`-`Max` tufts
+  within `grassClusterRadius` of a random point in the patch, only where that point
+  is in open street (`InOpenStreet`: `grassEdgeMargin` inside the street outline,
+  outside every lot's footprint, off any flight of steps; a slope is fine); decking
+  gets none. The margin passes about a third of the draws. **`grassCover` is 0 in
+  the settings asset**, so no grass is laid at present.
 - **Nettles** (`BuildNettles`, run by `LevelGenerator` after the merged colliders,
   since their ground is found by rays): every placed foundation / foundation-corner
   piece gives a front (its render box's face at its top edge, per annotated front),
@@ -1399,7 +1422,7 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   whatever the moon's bearing (a slot across the street's mouth only works when the
   moon shines along it): a level rectangle at the height of the lower side's eaves -
   the top of the highest wall along each edge (`EdgeWallTop`, `WallTop`: the
-  `Facades` and `Lots` renderers' world boxes within `moonShaftWallProbe` of samples
+  `Facades` and `Lots` renderers' world boxes within `edgeWallProbe` of samples
   every 2m along the edge, those wholly below the street or more than 20m above it
   left out), the lower of the two sides less `roofEaveDrop` - running the segment's
   length less half the width of the widest other street leaving each end
@@ -1423,6 +1446,141 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   under Xm, d too short)`). Switched on, three-levels gets 7 over the 8 segments of
   its two 4m alleys. At the moon's 45° elevation the beams cross a 3m alley within
   the top 3m or so and land on the far wall, never the street - as they should.
+
+## Sound rooms
+
+- **`SoundRooms.cs`** (`Build`, run by `LevelGenerator` after the moon shafts, before
+  the NavMesh): **the `Core.SoundRoom`s and `Core.SoundPortal`s over the streets**
+  (`Assets/Scripts/Core/CLAUDE.md`, Noise and sound), under `Generated/Sound Rooms`,
+  so a sound in one street reaches another round its corners, never through the
+  buildings between; tunables under "Sound rooms" in `GeneratorSettings`.
+  - **A street room per straight run**: a street's segments are one run while each
+    stays within the branch angle of the run's first (`InLine`), so a street that only
+    changes height or bends a few degrees is one room and never muffles itself. The
+    box (named `<street> <from>-<to>`, points counted from 1) lies along the line
+    between the run's end points, as wide as its widest segment plus how far its
+    points stand off that line on each side, and `EdgeMargin` (0.5m) into the walls
+    each side; from `Below` (1m) under its lowest surface up to its eaves: the lowest
+    wall top along either edge (`MoonShafts.WallTop` on samples every 2m, the
+    `Facades` and `Lots` renderers within `edgeWallProbe`) less `roofEaveDrop`, at
+    least `soundRoomMinHeight` above its highest surface. It runs on `DeadEndReach`
+    (1m) past a dead end, into the facade closing it.
+  - **A junction room at every point where two or more runs meet** (a bend between
+    runs, a branch, a crossing; named `Junction <street> <point> / ...`), **priority
+    1** (`SoundRoom.priority`), so it wins over the street rooms running into it: a
+    box turned to its widest street, holding the point and, between each way out and
+    the next one round, where the two streets' facing edges cross (`Corners`: a
+    corner building's corner, a bend's outside corner; nearly parallel edges give
+    their two edge points instead; a far crossing at a sharp angle is drawn in to
+    `CornerReachLimit`, 3 x the widest half width), plus `EdgeMargin`; from `Below`
+    under the point (streets meet level there) to the lowest of its streets' rooms'
+    tops, at least `soundRoomMinHeight` above the point.
+  - **A portal where each way leaves a junction's box** (`Portal <run>`): on the face
+    the way's middle line crosses, centred where it crosses, as wide as the street is
+    along that face (at most the face), the box's full height, its front out into the
+    street, open with `soundStreetMuffle`. A street room ending at a junction stops
+    where its street leaves the box (its near corner on the face, at a slant; the
+    rest inside the box, which wins), so it never reaches into another street round
+    the corner; a run passing through a junction keeps its box through it.
+  - **Portals to the sky** (`Sky <n>`, under the street room): one lying across the
+    top of each stretch of a street room no junction's box covers (at least
+    `MinSkyLength`, 1m), its front up to the rooftops - outside every room - open
+    with `soundSkyMuffle`. So the roofs hear the streets, and two streets hear each
+    other over the roofs by the longer path, muffled twice.
+  - **Reverb** `Alley` where the street's spec width (its own, or `streetWidth`) is
+    no more than `soundAlleyMaxWidth`, else `Outdoors`; a junction is an alley only
+    if all its streets are. **Ambience** `soundStreetAmbience` at its volume, every
+    room.
+  - **Checked as it is built**: every portal must find, by its own probes
+    (`ProbeRooms`), the two rooms it was placed between, and every street point (a
+    1m grid over each segment, 0.3m in from its edges, at 0.2m and 1.6m above its
+    surface) must be in a room; one log line (`Sound rooms: n street room(s), m
+    junction room(s), p portal(s) (s to the sky); a portal(s) not joining the rooms
+    meant, b of c street point(s) in no room.`), then a line for each of the first
+    eight problems of each kind. Three-streets: 3 street rooms, 2 junction rooms,
+    11 portals (5 to the sky), none wrong, all 3802 points in a room.
+  - **Known:** a room's top is level, so on a climbing run it is set by the climb's
+    top (`soundRoomMinHeight` above the highest surface) and stands well above the
+    eaves at the foot (three-streets' middle street, climbing 11m, is one room
+    15m tall): only the rooftops beside its foot count as the street. Junctions get
+    no sky portal (the rooftops reach them through the streets). Doors and windows
+    into buildings are placed by hand with the doors, since gameplay doors are never
+    generated.
+
+## NavMesh
+
+- **`StreetNavMesh.cs`** (`Build`, run by `LevelGenerator` after the moon shafts,
+  before the report): **the guards' NavMesh, bound to the streets.** A
+  `NavMeshSurface` (the AI Navigation package) on the `Generated` root collects the
+  physics colliders on the `Environment` layer **under the root only**
+  (`CollectObjects.Children`: the ground's chunks and its top-step boxes, the
+  decking's floor boxes, step ramps, foundations, walls, roofs - nothing placed
+  by hand), for the default agent type (the guard's:
+  radius 0.3, height 1.8, step 0.4, slope 45°), everything Walkable, and
+  **`NavMeshModifierVolume` boxes marked Not Walkable carve away all that isn't
+  street**, under `Generated/NavMesh Volumes`, on the `Environment` layer (**a
+  volume off the surface's layer mask is ignored by the bake**). **It has to be
+  that way round: Unity turns Not Walkable geometry into nothing, which no Walkable
+  volume brings back** (a Not Walkable default area with Walkable volumes over the
+  streets bakes an empty NavMesh), so the floor stays Walkable and the rest is
+  taken away. Per street segment:
+  - **An edge box outside each edge** (`<street> <from>-<to> left` / `right`),
+    `EdgeReach` (6m) deep - further than the ground runs on past the
+    edge under the buildings (`groundEdgeMargin`, 1.5m, plus a cell; a lot's ring
+    `lotGroundMargin` more) - from 1m under the segment's
+    lowest surface to 30m over its highest, so it takes the floor laid under the
+    buildings, their foundations, walkways and roofs. **Where it ends**
+    (`CornerReach`): its edge meets the edge of the next street round the point on
+    that side (the first met turning from the way out of the point towards the
+    side, `OthersAt`) where the two edge lines cross - **short of the point on the
+    inside of a corner**, where the box stops, since beyond that the other street
+    begins; **past the point on the outside**, where it runs on by the reach as
+    well, so the floor under the corner building is covered (past the outer corner
+    the edge line lies outside both streets, so nothing of a street is carved);
+    **at the point where the next street carries straight on** within the branch
+    angle (`BranchDot`; a width step there leaves at most a sliver outside the
+    narrower street, which the agent's radius takes); **by the reach at a dead
+    end**. At a T every corner is an inside one, so the boxes stop at the mouths of
+    the branching street. **Two streets' edges nearer than the reach, back to back
+    with no street between, would have the floor along the other's edge carved**:
+    specs keep them further apart.
+  - **A box across a dead end** (`<street> <from>-<to> start` / `end`): the reach
+    deep beyond the end point, the street's width plus the reach each side.
+  - **Boxes over the street from head height up** (`<street> <from>-<to> over`):
+    from `streetHeadroom` above the surface to 30m over it, the segment's full
+    width, running on past a shared point by the widest street's half width there
+    (the streets meet level, so nothing walkable is that high), so a walkway or
+    jetty deck overhanging the street is no island. A segment that changes height
+    is covered by a chain of level boxes (stretches of 2m along it, the surface
+    sampled every 0.25m through `StreetHeights.SurfaceAt`, neighbouring stretches
+    at the same lowest and highest surface merged, so a level segment gets one),
+    each from the headroom above the lowest surface in it, so none reaches down
+    to a flight's or slope's surface.
+  Anything flat left inside the street below head height - a foundation's lip, a
+  pipe's top, a lamp post - is narrower than the agent's radius and erodes away;
+  the bake erodes the walkable area by that radius from every edge and obstacle,
+  so the baked edge lies about 0.3m in from the facades. No inset of its own.
+  **The voxel is 0.05m** (`VoxelSize`, overriding the agent's default of a third
+  of its radius, 0.1m): at 0.1m the polygons over a flight of steps bake as long
+  slivers standing up to 0.6m off the treads and the street below, and the guard
+  walks on them. **The height mesh is built too** (`buildHeightMesh`: the agent stands
+  on the ground's real height rather than the polygons'), and with both the surface
+  keeps within a few centimetres of the ground. After `Physics.SyncTransforms()` the
+  surface bakes, and its data is saved as
+  `Assets/Scenes/<scene>/NavMesh - <sector>.asset` (the folder made if missing; a
+  scene never saved is logged and keeps the data unsaved). The surface's own Bake
+  button gives the same result, so a level dressed by hand under `Generated` can
+  be baked again from the Inspector; a regeneration replaces the surface and the
+  volumes with the rest of `Generated` and the asset at that path. One log line
+  (`NavMesh: n volume(s) carving round m segment(s); baked X x Zm, saved to ...`).
+  Doors aren't generated, so none are in it; a hand-built sector is baked by its
+  own scene-root surface (`Assets/Scripts/AI/CLAUDE.md`). Three-streets bakes
+  1273m² in one region, every street walkable end to end over its flights and
+  slopes. **Checking a bake:** `NavMesh.CalculateTriangulation()` joined into
+  regions by shared vertices gives the islands, `NavMesh.SamplePosition` at
+  every street point and `NavMesh.CalculatePath` between neighbouring samples
+  along each middle line give where it breaks, all through `unity command
+  eval_file`.
 
 ## Catalogue scanner (stage 1)
 
@@ -1659,7 +1817,9 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   - `Masonary_WallCorner*` is in `masonry-cellar` and `plaster-masonry`;
   - `masonry-woodlarge` - `Masonary_WoodLarge*` (walls, corners, supports);
   - `Masonary_Foundations_*` - every building style;
-  - `cobbles` (street ground) - `StoneFloor_*` (A-E and Tile);
+  - `cobbles` (street ground) - `StoneFloor_*` (A-E and Tile); the tag names a
+    street's style, the ground itself being the generator's own mesh, so the
+    pieces aren't laid;
   - `wood-floor` (plank decking for wooden streets, walkways and bridges) -
     `Platforms_Planks*`, `Platforms_LoosePlank*`, `Platforms_BoardPlanks`,
     `Platforms_ShortBoardPlanks`, `Fixtures_WoodenPlatform*`; the `_Supports` pieces (`Platforms_ShortBoardPlanks_Supports` is the `jetty` piece)
@@ -1676,11 +1836,12 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   and the tagged pieces that aren't usable yet. Its **module** is the median width and
   height (the lower middle value for an even count) of its full-size usable `wall`,
   `window-wall` and `door-wall` pieces - those at least `fullSizeShare` of its widest
-  wall - so the half pieces never set it. Its **tiles** (what a street of the style is
-  laid with) are its `ground` pieces, or its `floor` pieces if it has no ground ones
-  (`TileCategory`); the **tile size** is the median width and depth of the full-size
-  ones (both sides at least `fullSizeShare` of the biggest tile's), and only tiles
-  within `sizeTolerance` of it are laid.
+  wall - so the half pieces never set it. A street of the style is **decked with its
+  `floor` pieces** (its tiles) where it has any, else it is **ground** - the
+  streets' own mesh, which needs no pieces (`TileCategory`: `floor` or `ground`);
+  the **tile size** is the median width and depth of the full-size floor pieces
+  (both sides at least `fullSizeShare` of the biggest tile's), and only tiles within
+  `sizeTolerance` of it are laid.
 - **`LayoutSpecValidator`** (menu **TeaLeaf > Level Gen > Validate Layout Spec**, on the
   spec(s) selected in `Layouts`) writes one Console entry per spec - an error entry if
   it can't be built, a warning entry if it has warnings. **Errors:** unreadable or other
@@ -1691,21 +1852,20 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   street it leaves more than `branchSquareTolerance` off square (`CheckBranchAngles`);
   a building or lot under
   one module, with no storeys or a door module off its front; a street or storey
-  naming no style or one no piece carries; a street style without `ground` or `floor`
-  pieces (a wooden street, walkway or bridge is decked with floors); a storey style
+  naming no style or one no piece carries (a street style with `floor` pieces is
+  decked - a wooden street, walkway or bridge - and any other is ground); a storey style
   without a `wall` that fits its module; a ground-storey-only style above the ground storey,
   or listed last when `maxStoreys` is more than the list (it would repeat);
   the ground storey's without `foundation` or
   `foundation-corner`, or without a `door-wall` that fits its module when there is a door; storeys whose
   modules differ from the ground storey's by more than `maxStoreyWidthMismatch`; a frontage's buildings more than 5cm longer than
   its stretch; a segment that rises or falls (more than `sizeTolerance`) on a decked
-  street, or that is too steep to slope (`streetSlopeMaxGrade`, over the segment
-  less its landing) and rises by other than a whole number of flights of one of
-  its style's `steps` pieces, or is too short for those flights (at the piece's
-  annotated ramp run) and their landing (`CheckRises`); a lot whose footprint
-  comes within `lotGroundMargin` plus half a tile of a sloping segment
-  (`CheckLotsBesideSlopes`: a lot's ground ring is laid at one level, so its
-  streets stay level - steps are fine). **Warnings:** more than a module's length left at a frontage's end (the
+  street, or that is too steep to slope (`streetSlopeMaxGrade`, its rise over its
+  length) and rises by other than a whole number of flights of one of its style's
+  `steps` pieces, or is too short for those flights (at the piece's annotated ramp
+  run) (`CheckRises`); a lot whose footprint comes within `lotGroundMargin` plus
+  `groundEdgeMargin` of a sloping segment (`CheckLotsBesideSlopes`: a lot's ground
+  ring is laid at one level, so its streets stay level - steps are fine). **Warnings:** more than a module's length left at a frontage's end (the
   generator fills it, but another building may suit); a building beside a slope
   whose street falls more than `slopeDropMax` below its level
   (`CheckSlopeDrops`, each building's place along the frontage taken roughly:
@@ -1749,13 +1909,15 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   every slope, `StreetSlopes`) and handed to the ground, the facades (and their
   street clearance), the street test and the visibility cull, so they all agree
   on where the street's surface is (`SurfaceAt`: up a flight's steps or a slope
-  as walked; `GroundAt`: what the tiles are laid at, level either side of a
+  as walked; `GroundAt`: what the ground mesh stands at, level either side of a
   flight). A street
-  that can't be laid (no usable tiles, too few points) is skipped and logged rather than
+  that can't be laid (a decked style with no usable tiles, too few points) is skipped and logged rather than
   stopping the run, so the ground can be tried before every building style is
   reviewed. One Console entry lists what was built. `Generated` holds `Streets`,
   `Facades`, `Lots`, `Roofs`, `Foliage`, `Foundation Colliders`, `Walkway
-  Colliders`, `Wall Colliders`, `Roof Colliders` and `Moon Shafts`. **After `FacadeBuilder.Build`, in
+  Colliders`, `Wall Colliders`, `Roof Colliders`, `Moon Shafts`, `Sound Rooms` and `NavMesh
+  Volumes`, and carries the `NavMeshSurface` that bakes the guards' NavMesh over
+  the streets (NavMesh, below). **After `FacadeBuilder.Build`, in
   this order:** the merged colliders (`MergedColliders`: foundations, then walkways),
   the nettles (`StreetFoliage.BuildNettles`), the gaps closed (`GapFiller`: every
   free wall end bridged or given a return, Gaps above), the street test (Facades,
@@ -1765,8 +1927,10 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   (`MergedColliders.RunWalls`, `RunRoofs`: after the cull and the roof edge, which
   remove pieces and colliders, so no box stands for one), the moon shafts
   (`MoonShafts.Build`: after every collider stands, since each beam is cut by rays
-  against them, and after the cull, which never sees them), the report
-  (`GeneratedReport`, its markers on the root), then the fingerprint.
+  against them, and after the cull, which never sees them), the sound rooms
+  (`SoundRooms.Build`: their tops come from the walls left standing), the NavMesh
+  (`StreetNavMesh.Build`: after every collider stands, since it bakes from them),
+  the report (`GeneratedReport`, its markers on the root), then the fingerprint.
 - **`StoreyPlan`** decides every building's storey count before anything is built
   (logged; stage 5 builds to it), its rolls next in the random sequence after the
   street widths. **A facade
@@ -1787,116 +1951,126 @@ can't fill, and any overlap, is shown in the report rather than hidden.
   destroyed again if it would stand in one (Street clearance, above).
   `PlaceAt` turns a piece about Y and puts a point of its own space (a connection
   point, a face's middle) on a world point; `Pick` is the shared random choice that
-  never repeats the piece before it. It places a tile by its **walking surface**: the middle of the catalogue's walk box
+  never repeats the piece before it. It places a decking tile by its **walking surface**: the middle of the catalogue's walk box
   at `walkHeight` (the render box's top without one) goes where the caller asks, so
   tiles meet by their collider tops.
 - **`StreetGround`** lays every street, in the spec's order, under `Generated/Streets`:
-  - **Ground (a style with `ground` tiles - cobbles): one grid per area**, an area being
-    the streets of that style joined at shared points. **The grid is never squared to
-    the world's axes**: from the first street's first point, turned at random (always
-    drawn) so its rows lie at least `groundGridMinAngle` off world X and Z. The outline
-    is each segment's rectangle (at its own width) plus a disc (half the wider of the
-    segments meeting there) at every bend and at an end shared with another street of
-    the area, filling the wedges and width steps, **plus the ground round each lot**
-    whose footprint's middle is nearest one of the area's segments: **a ring from its
-    footprint** (`LotSpec.Corners`, the line its walls' fronts reach) **out to
-    `lotGroundMargin`** (`LotGround`, `GroundLot`, `LotCoverage`: the footprint grown
-    by the margin, by separating axes), **never under the building** - a tile with
-    every corner more than `minTileCoverage` inside the footprint is not laid by the
-    lot (interiors are made by hand). A tile is laid where it reaches at least
-    `minTileCoverage` into the outline, so the turn leaves no gaps and no tile is
-    doubled at bends or junctions; what stands past the street's edge is under the
-    buildings lining it (and shows at a branch gap or a dead end). Each tile's walking
-    surface is at a lot's street level within its ring's outer edge, else at the
-    height of the nearest point on the area's middle lines - on a segment with a
-    flight of steps, the level of the flight's side it is on; on a slope, the
-    slope's surface (`StreetHeights.GroundAt`).
+  - **Ground (a style with no `floor` pieces - cobbles): meshes the generator builds,
+    one grid per area**, an area being the streets of that style joined at shared
+    points, under `Ground - <first street>`. **The grid is never squared to the
+    world's axes**: from the first street's first point, turned at random (always
+    drawn) so its cells lie at least `groundGridMinAngle` off world X and Z, cells
+    `groundCell` (0.75m) square. The outline is each segment's rectangle (at its own
+    width) plus a disc (half the wider of the segments meeting there) at every bend
+    and at an end shared with another street of the area, filling the wedges and
+    width steps, **plus the ground round each lot** whose footprint's middle is
+    nearest one of the area's segments: **a ring from its footprint**
+    (`LotSpec.Corners`, the line its walls' fronts reach) **out to `lotGroundMargin`**
+    (`LotGround`, `GroundLot`), and half a metre in under its walls, **never under
+    the building** (interiors are made by hand). A cell is kept where any corner or
+    its middle lies in the outline grown by `groundEdgeMargin` (1.5m; `Inside`), so
+    the ground runs on under the buildings lining the street (and shows at a branch
+    gap or a dead end), with no gap at a bend or junction. **Every vertex stands at
+    the street's surface** (`HeightAt`: a lot's street level within its ring, else
+    `StreetHeights.GroundAt` for the segment nearest the vertex - level ground, a
+    slope's surface, or the level of a flight's side), so a sloping segment is a
+    slope in the mesh itself.
+  - **One mesh per level and per slope** (`GroundMesh`, `RegionOf`, `CutsLevel`,
+    `PlaceVertex`): each cell is sorted by the segment nearest its middle (the one
+    its heights come from) - a sloping segment's cells are that slope's own region,
+    every other cell is level, and the level cells are joined into one region per
+    connected level (`GroundMesh.JoinLevels`, four-connected), never across a flight
+    of steps: two neighbours nearest the flight's segment on opposite sides of the
+    flight's middle are kept apart. **No cell lies wholly under a flight's steps**
+    (between its front and its top, within the street's width: dropped), and a
+    vertex that would is moved along the segment onto the flight's front (low side
+    of its middle) or its top (high side), so the lower level's mesh ends exactly
+    on the lowest step's front and the upper one starts on the top step's back
+    edge - nothing shows above the steps, nothing dips behind them. A level of under
+    six cells (a stray at a junction) joins the region beside it. Each region is an
+    object (`Ground slope <street> <from>-<to>`, `Ground level <height>m`) holding
+    its chunks (`Chunk <x>_<z>`): the grid cut into 32-cell squares (24m), each a
+    mesh asset in `Assets/Data/LevelGen/Ground` and a `MeshFilter` / `MeshRenderer`
+    on the `Environment` layer, static (GI, occluder, occludee, batching, reflection
+    probes), casting no shadow (nothing stands under a street), receiving them,
+    lightmapped once the scene is baked and probe-lit until then, drawn with
+    `Assets/Art/Materials/Environment/Ground/StreetGround.mat` (`TeaLeaf/GroundBlend`,
+    `Assets/Scripts/Core/CLAUDE.md`). Normals come from the whole grid's heights (on
+    each axis the gentler of the two one-sided differences, so a flight's jump
+    doesn't tilt the vertices beside it) and lightmap UVs are planar over each
+    chunk, so chunk and region borders show no seam. Three-streets: 13 regions (5
+    slopes, 8 levels) in 38 chunks, 5348 vertices, 8722 triangles.
+  - **Paint** (`Paint`; the shader blends the layers by their height maps): each
+    vertex's colour is red for cobbles and blue for wet dirt, nothing for the dirt
+    beneath. Cobbles reach from the nearest street's middle out to
+    `groundCobbleShare` of its half-width, the edge moved in and out by up to
+    `groundPaintWobble` by a value noise of `groundPaintScale` (`GroundMesh.Noise`,
+    two octaves, integer-hashed from the spec's seed, the same on every machine) and
+    fading over `groundPaintFade`; a dirt gutter lies beyond, and a lot's ring is
+    dirt. Puddles lie wherever a second noise of `groundPuddleScale` rises into its
+    top `groundPuddleCover`, on cobbles and dirt alike (the height blend puts the
+    water in the joints).
+  - **Colliders: the ground collides by its own meshes** - each chunk carries a
+    `MeshCollider` of its own mesh and a Stone `SurfaceTag` (dirt and puddles sound
+    as stone; `GroundMesh`), so what is walked on is exactly what is seen, slopes,
+    bends and junctions included. **Don't go back to level and tilted boxes**: a level
+    box at a point where a slope meets it stands proud of the slope (a lip of up to
+    0.2m the body and the NavMesh both climb). The one box left (`LayColliders`,
+    under `Ground - <street>/Colliders`, `Ground <segment> top step`) is under each
+    flight's top step: `groundStepsOverlap` long, back from the top step's back
+    edge (where the upper level's mesh begins) under its flat tread, since the
+    steps' ramp collider stops 0.28m short of that edge; `groundThickness` (0.25m)
+    deep with its top at the upper level, across the street and `groundEdgeMargin`
+    past each edge, on `Environment`, static, Stone. Three-streets: 38 chunks and 6
+    boxes. The steps keep their `RampCollider`s.
   - **Slopes** (`StreetSlopes`: the choice and geometry, shared with the validator
-    and the facades; `StreetGround.LaySlope` lays them, after the area's grid and
-    its flights): **streets meet level at their points, and a segment whose points
-    differ in height (by more than `sizeTolerance`) climbs by a slope where its
-    grade is no steeper than `streetSlopeMaxGrade`** - the rise over the segment
-    less the landing at its top - **else by a flight of steps** (below). Only a
-    street of `ground` tiles can change height. The slope runs from its foot (the
-    low point) to its top, a landing's depth short of the high point: rows of
-    tiles across the segment in its own frame, laid from the top down (so the
-    last row's low edge overruns past the foot under the level ground there, and
-    no tilted tile reaches past the top above the landing), each tile turned by
-    the slope's `TiltRotation` (about the segment's across axis, after its own
-    quarter turn) with its walking surface's middle on the slope's surface
-    (`SurfaceAt`), each row slid and each tile turned as on the grid, the rows
-    reaching a tile's width past each street edge under the buildings'
-    foundations. **At the top, a landing** as a flight's (`LayLanding`, shared),
-    `landingDrop` below the high level, reaching a tile's width past each edge
-    too. A grid tile is left out (`OverSlope`)
-    where its middle is between the foot and the landing's far edge less half a
-    diagonal, within the width plus half a diagonal of the middle line; a grid
-    tile before the foot lies under the slope's rising tiles. No grass on a slope
-    or its landing. Under `Ground - <street>/Slope - <street> <from>-<to>`. The
-    facades beside it stand level, each building at the highest the street comes
-    under it, their foundations stacked down to the street (Facades, Beside a
-    slope).
+    and the facades): **streets meet level at their points, and a segment whose
+    points differ in height (by more than `sizeTolerance`) climbs by a slope where
+    its grade is no steeper than `streetSlopeMaxGrade`** - its rise over its length
+    - **else by a flight of steps** (below). Only a street of ground can change
+    height. The slope runs the whole segment from its foot (the low point) to its
+    top (the high point); the mesh follows `SurfaceAt`. The facades beside it stand
+    level, each building at the highest the street comes under it, their
+    foundations stacked down to the street (Facades, Beside a slope).
   - **Steps** (`StreetSteps`: the choice and geometry, shared with the validator and
-    the facades; `StreetGround.LayFlight` lays them, after the area's grid): **a
-    segment whose points differ in height and that is too steep to slope climbs by
-    a flight of steps across the whole street**, the
-    ground flat at each point's height either side of it. The flight is a whole number of flights of the street
-    style's first usable `steps` piece that makes the rise within `sizeTolerance`
-    (the stone `Steps Full Width`, 1.62m, tagged `cobbles`), stacked up the segment
-    each from where the render box of the one below ends, scaled in height to make
-    the rise exactly, as many side by side as round to the segment's width,
-    overlapping by `groundOverlap` (no crack between them) and scaled along their
-    width so together they fill it, each one's ramp foot at its level. The
-    facades either side close the gap to the steps with stacked foundations (Facades,
-    Beside a flight of steps). **At the top, a
-    landing** of `LandingRows` rows of ground tiles in the segment's own frame (each
-    row slid and each tile turned as on the grid) from the top step's edge, a tile's
-    diagonal deep (two rows of the 3m tile), reaching a tile's width past each edge
-    of the street (under the buildings, or under the grid beside a sharp bend, where
-    it covers the tiles the grid leaves out), `landingDrop` below the street: the
-    turned grid can't make the straight edge the top step needs. The flights and the
-    landing are centred on the segment. A grid tile is left out (`OverFlight`) where
-    its middle is on the high side of halfway up the flight and short of the
-    landing's far edge less half a diagonal, within the width plus half a diagonal of
-    the middle line, so no grid tile lies over the steps and the landing covers what
-    they leave; a grid tile on the low side lies under the solid steps or the
-    landing. Under `Ground - <street>/Steps - <street> <from>-<to>`.
-  - **Decking (a style with only `floor` tiles - wood-floor): each segment in its own
+    the facades; `StreetGround.LayFlight` lays them, after the mesh): **a segment
+    whose points differ in height and that is too steep to slope climbs by a flight
+    of steps across the whole street**, the ground level at each point's height
+    either side of it. The flight is a whole number of flights of the street style's
+    first usable `steps` piece that makes the rise within `sizeTolerance` (the stone
+    `Steps Full Width`, 1.62m, tagged `cobbles`), stacked up the segment each from
+    where the render box of the one below ends, scaled in height to make the rise
+    exactly, as many side by side as round to the segment's width, overlapping by
+    `groundOverlap` (no crack between them) and scaled along their width so together
+    they fill it, each one's ramp foot at its level; the flights are centred on the
+    segment. The facades either side close the gap to the steps with stacked
+    foundations (Facades, Beside a flight of steps). Under `Ground - <street>/Steps -
+    <street> <from>-<to>`.
+  - **Decking (a style with `floor` tiles - wood-floor): each segment in its own
     frame**, so the boards follow the walkway. Rows across the segment's width,
     centred on the middle line; at a bend each segment runs on by half the wider
     segment's width x tan(half the turn) (at most that width) to meet the next at the outside edge, so the inside of a
     bend overlaps. `deckingQuarterTurn` lays the tiles a quarter turn from the street.
-    Height follows the segment, tile by tile (flat tiles, not tilted).
-  - **Rows:** tiles are laid in rows, neighbours overlapping by `groundOverlap` /
-    `deckingOverlap` (the pitch is the tile less it). **Each square ground tile is
-    turned a quarter, half or three-quarter turn from the tile before it along its
-    row** (at random, so no two neighbours lie the same way; a row's first tile any
-    turn); a non-square tile, and every decking tile, takes a random half turn so it
-    still fits. **Each row slides along from the one
-    before by a random share of a tile** between the slide min and max (kept within
-    one pitch; the first row unslid), so the joints don't line up. Along a row the
-    tile is chosen at random among the style's tiles, never the one before it unless
-    it is the only one.
-  - **Floor colliders** (`FloorColliders`): **the tiles keep no colliders of their
-    own** (every collider on a placed tile, the tile's disabled mesh collider
-    included, is removed from the instance as it is laid - an override, the prefab
-    untouched). **Each run of tiles side by side along a row whose collider tops are
-    at the same height (1mm) and whose `SurfaceTag` matches gets one `BoxCollider`**
-    in the row's own frame (`BeginRow` with the row's direction and, for a slope's
-    rows, the tiles' tilted normal: the frame's X runs along the row, Y up it,
-    Z across; corners are measured in it and the box is turned to it), exactly
-    the extent of the run's tile box colliders (their
-    top at the walking surface, 0.4m thick for `StoneFloor_Tile`), so no gap opens and
-    no invisible floor reaches past the tiles. A tile skipped or refused, or a change
-    of height (a lot's ring, a flight's two levels), ends a run. Grid rows, landing
-    rows (running across the street, 2cm under the grid tiles they meet), a slope's
-    tilted rows (one tilted box each) and decking
-    rows (a rising decked segment's tiles, each at its own height, get a box each) all work
-    so. The boxes (`Floor <n>`) go under a `Colliders` child of the area's or street's
-    ground group, on the tiles' collider layer (`Environment`) with their static flags
-    and a `SurfaceTag` (the tiles' copied - `TL_StoneFloor_Tile` carries one set to
-    Stone - and Stone where a tile has none). The steps keep their `RampCollider`s. About one box per row: the four
-    examples go from 166-688 tile colliders to 15-62 boxes per area.
+    Height follows the segment, tile by tile (flat tiles, not tilted). Tiles are laid
+    in rows, neighbours overlapping by `deckingOverlap` (the pitch is the tile less
+    it), each tile turned a random half turn so its boards keep their direction,
+    **each row slid along from the one before by a random share of a tile** between
+    the slide min and max (kept within one pitch; the first row unslid), so the
+    joints don't line up. Along a row the tile is chosen at random among the style's
+    tiles, never the one before it unless it is the only one.
+  - **Floor colliders** (`FloorColliders`, decking only): **the tiles keep no
+    colliders of their own** (every collider on a placed tile is removed from the
+    instance as it is laid - an override, the prefab untouched). **Each run of tiles
+    side by side along a row whose collider tops are at the same height (1mm) and
+    whose `SurfaceTag` matches gets one `BoxCollider`** in the row's own frame
+    (`BeginRow` with the row's direction: the frame's X runs along the row, Y up,
+    Z across; corners are measured in it and the box is turned to it), exactly the
+    extent of the run's tile box colliders, so no gap opens and no invisible floor
+    reaches past the tiles. A tile skipped or refused, or a change of height, ends a
+    run (a rising decked segment's tiles, each at its own height, get a box each).
+    The boxes (`Floor <n>`) go under a `Colliders` child of the street's decking
+    group, on the tiles' collider layer with their static flags and a `SurfaceTag`
+    (the tiles' copied, else Stone).
 
 ## Known about the prefabs
 

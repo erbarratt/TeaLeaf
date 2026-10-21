@@ -19,6 +19,7 @@ namespace Interaction
     [CreateAssetMenu(fileName = "HandSnapProfile", menuName = "TeaLeaf/Hand Snap Profile")]
     public class HandSnapProfile : ScriptableObject
     {
+        [Tooltip("The finger pose the hand plays while snapped to a target that uses this profile. Every target of one kind shares the profile, so they all show the same pose.")]
         [SerializeField] private HandPose pose;
 
         [Header("Left Hand")]
@@ -26,13 +27,16 @@ namespace Interaction
         // Offset of the hand visual's root from the grip frame, in the grip
         // frame's own axes (x along the edge, y up, z into the wall for a
         // ledge) - so it stays correct whichever way a ledge faces.
+        [Tooltip("Where the left hand visual's root sits relative to the target's grip frame, in metres along the frame's own axes (X along the edge, Y up, Z into the wall for a ledge). Zero puts the root exactly on the grip frame.")]
         [SerializeField] private Vector3 leftPositionOffset;
 
-        // Euler rotation from the grip frame to the hand visual's root.
+        [Tooltip("How the left hand visual's root is turned from the grip frame, as Euler angles in degrees about the frame's own axes. Zero leaves it facing the way the frame does.")]
         [SerializeField] private Vector3 leftRotationOffset;
 
         [Header("Right Hand")]
+        [Tooltip("The same offset for the right hand visual, in metres along the grip frame's axes. Separate from the left hand's because the right hand visual is the left one mirrored, so one set of numbers can't line both up.")]
         [SerializeField] private Vector3 rightPositionOffset;
+        [Tooltip("The same rotation for the right hand visual, as Euler angles in degrees about the grip frame's axes. Separate from the left hand's because the right hand visual is mirrored.")]
         [SerializeField] private Vector3 rightRotationOffset;
 
         /// <summary>

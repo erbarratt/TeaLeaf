@@ -15,11 +15,10 @@ namespace Interaction
     [RequireComponent(typeof(BoxCollider))]
     public class ChestLid : MonoBehaviour, IHandTarget, IHandSnapTarget
     {
-        // The chest this is the lid of. Found on a parent if left empty.
+        [Tooltip("The chest this is the lid of. Left empty, the Chest on a parent object is used.")]
         [SerializeField] private Chest chest;
 
-        // How the hand sits on the lid. With none, the hand sits exactly
-        // on the grip frame.
+        [Tooltip("The hand offsets and finger pose for a hand holding the lid's front. Left empty, the hand sits exactly on the grip frame with the default pose.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
         private BoxCollider _boxCollider;

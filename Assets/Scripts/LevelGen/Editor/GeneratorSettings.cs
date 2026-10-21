@@ -34,6 +34,8 @@ namespace LevelGen
         [SerializeField, Range(0f, 5f)] private float streetWidthVariance = 1f;
         [Tooltip("No segment is made narrower than this, whatever the variance.")]
         [SerializeField, Range(0.5f, 10f)] private float minStreetWidth = 2f;
+        [Tooltip("How far from a street's edge the walls along it are looked for, whose tops set how high the moon shafts' openings and the sound rooms reach.")]
+        [SerializeField, Range(0.2f, 5f), FormerlySerializedAs("moonShaftWallProbe")] private float edgeWallProbe = 1.5f;
 
         [Header("Storeys")]
         [Tooltip("The fewest storeys a facade is given. A building's styles are listed from the ground up and the last one repeats for any storey above the list.")]
@@ -219,24 +221,41 @@ namespace LevelGen
         [Tooltip("The share of a layout's street corners that are sharp. Claude writes layout specs to it, and the validator reports how far a spec is from it.")]
         [SerializeField, Range(0f, 1f)] private float sharpCornerShare = 0.25f;
 
-        [Header("Ground tiles (cobbles)")]
-        [Tooltip("How far neighbouring ground tiles overlap, along a row and between rows.")]
-        [SerializeField, Range(0f, 0.2f)] private float groundOverlap = 0.03f;
-        [Tooltip("Each tile is turned a quarter, half or three-quarter turn from the tile before it along its row (square tiles; other tiles take a random half turn).")]
-        [SerializeField] private bool groundTileTurns = true;
-        [Tooltip("Each row slides along from the row before it by a random share of a tile between these two, so the joints never line up.")]
-        [SerializeField, Range(0f, 1f)] private float groundSlideMin = 0.2f;
-        [SerializeField, Range(0f, 1f)] private float groundSlideMax = 0.8f;
-        [Tooltip("Each street area's ground grid is turned at random so its rows lie at least this many degrees off the world's X and Z axes: never squared to them. Tiles are laid wherever they overlap the area, so the turn leaves no gaps.")]
+        [Header("Ground (the streets' mesh)")]
+        [Tooltip("The ground mesh's grid: the side of one square cell, in metres. Smaller follows the painted edges more closely and costs more vertices.")]
+        [SerializeField, Range(0.25f, 3f)] private float groundCell = 0.75f;
+        [Tooltip("How far the ground runs on past the streets' edges, under the buildings lining them, and past the ring round a lot; the boxes under the steps' top steps reach as far past the edges.")]
+        [SerializeField, Range(0f, 5f)] private float groundEdgeMargin = 1.5f;
+        [Tooltip("Each street area's ground grid is turned at random so its cells lie at least this many degrees off the world's X and Z axes: never squared to them.")]
         [SerializeField, Range(0f, 45f)] private float groundGridMinAngle = 15f;
-        [Tooltip("The ground is laid under each lot too, as part of the nearest street area's grid: a ring from the lot's footprint out to this far round it, so it reaches under its walls and foundations (and any yard a lot with its own outline or modules leaves). Never under the building itself.")]
+        [Tooltip("The ground is laid under each lot too, as part of the nearest street area's mesh: a ring from the lot's footprint out to this far round it, so it reaches under its walls and foundations (and any yard a lot with its own outline or modules leaves). Never under the building itself.")]
         [SerializeField, Range(0f, 20f)] private float lotGroundMargin = 1f;
-        [Tooltip("A tile is laid only where it overlaps the street by at least this much; the rest of it may stand out under the buildings lining the street.")]
-        [SerializeField, Range(0f, 1.5f)] private float minTileCoverage = 0.1f;
+        [Tooltip("How thick the box under a flight of steps' top step is, its top on the upper level.")]
+        [SerializeField, Range(0.05f, 1f)] private float groundThickness = 0.25f;
+        [Tooltip("How much of a flight of steps' pieces overlap side by side across the street, so no crack shows between them.")]
+        [SerializeField, Range(0f, 0.2f)] private float groundOverlap = 0.03f;
+        [Tooltip("The upper level's collider box runs this far back over the top step of a flight, under its flat tread, so the steps' ramp (which stops a little short of the top step's back edge) meets the ground with no gap for the NavMesh or the player's feet.")]
+        [SerializeField, Range(0f, 0.6f)] private float groundStepsOverlap = 0.3f;
+
+        [Header("Ground paint (the vertex colours the shader blends)")]
+        [Tooltip("Cobbles cover the middle of every street out to this share of its half-width; beyond it the dirt gutter shows. The edge between them is wobbled by noise.")]
+        [SerializeField, Range(0f, 1.5f)] private float groundCobbleShare = 0.8f;
+        [Tooltip("How far, in metres, the noise moves the cobbles' edge in and out.")]
+        [SerializeField, Range(0f, 3f)] private float groundPaintWobble = 0.8f;
+        [Tooltip("The size of the noise that wobbles the cobbles' edge, in metres per blob.")]
+        [SerializeField, Range(0.5f, 20f)] private float groundPaintScale = 4f;
+        [Tooltip("How far, in metres, the paint fades from all cobbles to all dirt at the edge (the shader's height blend sharpens it at the pixels).")]
+        [SerializeField, Range(0.1f, 3f)] private float groundPaintFade = 1f;
+        [Tooltip("The share of the ground given to puddles of wet dirt, roughly: wherever a second noise rises into its top this share.")]
+        [SerializeField, Range(0f, 1f)] private float groundPuddleCover = 0.2f;
+        [Tooltip("The size of the puddle noise, in metres per blob.")]
+        [SerializeField, Range(0.5f, 20f)] private float groundPuddleScale = 5f;
 
         [Header("Foliage (grass, nettles)")]
-        [Tooltip("The share of the ground tiles laid on the streets that carry a cluster of grass (verified pieces of the grass category), drawn per tile. 0 lays none.")]
+        [Tooltip("The share of the ground's patches (grassPatch square) that carry a cluster of grass (verified pieces of the grass category), drawn per patch. 0 lays none.")]
         [SerializeField, Range(0f, 1f)] private float grassCover = 0.05f;
+        [Tooltip("The side of the square patches the ground is dealt out in for grass, in metres.")]
+        [SerializeField, Range(1f, 10f)] private float grassPatch = 3f;
         [Tooltip("How many tufts of grass a cluster has, at random between these.")]
         [SerializeField, Range(1, 12)] private int grassClusterMin = 2;
         [SerializeField, Range(1, 12)] private int grassClusterMax = 4;
@@ -260,9 +279,7 @@ namespace LevelGen
         [SerializeField, Range(0f, 0.1f)] private float foliageSink = 0.03f;
 
         [Header("Steps and slopes (streets changing height)")]
-        [Tooltip("The landing of ground tiles laid square to a flight of steps or a slope at its top, in the segment's own frame, stands this far below the street's level, so where the street's own grid of tiles overlaps it the grid's tiles lie on top.")]
-        [SerializeField, Range(0f, 0.1f)] private float landingDrop = 0.02f;
-        [Tooltip("A segment that rises no more steeply than this (its rise over its length less the landing: 0.083 is 1 in 12, about 4.8 degrees) is climbed by a slope of tilted ground tiles; a steeper one needs whole flights of steps.")]
+        [Tooltip("A segment that rises no more steeply than this (its rise over its length: 0.083 is 1 in 12, about 4.8 degrees) is climbed by a slope in the ground mesh; a steeper one needs whole flights of steps.")]
         [SerializeField, Range(0.01f, 0.25f)] private float streetSlopeMaxGrade = 0.083f;
         [Tooltip("A building beside a slope stands level at the highest the street comes under it, its foundations stacked down to the street; the validator warns of a building whose street falls further than this below its level (one course of the masonry foundations is about a metre).")]
         [SerializeField, Range(0.1f, 2f)] private float slopeDropMax = 0.6f;
@@ -347,12 +364,23 @@ namespace LevelGen
         [SerializeField, Range(0f, 10f)] private float moonShaftStreetMaxWidth = 4.5f;
         [Tooltip("The furthest a shaft's light is followed through its opening before the beam is cut off, where nothing stops it sooner.")]
         [SerializeField, Range(1f, 100f)] private float moonShaftMaxLength = 40f;
-        [Tooltip("How far from a street's edge the pass looks for the walls along it, whose tops (less the roofs' eave drop, the lower side's) set the opening's height; a segment with no wall along either edge gets no shaft.")]
-        [SerializeField, Range(0.2f, 5f)] private float moonShaftWallProbe = 1.5f;
         [Tooltip("How far in from each edge of the street the opening stops, so its rays never start inside the walls.")]
         [SerializeField, Range(0f, 1.5f)] private float moonShaftInset = 0.3f;
         [Tooltip("A segment whose eaves stand lower than this above the street gets no shaft.")]
         [SerializeField, Range(0.5f, 10f)] private float moonShaftMinEaves = 2f;
+
+        [Header("Sound rooms")]
+        [Tooltip("A street whose spec width (its own, or Street Width when 0) is no more than this echoes as an alley; a wider one, and its junctions, as outdoors.")]
+        [SerializeField, Range(0f, 10f)] private float soundAlleyMaxWidth = 4.5f;
+        [Tooltip("How much sound is muffled passing through a junction's mouth into a street (the open muffle of the portals between them). Mild, since nothing stands in the way; a sound heard straight through the mouth from the next room isn't muffled at all.")]
+        [SerializeField, Range(0f, 1f)] private float soundStreetMuffle = 0.15f;
+        [Tooltip("How much sound is muffled passing up out of a street to the rooftops, or down into one (the open muffle of the portal over each street room).")]
+        [SerializeField, Range(0f, 1f)] private float soundSkyMuffle = 0.3f;
+        [Tooltip("A street room reaches at least this high above the highest its street comes, whatever the eaves along it.")]
+        [SerializeField, Range(2f, 10f)] private float soundRoomMinHeight = 3f;
+        [Tooltip("The background loop heard in every street room (a cue's first clip). Empty = silence.")]
+        [SerializeField] private Core.SoundCue soundStreetAmbience;
+        [SerializeField, Range(0f, 1f)] private float soundStreetAmbienceVolume = 1f;
 
         [Header("Decking (wooden streets, walkways, bridges)")]
         [Tooltip("How far neighbouring decking tiles overlap, along a row and between rows.")]
@@ -451,14 +479,21 @@ namespace LevelGen
         internal float StreetBallHeight => streetBallHeight;
         internal float SharpCornerAngle => sharpCornerAngle;
         internal float SharpCornerShare => sharpCornerShare;
-        internal float GroundOverlap => groundOverlap;
-        internal bool GroundTileTurns => groundTileTurns;
-        internal float GroundSlideMin => groundSlideMin;
-        internal float GroundSlideMax => groundSlideMax;
-        internal float MinTileCoverage => minTileCoverage;
+        internal float GroundCell => groundCell;
+        internal float GroundEdgeMargin => groundEdgeMargin;
         internal float GroundGridMinAngle => groundGridMinAngle;
         internal float LotGroundMargin => lotGroundMargin;
+        internal float GroundThickness => groundThickness;
+        internal float GroundOverlap => groundOverlap;
+        internal float GroundStepsOverlap => groundStepsOverlap;
+        internal float GroundCobbleShare => groundCobbleShare;
+        internal float GroundPaintWobble => groundPaintWobble;
+        internal float GroundPaintScale => groundPaintScale;
+        internal float GroundPaintFade => groundPaintFade;
+        internal float GroundPuddleCover => groundPuddleCover;
+        internal float GroundPuddleScale => groundPuddleScale;
         internal float GrassCover => grassCover;
+        internal float GrassPatch => grassPatch;
         internal int GrassClusterMin => grassClusterMin;
         internal int GrassClusterMax => grassClusterMax;
         internal float GrassClusterRadius => grassClusterRadius;
@@ -471,7 +506,6 @@ namespace LevelGen
         internal float FoliageScaleMin => foliageScaleMin;
         internal float FoliageScaleMax => foliageScaleMax;
         internal float FoliageSink => foliageSink;
-        internal float LandingDrop => landingDrop;
         internal float StreetSlopeMaxGrade => streetSlopeMaxGrade;
         internal float SlopeDropMax => slopeDropMax;
         internal float RoofPitch => roofPitch;
@@ -510,9 +544,15 @@ namespace LevelGen
         internal float RoofEdgeReach => roofEdgeReach;
         internal float MoonShaftStreetMaxWidth => moonShaftStreetMaxWidth;
         internal float MoonShaftMaxLength => moonShaftMaxLength;
-        internal float MoonShaftWallProbe => moonShaftWallProbe;
+        internal float EdgeWallProbe => edgeWallProbe;
         internal float MoonShaftInset => moonShaftInset;
         internal float MoonShaftMinEaves => moonShaftMinEaves;
+        internal float SoundAlleyMaxWidth => soundAlleyMaxWidth;
+        internal float SoundStreetMuffle => soundStreetMuffle;
+        internal float SoundSkyMuffle => soundSkyMuffle;
+        internal float SoundRoomMinHeight => soundRoomMinHeight;
+        internal Core.SoundCue SoundStreetAmbience => soundStreetAmbience;
+        internal float SoundStreetAmbienceVolume => soundStreetAmbienceVolume;
         internal float DeckingOverlap => deckingOverlap;
         internal bool DeckingQuarterTurn => deckingQuarterTurn;
         internal float DeckingSlideMin => deckingSlideMin;
@@ -526,7 +566,6 @@ namespace LevelGen
             maxStoreys = Mathf.Max(minStoreys, maxStoreys);
             columnWidthMax = Mathf.Max(columnWidthMin, columnWidthMax);
             columnDepthMax = Mathf.Max(columnDepthMin, columnDepthMax);
-            groundSlideMax = Mathf.Max(groundSlideMin, groundSlideMax);
             grassClusterMax = Mathf.Max(grassClusterMin, grassClusterMax);
             nettlesPerStreetMax = Mathf.Max(nettlesPerStreetMin, nettlesPerStreetMax);
             foliageScaleMax = Mathf.Max(foliageScaleMin, foliageScaleMax);

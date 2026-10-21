@@ -1,54 +1,74 @@
 using System.Collections.Generic;
+using Core;
+using UnityEditor;
 using UnityEngine;
 
 namespace LevelGen
 {
     /// <summary>
-    /// Stage 4: lays every street's ground with its style's tiles.
+    /// Stage 4: lays every street's ground.
     ///
-    /// A style with ground pieces (cobbles) is laid on one grid per street
-    /// area - the streets of that style joined at shared points - turned at
-    /// random, never squared to the world's axes (GroundGridMinAngle). A
-    /// tile is laid wherever it overlaps the area's outline (each segment's
-    /// rectangle, a disc at every bend and junction to fill the wedges, and
-    /// the ground round each lot nearest the area: a ring from its footprint
-    /// out to LotGroundMargin, at the lot's street level, never under the
-    /// building) by at least GeneratorSettings.MinTileCoverage, so there are no gaps at
-    /// bends, junctions or edges and no tile lies on another; what stands
-    /// out past the street's edge is under the buildings lining it. A
-    /// segment that changes height is climbed by a flight of steps with a
-    /// landing at its top (StreetSteps, LayFlight), the ground level either
-    /// side of it, or, where it rises gently enough, by a slope of tilted
-    /// tiles in the segment's own frame with the same landing at its top
-    /// (StreetSlopes, LaySlope).
+    /// A street of ground (any style with no floor pieces: cobbles) is
+    /// meshes built by GroundMesh per street area - the streets of that
+    /// style joined at shared points - on one grid turned at random, never
+    /// squared to the world's axes (GroundGridMinAngle). The area's outline
+    /// is each segment's rectangle, a disc at every bend and junction to
+    /// fill the wedges, and the ground round each lot nearest the area: a
+    /// ring from its footprint out to LotGroundMargin, at the lot's street
+    /// level, never under the building. A grid cell is kept where any of
+    /// its corners or its middle lies in the outline grown by
+    /// GroundEdgeMargin, so the ground runs on under the buildings lining
+    /// the street and there are no gaps at bends or junctions. Every vertex
+    /// stands at the street's surface (StreetHeights.GroundAt). The ground
+    /// is one mesh per level and per slope (RegionOf, CutsLevel): each
+    /// sloping segment's cells - those whose nearest segment it is - are a
+    /// region of their own, the rest are joined into one region per
+    /// connected level, and a flight of steps (StreetSteps, LayFlight)
+    /// parts two levels: no cell lies wholly under its steps, and the
+    /// vertices that would are moved onto the flight's front or top line
+    /// (PlaceVertex), so the lower level ends exactly at the lowest step's
+    /// front and the upper one starts at the top step's back edge. The
+    /// vertices are painted (Paint): cobbles down the middle of every
+    /// street out to GroundCobbleShare of its half-width, a dirt gutter
+    /// beyond, the edge between them wobbled by noise, and puddles of wet
+    /// dirt wherever a second noise rises above GroundPuddleCover; the
+    /// shader blends the three by their height maps.
     ///
-    /// A style with only floor pieces (plank decking: wooden streets,
-    /// walkways, bridges) is laid along each segment in that segment's own
-    /// frame, so the boards follow the walkway; at a bend each segment runs
-    /// on to meet the next at the outside edge.
+    /// The ground collides by its own meshes (GroundMesh: a MeshCollider
+    /// per chunk, with a Stone SurfaceTag), so what is walked on is what
+    /// is seen. The steps keep their own ramps, and a box under each
+    /// flight's top step (LayColliders) closes the gap between the ramp's
+    /// top and the upper level.
     ///
-    /// Either way the tiles are laid in rows, each row slid from the one
-    /// before it and each tile turned from the one before it along its row
-    /// (by the settings), neighbouring tiles overlapping slightly, and the walking surfaces (collider tops) at the street's
-    /// height. Where several tiles fit, one is chosen at random, never the
-    /// same as the one before it along the row. The tiles' colliders are
-    /// replaced by one box per run of tiles along a row at one height
-    /// (FloorColliders).
+    /// A style with floor pieces (plank decking: wooden streets, walkways,
+    /// bridges) is laid along each segment in that segment's own frame, so
+    /// the boards follow the walkway; at a bend each segment runs on to
+    /// meet the next at the outside edge. The tiles are laid in rows, each
+    /// row slid from the one before it and each tile turned a half turn
+    /// from the one before it along its row, neighbours overlapping
+    /// slightly; the tiles' colliders are replaced by one box per run of
+    /// tiles along a row at one height (FloorColliders).
     ///
-    /// As a ground grid is laid, a share of its tiles (GrassCover) get a
-    /// cluster of grass (StreetFoliage.PlaceCluster) about a random point on
-    /// the tile, where that point stands in the open street (InOpenStreet:
+    /// As an area's ground is built, a share of its GrassPatch-square
+    /// patches (GrassCover) get a cluster of grass
+    /// (StreetFoliage.PlaceCluster) about a random point in the patch,
+    /// where that point stands in the open street (InOpenStreet:
     /// GrassEdgeMargin in from the street's edges, from every lot's
-    /// footprint and from a flight of steps or a slope), under a "Grass - street" group
-    /// of the foliage parent; the foliage's own random sequence is drawn
-    /// from, so the tiles come out the same with or without it. Decking and
-    /// landings get no grass.
+    /// footprint and from a flight of steps), under a "Grass - street"
+    /// group of the foliage parent; the foliage's own random sequence is
+    /// drawn from, so the ground comes out the same with or without it.
+    /// Decking gets no grass.
     /// </summary>
     internal static class StreetGround
     {
         // A tile less this far from one row or column to the next (after the
         // overlap) can't be laid.
         private const float MinPitch = 0.1f;
+        // How far the ground runs on under a lot's walls, so the floor meets
+        // the foundations with no gap.
+        private const float UnderLotWalls = 0.5f;
+        // A paint value this small is nothing.
+        private const float PaintEpsilon = 0.004f;
 
         /// <summary>
         /// A rectangle on the ground (x, z).
@@ -90,7 +110,7 @@ namespace LevelGen
                     continue;
                 }
 
-                BuildingStyle style = TileStyle(street, styles, log);
+                BuildingStyle style = StreetStyle(street, styles, log);
 
                 if (style == null) {
                     continue;
@@ -115,7 +135,7 @@ namespace LevelGen
                 (StreetSpec first, BuildingStyle style, List<StreetSpec> area) = laid[i];
 
                 if (area != null) {
-                    LayArea(area, lotGround[i], heights, style, settings, random, foliageRandom, placer, Group(parent, $"Ground - {first.id}"),
+                    LayArea(spec, area, lotGround[i], heights, style, settings, random, foliageRandom, placer, Group(parent, $"Ground - {first.id}"),
                         foliage, log);
                 } else {
                     LayDecking(first, style, settings, random, placer, Group(parent, $"Decking - {first.id}"), log);
@@ -239,17 +259,23 @@ namespace LevelGen
 
         /// <summary>
         /// The style a street is laid with, or null (logged) if the street
-        /// can't be laid: too few points, or no usable tiles.
+        /// can't be laid: too few points, no style, or a decked style with
+        /// no usable floor tiles.
         /// </summary>
-        private static BuildingStyle TileStyle(StreetSpec street, Dictionary<string, BuildingStyle> styles, List<string> log)
+        private static BuildingStyle StreetStyle(StreetSpec street, Dictionary<string, BuildingStyle> styles, List<string> log)
         {
             if (street.points.Count < 2) {
                 log.Add($"Street '{street.id}' not laid: it needs at least two points.");
                 return null;
             }
 
-            if (!styles.TryGetValue(street.style ?? "", out BuildingStyle style) || style.Tiles.Count == 0) {
-                log.Add($"Street '{street.id}' not laid: style '{street.style}' has no usable ground or floor tiles.");
+            if (!styles.TryGetValue(street.style ?? "", out BuildingStyle style)) {
+                log.Add($"Street '{street.id}' not laid: no style '{street.style}'.");
+                return null;
+            }
+
+            if (style.TileCategory == "floor" && style.Tiles.Count == 0) {
+                log.Add($"Street '{street.id}' not laid: style '{street.style}' has no usable floor tiles.");
                 return null;
             }
 
@@ -293,13 +319,12 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// Lays one area of ground tiles on one grid: the area's streets and
-        /// the ground under the lots given to it, each tile at the level of
-        /// its side of any flight of steps; then the area's flights of steps
-        /// and their landings (LayFlight). A grid tile is left out where it
-        /// would lie over a flight or its landing (OverFlight).
+        /// Builds one area's ground: its mesh (GroundMesh) over the area's
+        /// streets and the ground under the lots given to it, every vertex
+        /// at the street's level there, painted; then its colliders, its
+        /// flights of steps (LayFlight) and its grass.
         /// </summary>
-        private static void LayArea(List<StreetSpec> area, List<GroundLot> lots, StreetHeights heights, BuildingStyle style,
+        private static void LayArea(LayoutSpec spec, List<StreetSpec> area, List<GroundLot> lots, StreetHeights heights, BuildingStyle style,
             GeneratorSettings settings, System.Random random, System.Random foliageRandom, PiecePlacer placer, Transform group, Transform foliage,
             List<string> log)
         {
@@ -320,7 +345,6 @@ namespace LevelGen
             Vector2 axisX = new(Mathf.Cos(angle), Mathf.Sin(angle));
             Vector2 origin = Ground(first.points[0]);
             Vector2 axisZ = new(-axisX.y, axisX.x);
-            float gridYaw = Yaw(axisZ);
 
             List<GroundRect> rects = new();
             List<GroundDisc> discs = new();
@@ -329,7 +353,9 @@ namespace LevelGen
                 Outline(street, area, settings, rects, discs);
             }
 
-            // The outline's extent in the grid's frame.
+            // The outline's extent in the grid's frame, grown by the edge
+            // margin the ground runs on past it.
+            float margin = settings.GroundEdgeMargin;
             Vector2 min = new(float.MaxValue, float.MaxValue);
             Vector2 max = new(float.MinValue, float.MinValue);
 
@@ -337,133 +363,248 @@ namespace LevelGen
                 for (int corner = 0; corner < 4; corner++) {
                     Vector2 point = rect.Centre + rect.AxisX * (corner < 2 ? rect.HalfX : -rect.HalfX)
                         + rect.AxisZ * (corner % 2 == 0 ? rect.HalfZ : -rect.HalfZ);
-                    Encapsulate(ToFrame(point, origin, axisX, axisZ), Vector2.zero, ref min, ref max);
+                    Encapsulate(ToFrame(point, origin, axisX, axisZ), Vector2.one * margin, ref min, ref max);
                 }
             }
 
             foreach (GroundDisc disc in discs) {
-                Encapsulate(ToFrame(disc.Centre, origin, axisX, axisZ), Vector2.one * disc.Radius, ref min, ref max);
+                Encapsulate(ToFrame(disc.Centre, origin, axisX, axisZ), Vector2.one * (disc.Radius + margin), ref min, ref max);
             }
 
             foreach (GroundLot lot in lots) {
                 foreach (Vector2 corner in lot.Corners) {
-                    Encapsulate(ToFrame(corner, origin, axisX, axisZ), Vector2.one * lot.Margin, ref min, ref max);
+                    Encapsulate(ToFrame(corner, origin, axisX, axisZ), Vector2.one * (lot.Margin + margin), ref min, ref max);
                 }
             }
 
-            float pitchX = style.TileWidth - settings.GroundOverlap;
-            float pitchZ = style.TileDepth - settings.GroundOverlap;
+            GroundMesh.Frame frame = new() { Origin = origin, AxisX = axisX, AxisZ = axisZ, Min = min, Max = max };
+            // The paint's noise fields come from the spec's seed, so the
+            // same spec paints the same ground.
+            int paintSeed = spec.seed;
+            GroundMesh.Result mesh = GroundMesh.Build(spec.sector, first.id, frame, settings.GroundCell,
+                (corners, centre) => RegionOf(corners, centre, area, rects, discs, lots, heights, flights, slopes, settings, margin),
+                (a, b) => CutsLevel(a, b, area, heights, settings),
+                point => PlaceVertex(point, flights),
+                point => HeightAt(area, lots, heights, point, settings),
+                point => Paint(point, area, settings, paintSeed),
+                (region, point) => RegionName(region, point, area, lots, heights, slopes, settings),
+                group, log);
 
-            if (pitchX < MinPitch || pitchZ < MinPitch) {
-                log.Add($"Street '{first.id}' not laid: the ground overlap is nearly as big as the tile.");
-                return;
-            }
-
-            // Only a square tile can be turned a quarter turn and still fit
-            // its row.
-            bool square = Mathf.Abs(style.TileWidth - style.TileDepth) <= settings.SizeTolerance;
-            int firstRow = Mathf.FloorToInt(min.y / pitchZ);
-            int lastRow = Mathf.CeilToInt(max.y / pitchZ);
-            float slide = 0f;
-            int placed = 0;
-            int clusters = 0;
-            int tufts = 0;
-            Transform grass = null;
-            FloorColliders floors = new(group);
-
-            for (int row = firstRow; row <= lastRow; row++) {
-                slide = RowSlide(slide, row == firstRow, pitchX, settings.GroundSlideMin, settings.GroundSlideMax, random);
-                float z = row * pitchZ;
-                int firstColumn = Mathf.FloorToInt((min.x - slide) / pitchX);
-                int lastColumn = Mathf.CeilToInt((max.x - slide) / pitchX);
-                PieceAnnotation previous = null;
-                int turns = 0;
-                floors.BeginRow(axisX);
-
-                for (int column = firstColumn; column <= lastColumn; column++) {
-                    Vector2 centre = origin + axisX * (column * pitchX + slide) + axisZ * z;
-                    GroundRect tile = new() {
-                        Centre = centre,
-                        AxisX = axisX,
-                        AxisZ = axisZ,
-                        HalfX = style.TileWidth * 0.5f,
-                        HalfZ = style.TileDepth * 0.5f
-                    };
-                    float coverage = Mathf.Max(Coverage(tile, rects, discs), LotCoverage(tile, lots, settings.MinTileCoverage));
-
-                    if (coverage <= 0f || coverage < settings.MinTileCoverage || OverFlight(centre, flights, style) || OverSlope(centre, slopes, style)) {
-                        floors.Break();
-                        continue;
-                    }
-
-                    turns = TileTurns(turns, previous == null, square, settings.GroundTileTurns, random);
-                    previous = PiecePlacer.Pick(style.Tiles, previous, random);
-                    Vector3 surface = new(centre.x, HeightAt(area, lots, heights, centre, settings), centre.y);
-                    GameObject placedTile = placer.PlaceTile(previous, surface, gridYaw + turns * 90f, group);
-                    floors.Add(placedTile);
-
-                    if (placedTile == null) {
-                        continue;
-                    }
-
-                    placed++;
-
-                    // A cluster of grass on this tile, about a random point
-                    // on it, where that point stands in the open street.
-                    if (StreetFoliage.HasGrass && foliageRandom.NextDouble() < settings.GrassCover) {
-                        Vector2 at = centre + axisX * (((float)foliageRandom.NextDouble() - 0.5f) * style.TileWidth)
-                            + axisZ * (((float)foliageRandom.NextDouble() - 0.5f) * style.TileDepth);
-
-                        if (InOpenStreet(at, rects, discs, lots, flights, slopes, settings.GrassEdgeMargin)) {
-                            if (grass == null) {
-                                grass = Group(foliage, $"Grass - {first.id}");
-                            }
-
-                            tufts += StreetFoliage.PlaceCluster(at, point => HeightAt(area, lots, heights, point, settings), settings, foliageRandom,
-                                placer, grass);
-                            clusters++;
-                        }
-                    }
-                }
-            }
-
-            floors.Break();
+            int boxes = LayColliders(area, heights, flights, settings, group);
             int steps = 0;
 
             foreach (StreetSteps.Flight flight in flights) {
-                steps += LayFlight(flight, style, settings, random, placer, group, floors, ref placed);
+                steps += LayFlight(flight, settings, placer, group);
             }
 
-            int sloped = 0;
+            // Grass: a cluster per patch of the area at GrassCover, about a
+            // random point in the patch, where that point stands in the open
+            // street.
+            int clusters = 0;
+            int tufts = 0;
+            Transform grass = null;
+            float patch = Mathf.Max(settings.GrassPatch, 0.5f);
 
-            foreach (StreetSlopes.Slope slope in slopes) {
-                int tilted = LaySlope(slope, style, settings, random, placer, group, floors);
-                sloped += tilted;
-                placed += tilted;
+            if (StreetFoliage.HasGrass) {
+                for (float x = Mathf.Floor(min.x / patch) * patch; x < max.x; x += patch) {
+                    for (float z = Mathf.Floor(min.y / patch) * patch; z < max.y; z += patch) {
+                        if (!Inside(frame.Point(x + patch * 0.5f, z + patch * 0.5f), rects, discs, lots, 0f)) {
+                            continue;
+                        }
+
+                        if (foliageRandom.NextDouble() >= settings.GrassCover) {
+                            continue;
+                        }
+
+                        Vector2 at = frame.Point(x + (float)foliageRandom.NextDouble() * patch, z + (float)foliageRandom.NextDouble() * patch);
+
+                        if (!InOpenStreet(at, rects, discs, lots, flights, settings.GrassEdgeMargin)) {
+                            continue;
+                        }
+
+                        if (grass == null) {
+                            grass = Group(foliage, $"Grass - {first.id}");
+                        }
+
+                        tufts += StreetFoliage.PlaceCluster(at, point => HeightAt(area, lots, heights, point, settings), settings, foliageRandom,
+                            placer, grass);
+                        clusters++;
+                    }
+                }
             }
 
-            log.Add($"Ground '{style.Name}' for {Names(area)}: {placed} tile(s), {lastRow - firstRow + 1} row(s), {floors.Boxes} floor box(es) for {floors.Removed} tile collider(s)"
+            log.Add($"Ground '{style.Name}' for {Names(area)}: {mesh.Regions} mesh region(s) in {mesh.Chunks} chunk(s), {mesh.Vertices} vertices, {mesh.Triangles} triangles, "
+                + $"{boxes} top-step collider box(es)"
                 + (flights.Count > 0 ? $", {flights.Count} flight(s) of steps ({steps} piece(s))" : "")
-                + (slopes.Count > 0 ? $", {slopes.Count} slope(s) ({sloped} tilted tile(s))" : "")
+                + (slopes.Count > 0 ? $", {slopes.Count} slope(s)" : "")
                 + $", {clusters} grass cluster(s) ({tufts} tuft(s)).");
+        }
+
+        /// <summary>
+        /// Whether a point on the ground is within the area's outline grown
+        /// by margin: in a segment's rectangle or a bend's disc, or in a
+        /// lot's ring (from a little under its walls out to its margin).
+        /// </summary>
+        private static bool Inside(Vector2 point, List<GroundRect> rects, List<GroundDisc> discs, List<GroundLot> lots, float margin)
+        {
+            if (Depth(point, rects, discs) >= -margin) {
+                return true;
+            }
+
+            foreach (GroundLot lot in lots) {
+                float outside = lot.Outside(point);
+
+                if (outside >= -UnderLotWalls && outside <= lot.Margin + margin) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// The vertex colour at a point: red the cobbles, blue the wet dirt,
+        /// nothing the dirt beneath. Cobbles reach from the nearest street's
+        /// middle out to GroundCobbleShare of its half-width, the edge moved
+        /// in and out by up to GroundPaintWobble by a noise of
+        /// GroundPaintScale, and fading over GroundPaintFade; puddles lie
+        /// wherever a second noise of GroundPuddleScale rises into its top
+        /// GroundPuddleCover.
+        /// </summary>
+        private static Color32 Paint(Vector2 point, List<StreetSpec> area, GeneratorSettings settings, int seed)
+        {
+            float distance = DistanceToStreets(point, area, settings, out float halfWidth);
+            float wobble = (GroundMesh.Noise(point / Mathf.Max(settings.GroundPaintScale, 0.1f), seed) - 0.5f) * 2f * settings.GroundPaintWobble;
+            float edge = halfWidth * settings.GroundCobbleShare + wobble;
+            float cobbles = Mathf.Clamp01((edge - distance) / Mathf.Max(settings.GroundPaintFade, 0.01f) + 0.5f);
+
+            float puddle = GroundMesh.Noise(point / Mathf.Max(settings.GroundPuddleScale, 0.1f) + new Vector2(41.3f, 17.9f), seed + 7);
+            float threshold = 1f - settings.GroundPuddleCover;
+            float wet = Mathf.Clamp01((puddle - threshold) / 0.12f);
+
+            if (cobbles < PaintEpsilon) {
+                cobbles = 0f;
+            }
+
+            if (wet < PaintEpsilon) {
+                wet = 0f;
+            }
+
+            return new Color32((byte)Mathf.RoundToInt(cobbles * 255f), 0, (byte)Mathf.RoundToInt(wet * 255f), 255);
+        }
+
+        /// <summary>
+        /// How far a point lies from the nearest of the area's middle lines,
+        /// and that segment's half-width.
+        /// </summary>
+        private static float DistanceToStreets(Vector2 point, List<StreetSpec> area, GeneratorSettings settings, out float halfWidth)
+        {
+            float nearest = float.MaxValue;
+            halfWidth = settings.StreetWidth * 0.5f;
+
+            foreach (StreetSpec street in area) {
+                for (int i = 1; i < street.points.Count; i++) {
+                    Vector2 a = Ground(street.points[i - 1]);
+                    Vector2 ab = Ground(street.points[i]) - a;
+
+                    if (ab.magnitude < settings.MinSegmentLength) {
+                        continue;
+                    }
+
+                    float t = Mathf.Clamp01(Vector2.Dot(point - a, ab) / ab.sqrMagnitude);
+                    float distance = (a + ab * t - point).magnitude;
+
+                    if (distance < nearest) {
+                        nearest = distance;
+                        halfWidth = street.SegmentWidth(i - 1) * 0.5f;
+                    }
+                }
+            }
+
+            return nearest;
+        }
+
+        /// <summary>
+        /// The one piece of the ground's collision its meshes don't give: a
+        /// box under each flight's top step. The steps' ramp collider stops
+        /// a little short of the top step's back edge, where the upper
+        /// level's mesh begins, so a box GroundStepsOverlap long runs back
+        /// from that edge under the step's flat tread, its top at the upper
+        /// level, across the street and GroundEdgeMargin past each edge;
+        /// GroundThickness deep, under a "Colliders" child of the group.
+        /// Returns how many boxes.
+        /// </summary>
+        private static int LayColliders(List<StreetSpec> area, StreetHeights heights, List<StreetSteps.Flight> flights, GeneratorSettings settings,
+            Transform group)
+        {
+            Transform parent = null;
+            float thickness = settings.GroundThickness;
+            int boxes = 0;
+
+            foreach (StreetSpec street in area) {
+                for (int i = 1; i < street.points.Count; i++) {
+                    StreetSteps.Flight flight = StreetSteps.Of(flights, street, i - 1);
+
+                    if (flight == null) {
+                        continue;
+                    }
+
+                    Vector2 a = Ground(street.points[i - 1]);
+                    Vector2 b = Ground(street.points[i]);
+                    float length = (b - a).magnitude;
+                    Vector2 axis = (b - a) / length;
+                    // The strip runs from the top step's back edge back down
+                    // the flight, whichever way it climbs; the upper level is
+                    // the segment's higher point.
+                    float overlap = settings.GroundStepsOverlap;
+                    float from = flight.Up > 0f ? flight.Top - overlap : flight.Top;
+                    float to = flight.Up > 0f ? flight.Top : flight.Top + overlap;
+                    float height = heights.GroundAt(street, i - 1, flight.Up > 0f ? length : 0f);
+                    float width = street.SegmentWidth(i - 1) + 2f * settings.GroundEdgeMargin;
+                    Vector2 at = a + axis * ((from + to) * 0.5f);
+                    parent ??= Group(group, "Colliders");
+                    PlaceBox(parent, $"{street.id} {i - 1}-{i} top step", new Vector3(at.x, height - thickness * 0.5f, at.y),
+                        Quaternion.Euler(0f, Yaw(axis), 0f), new Vector3(width, thickness, to - from), settings);
+                    boxes++;
+                }
+            }
+
+            return boxes;
+        }
+
+        /// <summary>
+        /// One ground collider box: local X across the street, Z along it,
+        /// Y up, on the Environment layer, static, with a Stone SurfaceTag.
+        /// </summary>
+        private static void PlaceBox(Transform parent, string name, Vector3 centre, Quaternion rotation, Vector3 size, GeneratorSettings settings)
+        {
+            GameObject box = new($"Ground {name}") {
+                layer = LayerMask.NameToLayer("Environment")
+            };
+            GameObjectUtility.SetStaticEditorFlags(box, StaticEditorFlags.ContributeGI | StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic
+                | StaticEditorFlags.BatchingStatic);
+            box.transform.SetParent(parent, false);
+            box.transform.SetPositionAndRotation(centre, rotation);
+            box.AddComponent<BoxCollider>().size = size;
+
+            SurfaceTag tag = box.AddComponent<SurfaceTag>();
+            SerializedObject serialized = new(tag);
+            serialized.FindProperty("surface").enumValueIndex = (int)SurfaceType.Stone;
+            serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 
         /// <summary>
         /// Whether a point on the ground stands in the open street: at least
         /// margin inside the area's outline (its segments' rectangles and the
         /// discs at their bends and junctions), at least margin outside every
-        /// lot's footprint, and more than margin from any flight of steps or
-        /// slope and its landing - so a cluster of grass never stands under a
-        /// building, against its foundations, on the steps or on a slope.
+        /// lot's footprint, and more than margin from any flight of steps -
+        /// so a cluster of grass never stands under a building, against its
+        /// foundations or on the steps.
         /// </summary>
         private static bool InOpenStreet(Vector2 point, List<GroundRect> rects, List<GroundDisc> discs, List<GroundLot> lots,
-            List<StreetSteps.Flight> flights, List<StreetSlopes.Slope> slopes, float margin)
+            List<StreetSteps.Flight> flights, float margin)
         {
-            // A rectangle of no size: its coverage is how deep the point
-            // lies in the outline.
-            GroundRect spot = new() { Centre = point, AxisX = Vector2.right, AxisZ = Vector2.up, HalfX = 0f, HalfZ = 0f };
-
-            if (Coverage(spot, rects, discs) < margin) {
+            if (Depth(point, rects, discs) < margin) {
                 return false;
             }
 
@@ -477,22 +618,10 @@ namespace LevelGen
                 Vector2 offset = point - flight.Start;
                 float along = Vector2.Dot(offset, flight.Axis);
                 float across = Mathf.Abs(Vector2.Dot(offset, new Vector2(-flight.Axis.y, flight.Axis.x)));
-                // From the lowest step's front to the landing's far edge.
-                float landingEnd = flight.Top + flight.Up * flight.Landing;
-                float low = Mathf.Min(flight.Front, landingEnd);
-                float high = Mathf.Max(flight.Front, landingEnd);
+                float low = Mathf.Min(flight.Front, flight.Top);
+                float high = Mathf.Max(flight.Front, flight.Top);
 
                 if (across <= flight.Width * 0.5f + margin && along >= low - margin && along <= high + margin) {
-                    return false;
-                }
-            }
-
-            foreach (StreetSlopes.Slope slope in slopes) {
-                Vector2 offset = point - slope.Start;
-                float along = Vector2.Dot(offset, slope.Axis);
-                float across = Mathf.Abs(Vector2.Dot(offset, new Vector2(-slope.Axis.y, slope.Axis.x)));
-                // The whole segment: the slope and its landing.
-                if (across <= slope.Width * 0.5f + margin && along >= -margin && along <= slope.Length + margin) {
                     return false;
                 }
             }
@@ -501,131 +630,16 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// Whether a grid tile centred at a point would lie over a slope or
-        /// the near part of its landing: from the slope's foot to the
-        /// landing's far edge less half a tile's diagonal, within the
-        /// street's width plus half a diagonal of its middle line. A tile
-        /// kept beyond that never reaches back over the slope, and the
-        /// landing covers what it leaves; a tile on the low side, before the
-        /// foot, lies under the slope's rising tiles.
+        /// Lays one flight of steps across its street: Count flights of the
+        /// piece stacked up the segment, each one's render box starting
+        /// where the one below ends, side by side across the width (as many
+        /// as round to it, overlapping by GroundOverlap and scaled along
+        /// their width to fill it exactly), scaled in height so they make
+        /// the rise exactly, each one's ramp foot at its level. The ground
+        /// mesh stands at the high level from the top step's edge on.
+        /// Returns how many pieces were placed.
         /// </summary>
-        private static bool OverSlope(Vector2 centre, List<StreetSlopes.Slope> slopes, BuildingStyle style)
-        {
-            float halfDiagonal = StreetSteps.TileDiagonal(style) * 0.5f;
-
-            foreach (StreetSlopes.Slope slope in slopes) {
-                Vector2 offset = centre - slope.Start;
-                float along = Vector2.Dot(offset, slope.Axis);
-                float across = Mathf.Abs(Vector2.Dot(offset, new Vector2(-slope.Axis.y, slope.Axis.x)));
-                float keptFrom = slope.Top + slope.Up * (slope.Landing - halfDiagonal);
-
-                if (across <= slope.Width * 0.5f + halfDiagonal && (along - slope.Foot) * slope.Up >= 0f && (along - keptFrom) * slope.Up < 0f) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Lays one slope across its street and its landing. The slope: rows
-        /// of tiles across the segment in its own frame, each tile tilted to
-        /// the slope's grade, from the top down (so the last row's low edge
-        /// overruns past the foot under the level ground there, and no tilted
-        /// tile reaches past the top above the landing), each row slid and
-        /// each tile turned as on the grid, their walking surfaces on the
-        /// slope's surface; the rows reach a tile's width past each edge of
-        /// the street, under the buildings' foundations. The landing as a
-        /// flight's (LayLanding). Returns how many tiles were placed.
-        /// </summary>
-        private static int LaySlope(StreetSlopes.Slope slope, BuildingStyle style, GeneratorSettings settings, System.Random random,
-            PiecePlacer placer, Transform parent, FloorColliders floors)
-        {
-            Transform group = Group(parent, $"Slope - {slope.Street.id} {slope.Segment}-{slope.Segment + 1}");
-            Vector2 normal = new(-slope.Axis.y, slope.Axis.x);
-            // Along the slope the tiles lie shortened by the tilt.
-            float tilt = Mathf.Cos(slope.Tilt * Mathf.Deg2Rad);
-            float pitchAlong = (style.TileDepth - settings.GroundOverlap) * tilt;
-            float pitchAcross = style.TileWidth - settings.GroundOverlap;
-            bool square = Mathf.Abs(style.TileWidth - style.TileDepth) <= settings.SizeTolerance;
-            Quaternion rotation = slope.TiltRotation;
-            float tileYaw = Yaw(slope.Axis);
-            float reach = slope.Width * 0.5f + style.TileWidth;
-            float stretch = Mathf.Abs(slope.Top - slope.Foot);
-            int rows = Mathf.Max(1, Mathf.CeilToInt(stretch / pitchAlong));
-            float slide = 0f;
-            int placed = 0;
-
-            for (int row = 0; row < rows; row++) {
-                slide = RowSlide(slide, row == 0, pitchAcross, settings.GroundSlideMin, settings.GroundSlideMax, random);
-                float along = slope.Top - slope.Up * (row * pitchAlong + style.TileDepth * 0.5f * tilt);
-                float height = slope.SurfaceAt(along);
-                int count = Mathf.Max(1, Mathf.CeilToInt((reach * 2f + slide - settings.GroundOverlap) / pitchAcross));
-                PieceAnnotation previous = null;
-                int turns = 0;
-                // A row runs across the street, tilted about its own length.
-                floors.BeginRow(normal, slope.Normal);
-
-                for (int k = 0; k < count; k++) {
-                    float offset = -reach - slide + style.TileWidth * 0.5f + k * pitchAcross;
-                    Vector2 centre = slope.Start + slope.Axis * along + normal * offset;
-                    turns = TileTurns(turns, previous == null, square, settings.GroundTileTurns, random);
-                    previous = PiecePlacer.Pick(style.Tiles, previous, random);
-                    GameObject placedTile = placer.PlaceTile(previous, new Vector3(centre.x, height, centre.y),
-                        rotation * Quaternion.Euler(0f, tileYaw + turns * 90f, 0f), group);
-                    floors.Add(placedTile);
-
-                    if (placedTile != null) {
-                        placed++;
-                    }
-                }
-            }
-
-            floors.Break();
-            placed += LayLanding(slope.Start, slope.Axis, slope.Up, slope.Top, slope.Width, slope.High, slope.LandingRows, style, settings, random,
-                placer, group, floors);
-            return placed;
-        }
-
-        /// <summary>
-        /// Whether a grid tile centred at a point would lie over a flight of
-        /// steps or the near part of its landing: on the high side of halfway
-        /// up the flight and short of the landing's far edge less half a tile's
-        /// diagonal, within the street's width plus half a diagonal of its
-        /// middle line. A tile kept beyond that never reaches back over the
-        /// steps, and the landing covers what it leaves; a tile on the low side
-        /// lies under the steps or the landing.
-        /// </summary>
-        private static bool OverFlight(Vector2 centre, List<StreetSteps.Flight> flights, BuildingStyle style)
-        {
-            float halfDiagonal = StreetSteps.TileDiagonal(style) * 0.5f;
-
-            foreach (StreetSteps.Flight flight in flights) {
-                Vector2 offset = centre - flight.Start;
-                float along = Vector2.Dot(offset, flight.Axis);
-                float across = Mathf.Abs(Vector2.Dot(offset, new Vector2(-flight.Axis.y, flight.Axis.x)));
-                float keptFrom = flight.Top + flight.Up * (flight.Landing - halfDiagonal);
-
-                if (across <= flight.Width * 0.5f + halfDiagonal && (along - flight.Middle) * flight.Up >= 0f && (along - keptFrom) * flight.Up < 0f) {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        /// <summary>
-        /// Lays one flight of steps across its street and its landing. The
-        /// steps: Count flights of the piece stacked up the segment, each one's
-        /// render box starting where the one below ends, side by side across
-        /// the width (as many as round to it, overlapping by GroundOverlap and
-        /// scaled along their width to fill it exactly), scaled in height so they make the rise exactly, each
-        /// one's ramp foot at its level. The landing from the top step's edge
-        /// (LayLanding; the steps keep their ramps). Returns how many steps
-        /// pieces were placed; adds the landing's tiles to tiles.
-        /// </summary>
-        private static int LayFlight(StreetSteps.Flight flight, BuildingStyle style, GeneratorSettings settings, System.Random random,
-            PiecePlacer placer, Transform parent, FloorColliders floors, ref int tiles)
+        private static int LayFlight(StreetSteps.Flight flight, GeneratorSettings settings, PiecePlacer placer, Transform parent)
         {
             Transform group = Group(parent, $"Steps - {flight.Street.id} {flight.Segment}-{flight.Segment + 1}");
             CatalogueEntry entry = flight.Entry;
@@ -664,59 +678,6 @@ namespace LevelGen
                 }
             }
 
-            tiles += LayLanding(flight.Start, flight.Axis, flight.Up, flight.Top, flight.Width, flight.High, flight.LandingRows, style, settings, random,
-                placer, group, floors);
-            return placed;
-        }
-
-        /// <summary>
-        /// Lays the landing at the top of a flight of steps or a slope: rows
-        /// of tiles across the street in the segment's own frame (start and
-        /// axis, up the way the street climbs) from the top (a distance along
-        /// the segment), reaching a tile's width past each edge of the street
-        /// (so they also cover what the grid leaves out beside a sharp bend
-        /// there), each row slid and each tile turned as on the grid,
-        /// LandingDrop below the high level, their colliders replaced by
-        /// floors' boxes. Returns how many tiles were placed.
-        /// </summary>
-        private static int LayLanding(Vector2 start, Vector2 axis, float up, float top, float width, float high, int rows, BuildingStyle style,
-            GeneratorSettings settings, System.Random random, PiecePlacer placer, Transform group, FloorColliders floors)
-        {
-            Vector2 normal = new(-axis.y, axis.x);
-            float pitchAlong = style.TileDepth - settings.GroundOverlap;
-            float pitchAcross = style.TileWidth - settings.GroundOverlap;
-            bool square = Mathf.Abs(style.TileWidth - style.TileDepth) <= settings.SizeTolerance;
-            float tileYaw = Yaw(axis);
-            // Across the street and a tile past each edge.
-            float reach = width * 0.5f + style.TileWidth;
-            float slide = 0f;
-            int placed = 0;
-
-            for (int row = 0; row < rows; row++) {
-                slide = RowSlide(slide, row == 0, pitchAcross, settings.GroundSlideMin, settings.GroundSlideMax, random);
-                float along = top + up * (row * pitchAlong + style.TileDepth * 0.5f);
-                // Tiles from one edge (less the slide) until one reaches the other.
-                int count = Mathf.Max(1, Mathf.CeilToInt((reach * 2f + slide - settings.GroundOverlap) / pitchAcross));
-                PieceAnnotation previous = null;
-                int turns = 0;
-                // A landing row runs across the street.
-                floors.BeginRow(normal);
-
-                for (int k = 0; k < count; k++) {
-                    float offset = -reach - slide + style.TileWidth * 0.5f + k * pitchAcross;
-                    Vector2 centre = start + axis * along + normal * offset;
-                    turns = TileTurns(turns, previous == null, square, settings.GroundTileTurns, random);
-                    previous = PiecePlacer.Pick(style.Tiles, previous, random);
-                    GameObject placedTile = placer.PlaceTile(previous, new Vector3(centre.x, high - settings.LandingDrop, centre.y), tileYaw + turns * 90f, group);
-                    floors.Add(placedTile);
-
-                    if (placedTile != null) {
-                        placed++;
-                    }
-                }
-            }
-
-            floors.Break();
             return placed;
         }
 
@@ -778,7 +739,7 @@ namespace LevelGen
                         Vector2 centre = a + axisX * x + axisZ * z;
                         float height = Mathf.Lerp(street.points[i - 1].y, street.points[i].y, Mathf.Clamp01(x / length));
                         // Decking only ever takes half turns, so the boards keep their direction.
-                        turns = TileTurns(turns, previous == null, false, true, random);
+                        turns = TileTurns(random);
                         previous = PiecePlacer.Pick(style.Tiles, previous, random);
                         GameObject placedTile = placer.PlaceTile(previous, new Vector3(centre.x, height, centre.y), yaw + turns * 90f, group);
                         floors.Add(placedTile);
@@ -795,22 +756,11 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// A tile's turn in quarter turns, from the tile before it along the
-        /// row: a square tile turns a quarter, half or three-quarter turn from
-        /// it, so no two neighbours lie the same way; any other tile takes a
-        /// random half turn (so it still fits the row). The first tile of a
-        /// row takes any turn. 0 for every tile if tiles aren't turned.
+        /// A decking tile's turn in quarter turns: a random half turn (so it
+        /// still fits the row and its boards keep their direction).
         /// </summary>
-        private static int TileTurns(int previous, bool first, bool square, bool turnTiles, System.Random random)
+        private static int TileTurns(System.Random random)
         {
-            if (!turnTiles) {
-                return 0;
-            }
-
-            if (square) {
-                return first ? random.Next(4) : (previous + random.Next(1, 4)) % 4;
-            }
-
             return random.Next(2) * 2;
         }
 
@@ -868,103 +818,24 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// How far a tile overlaps the outline: the deepest it reaches into
-        /// any of its rectangles or discs (0 or less when it doesn't touch).
+        /// How deep a point lies in the outline: the deepest it reaches into
+        /// any of its rectangles or discs (0 on an edge, below 0 outside).
         /// </summary>
-        private static float Coverage(GroundRect tile, List<GroundRect> rects, List<GroundDisc> discs)
+        private static float Depth(Vector2 point, List<GroundRect> rects, List<GroundDisc> discs)
         {
             float deepest = float.MinValue;
 
             foreach (GroundRect rect in rects) {
-                // Separating axes: the overlap is the least along any of them.
-                float depth = Mathf.Min(
-                    Mathf.Min(DepthAlong(tile, rect, tile.AxisX), DepthAlong(tile, rect, tile.AxisZ)),
-                    Mathf.Min(DepthAlong(tile, rect, rect.AxisX), DepthAlong(tile, rect, rect.AxisZ)));
+                Vector2 offset = point - rect.Centre;
+                float depth = Mathf.Min(rect.HalfX - Mathf.Abs(Vector2.Dot(offset, rect.AxisX)), rect.HalfZ - Mathf.Abs(Vector2.Dot(offset, rect.AxisZ)));
                 deepest = Mathf.Max(deepest, depth);
             }
 
             foreach (GroundDisc disc in discs) {
-                // The disc's centre's distance from the tile (0 inside it).
-                Vector2 offset = disc.Centre - tile.Centre;
-                float outX = Mathf.Max(Mathf.Abs(Vector2.Dot(offset, tile.AxisX)) - tile.HalfX, 0f);
-                float outZ = Mathf.Max(Mathf.Abs(Vector2.Dot(offset, tile.AxisZ)) - tile.HalfZ, 0f);
-                deepest = Mathf.Max(deepest, disc.Radius - Mathf.Sqrt(outX * outX + outZ * outZ));
+                deepest = Mathf.Max(deepest, disc.Radius - (disc.Centre - point).magnitude);
             }
 
             return deepest;
-        }
-
-        /// <summary>
-        /// How far a tile reaches into the ground round any of the lots: into
-        /// the footprint grown by its margin (separating axes: the tile's and
-        /// the footprint's sides), but nothing for a tile lying wholly inside
-        /// the footprint - every corner more than minCoverage in - since
-        /// that is under the building.
-        /// </summary>
-        private static float LotCoverage(GroundRect tile, List<GroundLot> lots, float minCoverage)
-        {
-            float deepest = float.MinValue;
-
-            foreach (GroundLot lot in lots) {
-                bool under = true;
-
-                for (int corner = 0; corner < 4 && under; corner++) {
-                    Vector2 point = tile.Centre + tile.AxisX * (corner < 2 ? tile.HalfX : -tile.HalfX)
-                        + tile.AxisZ * (corner % 2 == 0 ? tile.HalfZ : -tile.HalfZ);
-                    under = lot.Outside(point) < -minCoverage;
-                }
-
-                if (under) {
-                    continue;
-                }
-
-                float depth = Mathf.Min(DepthIntoLot(tile, lot, tile.AxisX), DepthIntoLot(tile, lot, tile.AxisZ));
-
-                foreach (Vector2 axis in lot.Outward) {
-                    depth = Mathf.Min(depth, DepthIntoLot(tile, lot, axis));
-                }
-
-                deepest = Mathf.Max(deepest, depth);
-            }
-
-            return deepest;
-        }
-
-        /// <summary>
-        /// How far a tile's shadow on one axis overlaps that of a lot's
-        /// footprint grown by its margin.
-        /// </summary>
-        private static float DepthIntoLot(GroundRect tile, GroundLot lot, Vector2 axis)
-        {
-            float low = float.MaxValue;
-            float high = float.MinValue;
-
-            foreach (Vector2 corner in lot.Corners) {
-                float along = Vector2.Dot(corner, axis);
-                low = Mathf.Min(low, along);
-                high = Mathf.Max(high, along);
-            }
-
-            float centre = Vector2.Dot(tile.Centre, axis);
-            float radius = Radius(tile, axis);
-            return Mathf.Min(centre + radius, high + lot.Margin) - Mathf.Max(centre - radius, low - lot.Margin);
-        }
-
-        /// <summary>
-        /// How far two rectangles' shadows on one axis overlap.
-        /// </summary>
-        private static float DepthAlong(GroundRect a, GroundRect b, Vector2 axis)
-        {
-            float distance = Mathf.Abs(Vector2.Dot(b.Centre - a.Centre, axis));
-            return Radius(a, axis) + Radius(b, axis) - distance;
-        }
-
-        /// <summary>
-        /// Half a rectangle's extent along an axis.
-        /// </summary>
-        private static float Radius(GroundRect rect, Vector2 axis)
-        {
-            return Mathf.Abs(Vector2.Dot(rect.AxisX, axis)) * rect.HalfX + Mathf.Abs(Vector2.Dot(rect.AxisZ, axis)) * rect.HalfZ;
         }
 
         /// <summary>
@@ -982,8 +853,25 @@ namespace LevelGen
                 }
             }
 
-            float nearest = float.MaxValue;
-            float height = area[0].points[0].y;
+            if (!NearestSegment(area, point, settings, out StreetSpec nearest, out int segment, out float along)) {
+                return area[0].points[0].y;
+            }
+
+            return heights.GroundAt(nearest, segment, along);
+        }
+
+        /// <summary>
+        /// The area's segment whose middle line passes nearest a point, and
+        /// how far along it the nearest point of the line lies. False if the
+        /// area has no segment long enough to count.
+        /// </summary>
+        private static bool NearestSegment(List<StreetSpec> area, Vector2 point, GeneratorSettings settings, out StreetSpec nearest, out int segment,
+            out float along)
+        {
+            float best = float.MaxValue;
+            nearest = null;
+            segment = 0;
+            along = 0f;
 
             foreach (StreetSpec street in area) {
                 for (int i = 1; i < street.points.Count; i++) {
@@ -998,14 +886,150 @@ namespace LevelGen
                     float t = Mathf.Clamp01(Vector2.Dot(point - a, ab) / ab.sqrMagnitude);
                     float distance = (a + ab * t - point).sqrMagnitude;
 
-                    if (distance < nearest) {
-                        nearest = distance;
-                        height = heights.GroundAt(street, i - 1, t * ab.magnitude);
+                    if (distance < best) {
+                        best = distance;
+                        nearest = street;
+                        segment = i - 1;
+                        along = t * ab.magnitude;
                     }
                 }
             }
 
-            return height;
+            return nearest != null;
+        }
+
+        /// <summary>
+        /// Where a point stands against a flight of steps: its distance along
+        /// the flight's segment and its distance across from the middle line.
+        /// </summary>
+        private static void AgainstFlight(StreetSteps.Flight flight, Vector2 point, out float along, out float across)
+        {
+            Vector2 offset = point - flight.Start;
+            along = Vector2.Dot(offset, flight.Axis);
+            across = Vector2.Dot(offset, new Vector2(-flight.Axis.y, flight.Axis.x));
+        }
+
+        /// <summary>
+        /// Whether a point lies under a flight's steps: between its front and
+        /// its top along the segment, within the street's width (what the
+        /// steps pieces span).
+        /// </summary>
+        private static bool UnderSteps(StreetSteps.Flight flight, Vector2 point)
+        {
+            AgainstFlight(flight, point, out float along, out float across);
+            return along >= Mathf.Min(flight.Front, flight.Top) && along <= Mathf.Max(flight.Front, flight.Top) && Mathf.Abs(across) <= flight.Width * 0.5f;
+        }
+
+        /// <summary>
+        /// Which region of the area's ground a grid cell belongs to, from its
+        /// corners and its middle: none (-1) where it touches nothing of the
+        /// area or lies wholly under a flight's steps; a slope's own region
+        /// (1 + its index) where the segment nearest its middle - the one
+        /// its heights come from - is that slope's; else a level (0), which
+        /// GroundMesh joins into one region per connected level, never
+        /// across a flight (CutsLevel). A lot's ring is a level.
+        /// </summary>
+        private static int RegionOf(Vector2[] corners, Vector2 centre, List<StreetSpec> area, List<GroundRect> rects, List<GroundDisc> discs,
+            List<GroundLot> lots, StreetHeights heights, List<StreetSteps.Flight> flights, List<StreetSlopes.Slope> slopes, GeneratorSettings settings,
+            float margin)
+        {
+            bool touches = Inside(centre, rects, discs, lots, margin);
+
+            foreach (Vector2 corner in corners) {
+                touches |= Inside(corner, rects, discs, lots, margin);
+            }
+
+            if (!touches) {
+                return -1;
+            }
+
+            foreach (StreetSteps.Flight flight in flights) {
+                if (!UnderSteps(flight, centre)) {
+                    continue;
+                }
+
+                bool whole = true;
+
+                foreach (Vector2 corner in corners) {
+                    whole &= UnderSteps(flight, corner);
+                }
+
+                if (whole) {
+                    return -1;
+                }
+            }
+
+            foreach (GroundLot lot in lots) {
+                if (lot.Outside(centre) <= lot.Margin) {
+                    return 0;
+                }
+            }
+
+            if (NearestSegment(area, centre, settings, out StreetSpec street, out int segment, out _)) {
+                StreetSlopes.Slope slope = heights.SlopeOf(street, segment);
+
+                if (slope != null) {
+                    return 1 + slopes.IndexOf(slope);
+                }
+            }
+
+            return 0;
+        }
+
+        /// <summary>
+        /// Whether two neighbouring level cells (by their middles) lie on
+        /// opposite sides of a flight of steps, so they belong to different
+        /// levels: both nearest the flight's segment, one before the
+        /// flight's middle and one past it.
+        /// </summary>
+        private static bool CutsLevel(Vector2 a, Vector2 b, List<StreetSpec> area, StreetHeights heights, GeneratorSettings settings)
+        {
+            if (!NearestSegment(area, a, settings, out StreetSpec streetA, out int segmentA, out float alongA)
+                || !NearestSegment(area, b, settings, out StreetSpec streetB, out int segmentB, out float alongB)
+                || streetA != streetB || segmentA != segmentB) {
+                return false;
+            }
+
+            StreetSteps.Flight flight = heights.FlightOf(streetA, segmentA);
+            return flight != null && (alongA - flight.Middle) * (alongB - flight.Middle) < 0f;
+        }
+
+        /// <summary>
+        /// Where a ground vertex stands: a vertex under a flight's steps is
+        /// moved along the segment onto the flight's front (on the low side
+        /// of its middle) or its top (on the high side), so the ground's
+        /// edge lies exactly along the lowest step's front and the top step's
+        /// back edge, meeting the steps with no gap, no dip and nothing
+        /// showing above them. Any other vertex stays put.
+        /// </summary>
+        private static Vector2 PlaceVertex(Vector2 point, List<StreetSteps.Flight> flights)
+        {
+            foreach (StreetSteps.Flight flight in flights) {
+                if (!UnderSteps(flight, point)) {
+                    continue;
+                }
+
+                AgainstFlight(flight, point, out float along, out float across);
+                float edge = (along - flight.Middle) * flight.Up < 0f ? flight.Front : flight.Top;
+                return flight.Start + flight.Axis * edge + new Vector2(-flight.Axis.y, flight.Axis.x) * across;
+            }
+
+            return point;
+        }
+
+        /// <summary>
+        /// A region's name for its object: a slope's segment, or a level's
+        /// height at a point in it.
+        /// </summary>
+        private static string RegionName(int region, Vector2 point, List<StreetSpec> area, List<GroundLot> lots, StreetHeights heights,
+            List<StreetSlopes.Slope> slopes, GeneratorSettings settings)
+        {
+            if (region > 0 && region - 1 < slopes.Count) {
+                StreetSlopes.Slope slope = slopes[region - 1];
+                return $"slope {slope.Street.id} {slope.Segment}-{slope.Segment + 1}";
+            }
+
+            return $"level {HeightAt(area, lots, heights, point, settings):0.0}m";
         }
 
         /// <summary>

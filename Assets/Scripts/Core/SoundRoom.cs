@@ -28,6 +28,12 @@ namespace Core
         // axes, in metres (before the object's scale).
         [SerializeField] private Vector3 size = new(4f, 3f, 4f);
 
+        // Where rooms overlap, the one with the higher priority wins, and
+        // only between equal priorities the smallest. Left at 0 for rooms
+        // placed by hand; the level generator's junction rooms are 1, so
+        // each wins over the street rooms running into it.
+        [SerializeField] private int priority;
+
         [Header("Reverb (heard while the player is in this room)")]
         // How this room echoes. It's the listener's room that counts, not
         // the sound's: every sound the player hears while standing in here
@@ -164,7 +170,7 @@ namespace Core
 
         /// <summary>
         /// The room a world-space point is in, or null if it's outside every
-        /// room. Where rooms overlap, the smallest.
+        /// room. Where rooms overlap, the highest priority, then the smallest.
         /// </summary>
         public static SoundRoom Find(Vector3 worldPoint)
         {
@@ -173,7 +179,11 @@ namespace Core
             for (int i = 0; i < _rooms.Count; i++) {
                 SoundRoom room = _rooms[i];
 
-                if (room.Contains(worldPoint) && (best == null || room.Volume < best.Volume)) {
+                if (!room.Contains(worldPoint)) {
+                    continue;
+                }
+
+                if (best == null || room.priority > best.priority || (room.priority == best.priority && room.Volume < best.Volume)) {
                     best = room;
                 }
             }

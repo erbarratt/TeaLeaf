@@ -23,24 +23,31 @@ namespace Interaction
     {
         // What kind of lock it has, and for a keyed one the id its key
         // must have (the same text as the Key's Key Id).
+        [Tooltip("What kind of lock the chest has: None (the lid always lifts), Simple (can be picked, through a PickableLock given this chest) or Keyed (its own key only, through a KeyLock given this chest).")]
         [SerializeField] private DoorLock lockType = DoorLock.None;
+        [Tooltip("For a Keyed lock, the id its key must have: the same text as the Key's Key Id. Ignored for the other lock kinds.")]
         [SerializeField] private string keyId;
 
-        // Whether it starts the level locked. Only with a lock.
+        [Tooltip("Whether the chest starts the level locked. Only matters with a lock: a chest with no lock is never locked.")]
         [SerializeField] private bool startsLocked = true;
 
-        // The lid: a child on the hinge line that turns about its own X.
+        [Tooltip("The lid: a child object on the hinge line, with the chest's axes, that turns about its own X to open. Required.")]
         [SerializeField] private Transform lid;
 
         // How far the lid opens, in degrees, and the angle below which a
         // lid that's let go of drops shut.
+        [Tooltip("How far the lid can be lifted from shut, in degrees.")]
         [SerializeField] private float maxOpenAngle = 100f;
+        [Tooltip("A lid let go of below this angle, in degrees, drops shut by itself. Let go of further open, it stays where it was left.")]
         [SerializeField] private float closeAngle = 8f;
 
         // The lid starting to open, dropping shut, and being tried while
         // locked. All optional.
+        [Tooltip("The sound of the lid starting to open, played from the lid so guards hear it too. Optional: empty is silent.")]
         [SerializeField] private SoundCue openCue;
+        [Tooltip("The sound of the lid dropping shut. Optional: empty is silent.")]
         [SerializeField] private SoundCue closeCue;
+        [Tooltip("The rattle of the lid being tried while the chest is locked. Optional: empty is silent.")]
         [SerializeField] private SoundCue lockedCue;
 
         // How the lid is turned when shut.

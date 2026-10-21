@@ -224,10 +224,10 @@ namespace LevelGen
         /// box), ignoring anything far above or wholly below the street;
         /// NaN where nothing stands there.
         /// </summary>
-        private static float WallTop(Vector2 point, float streetLevel, List<Bounds> walls, GeneratorSettings settings)
+        internal static float WallTop(Vector2 point, float streetLevel, List<Bounds> walls, GeneratorSettings settings)
         {
             float top = float.NaN;
-            float probe = settings.MoonShaftWallProbe;
+            float probe = settings.EdgeWallProbe;
 
             foreach (Bounds bounds in walls) {
                 if (bounds.min.y > streetLevel + 20f || bounds.max.y < streetLevel) {
@@ -252,7 +252,7 @@ namespace LevelGen
         /// <summary>
         /// The world boxes of every renderer under a group.
         /// </summary>
-        private static void GatherBounds(Transform group, List<Bounds> into)
+        internal static void GatherBounds(Transform group, List<Bounds> into)
         {
             if (group == null) {
                 return;

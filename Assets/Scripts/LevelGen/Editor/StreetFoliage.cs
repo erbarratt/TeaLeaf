@@ -6,27 +6,28 @@ namespace LevelGen
 {
     /// <summary>
     /// The foliage the generator puts on the streets: clusters of grass on
-    /// the ground tiles and nettles at the foot of the foundations.
+    /// the ground and nettles at the foot of the foundations.
     ///
-    /// Grass (PlaceCluster, called by StreetGround as it lays the ground
-    /// grid): a share of the tiles laid (GrassCover) gets a cluster - a few
-    /// tufts (GrassClusterMin to Max) of the verified grass pieces (category
-    /// "grass"), each turned and scaled at random, scattered within
-    /// GrassClusterRadius of a random point on the tile. StreetGround only
-    /// asks for a cluster where that point stands in the open street:
+    /// Grass (PlaceCluster, called by StreetGround as it builds the
+    /// ground): a share of the ground's patches (GrassCover, GrassPatch
+    /// square) gets a cluster - a few tufts (GrassClusterMin to Max) of the
+    /// verified grass pieces (category "grass"), each turned and scaled at
+    /// random, scattered within GrassClusterRadius of a random point in the
+    /// patch. StreetGround only asks for a cluster where that point stands
+    /// in the open street:
     /// GrassEdgeMargin in from the street's edges and from every lot's
     /// footprint (clear of the foundations and of columns standing forward
     /// into the street) and from a flight of steps.
     ///
     /// Nettles (BuildNettles, once everything is built): each street gets a
     /// few (NettlesPerStreetMin to Max) at the visible joint between the
-    /// foundation stones and the ground tiles - at the foot of a placed
+    /// foundation stones and the ground - at the foot of a placed
     /// foundation piece's front face, where that face looks onto the street,
     /// NettleOut in front of the face so the plant's back grows out of the
     /// corner. Spots are drawn at random along the street's fronts (weighted
     /// by length), never within NettleSpacing of another nettle nor
     /// NettleDoorClear of a doorway's sides, and the ground under each is
-    /// found with a ray down onto the tiles.
+    /// found with a ray down onto the ground's colliders.
     ///
     /// The foliage draws from a random sequence of its own, seeded from the
     /// spec's seed (RandomFor), so adding or tuning it changes nothing else

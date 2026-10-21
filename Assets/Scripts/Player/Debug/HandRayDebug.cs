@@ -12,9 +12,12 @@ using Player;
 /// </summary>
 public class HandRayDebug : MonoBehaviour
 {
+    [Tooltip("The hand rays on the Hands object that are drawn.")]
     [SerializeField] private PlayerHandInteraction playerHandInteraction;
 
+    [Tooltip("The colour the left hand's ray is drawn in.")]
     [SerializeField] private Color leftRayColor = Color.red;
+    [Tooltip("The colour the right hand's ray is drawn in.")]
     [SerializeField] private Color rightRayColor = Color.blue;
 
     private void Update()

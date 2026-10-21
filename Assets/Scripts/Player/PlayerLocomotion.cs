@@ -17,10 +17,10 @@ namespace Player
     public class PlayerLocomotion : MonoBehaviour
     {
 
-        /// CharacterController used to move the player while respecting collisions.
+        [Tooltip("The CharacterController on the Player root that moves the player through collisions. Its height and centre are changed here for crouching and re-centring.")]
         [SerializeField] private CharacterController characterController;
 
-        /// Camera used to determine the player's real-world position and height.
+        [Tooltip("The Main Camera: where the headset is. The capsule is kept centred under it.")]
         [SerializeField] private Transform cameraTransform;
 
         /// The XR Origin's "Camera Offset" transform - the parent of the tracked
@@ -29,40 +29,41 @@ namespace Player
         /// this transform to move the whole tracked hierarchy down with the
         /// CharacterController rather than trying to move the camera itself,
         /// which is driven by tracking and can't be positioned directly.
+        [Tooltip("The Camera Offset object, the parent of the tracked head and hands. Crouching lowers it, so the whole tracked view drops with the capsule.")]
         [SerializeField] private Transform cameraOffsetTransform;
 
-        /// Reference to the central XR input system.
-        /// All gameplay code should get controller input through this class rather than
-        /// reading Input Actions directly.
+        [Tooltip("The input system on the Player root: the thumbsticks and buttons are read through it.")]
         [SerializeField] private PlayerInputXR playerInput;
 
         /// The transform whose Y rotation defines the player's movement direction.
         /// We use the rig root rather than the headset so that looking left/right does
         /// not change which direction "forward" moves the player.
+        [Tooltip("The Player root. Movement is relative to its facing, not the headset's, and turning rotates it.")]
         [SerializeField] private Transform playerTransform;
 
         [Header("Turning")]
 
-        /// main switch for smooth turn
+        [Tooltip("On, the right stick turns the player continuously at Smooth Turn Speed. Off, it snap turns by Snap Turn Angle each time it is pushed past Snap Turn Threshold.")]
         [SerializeField] private bool useSmoothTurn;
 
-        /// Degrees per second when smooth turning.
+        [Tooltip("Turning speed with the right stick fully over while smooth turning, in degrees per second.")]
         [SerializeField] private float smoothTurnSpeed = 90f;
 
-        /// Degrees rotated each time a snap turn occurs.
+        [Tooltip("How far one snap turn rotates the player, in degrees.")]
         [SerializeField] private float snapTurnAngle = 45f;
 
+        [Tooltip("How far (0-1) the right stick must be pushed sideways to fire a snap turn. It must come back inside Turn Deadzone before another.")]
         [SerializeField] private float snapTurnThreshold = 0.8f;
 
-        /// Minimum stick movement required before turn input is accepted.
+        [Tooltip("Sideways stick movement (0-1) below this is ignored, so a resting stick never turns. Also how far it must come back for a snap turn to re-arm.")]
         [SerializeField] private float turnDeadzone = 0.2f;
 
         [Header("Movement")]
 
-        /// Movement speed in metres per second.
+        [Tooltip("Walking speed with the left stick fully pushed, in metres per second. Crouched movement uses it too.")]
         [SerializeField] private float moveSpeed = 3f;
 
-        /// Minimum stick movement required before movement input is accepted.
+        [Tooltip("Left stick movement (0-1) below this is ignored, so a resting stick never moves the player.")]
         [SerializeField] private float moveDeadzone = 0.2f;
 
         [Header("Sprint")]
@@ -70,6 +71,7 @@ namespace Player
         /// Movement speed in metres per second while sprinting. Replaces
         /// moveSpeed rather than adding to it, so the two can be tuned
         /// independently.
+        [Tooltip("Speed with the stick fully pushed while sprinting, in metres per second. Replaces Move Speed rather than adding to it.")]
         [SerializeField] private float sprintSpeed = 4.5f;
 
         [Header("Jump")]
@@ -78,15 +80,18 @@ namespace Player
         // launch speed because height is what matters for level design (can
         // the player reach that crate?) - the launch speed is derived from
         // it and gravity in CacheJumpLaunchSpeed().
+        [Tooltip("The peak height of a jump, in metres. The launch speed is worked out from this and Gravity.")]
         [SerializeField] private float jumpHeight = 0.5f;
 
         // Seconds after walking off an edge during which a jump still works
         // ("coyote time") - it feels unfair when a press a hair too late
         // does nothing.
+        [Tooltip("Seconds after walking off an edge in which a jump still works. 0 means the player must be on the ground.")]
         [SerializeField] private float coyoteTime = 0.1f;
 
         // Seconds a jump press is remembered while it can't jump yet (e.g.
         // pressed just before landing), so it fires the moment it can.
+        [Tooltip("Seconds a jump press is remembered while it cannot jump yet, so a press just before landing still jumps. 0 means only a press while able to jump counts.")]
         [SerializeField] private float jumpBufferTime = 0.15f;
 
         [Header("Air Movement")]
@@ -94,19 +99,18 @@ namespace Player
         // How quickly, in metres per second squared, the thumbstick can
         // steer horizontal velocity while airborne. Low, so momentum
         // dominates: a jump can be corrected, not reversed.
+        [Tooltip("How quickly the stick can steer the horizontal velocity while airborne, in metres per second squared. 0 gives no air control.")]
         [SerializeField] private float airControlAcceleration = 3f;
 
-        // How quickly, in metres per second squared, airborne horizontal
-        // velocity bleeds away while the stick is centred.
+        [Tooltip("How quickly airborne horizontal velocity bleeds away while the stick is centred, in metres per second squared. 0 keeps all momentum.")]
         [SerializeField] private float airDrag = 0.5f;
 
         [Header("Gravity")]
 
-        /// Downward acceleration in metres per second squared.
+        [Tooltip("Downward acceleration, in metres per second squared, so normally negative. Also sets the jump's launch speed.")]
         [SerializeField] private float gravity = -9.81f;
 
-        /// Small downward force applied while grounded to keep the CharacterController
-        /// reliably attached to the ground.
+        [Tooltip("A small downward speed, in metres per second, applied while grounded so the CharacterController stays attached to slopes and steps. Negative.")]
         [SerializeField] private float groundedGravity = -2f;
 
         [Header("Height")]
@@ -114,9 +118,10 @@ namespace Player
         /// Minimum allowed CharacterController height. Doubles as the crouched
         /// height target, since the fully-crouched height should never be
         /// shorter than the CharacterController can safely be.
+        [Tooltip("The capsule's height while crouched, in metres, and the shortest it is ever allowed to be.")]
         [SerializeField] private float minimumHeight = 1f;
 
-        /// Additional skin width applied to prevent the capsule clipping into the floor.
+        [Tooltip("Added to half the height when placing the capsule's centre, in metres, so the capsule never clips into the floor.")]
         [SerializeField] private float heightPadding = 0.1f;
 
         /// How far, in metres, the headset must drift horizontally from the
@@ -125,12 +130,12 @@ namespace Player
         /// the tracked head is never perfectly still, so without this it's
         /// rewritten every frame for sub-millimetre jitter. Small enough that
         /// the capsule is never visibly off-centre.
+        [Tooltip("How far the headset must drift horizontally from the capsule's centre, in metres, before the capsule is moved back under it.")]
         [SerializeField] private float recentreThreshold = 0.002f;
 
         [Header("Crouch")]
 
-        /// Metres per second the CharacterController's height changes by while
-        /// transitioning between standing and crouching.
+        [Tooltip("How fast the capsule's height changes between standing and crouched, in metres per second.")]
         [SerializeField] private float crouchTransitionSpeed = 2f;
 
         [Header("Movement State")]
@@ -139,12 +144,14 @@ namespace Player
         /// moving at to count as Walking/Sprinting/CrouchWalking rather than
         /// Still/CrouchStill. Measured from real applied movement, so pushing
         /// the stick into a wall still counts as still.
+        [Tooltip("The real horizontal speed, in metres per second, above which the player counts as moving (Walking, Sprinting or Crouch Walking) rather than still.")]
         [SerializeField] private float movingSpeedThreshold = 0.1f;
 
         /// How long, in seconds, the CharacterController must be off the
         /// ground before the state becomes Airborne. isGrounded briefly drops
         /// out when walking down steps and slopes, and without this grace
         /// period the state would flicker to Airborne mid-walk.
+        [Tooltip("How long the capsule must be off the ground, in seconds, before the state becomes Airborne. A jump is Airborne at once.")]
         [SerializeField] private float airborneGraceTime = 0.15f;
 
         /// Prevents repeated snap turns while the stick remains held.

@@ -27,30 +27,24 @@ namespace Interaction
     [RequireComponent(typeof(BoxCollider))]
     public class DoorHandle : MonoBehaviour, IHandTarget, IHandSnapTarget, IDebugDrawable
     {
-        // The door this handle opens. Left empty, found on a parent.
+        [Tooltip("The door this handle opens. Left empty, the Door on a parent object is used.")]
         [SerializeField] private Door door;
 
-        // The part that turns with the hand: the levers on both faces, as
-        // children of one object on the spindle. Optional.
+        [Tooltip("The part shown turning with the hand: the levers on both faces, as children of one object on the spindle, turned about its local Z. Optional: empty, nothing visible turns.")]
         [SerializeField] private Transform lever;
 
         [Header("Grip")]
 
-        // Shared hand offsets and finger pose for every door handle - see
-        // HandSnapProfile.
+        [Tooltip("The hand offsets and finger pose for a hand on the lever, shared by every door handle. Empty, the hand sits exactly on the grip frame with the default pose.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
-        // How far the lever's own axis is out from this object (the middle
-        // of the door's thickness), in metres - the same on both faces.
+        [Tooltip("How far the lever's own axis stands out from this object (the middle of the door's thickness) along Z, in metres. The same on both faces.")]
         [SerializeField] private float standOff = 0.075f;
 
-        // Where along the lever the hand grips, in metres along local X
-        // from the spindle. Negative = towards the hinge, the way a lever
-        // normally points.
+        [Tooltip("Where along the lever the hand grips, in metres along local X from the spindle. Negative is towards the hinge, the way a lever normally points.")]
         [SerializeField] private float gripAlong = -0.07f;
 
-        // The lever's radius, in metres: the grip frame sits on its
-        // surface, on the player's side.
+        [Tooltip("The lever's radius, in metres. The grip frame sits on the lever's surface, this far out from its axis on the player's side.")]
         [SerializeField] private float gripRadius = 0.011f;
 
         // The layer the handle must be on - see OnValidate().

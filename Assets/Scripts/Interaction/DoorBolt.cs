@@ -28,32 +28,32 @@ namespace Interaction
     [RequireComponent(typeof(BoxCollider))]
     public class DoorBolt : MonoBehaviour, IHandTarget, IHandSnapTarget, IDebugDrawable
     {
-        // The door this bolt holds shut. Left empty, found on a parent.
+        [Tooltip("The door this bolt holds shut. Left empty, the Door on a parent object is used.")]
         [SerializeField] private Door door;
 
-        // Which face of the door the bolt is on: its front (+Z) or back.
+        [Tooltip("Which face of the door the bolt is on: ticked, its front (+Z); unticked, its back. The bolt can only be targeted and worked from that side.")]
         [SerializeField] private bool onFront = true;
 
-        // The part that slides: the bar and its knob. Optional.
+        [Tooltip("The part shown sliding: the bar and its knob, moved along the door's X by the slide. Optional: empty, nothing visible moves.")]
         [SerializeField] private Transform bar;
 
-        // How far the bolt slides between drawn and shot, in metres.
+        [Tooltip("How far the bolt slides along the door between drawn back and shot, in metres.")]
         [SerializeField] private float travel = 0.05f;
 
+        [Tooltip("Whether the bolt starts the level shot, holding the door shut. Applied when Play starts.")]
         [SerializeField] private bool startsShot;
 
         [Header("Grip")]
 
-        // Hand offsets and finger pose for a hand on the knob.
+        [Tooltip("The hand offsets and finger pose for a hand on the knob. Empty, the hand sits exactly on the grip frame with the default pose.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
-        // How far out from the door's face the hand grips the knob, in
-        // metres.
+        [Tooltip("How far out from the door's face the hand grips the knob, in metres.")]
         [SerializeField] private float standOff = 0.03f;
 
         [Header("Sound")]
 
-        // The bolt reaching either end. Optional (empty = silent).
+        [Tooltip("The sound of the bolt reaching either end, played from the knob so guards hear it too. Optional: empty is silent.")]
         [SerializeField] private SoundCue slideCue;
 
         // The layer the bolt must be on - see OnValidate().

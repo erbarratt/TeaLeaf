@@ -5,21 +5,17 @@ namespace LevelGen
 {
     /// <summary>
     /// Streets that climb gently. Where a segment's two points stand at
-    /// different heights and the grade is no steeper than the settings'
-    /// StreetSlopeMaxGrade, the change is made by a slope rather than by a
-    /// flight of steps (StreetSteps): the street's ground tiles are laid
-    /// tilted, in rows across the segment, rising evenly from the low point
-    /// to the top, and a level landing of tiles (as at the top of a flight)
-    /// fills the rest of the segment to the high point, so no tile of the
-    /// street's turned grid reaches back over the slope. The grade is
-    /// measured over the sloped stretch (the segment less the landing), so a
-    /// segment must be long enough for the landing and the rise at that
-    /// grade. Only a street of ground tiles (cobbles) can change height.
+    /// different heights and the grade (the rise over the segment's length)
+    /// is no steeper than the settings' StreetSlopeMaxGrade, the change is
+    /// made by a slope rather than by a flight of steps (StreetSteps): the
+    /// street's ground mesh rises evenly from the low point to the high
+    /// point, its vertices on the slope's surface. Only a street of ground
+    /// (cobbles) can change height.
     ///
     /// The facades beside a slope stand level, each building at the highest
     /// the street comes under it, their foundations stacked down to the
-    /// street (FacadeBuilder). Geometry and choice only; StreetGround lays
-    /// the tiles.
+    /// street (FacadeBuilder). Geometry and choice only; StreetGround builds
+    /// the mesh and the slope's tilted collider box.
     /// </summary>
     internal static class StreetSlopes
     {
@@ -41,15 +37,12 @@ namespace LevelGen
             public float Low;
             public float High;
             // Where the slope starts (its foot, at the low point) and ends
-            // (its top, where the landing begins) along the segment.
+            // (its top, at the high point) along the segment.
             public float Foot;
             public float Top;
-            // The landing's depth beyond the top, and its rows of tiles.
-            public float Landing;
-            public int LandingRows;
 
             /// <summary>
-            /// The rise over the sloped stretch's length.
+            /// The rise over the slope's length.
             /// </summary>
             public float Grade => (High - Low) / Mathf.Abs(Top - Foot);
 
@@ -93,8 +86,8 @@ namespace LevelGen
             /// <summary>
             /// The height of the street's surface at a distance along the
             /// segment: the low level before the foot, rising evenly up the
-            /// slope, the high level from the top on (the landing). The
-            /// ground tiles follow it exactly.
+            /// slope, the high level from the top on. The ground mesh follows
+            /// it exactly.
             /// </summary>
             public float SurfaceAt(float along)
             {
@@ -103,8 +96,8 @@ namespace LevelGen
             }
 
             /// <summary>
-            /// Whether a distance along the segment lies on the sloped
-            /// stretch (not on the landing or beyond either end).
+            /// Whether a distance along the segment lies on the slope (not
+            /// beyond either end).
             /// </summary>
             public bool OnSlope(float along)
             {
@@ -113,37 +106,26 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// The grade a rising segment of a style's ground would slope at:
-        /// its rise over its length less the landing. 0 if it doesn't rise;
-        /// infinite if it is too short for the landing and one row of tiles.
+        /// The grade a rising segment would slope at: its rise over its
+        /// length. 0 if it doesn't rise; infinite for a segment of no length.
         /// </summary>
-        internal static float Grade(StreetSpec street, int segment, BuildingStyle style, GeneratorSettings settings)
+        internal static float Grade(StreetSpec street, int segment, GeneratorSettings settings)
         {
             if (!StreetSteps.Rises(street, segment, settings)) {
                 return 0f;
             }
 
             float rise = Mathf.Abs(street.points[segment + 1].y - street.points[segment].y);
-            float stretch = SlopedLength(street, segment, style, settings);
-            return stretch >= style.TileDepth - settings.GroundOverlap ? rise / stretch : float.PositiveInfinity;
-        }
-
-        /// <summary>
-        /// How much of a segment is left for the slope once its landing is
-        /// taken off.
-        /// </summary>
-        internal static float SlopedLength(StreetSpec street, int segment, BuildingStyle style, GeneratorSettings settings)
-        {
             Vector2 a = new(street.points[segment].x, street.points[segment].z);
             Vector2 b = new(street.points[segment + 1].x, street.points[segment + 1].z);
-            return (b - a).magnitude - StreetSteps.LandingDepth(style, settings);
+            float length = (b - a).magnitude;
+            return length >= settings.MinSegmentLength ? rise / length : float.PositiveInfinity;
         }
 
         /// <summary>
         /// Whether a street's segment changes height by a slope: it rises,
-        /// its street is of ground tiles, and its grade over the sloped
-        /// stretch is no steeper than StreetSlopeMaxGrade. Any other rise is
-        /// made by steps.
+        /// its street is of ground, and its grade is no steeper than
+        /// StreetSlopeMaxGrade. Any other rise is made by steps.
         /// </summary>
         internal static bool IsSlope(StreetSpec street, int segment, BuildingStyle style, GeneratorSettings settings)
         {
@@ -151,13 +133,13 @@ namespace LevelGen
                 return false;
             }
 
-            return Grade(street, segment, style, settings) <= settings.StreetSlopeMaxGrade;
+            return Grade(street, segment, settings) <= settings.StreetSlopeMaxGrade;
         }
 
         /// <summary>
         /// Every slope the spec's streets need, in the spec's order: each
-        /// rising segment of a street of ground tiles gentle enough to slope
-        /// (IsSlope), with its landing at the high end.
+        /// rising segment of a street of ground gentle enough to slope
+        /// (IsSlope), from its low point to its high point.
         /// </summary>
         internal static List<Slope> Find(List<StreetSpec> streets, Dictionary<string, BuildingStyle> styles, GeneratorSettings settings)
         {
@@ -178,7 +160,6 @@ namespace LevelGen
                     Vector2 a = new(street.points[i].x, street.points[i].z);
                     Vector2 b = new(street.points[i + 1].x, street.points[i + 1].z);
                     float length = (b - a).magnitude;
-                    float landing = StreetSteps.LandingDepth(style, settings);
                     float up = to > from ? 1f : -1f;
                     slopes.Add(new Slope {
                         Street = street,
@@ -191,9 +172,7 @@ namespace LevelGen
                         Low = Mathf.Min(from, to),
                         High = Mathf.Max(from, to),
                         Foot = up > 0f ? 0f : length,
-                        Top = up > 0f ? length - landing : landing,
-                        Landing = landing,
-                        LandingRows = StreetSteps.LandingRows(style, settings)
+                        Top = up > 0f ? length : 0f
                     });
                 }
             }

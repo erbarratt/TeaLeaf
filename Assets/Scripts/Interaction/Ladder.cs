@@ -26,20 +26,18 @@ namespace Interaction
     [RequireComponent(typeof(BoxCollider))]
     public class Ladder : MonoBehaviour, IHandTarget, IClimbable, IMantleable, IDebugDrawable
     {
-        // Shared hand offsets/pose for all ladders - see HandSnapProfile.
+        [Tooltip("The hand offsets and finger pose for a hand on a rung, shared by every ladder. Empty, the hand sits exactly on the grip frame in the rung grip pose.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
-        // Whether the ladder can also be grabbed from behind (its -Z side),
-        // e.g. an open ladder standing free in a room. Off: only from the
-        // front, so hand rays from behind find nothing to grab - no reticle.
+        [Tooltip("Whether the ladder can also be grabbed from behind (its -Z side), for an open ladder standing free in a room. Unticked, hand rays from behind find nothing to grab and show no reticle.")]
         [SerializeField] private bool climbableFromBack;
 
         [Header("Rungs")]
 
-        // Height of the lowest rung above the bottom of the box, in metres.
+        [Tooltip("The height of the lowest rung above the bottom of the box, in real metres whatever the object's scale.")]
         [SerializeField] private float firstRungHeight = 0.3f;
 
-        // Distance between rungs, in metres. Real ladders are ~0.25-0.3m.
+        [Tooltip("The distance from one rung to the next, in real metres whatever the object's scale. Real ladders are about 0.25 to 0.3. The rung count is however many fit in the box above the first rung.")]
         [SerializeField] private float rungSpacing = 0.3f;
 
         [Header("Mantling")]
@@ -50,10 +48,10 @@ namespace Interaction
         // default - every ladder is mantleable unless unticked (e.g. one
         // that tops out under a ceiling, or whose top exit is a separate
         // mantleable ClimbableEdge on the lip above).
+        [Tooltip("Whether the player can mantle off the top of the ladder: with a hand on the top rung the mantle arrow shows, and a stick push lands them on the Mantle Point. Untick it for a ladder that tops out under a ceiling, or whose top exit is a mantleable Climbable Edge on the lip above.")]
         [SerializeField] private bool isMantleable = true;
 
-        // Whether the mantle ends with the player crouched - tick it where
-        // there's no room to stand at the top.
+        [Tooltip("Whether a mantle off the top ends with the player crouched. Tick it where there is no room to stand at the top.")]
         [SerializeField] private bool mantleEndsCrouched;
 
         // Where the mantle lands the bottom of the player's capsule (their
@@ -64,6 +62,7 @@ namespace Interaction
         // with the top of the box, DefaultMantleInset behind its back face -
         // on top of whatever the ladder leans against. Move it if the ladder
         // tops out somewhere else.
+        [Tooltip("Where a mantle lands the player's feet, in real metres along the ladder's own axes from its origin (X across, Y up, Z out towards the climber); the object's scale is ignored. The right-click 'Reset Mantle Point' puts it level with the top of the box, 0.4m behind its back face. Move it if the ladder tops out somewhere else.")]
         [SerializeField] private Vector3 mantlePoint = new(0f, 2f, -0.5f);
 
         // How far behind the box's back face the default mantle point is, in

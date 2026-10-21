@@ -5,7 +5,9 @@ the slice design; this file is loaded when working in this folder. Keep it up to
 every change to these systems, like the root file.
 
 Phase 6 of `Assets/DEVROADMAP.txt`. **Built and working in the headset** (no guard is in `Main.unity` at present; the test guard is set up from the menu): a guard that patrols, sees, hears, becomes suspicious, searches, chases, catches,
-notices bodies and can be knocked out. Every number is a first guess.
+notices bodies and can be knocked out. It is a rigged, textured model with animations
+(the prefab and `GuardAnimation`, below); the animation set-up has been checked in Play
+Mode from the desk, not yet looked at in the headset. Every number is a first guess.
 
 ## The guard
 
@@ -53,7 +55,7 @@ notices bodies and can be knocked out. Every number is a first guess.
     (3s) goes to Search if the meter's peak reached `investigateThreshold` (0.6), back to
     Patrol if not - **with the meter emptied**, or the next look would make it suspicious
     again at once.
-  - **Search:** walks (`searchSpeed` 1.8) to the place, looks about for `searchLookTime`
+  - **Search:** walks (at `patrolSpeed`) to the place, looks about for `searchLookTime`
     (2.5s, turning slowly), then tries `searchPointCount` (3) random places within
     `searchRadius` (4m) put onto the NavMesh (`NavMesh.SamplePosition`), then gives up
     (bark) and patrols - or after `searchTimeout` (30s), doubled (`alertedSearchScale`)
@@ -106,9 +108,12 @@ notices bodies and can be knocked out. Every number is a first guess.
     one per `walkStride` (1.4m) or `runStride` (1.8m), **sound only** (noise scale 0).
     Barks (`suspiciousBark`, `searchBark`, `gaveUpBark`, `spottedBark`, `foundBodyBark`)
     played from the head, sound only. Both show on the player's compass.
-  - **State tint:** `stateRenderer` (the head, on the test guard) is tinted by state
+  - **State tint:** `stateRenderer` is optional, for a greybox guard: tinted by state
     through a property block, on a change only - grey patrol, yellow suspicious, orange
-    search, red chase, violet stunned, dark knocked out - until there are animations.
+    search, red chase, violet stunned, dark knocked out. **Left empty on the model
+    guard** (the tint would darken its texture); its state shows in the gizmo's cone
+    colour and the `GuardDebug` log. `visual` is optional in the same way: greybox
+    shapes laid flat by `KnockOut()`; empty on the model guard, whose fall is animated.
   - **The level ending** (`LevelManager.State` not `Playing`) stops it where it is.
   - Gizmo: the view cone's edges in the state's colour and a line above the head as long
     as the meter is full; selected, the close range and a line to the stimulus.
@@ -116,20 +121,72 @@ notices bodies and can be knocked out. Every number is a first guess.
   (positions read once in `Awake()`). `waitTime` (2s at each point), `loops` (off = there
   and back). `Count`, `GetPoint(i)`, `NearestIndex(position)`. `IDebugDrawable`: the route,
   drawn from the children so it shows while editing.
-- **How a guard object is put together:** root on the `Guard` layer with `NavMeshAgent`,
-  a kinematic `Rigidbody` and a `CapsuleCollider` (radius 0.3, height 1.8); a `Head` child
-  on `GuardHead` with a `SphereCollider` - the blackjack's target, and the guard's `eye`
-  (its forward is the way the guard looks); a `Visual` child holding what is drawn.
-  Greybox: a capsule, a ball and a nose.
+- **The guard prefab** (`Assets/Prefabs/Characters/Guard.prefab`) is how a guard is put
+  together, and every guard is an instance of it: root on the `Guard` layer with
+  `NavMeshAgent` (radius 0.3, height 1.8, angular speed 360, acceleration 12, stopping
+  distance 0.1), a kinematic `Rigidbody`, a `CapsuleCollider` (radius 0.3, height 1.8),
+  `Guard` and `GuardAnimation`; a `Head` child on `GuardHead` at 1.65m with a
+  `SphereCollider` (radius 0.17) - the blackjack's target, and the guard's `eye` (its
+  forward is the way the guard looks; it is fixed to the root, not to the head bone,
+  so the view cone follows the body's facing); and a `Model` child, the guard model
+  with its `Animator`, everything under it on `Guard`. The prefab carries the
+  placeholder bark cues and surface sounds; a route is set per instance.
+- **The model** is `Assets/TripoModels/guard_1/guard_1.fbx` (Tripo-generated, 21k
+  triangles, one `SkinnedMeshRenderer` with 67 bones, URP Lit material `guard_1.mat`
+  beside it with base colour, normal and packed metallic/smoothness maps at 2048).
+  Imported at scale 1.8 (the file is 1m tall) as a **Generic** rig with an avatar from
+  the model and no root node; the Tripo-generated model's animations are baked to its
+  own skeleton, so Generic is the cheapest rig that plays them (no Humanoid
+  retargeting). Its 15 takes are named clips (`idle`, `walk`, `run`, `look_around`,
+  `turn`, `wait`, `scratch`, `fold_arms`, `frustrated_01`, `fall`, `defeat_03`, `dive`,
+  `slash`, `run_upstairs`, `walk_slow`), the cyclic ones looping. Skinned motion
+  vectors off; shadows cast and received; `CullUpdateTransforms` culling (the state
+  machine keeps time unseen, the bones aren't moved). No LODs yet.
+- **The clips the guard plays are project copies** in `Assets/Art/Animations/Guard/`
+  (`Guard_Idle`, `Guard_Walk`, `Guard_Run`, `Guard_LookAround`, `Guard_Stunned` from
+  `frustrated_01`, `Guard_Fall` from `fall`): the FBX clips move the hips along the
+  ground (the walk 1.07 m/s, the run 3.58 m/s, the fall 1.3m sideways), and the copies
+  have the hips' two ground-plane position curves (`Armature/Hips` local x and y; the
+  armature is turned -90° about X, so local z is up) frozen at their first-frame
+  value, so they play in place under the agent. **Don't make the hips the rig's root
+  node instead**: the pose still travels, and the path form `Armature/Hips` stops the
+  takes importing at all. The copies were made by script once; remake them the same
+  way if the FBX changes.
+- **`Guard.controller`** (same folder): parameters `Speed` (float), `IsLookingAbout`,
+  `IsStunned`, `IsKnockedOut` (bools). States: `Locomotion` (default; a 1D blend tree
+  on `Speed`: idle at 0, walk at 1.07, run at 3.58 - the clips' own speeds, so the
+  feet roughly keep up at `patrolSpeed` (patrol and search) and `chaseSpeed`; a speed
+  between the two would blend the gaits into a shuffle), `Look Around`, `Stunned`,
+  `Knocked Out` (the fall, not looping, so it holds its last frame on the floor).
+  `Locomotion` <-> `Look Around` on `IsLookingAbout` (0.25s); Any State -> `Stunned` / `Knocked Out` on their bool (0.1s, no transition
+  to self), each back to `Locomotion` when it clears (0.25s / 0.5s - a woken guard just
+  blends up to standing; there is no get-up clip). Root motion off.
+- **`GuardAnimation`** (on the root, `[RequireComponent(Guard, NavMeshAgent)]`) — drives
+  the model's `Animator` (found in the children if not assigned) from what the guard is
+  doing, so `Guard` knows nothing about animation: its own `Update()` (it keeps running
+  after `KnockOut()` disables the `Guard`, so the fall plays) sets `Speed` from the
+  agent's ground velocity every frame (damped over `speedDamping` 0.1s; 0 with the
+  agent off or off the NavMesh), and the three bools only on a change:
+  `IsLookingAbout` from `Guard.IsLookingAbout` (Suspicious, or standing at a place in
+  a Search), the others from `Guard.State`. The footsteps stay distance-based in
+  `Guard`, not tied to the clips' feet.
 
 ## Navigation
 
 - **The NavMesh agent is guard-sized**: radius 0.3, height 1.8, step 0.4, slope 45°
   (`ProjectSettings/NavMeshAreas.asset`), so 0.9m doorways are walkable.
-- **The NavMesh is baked in the editor** by a `NavMeshSurface` (the AI Navigation package)
-  on a `NavMesh` object at the scene root: every physics collider on the **Environment**
-  layer. The data is `Assets/Scenes/Main-NavMesh.asset`. **Bake again after changing
-  level geometry** (TeaLeaf > Dev Room > Set Up Test Guard does it).
+- **The NavMesh is baked in the editor** by a `NavMeshSurface` (the AI Navigation
+  package). **A hand-built level** (`Main.unity`): a surface on a `NavMesh` object at
+  the scene root, every physics collider on the **Environment** layer, data in
+  `Assets/Scenes/Main-NavMesh.asset`; **bake again after changing level geometry**
+  (TeaLeaf > Dev Room > Set Up Test Guard does it). **A generated level**
+  (`Intro.unity`): the level generator bakes a surface of its own on its `Generated`
+  root as it generates, walkable only on the streets (Not Walkable modifier volumes
+  carve away everything beside and above them), data in
+  `Assets/Scenes/<scene>/NavMesh - <sector>.asset`; a regeneration bakes it again,
+  and so does the surface's own Bake button (`Assets/Scripts/LevelGen/CLAUDE.md`,
+  NavMesh), with a 0.05m voxel rather than the default 0.1m, which bakes slivers
+  standing off a flight of steps, and a height mesh. Both use the default agent type.
 - **Doors aren't in the NavMesh**: they are on Interactable, so a guard walks through a
   shut door.
 
@@ -143,21 +200,39 @@ notices bodies and can be knocked out. Every number is a first guess.
   makes it Suspicious, so a guard standing still near a walking player is usually
   listening, not broken. Left alone it walks the whole test route (checked by playing the
   scene headless: about 40s from the Bedroom to the Hall).
-- **`GuardTestSetup`** (`AI/Debug/Editor`, menu **TeaLeaf > Dev Room > Set Up Test Guard**) — makes
-  the `Test Guard` and bakes the NavMesh. With a Sound Test House in the scene the guard
+- **`GuardTestSetup`** (`AI/Debug/Editor`, menu **TeaLeaf > Dev Room > Set Up Test Guard**) — places
+  the `Test Guard` (an instance of the guard prefab, given the route, the placeholder
+  sounds where the prefab has none, and a `GuardDebug`) and bakes the NavMesh. With a
+  Sound Test House in the scene the guard
   patrols a `Test Guard Route` copied from the house's `Guard Path` (Bedroom, Landing,
   stairs, Hall, Kitchen, there and back); without one it stands 4m ahead of the camera.
-  The guard gets a `GuardDebug`. Also runs **Add Hand Tools To
+  Also runs **Add Hand Tools To
   Player** and gives the blackjack the placeholder impact cue. **TeaLeaf > Dev Room > Check Test
   Guard Route** asks the NavMesh for a path between each pair of route points and logs any
   that fail. Both have command-line entry points (`BuildInBatch()`, `CheckRouteInBatch()`)
   for `Unity.exe -batchmode -quit -projectPath ... -executeMethod AI.GuardTestSetup.…`,
   which open and save `Main.unity` with the editor closed.
+- **`GuardTestsArea`** (`AI/Debug/Editor`, menu **TeaLeaf > Dev Room > Guard Tests**) — lays a
+  plain floor (`Guard Tests`, Environment layer) 3m ahead of the camera with one guard on it
+  for every clip in `Assets/Art/Animations/Guard`, each a bare instance of the model (no
+  `Guard`, agent or controller) named after its clip, with a TextMeshPro label over its
+  head and a **`GuardAnimationTest`** (`AI/Debug`) that loops the clip through a Playable
+  graph straight onto the `Animator` (every clip loops, the fall included). Each guard has
+  a lane running across the view, walked over and over: it travels along its forward at
+  `moveSpeed` and is put back at its start after `lapLength` (6m). **Tweak `playbackSpeed`
+  and `moveSpeed` in the Inspector while playing until the feet stay planted**: those are
+  the numbers the blend tree thresholds and the guard's patrol, search and chase speeds
+  should agree on. The walk and run start at their clips' authored speeds (1.07 and 3.58
+  m/s), the rest at 0; the label shows the clip and both numbers. Rebuilding replaces the
+  last area.
 
 ## Not built
 
 Dragging and hiding a knocked-out guard; voice lines that don't repeat (the barks are one
-placeholder grunt cue), idle chatter and several voices; a humanoid model and animations;
+placeholder grunt cue), idle chatter and several voices; a get-up clip, a spotted
+reaction, idle variety at patrol points (`scratch`, `fold_arms`, `wait` are imported
+but unused), head look-at towards the stimulus, LOD meshes for the model, and the
+painted look (the material is plain URP Lit);
 doors on the NavMesh and guards opening them; guards thinking less often when far from the
 player beyond the sight cut-off; any reaction to a fire going out, or to a
 sleep dart before it works; anything to show a guard has a dart in it; guards telling each other anything.

@@ -36,47 +36,42 @@ namespace Interaction
     /// </summary>
     public class DoorKeyhole : MonoBehaviour, IDebugDrawable
     {
-        // The door it's in. Optional: with none, it opens whenever the
-        // head is near.
+        [Tooltip("The door the keyhole is in: the opening only grows while the door is latched shut. Optional: with none, it opens whenever the head is near.")]
         [SerializeField] private Door door;
 
-        // The door leaf's renderer, whose material uses TeaLeaf/DoorLeaf.
+        [Tooltip("The door leaf's renderer, whose material must use the TeaLeaf/DoorLeaf shader: that is what cuts the opening. Required; without it nothing is cut.")]
         [SerializeField] private MeshRenderer leafRenderer;
 
-        // Anything else on the door the opening has to go through as
-        // well - a lock plate standing on each face. Each must use a
-        // TeaLeaf/DoorLeaf material too (its own, in its own colour).
-        // Optional.
+        [Tooltip("Anything else on the door the opening has to go through as well, such as a lock plate standing on each face. Each must use a TeaLeaf/DoorLeaf material of its own. Optional.")]
         [SerializeField] private MeshRenderer[] plateRenderers;
 
         [Header("Size")]
 
         // The circle's radius in metres: at rest, and with the head right
         // up to it. The whole keyhole is two of these wide and four tall.
+        [Tooltip("The circle's radius at rest, with the head away from the door, in metres. The whole keyhole is two radii wide and four tall, so 0.005 is a real 1 by 2cm hole.")]
         [SerializeField] private float restRadius = 0.005f;
+        [Tooltip("The circle's radius with the head right up to the keyhole, in metres: big enough to see the room behind with both eyes. The whole keyhole is two radii wide and four tall.")]
         [SerializeField] private float openRadius = 0.05f;
 
         [Header("Depth")]
 
-        // How thick the door is at the keyhole, in metres: how deep the
-        // opening's walls run. 0 = measured from the leaf's renderer,
-        // which is right for a plain slab.
+        [Tooltip("How thick the door is at the keyhole, in metres: how deep the opening's walls run. 0 measures it from the leaf renderer's bounds, which is right for a plain slab; with lock plates, set it to the plates' whole depth so the walls reach their faces.")]
         [SerializeField] private float thickness;
 
-        // The colour of the opening's walls - the cut wood inside the
-        // door. Lit like the door itself.
+        [Tooltip("The colour of the opening's walls, the cut wood inside the door. Lit like the door itself.")]
         [SerializeField] private Color wallColor = new(0.2f, 0.13f, 0.08f, 1f);
 
         [Header("Opening")]
 
         // How far the head is from the keyhole (metres) when it starts to
         // open, and when it's fully open.
+        [Tooltip("How far the head is from the keyhole when it starts to open, in metres. Further away than this the keyhole stays at rest, and nearer it grows towards Open Full Distance.")]
         [SerializeField] private float openStartDistance = 0.6f;
+        [Tooltip("How far the head is from the keyhole when it is fully open, in metres. Must be less than Open Start Distance.")]
         [SerializeField] private float openFullDistance = 0.25f;
 
-        // The fastest it opens or shuts: 6 = fully open in a sixth of a
-        // second. Only noticed when the door is opened with the head at
-        // the keyhole; otherwise the head's own movement is slower.
+        [Tooltip("The fastest the opening grows or shrinks, as a share of the whole a second: 6 is fully open in a sixth of a second. Only noticed when the door is opened with the head at the keyhole; otherwise the head's own movement is slower.")]
         [SerializeField] private float openSpeed = 6f;
 
         // How far out from the keyhole's middle the gizmo's outlines are

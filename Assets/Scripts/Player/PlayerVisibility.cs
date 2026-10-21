@@ -26,27 +26,29 @@ namespace Player
     /// </summary>
     public class PlayerVisibility : MonoBehaviour
     {
+        [Tooltip("The locomotion on the Player root: its Movement State sets the stance scale.")]
         [SerializeField] private PlayerLocomotion playerLocomotion;
+        [Tooltip("The CharacterController on the Player root: the body sample is taken at its centre.")]
         [SerializeField] private CharacterController characterController;
+        [Tooltip("The Player root. The feet are at its position.")]
         [SerializeField] private Transform playerTransform;
 
-        // The Main Camera: where the head is.
+        [Tooltip("The Main Camera: where the head is, one of the two points the light is sampled at.")]
         [SerializeField] private Transform head;
 
         [Header("Light")]
-        // Seconds between light samples.
+        [Tooltip("Seconds between light samples. Each sample is a few physics rays, so this is not every frame.")]
         [SerializeField] private float sampleInterval = 0.1f;
 
         [Header("Stance")]
-        // Multiplies the light level while crouched (still or moving).
+        [Tooltip("Multiplies the light level while crouched, still or moving (0-1).")]
         [SerializeField, Range(0f, 1f)] private float crouchScale = 0.6f;
 
-        // Multiplies the light level while sprinting.
+        [Tooltip("Multiplies the light level while sprinting (1-2).")]
         [SerializeField, Range(1f, 2f)] private float sprintScale = 1.3f;
 
         [Header("Easing")]
-        // How fast Visibility moves towards its new value, per second:
-        // at 4, going from hidden to plain sight takes a quarter second.
+        [Tooltip("How fast Visibility moves towards its new value, per second: at 4, hidden to plain sight takes a quarter of a second.")]
         [SerializeField] private float changeSpeed = 4f;
 
         // Counts down to the next light sample. Starts at zero, so the

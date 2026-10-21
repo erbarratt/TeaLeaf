@@ -38,7 +38,8 @@ namespace LevelGen
     /// then the roof pieces left that face the void beyond the level lose
     /// their colliders (RoofEdgeColliders), and the walls' and the roof
     /// panels' colliders left are merged into as few boxes as possible too
-    /// (MergedColliders).
+    /// (MergedColliders), and the guards' NavMesh is baked over the streets
+    /// (StreetNavMesh).
     /// </summary>
     internal static class LevelGenerator
     {
@@ -168,6 +169,15 @@ namespace LevelGen
             // every piece and collider stands, since each beam is cut by
             // rays against them, and after the cull, which never sees them.
             MoonShafts.Build(spec, settings, rootObject.transform, log);
+            // The sound rooms over the streets, a junction room where they
+            // meet and the portals between: their heights come from the
+            // walls left standing.
+            SoundRooms.Build(spec, heights, settings, rootObject.transform, log);
+            // The guards' NavMesh, bound to the streets: a surface on the
+            // root over its own colliders, walkable only inside a volume
+            // laid over each street segment; baked once every collider
+            // stands.
+            StreetNavMesh.Build(spec, heights, settings, rootObject, log);
 
             // The report on the result: its markers go on the root, before
             // the fingerprint is taken.

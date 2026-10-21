@@ -75,7 +75,7 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// The height the ground tiles are laid at, at a distance along a
+        /// The height the ground mesh is laid at, at a distance along a
         /// segment: either side of a flight the level of that side (the
         /// flight's own pieces make the rise), else the surface.
         /// </summary>

@@ -18,10 +18,11 @@ namespace LevelGen
     /// side and storey on storey, so modules are laid at the module size less
     /// that overlap (ModuleSpacing, StoreySpacing).
     ///
-    /// The style's tiles (what a street of it is laid with) are its ground
-    /// pieces, or its floor pieces if it has no ground ones, measured the
-    /// same way: the tile size is the median of the full-size ones, and only
-    /// pieces within the size tolerance of it are laid.
+    /// A street of the style is decked with its floor pieces (tiles) where
+    /// it has any, else it is ground - the streets' own mesh, which needs no
+    /// pieces (TileCategory). The tile size is the median of the full-size
+    /// floor pieces, and only pieces within the size tolerance of it are
+    /// laid.
     /// </summary>
     internal class BuildingStyle
     {
@@ -235,15 +236,17 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// Sets the tile category and size, and gathers the tiles that fit
-        /// it: full size means both sides at least FullSizeShare of the
-        /// biggest tile's (so a narrow strip never counts, however long).
+        /// Sets the tile category: "floor" for a style with usable floor
+        /// pieces (plank decking), else "ground" (the streets' own mesh,
+        /// which needs no pieces). For decking, the tile size and the tiles
+        /// that fit it: full size means both sides at least FullSizeShare of
+        /// the biggest tile's (so a narrow strip never counts, however long).
         /// </summary>
         private void MeasureTiles(GeneratorSettings settings)
         {
-            TileCategory = Pieces("ground").Count > 0 ? "ground" : Pieces("floor").Count > 0 ? "floor" : "";
+            TileCategory = Pieces("floor").Count > 0 ? "floor" : "ground";
 
-            if (TileCategory == "") {
+            if (TileCategory == "ground") {
                 return;
             }
 

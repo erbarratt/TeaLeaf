@@ -282,12 +282,12 @@ GameObject:
   - component: {fileID: 8453213756612851291}
   - component: {fileID: 7040585628139862593}
   m_Layer: 6
-  m_Name: Point Light (1)
+  m_Name: Spot Light
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 87
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &5213345712795747689
 Transform:
   m_ObjectHideFlags: 0
@@ -296,13 +296,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6537312796246391961}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0.0007, y: 2.2105, z: 0.4455}
+  m_LocalRotation: {x: 0.7071068, y: -0.00000011920929, z: 0.00000011920929, w: 0.7071068}
+  m_LocalPosition: {x: 0.00070001185, y: 2.43, z: 0.4454986}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 3040189863226182759}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 90, y: 0, z: 0}
 --- !u!108 &8453213756612851291
 Light:
   m_ObjectHideFlags: 0
@@ -312,12 +312,12 @@ Light:
   m_GameObject: {fileID: 6537312796246391961}
   m_Enabled: 1
   serializedVersion: 12
-  m_Type: 2
+  m_Type: 0
   m_Color: {r: 1, g: 0.7347729, b: 0.2783019, a: 1}
-  m_Intensity: 1
+  m_Intensity: 0.81
   m_Range: 5
-  m_SpotAngle: 30
-  m_InnerSpotAngle: 21.80208
+  m_SpotAngle: 124.67769
+  m_InnerSpotAngle: 89.17355
   m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 0
@@ -353,7 +353,7 @@ Light:
     serializedVersion: 2
     m_Bits: 4294967295
   m_RenderingLayerMask: 1
-  m_Lightmapping: 1
+  m_Lightmapping: 2
   m_LightShadowCasterMode: 0
   m_AreaSize: {x: 1, y: 1}
   m_BounceIntensity: 1
@@ -532,6 +532,10 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 767496694, guid: d6cc3e127751a4d47baf646810dc54a0, type: 3}
+      propertyPath: m_Enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 767496694, guid: d6cc3e127751a4d47baf646810dc54a0, type: 3}
       propertyPath: m_Intensity
       value: 10
       objectReference: {fileID: 0}
@@ -550,6 +554,10 @@ PrefabInstance:
     - target: {fileID: 767496694, guid: d6cc3e127751a4d47baf646810dc54a0, type: 3}
       propertyPath: m_BounceIntensity
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 767496694, guid: d6cc3e127751a4d47baf646810dc54a0, type: 3}
+      propertyPath: m_Shadows.m_Strength
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 767496694, guid: d6cc3e127751a4d47baf646810dc54a0, type: 3}
       propertyPath: m_Shadows.m_NearPlane
@@ -953,9 +961,6 @@ PrefabInstance:
       addedObject: {fileID: 3811422194778230731}
     - targetCorrespondingSourceObject: {fileID: 3951785702560294900, guid: d6cc3e127751a4d47baf646810dc54a0, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 6393222900034119852}
-    - targetCorrespondingSourceObject: {fileID: 3951785702560294900, guid: d6cc3e127751a4d47baf646810dc54a0, type: 3}
-      insertIndex: -1
       addedObject: {fileID: 4574770388866118913}
     - targetCorrespondingSourceObject: {fileID: 767496692, guid: d6cc3e127751a4d47baf646810dc54a0, type: 3}
       insertIndex: -1
@@ -1025,25 +1030,6 @@ MonoBehaviour:
   level: 1
   range: 5
   fullBrightnessFraction: 0.5
---- !u!114 &6393222900034119852
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3463291958235530544}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 966217fc2d5bb5b4abb9f2d6688d5c0b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Core.Flame
-  lightSource: {fileID: 3811422194778230731}
-  visibleLight: {fileID: 488505900872856370}
-  flicker: {fileID: 4574770388866118913}
-  soundLoop: {fileID: 0}
-  flameVisual: {fileID: 1795455678499844094}
-  startsLit: 1
-  extinguishCue: {fileID: 0}
 --- !u!114 &4574770388866118913
 MonoBehaviour:
   m_ObjectHideFlags: 0

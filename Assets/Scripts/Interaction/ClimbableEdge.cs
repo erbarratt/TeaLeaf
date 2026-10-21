@@ -22,7 +22,7 @@ namespace Interaction
     [RequireComponent(typeof(BoxCollider))]
     public class ClimbableEdge : MonoBehaviour, IHandTarget, IClimbable, IMantleable, IDebugDrawable
     {
-        // Shared hand offsets/pose for all ledges - see HandSnapProfile.
+        [Tooltip("The hand offsets and finger pose for a hand on the lip, shared by every ledge. Empty, the hand sits exactly on the grip frame in the ledge grip pose.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
         // For edges on something free-standing that can be gripped from
@@ -34,17 +34,15 @@ namespace Interaction
         // has a front. The box must then span the whole thickness of the
         // thing, so its back face lines up with the real back face the same
         // way its front does.
+        [Tooltip("Tick for the top of something free-standing gripped from either side (a wall top, parapet, railing or window sill): the hand snaps onto the lip on the side the player's head is, facing in from there. Unticked, it always snaps onto the front lip, right for a ledge set into a wall. Ticked, the box must span the thing's whole thickness, overhanging both faces alike.")]
         [SerializeField] private bool grabbableFromBothSides;
 
         [Header("Mantling")]
 
-        // Whether the player can mantle up onto this edge (see
-        // PlayerMantling). Only tick this on level edges - mantling assumes
-        // the edge and its top face are horizontal.
+        [Tooltip("Whether the player can mantle up onto this edge, landing on the Mantle Point. Only tick it on level edges: mantling assumes the edge and its top face are horizontal.")]
         [SerializeField] private bool isMantleable;
 
-        // Whether a mantle onto this edge ends with the player crouched -
-        // tick it for low shelves and vents with no room to stand.
+        [Tooltip("Whether a mantle onto this edge ends with the player crouched. Tick it for low shelves and vents with no room to stand.")]
         [SerializeField] private bool mantleEndsCrouched;
 
         // Where a mantle always lands the bottom of the player's capsule
@@ -54,6 +52,7 @@ namespace Interaction
         // the numbers stay real distances on a stretched cube. Filled in by
         // Reset() / the "Reset Mantle Point" context menu to sit on the top
         // face, DefaultMantleInset in from the lip.
+        [Tooltip("Where a mantle lands the player's feet, in real metres along the edge's own axes from its origin (X along the edge, Y up, Z out from the wall); the object's scale is ignored. The right-click 'Reset Mantle Point' puts it on the box's top face, 0.4m in from the lip. With Move Horizontally To Point unticked only its height and its distance back from the lip are used.")]
         [SerializeField] private Vector3 mantlePoint = new(0f, 0.1f, -0.2f);
 
         // Ticked (the default, and how every mantle worked before this
@@ -63,6 +62,7 @@ namespace Interaction
         // the player is (see GetMantleLanding()). For long ledges like roof
         // parapets and walls, where being carried sideways to one fixed spot
         // would feel wrong.
+        [Tooltip("Ticked, a mantle always lands exactly on the Mantle Point. Unticked, it lands straight ahead of the player instead, at the Mantle Point's height and distance back from the lip but wherever along the edge the player is, never past either end. Untick it for long ledges such as roof parapets and walls, where being carried sideways to one fixed spot would feel wrong.")]
         [SerializeField] private bool moveHorizontallyToPoint = true;
 
         // How far in from the lip the default mantle point is, in metres.

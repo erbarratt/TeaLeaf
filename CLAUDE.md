@@ -70,7 +70,8 @@ This root file holds the rules and the cross-cutting architecture. Per-system de
   before building, changing or reviewing level geometry.
 - **`Assets/Scripts/LevelGen/CLAUDE.md`** — the level generator (being built): the prefab
   catalogue and its annotations, the layout spec a written brief is turned into, street
-  and building placement, regeneration and the placement report.
+  and building placement, the guards' NavMesh over its streets, regeneration and the
+  placement report.
 
 A new system folder (`UI`) gets its own `CLAUDE.md` when its first system lands. Read
 the relevant one before changing a system you haven't read this session, even when working
@@ -464,8 +465,9 @@ fails and restarts. The mechanics:
   state machine driven by one detection meter that sight fills (by the player's
   `Visibility`, distance and how much of them shows) and noises add to; it walks on a
   baked NavMesh, looks a few times a second rather than every frame, and ends the level
-  through `LevelManager.Caught()`. Greybox shapes, tinted by state; a humanoid with
-  Mixamo animations comes later. Guards have their own `Update()`, outside the player's
+  through `LevelManager.Caught()`. A rigged, textured model (a prefab in
+  `Assets/Prefabs/Characters`) animated from its state and speed by `GuardAnimation`.
+  Guards have their own `Update()`, outside the player's
   tick order. Detail in `Assets/Scripts/AI/CLAUDE.md`.
   **Voice lines don't repeat** (not built): guards draw barks and idle patrol mutterings
   from very large pools, and a lightweight shared record of the lines used this play session
@@ -506,8 +508,9 @@ fails and restarts. The mechanics:
   the rope falls as soon as the player takes hold. **The kind is chosen by gripping the wheel at the back of the crossbow with the
   other hand and turning it.** Built (`PlayerCrossbow`), greybox, working in the
   headset.
-- **Fires can be put out:** a torch or fire carries a `Core.Flame`, which switches its
-  gameplay light, its visible light, its flame and its sound off together.
+- **Open flames can be put out, lamps can't:** a torch or fire pit carries a
+  `Core.Flame`, which switches its gameplay light, its visible light, its flame and
+  its sound off together; a lamp post has no `Flame` and burns on.
 - **Chests** (`Interaction.Chest`, `ChestLid`): the same lock kinds as doors (none, simple
   = pickable, keyed), through the same `PickableLock` / `KeyLock`. Once unlocked by any
   means, a hand takes the front of the lid and lifts it open.
@@ -521,7 +524,7 @@ fails and restarts. The mechanics:
   shown), pointing where it is heard from - the portal, for one from another room -
   bigger the louder it was, and fading.
 - **Text** is drawn with TextMeshPro (in the `com.unity.ugui` package). Its font and
-  shader must be in the project: Window > TextMeshPro > Import TMP Essential Resources.
+  shader are in the project, in `Assets/TextMesh Pro` (the TMP Essential Resources).
 - **Controls:** left stick moves; right stick turns, up mantles, **down toggles crouch**;
   grip grabs; trigger aims a throw; **A jumps**; **B is the universal cancel** (an aimed
   throw, for now); grip with the palm down brings the crossbow up and the trigger then
@@ -591,7 +594,11 @@ fails and restarts. The mechanics:
   generator lays out streets and buildings from real `Assets/Prefabs` variants under its
   own root (with pipes, vents, walkways and lamp posts on its facades, chimneys,
   dormers and railings on its roofs, smoke and steam, grass and nettles in its
-  streets, and shafts of moonlight over its alleys), and everything else -
+  streets, and shafts of moonlight over its alleys, lays the sound rooms and portals
+  and bakes the guards' NavMesh over its streets); **the streets' ground is the one thing it builds rather than
+  places: meshes of its own, one per level and per slope, vertex-painted for the
+  `TeaLeaf/GroundBlend` shader** (dirt, cobbles and puddles blended by height, as
+  Thief VR's streets are; `Assets/Scripts/Core/CLAUDE.md`), and everything else -
   other set dressing, lighting, gameplay - is placed by hand.
   Don't propose any other editor builder for level art. The pack folder is git-ignored and its
   own prefabs are left untouched; **the game's prefabs live in `Assets/Prefabs`, each a
@@ -603,14 +610,16 @@ fails and restarts. The mechanics:
   (`Environment` layer and Static set; see `Assets/Scripts/Core/CLAUDE.md`). The packs' materials are URP Lit and their textures are
   imported at 2048 at most; keep both so. **The project's own copies and colour
   variants of pack materials** (`<material>_<suffix>`, which the level generator draws
-  from) **and the lit window material live in `Assets/Art/Materials/Environment`** (by
-  kind: `Roofs`, `Walls`, `Extensions`, `Windows`); the
+  from), **the lit window material and the streets' ground material live in
+  `Assets/Art/Materials/Environment`** (by kind: `Roofs`, `Walls`, `Extensions`,
+  `Windows`, `Ground`); the
   packs' own materials are left as they are. Their demo scenes, skyboxes, lighting
   settings, post effects and `SimpleCameraController` are not used. Organic models (the
   guard, hands, hero props) come from outside. The test areas are the
   exception: they are built from code by the TeaLeaf > Dev Room menu's editor builders, the Smithy
   textured (`Assets/Scripts/Interaction/CLAUDE.md`) and the rest greybox, as are the
-  props and the guard.
+  props. The guard is a Tripo-generated model (`Assets/TripoModels/guard_1`) in a
+  plain URP Lit material, not yet in the painted style.
   Out of scope: settings/main menu, save/load, combat, fall damage and health.
 
 ### Planned systems
@@ -638,7 +647,8 @@ commands are all there, and tools for building real levels sit directly in the
 Props, the Door Test Area (which also sets up lockpicking, including a `Big Lock` object
 under the `Gameplay` root, and a keyed door), the Chest Test Area, the Smithy (a textured,
 climbable blacksmith's house), a locomotion course, a town, a sound test area, noise
-listeners and a physical hands area. **TeaLeaf > Dev Room > Set Up Test Guard** puts a
+listeners, a physical hands area and the Guard Tests (a floor with one guard model per
+animation clip, each looping its clip, for matching the clips' feet to the guard's speeds). **TeaLeaf > Dev Room > Set Up Test Guard** puts a
 `Test Guard` on the Sound Test House's path and bakes a NavMesh from the Environment layer
 (`NavMesh` object at the scene root; run it again after level geometry changes). Don't
 assume any of them is there. **TeaLeaf > Dev Room > Add Hand Tools To Player** adds the crossbow, blackjack and compass
@@ -647,6 +657,6 @@ components to the `Hands` object if they are missing.
 Two more scenes, neither in the build list: **`Assets/Scenes/Intro.unity`** holds the
 `three-streets` level laid out by the level generator (sector `Three Streets` under
 `Environment` > `Generated`, with its own lightmap and occlusion bake in
-`Assets/Scenes/Intro/`) and nothing else yet - no Player, `Level Manager`, sound rooms or
-gameplay; **`Assets/Scenes/Level Gen Test.unity`** is the generator's test scene, where the
+`Assets/Scenes/Intro/`, and the sound rooms and NavMesh the generator lays over its streets) and
+nothing else yet - no Player, `Level Manager`, `Sound Player` or gameplay; **`Assets/Scenes/Level Gen Test.unity`** is the generator's test scene, where the
 example specs are generated (`Assets/Scripts/LevelGen/CLAUDE.md`).

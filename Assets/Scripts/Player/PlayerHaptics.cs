@@ -23,27 +23,32 @@ namespace Player
         // useSmoothTurn: off, Pulse() does nothing, so every haptic in the
         // game stops. A future settings dialogue sets it through
         // HapticsEnabled.
+        [Tooltip("Off, no controller vibrates at all: every pulse in the game goes through this one switch.")]
         [SerializeField] private bool hapticsEnabled = true;
 
-        // Raises HandContactStarted when a physical hand first touches a
-        // surface. Filled in by Reset().
+        [Tooltip("The hand visuals on the Hands object, which say when a physical hand first touches a surface.")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         [Header("Hand Contact")]
         // Strength (0-1) and length (seconds) of the pulse when a hand first
         // touches something - a light tap, not a rumble.
+        [Tooltip("Strength (0-1) of the tap when a hand first touches something.")]
         [SerializeField] private float contactAmplitude = 0.15f;
+        [Tooltip("Length of that tap, in seconds.")]
         [SerializeField] private float contactDuration = 0.03f;
 
         // Seconds after a contact pulse before the same hand can pulse
         // again, so a hand sliding over a bumpy surface (brief losses of
         // contact) taps once instead of buzzing continuously.
+        [Tooltip("Seconds after a contact tap before the same hand can tap again.")]
         [SerializeField] private float contactCooldown = 0.25f;
 
         [Header("Test Pulse")]
         // Strength (0-1) and length (seconds) of the right-click "Test ...
         // Pulse" menu items, for checking the bindings in Play Mode.
+        [Tooltip("Strength (0-1) of the right-click Test Pulse menu items, for checking the bindings in Play Mode.")]
         [SerializeField] private float testAmplitude = 0.5f;
+        [Tooltip("Length of a test pulse, in seconds.")]
         [SerializeField] private float testDuration = 0.1f;
 
         // The two controllers as XR devices. Looked up the first time a

@@ -311,7 +311,10 @@ Setup:
     Test Guard: NavMeshAgent, kinematic Rigidbody, capsule body
     collider, head collider (GuardHead layer) that is also its eye, a
     Visual object for what is drawn. Tinted by state.
-[ ] Guard prefab with a placeholder humanoid and an Animator (Phase 7).
+[x] Guard prefab (Assets/Prefabs/Characters/Guard.prefab): the agent,
+    body and head colliders, Guard and GuardAnimation on the root, the
+    Tripo-generated model with its Animator under Model; every guard
+    is an instance of it.
 [ ] Doors on the NavMesh: a guard walks through a shut door. Guards
     opening doors.
 Perception:
@@ -422,15 +425,23 @@ Performance:
 
 Phase 7 - Animation
 -------------------
-Guard (Mixamo):
-[ ] Pick one placeholder rigged humanoid (e.g. Mixamo Y-Bot); import as
-    Humanoid.
-[ ] Clips: idle, walk, run, look-around (search), turn-in-place (optional),
-    alert/spot reaction, knocked-out fall, knocked-out lying loop,
-    dragged pose (can reuse the lying loop).
-[ ] Animator Controller: locomotion blend tree driven by NavMeshAgent
-    speed; trigger/bool states for search, alert, KO. Root motion OFF
-    (NavMeshAgent drives position).
+Guard:
+[x] A rigged, textured model: Tripo-generated guard_1 (21k triangles,
+    67 bones, one SkinnedMeshRenderer, URP Lit), imported as Generic at
+    scale 1.8.
+[x] Clips: idle, walk, run, look-around, stunned, knocked-out fall
+    (holds its last frame), as project copies with the hips' ground
+    motion frozen so they play in place.
+[ ] Clips still wanted: alert/spot reaction, get-up, dragged pose, idle
+    variety at patrol points (scratch, fold_arms, wait are imported).
+[x] Animator Controller: locomotion blend tree on the agent's speed
+    (idle 0, walk 1.07, run 3.58 - the clips' own speeds), bools for
+    look-around, stunned and knocked out; root motion off. Driven by
+    GuardAnimation, so Guard knows nothing of animation.
+[x] TeaLeaf > Dev Room > Guard Tests: one guard per clip, looping, for
+    matching the feet to the speeds.
+[ ] Look at the guard's animation in the headset; tune playback and
+    move speeds on the Guard Tests floor; LOD meshes for the model.
 [ ] Head look-at towards stimulus while suspicious (Animator IK or simple
     head bone rotation in LateUpdate).
 Player hands:
@@ -528,8 +539,9 @@ Greybox build:
     [x] Stage 3: layout spec format and validation (TeaLeaf > Level Gen
         > Validate Layout Spec), building styles as tags on pieces,
         GeneratorSettings for every tunable value.
-    [x] Stage 4: streets and ground: cobbles on one grid per street
-        area, decking per segment, segment widths varied.
+    [x] Stage 4: streets and ground: the ground built as meshes of
+        the generator's own, one per level and per slope, decking per
+        segment, segment widths varied.
     [x] Stage 5: buildings from parts, the roof kit, the Generated
         hierarchy and regeneration.
         [x] 5a: straight runs of facades: foundations, storeys of wall
@@ -561,7 +573,28 @@ Greybox build:
             dormers on the roofs; ridge railings seated on the ridge.
         [x] Street clearance: no wall, foundation or side wall stands
             in a street; the ball test along every street.
-        [x] One box collider per row of floor tiles.
+        [x] Ground meshes (GroundMesh, StreetGround) vertex-painted
+            for TeaLeaf/GroundBlend (dirt, cobbles and wet dirt blended
+            by height maps, world-space UVs, as Thief VR's streets);
+            the ground's colliders a few boxes per level (27 on
+            three-streets); flights of steps part two level meshes.
+        [ ] Ground: replace the fifteen stand-in textures
+            (Assets/Art/Textures/Ground/*_REPLACEME.png) with our own;
+            judge the blend and its offset parallax (on, 0.015m) in the
+            headset and drop the parallax if it costs or shows.
+        [x] Sound rooms (SoundRooms pass): a room per straight run of
+            street, a junction room (priority 1) where runs meet,
+            portals between them and open to the sky; a self-check for
+            wrong portals and street points in no room (three-streets:
+            3 street and 2 junction rooms, 11 portals, every point
+            covered).
+        [x] The guards' NavMesh over the streets (StreetNavMesh): a
+            NavMeshSurface on the Generated root, Not Walkable volumes
+            carving away all but the streets; one region on
+            three-streets.
+        [x] Lamp posts' lights stay on (a LightSource on the light or a
+            parent, or a Baked light); the lamp's second light a Baked
+            shadowless spot round the post; lamps carry no Flame.
         [x] The fitting rule: whole pieces, the last widened or a
             narrower one added, everywhere a length is covered.
         [x] Finishing passes: foundation, walkway, facade wall and roof
@@ -584,7 +617,8 @@ Greybox build:
             other within 3m) or given a return wall before the street
             test and the cull; the report lists none on three-levels.
         [x] Sloped streets: a segment no steeper than 1 in 12 climbs by
-            tilted tile rows with a landing (else steps); buildings
+            a sloped ground mesh over the whole segment (else steps);
+            buildings
             beside it stand level, each at the highest the street
             comes under it, foundations stacked down to the street
             (example-slope, three-streets).

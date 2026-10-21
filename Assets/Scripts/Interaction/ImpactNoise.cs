@@ -28,12 +28,10 @@ namespace Interaction
     [RequireComponent(typeof(Rigidbody))]
     public class ImpactNoise : MonoBehaviour
     {
-        // The sound this prop makes when it hits something: its audio, and
-        // how far it carries to guards at a full-strength impact.
+        [Tooltip("The sound this prop makes when it hits something: its audio, and how far it carries to guards at a full-strength impact. Empty, the prop makes no sound at all.")]
         [SerializeField] private SoundCue cue;
 
-        // For how loud each surface is. Optional: left empty, every
-        // surface sounds like stone.
+        [Tooltip("How loud each kind of surface is when hit, shared with footsteps. Optional: left empty, every surface sounds like stone.")]
         [SerializeField] private SurfaceSounds surfaceSounds;
 
         [Header("Strength")]
@@ -41,18 +39,23 @@ namespace Interaction
         // How hard the hit must be to make any sound, and how hard for the
         // full sound, as the speed the collision took off the prop in
         // metres a second. A prop dropped from a metre lands at about 4.4.
+        [Tooltip("The softest hit that makes any sound, as the speed the collision took off the prop in metres a second. Below it the prop is silent (settling, or set down gently). A prop dropped from a metre lands at about 4.4.")]
         [SerializeField] private float minSpeed = 1f;
+        [Tooltip("The hit that gives the cue's full volume and noise radius, as the speed the collision took off the prop in metres a second. Between Min Speed and this, the volume and the noise radius grow from their minimums to full.")]
         [SerializeField] private float fullSpeed = 8f;
 
         // The volume and the noise radius of the softest impact that
         // sounds at all, as fractions of the cue's (which a full-strength
         // impact gets).
+        [Tooltip("The volume of the softest impact that sounds at all (a hit at Min Speed), as a fraction of the cue's volume, 0 to 1. A hit at Full Speed plays at the cue's full volume.")]
         [SerializeField, Range(0f, 1f)] private float minVolume = 0.25f;
+        [Tooltip("How far the softest impact that sounds at all carries to guards, as a fraction of the cue's noise radius, 0 to 1. A hit at Full Speed carries the cue's full radius.")]
         [SerializeField, Range(0f, 1f)] private float minNoiseScale = 0.3f;
 
         // The shortest time between two sounds from this prop, in seconds:
         // a prop bouncing or rattling to rest starts a new collision many
         // times a second.
+        [Tooltip("The shortest time between two sounds from this prop, in seconds. Stops a prop bouncing or rattling to rest from sounding on every bounce.")]
         [SerializeField] private float minInterval = 0.15f;
 
         // Two props hitting each other each get told about the collision,

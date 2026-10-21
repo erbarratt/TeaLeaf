@@ -22,18 +22,13 @@ namespace Interaction
     /// </summary>
     public class PickableLock : MonoBehaviour, IDebugDrawable
     {
-        // The door it locks. Optional: with none (a chest, later) it keeps
-        // its own locked state and raises Unlocked for whatever it holds
-        // shut.
+        [Tooltip("The door this lock holds shut, which must have a Simple lock. Optional: with neither a door nor a chest, the lock keeps its own locked state and raises Unlocked when picked.")]
         [SerializeField] private Door door;
 
-        // The chest it locks, for a lock on a chest rather than a door.
-        // Found on a parent if both are left empty.
+        [Tooltip("The chest this lock holds shut, for a lock on a chest rather than a door. Left empty along with Door, a Chest on a parent object is used.")]
         [SerializeField] private Chest chest;
 
-        // How far the lock's face is from this object, through the door,
-        // in metres - half the door's thickness plus however far the lock
-        // plate stands out. The picks sit here once they're in.
+        [Tooltip("How far the lock's face is from this object along its Z, in metres: half the door's thickness plus however far the lock plate stands out. The picks sit here once they are in, on whichever face the player is on.")]
         [SerializeField] private float faceOffset = 0.031f;
 
         // The radius the gizmo draws the lock's face at, in metres.
