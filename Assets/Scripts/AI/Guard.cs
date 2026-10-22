@@ -79,7 +79,7 @@ namespace AI
 
         // Metres a second walking (patrolling and searching) and running
         // (chasing), and how fast it turns on the spot, in degrees a second.
-        [SerializeField] private float patrolSpeed = 1.2f;
+        [SerializeField] private float patrolSpeed = 1.07f;
         [SerializeField] private float chaseSpeed = 3.6f;
         [SerializeField] private float turnSpeed = 240f;
 
@@ -202,6 +202,14 @@ namespace AI
         // stopping distance, in metres.
         private const float ArriveMargin = 0.15f;
 
+        // Setting off from standing, it turns on the spot until it faces
+        // the first leg of its path to within this many degrees, then
+        // walks; the agent turns it the rest of the way as it goes.
+        private const float WalkOffAngle = 15f;
+
+        // Slower than this, in metres a second, counts as standing.
+        private const float StandingSpeed = 0.1f;
+
         // How fast it turns while looking about during a search, in
         // degrees a second.
         private const float LookAboutSpeed = 70f;
@@ -245,6 +253,10 @@ namespace AI
 
         private NavMeshAgent _agent;
         private MaterialPropertyBlock _tint;
+
+        // True while it stands turning to face the way it is about to
+        // walk, the agent held still (TickTurningToWalk).
+        private bool _isTurningToWalk;
 
         // Where it stands if it has no route.
         private Vector3 _postPosition;
@@ -326,6 +338,12 @@ namespace AI
         // (Suspicious), or at a place in a search. Read by
         // GuardAnimation for the look-around clip.
         public bool IsLookingAbout => State == GuardState.Suspicious || (State == GuardState.Search && _isLookingAbout);
+
+        // Turning on the spot before setting off, and how far it has
+        // turned so far, in degrees. Read by GuardAnimation for the turn
+        // clip.
+        public bool IsTurningToWalk => _isTurningToWalk;
+        public float TurnedDegrees { get; private set; }
 
         /// Where its ears are (INoiseListener).
         public Vector3 EarPosition => eye.position;
@@ -479,6 +497,8 @@ namespace AI
             if (_lookTimer <= 0f) {
                 Look();
             }
+
+            TickTurningToWalk(deltaTime);
 
             switch (State) {
                 case GuardState.Patrol:
@@ -1217,21 +1237,70 @@ namespace AI
 
         /// <summary>
         /// Asks the agent to walk to a place. Nothing if the guard isn't
-        /// on a NavMesh.
+        /// on a NavMesh. From standing, the agent is held still until
+        /// the guard has turned to face the way (TickTurningToWalk);
+        /// already walking, it carries straight on, so a chase renewing
+        /// its destination never stops to turn.
         /// </summary>
         private void GoTo(Vector3 place)
         {
-            if (_agent.isOnNavMesh) {
-                _agent.isStopped = false;
-                _agent.SetDestination(place);
+            if (!_agent.isOnNavMesh) {
+                return;
             }
+
+            if (!_isTurningToWalk && _agent.velocity.sqrMagnitude < StandingSpeed * StandingSpeed) {
+                _isTurningToWalk = true;
+                TurnedDegrees = 0f;
+            }
+
+            _agent.isStopped = _isTurningToWalk;
+            _agent.SetDestination(place);
         }
 
         private void Stop()
         {
+            _isTurningToWalk = false;
+
             if (_agent.isOnNavMesh && _agent.hasPath) {
                 _agent.ResetPath();
             }
+        }
+
+        /// <summary>
+        /// Setting off from standing: turns on the spot towards the
+        /// path's first corner (the agent's steering target) and lets the
+        /// agent walk once it faces it to within WalkOffAngle. Waits for
+        /// a path still being worked out; lets go if there is none, or
+        /// the guard is already there.
+        /// </summary>
+        private void TickTurningToWalk(float deltaTime)
+        {
+            if (!_isTurningToWalk || _agent.pathPending) {
+                return;
+            }
+
+            // HasArrived() first: it also covers an agent off the NavMesh,
+            // which has no steering target to read.
+            Vector3 toTarget = Vector3.zero;
+
+            if (!HasArrived()) {
+                toTarget = _agent.steeringTarget - transform.position;
+                toTarget.y = 0f;
+            }
+
+            if (toTarget.sqrMagnitude < 0.0001f || Vector3.Angle(transform.forward, toTarget) <= WalkOffAngle) {
+                _isTurningToWalk = false;
+
+                if (_agent.isOnNavMesh) {
+                    _agent.isStopped = false;
+                }
+
+                return;
+            }
+
+            Quaternion before = transform.rotation;
+            TurnTowards(Quaternion.LookRotation(toTarget), deltaTime);
+            TurnedDegrees += Quaternion.Angle(before, transform.rotation);
         }
 
         /// <summary>

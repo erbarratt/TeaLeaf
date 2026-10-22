@@ -1,334 +1,107 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code in this repository.
 
 ## Project overview
 
-TeaLeaf is a Thief-style VR stealth game (Unity 6000.3.25f1, Universal Render Pipeline) built
-on OpenXR and the new Input System, with no XR Interaction Toolkit. Keep it lean - add a
-package or third-party component only when it's clearly needed.
+TeaLeaf: Thief-style VR stealth game, Unity 6000.3.25f1, URP, OpenXR + new Input System, **no XR Interaction Toolkit**. Keep it lean: add a package/third-party component only when clearly needed.
 
-**The target is PCVR: 90 fps with 25% headroom at about 2000 x 2000 pixels per eye on an RTX
-3060 12 GB, a 6-core processor of Ryzen 5 5600X class and 16 GB of RAM** - a frame budget of
-8.3 ms for the CPU and for the GPU. That rig is the floor ("3060 upwards", to cover most Steam
-players): the game must hit the target there, and faster machines get the spare. The budget
-is measured against that rig, not the dev machine. Dev and test are on a Quest 3 streamed
-through Virtual Desktop. **Quest 3 standalone is an option for the future, not a target**:
-nothing is built for it, but nothing should make a later port impossible.
+**Target: PCVR, 90 fps with 25% headroom at ~2000x2000 per eye on RTX 3060 12 GB, Ryzen 5 5600X-class 6-core, 16 GB RAM** = 8.3 ms/frame CPU and GPU each. That rig is the floor ("3060 upwards"); budget is measured against it, not the dev machine. Dev/test: Quest 3 via Virtual Desktop. **Quest 3 standalone is a future option, not a target**: nothing built for it, nothing may make a port impossible.
 
-Movement, turning, gravity, crouching, climbing, ladders and ropes are all hand-built, for
-full control, easier debugging, consistent behaviour across headsets, and a better
-understanding of how everything works. **Do not suggest XRI (or its locomotion,
-teleportation, climb or interaction components).** Teleport locomotion will never be used.
+Movement, turning, gravity, crouch, climbing, ladders, ropes are all hand-built (control, debuggability, cross-headset consistency, understanding). **Never suggest XRI (or its locomotion, teleport, climb or interaction components).** No teleport locomotion, ever.
 
 ## Choosing a solution
 
-**Every solution is the simplest, most stable and most performant way to do the thing.**
-Prefer fewer moving parts, the well-trodden route over the clever one, and the cheaper one
-at runtime; don't add options, layers or generality nobody asked for.
-
-**Where there are levels or options of complexity, stop and explain before building
-anything** - exactly as for a question, with no file changes: lay out each option, what it
-costs (to build, to maintain, at runtime), what it gives, how the options compare, and
-which is recommended and why. Then wait for the maintainer to choose. This applies when the
-three aims pull apart (the simplest isn't the fastest, the most capable isn't the most
-stable), when a request could be met at more than one scale, and when a third-party
-package is one of the routes. When there is one obvious simplest way, just build it.
+- **Every solution is the simplest, most stable, most performant way.** Fewer moving parts, well-trodden over clever, cheaper at runtime; no unrequested options, layers or generality.
+- **Where there are levels/options of complexity, stop and explain before building** (as for a question, no file changes): each option, its cost (build, maintain, runtime), what it gives, comparison, recommendation and why; then wait for the maintainer's choice. Applies when the three aims pull apart, when a request could be met at more than one scale, and when a third-party package is a route. One obvious simplest way: just build it.
 
 ## Where the detail lives
 
-This root file holds the rules and the cross-cutting architecture. Per-system detail lives in
-`CLAUDE.md` files next to the code, which load when working in that folder:
+Root = rules + cross-cutting architecture. Per-system `CLAUDE.md` next to the code (load in that folder):
 
-- **`Assets/Scripts/Player/CLAUDE.md`** — every player system (input + the input action table,
-  locomotion, `MovementState`, climbing, mantling, hand visuals/snapping/physical hands, hand
-  rays and reticles, hand animation, the crossbow, blackjack and compass), hand art/animation
-  and Debug scripts.
-- **`Assets/Scripts/Interaction/CLAUDE.md`** — hand targets (`IHandTarget`, registry),
-  grabbable props, doors (`Door`, `DoorHandle`, `DoorLock`, `DoorBolt`, `KeyLock`), chests
-  (`Chest`, `ChestLid`),
-  lockpicking (`PickableLock`, `BigLock`), climbables (`IClimbable`, `ClimbableEdge`,
-  `Ladder`, `ClimbableRope`) and hand snap poses.
-- **`Assets/Scripts/Core/CLAUDE.md`** — game state and level restart (`GameState`,
-  `LevelManager`, `ExitZone`), the screen fade (`ScreenFade`), noise events and sound
-  (`NoiseSystem`, `SoundCue`, `SoundRoom`, `SoundPortal`, `SoundPropagation`, `SoundPlayer`,
-  `SoundLoop`, `SoundLoopPlayer`, `ListenerReverb`, `RoomAmbience`, `ReverbSettings`,
-  `SpatialVoice`), the render settings, surfaces (`SurfaceType`, `SurfaceTag`,
-  `SurfaceSounds`, `RampCollider`, `BarrelCollider`, `EnvironmentVariants`), gameplay light (`SceneLight`, `Moonlight`, `LightSource`, `Flame`), the
-  procedural night sky (`ProceduralSky`, `MoonSurfaceBuilder`), the shafts of moonlight
-  (`MoonShaft`), the level surface shaders,
-  and shared debug drawing (`DebugLines`, `IDebugDrawable`, `InHeadsetGizmos`).
-- **`Assets/Scripts/Inventory/CLAUDE.md`** — what the player owns and carries: the pack
-  (`Pack`, `PackSlot`), loot (`Loot`), keys (`Key`, `Keyring`) and the inventory data
-  (`PlayerInventory`, `ToolType`, `BoltType`).
+- `Assets/Scripts/Player/CLAUDE.md` - all player systems (input + action table, locomotion, `MovementState`, climbing, mantling, hand visuals/snapping/physical hands, hand rays/reticles, hand animation, crossbow, blackjack, compass), hand art/animation, Debug scripts.
+- `Assets/Scripts/Interaction/CLAUDE.md` - hand targets (`IHandTarget`, registry), grabbables, doors (`Door`, `DoorHandle`, `DoorLock`, `DoorBolt`, `KeyLock`), chests (`Chest`, `ChestLid`), lockpicking (`PickableLock`, `BigLock`), climbables (`IClimbable`, `ClimbableEdge`, `Ladder`, `ClimbableRope`), hand snap poses.
+- `Assets/Scripts/Core/CLAUDE.md` - game state/restart (`GameState`, `LevelManager`, `ExitZone`), `ScreenFade`, noise and sound (`NoiseSystem`, `SoundCue`, `SoundRoom`, `SoundPortal`, `SoundPropagation`, `SoundPlayer`, `SoundLoop`, `SoundLoopPlayer`, `ListenerReverb`, `RoomAmbience`, `ReverbSettings`, `SpatialVoice`), render settings, surfaces (`SurfaceType`, `SurfaceTag`, `SurfaceSounds`, `RampCollider`, `BarrelCollider`, `EnvironmentVariants`), gameplay light (`SceneLight`, `Moonlight`, `LightSource`, `Flame`), night sky (`ProceduralSky`, `MoonSurfaceBuilder`), `MoonShaft`, level surface shaders, debug drawing (`DebugLines`, `IDebugDrawable`, `InHeadsetGizmos`).
+- `Assets/Scripts/Inventory/CLAUDE.md` - pack (`Pack`, `PackSlot`), `Loot`, keys (`Key`, `Keyring`), inventory data (`PlayerInventory`, `ToolType`, `BoltType`).
+- `Assets/Scripts/AI/CLAUDE.md` - guards (`Guard`, `GuardState`, `PatrolRoute`), NavMesh baking, test guard set-up.
+- `Assets/Scenes/CLAUDE.md` - level building guidelines (hierarchy, collision, layers, static flags, lighting, culling, sound, measured against a shipped VR stealth level) and scene review checklist. Read before building/changing/reviewing level geometry.
+- `Assets/Scripts/LevelGen/CLAUDE.md` - level generator (in progress): prefab catalogue + annotations, layout spec from a written brief, street/building placement, guards' NavMesh, regeneration, placement report.
 
-- **`Assets/Scripts/AI/CLAUDE.md`** — the guards (`Guard`, `GuardState`, `PatrolRoute`),
-  the NavMesh and how it is baked, and the test guard's set-up.
-- **`Assets/Scenes/CLAUDE.md`** — the level building guidelines: how a level's hierarchy,
-  collision, layers, static flags, lighting, culling and sound are laid out, measured
-  against a shipped VR stealth level, and the checklist for reviewing a scene. Read it
-  before building, changing or reviewing level geometry.
-- **`Assets/Scripts/LevelGen/CLAUDE.md`** — the level generator (being built): the prefab
-  catalogue and its annotations, the layout spec a written brief is turned into, street
-  and building placement, the guards' NavMesh over its streets, regeneration and the
-  placement report.
+A new system folder (`UI`) gets its own `CLAUDE.md` with its first system. Read the relevant one before changing a system not read this session, even from another folder.
 
-A new system folder (`UI`) gets its own `CLAUDE.md` when its first system lands. Read
-the relevant one before changing a system you haven't read this session, even when working
-from another folder.
+## Project docs - keep up to date
 
-## Project docs — keep these up to date
-
-- **`CLAUDE.md` files** (this one and the per-folder ones) — update as part of any change,
-  without being asked, whenever architecture, conventions, systems, file locations, or design
-  decisions change, so they never describe the project inaccurately. Put detail in the
-  per-folder file for the system; only cross-cutting rules and architecture go here.
-- **`Assets/DEVLOG.txt`** — dated entries, newest at the top, describing what was done, bugs hit
-  and how they were fixed, and what was learned. Keep its plain-text style.
-- **`Assets/DEVROADMAP.txt`** — the phased plan to a greybox vertical slice of one level
-  (docks warehouse). Tick items `[x]` as they're completed, and edit it when scope, order or
-  design changes.
-
-**These files describe what is true now, not how it got there.** They are read as prompt
-context, so when something changes, rewrite the text to the new state. Never add a note that
-something changed, was decided on a date, replaced an earlier plan or was tried and dropped,
-in the `CLAUDE.md` files, the roadmap or the devlog. A rejected approach stays only as a
-short current rule, where it stops a likely wrong suggestion.
-
-**The devlog and roadmap are written once, at the end of a session, only when the maintainer
-says so** — not after each change. Until then, keep track of what the session did (bugs,
-fixes, lessons, items completed) so the wrap-up entry is complete. If a session's work was
-never written up, remind the maintainer at the start of the next one. Both files are large:
-read only the top of the devlog and the relevant roadmap phase rather than the whole file.
+- **`CLAUDE.md` files**: update as part of any change, unasked, whenever architecture, conventions, systems, file locations or design decisions change. Detail in the per-folder file; only cross-cutting rules/architecture here.
+- **`Assets/DEVLOG.txt`**: dated entries, newest on top: what was done, bugs and fixes, lessons. Plain-text style.
+- **`Assets/DEVROADMAP.txt`**: phased plan to a greybox vertical slice of one level (docks warehouse). Tick `[x]` when done; edit when scope/order/design changes.
+- **These files describe what is true now, not history.** Rewrite text to the new state; never note that something changed, was decided on a date, replaced a plan, or was tried and dropped (CLAUDE.md, roadmap, devlog). A rejected approach survives only as a short current rule where it stops a likely wrong suggestion.
+- **Devlog and roadmap are written once, at session end, only when the maintainer says so.** Until then track the session's bugs, fixes, lessons, items completed. If a session's work was never written up, remind the maintainer at the start of the next. Both files are large: read only the devlog's top and the relevant roadmap phase.
 
 ## Coding standards
 
-These are explicit project conventions — follow them for new code, and flag (rather than
-silently reformat) existing code that doesn't yet match:
+Follow for new code; flag (don't silently reformat) existing code that doesn't match.
 
-- **Namespaces:** top-level only. `namespace Player { }`, never `namespace Player.Locomotion { }`.
-- **Serialized fields:** no leading underscore — `[SerializeField] private float moveSpeed;`
-- **Private non-serialized fields:** leading underscore — `private bool _snapTurnQueued;`
-  (static readonly caches too, e.g. `_gripCurlParam`).
-- **Public properties:** no leading underscore; prefer auto-properties with a private setter
-  (`public Vector2 MoveAxis { get; private set; }`) over a passthrough expression body where
-  the value should be cached/set elsewhere rather than recomputed on every read. Cheap derived
-  values (e.g. `IsLeftGrabbing => LeftGrip > 0.5f`) are fine as expression bodies.
-- **Comments:** XML doc comments (`/// <summary>`) on methods; detailed inline comments are
-  encouraged where they aid learning (this project doubles as a teaching exercise for the
-  maintainer — prefer building new systems step-by-step with explanation over handing over a
-  finished file all at once). Never insert empty comment lines.
-- **Braces:** hybrid style, consistent across the whole codebase. Control-flow braces
-  (`if`/`for`/`while`/`switch`) go on the same line, e.g. `if (condition) {`. Class/method/
-  property declaration braces go on their own line (Allman) instead, e.g. `public class Foo`
-  followed by `{` on the next line. Don't unify these to one style.
-- **UI draws after everything else:** in-world UI (hand reticles, the mantle arrow, any
-  markers) renders last and on top, never hidden by world geometry or the hands. (Things
-  held in or worn on a hand - the pack, the compass - are objects, not markers: they are
-  depth-tested like the hand they sit on.) Build its materials with `OverlayMaterial.Create()` (`Scripts/Core`; the
-  project's `TeaLeaf/Overlay` shader - Overlay queue, `ZTest Always`, stereo-safe) rather
-  than a depth-tested shader. Built-in shaders can't do this (see `Scripts/Player/CLAUDE.md`).
-- **Debug scripts:** always in a system-specific `Debug` subfolder (`Scripts/Player/Debug`,
-  `Scripts/Inventory/Debug`, `Scripts/AI/Debug`, ...), never alongside runtime gameplay code.
-- **Gizmos must also show in the headset:** a component with gizmos implements `IDebugDrawable`
-  and draws through `DebugLines` (never `Gizmos` directly), so the same code draws the Scene
-  view gizmos and the in-headset view (`InHeadsetGizmos`). Plain Gizmos only show in one eye
-  in VR. See `Scripts/Core/CLAUDE.md`.
-- **Performance habits:** no per-frame allocations; cache `Animator.StringToHash`/
-  `Shader.PropertyToID` results; use `MaterialPropertyBlock` rather than `.material` writes;
-  only touch renderers/materials on state transitions, not every frame; prefer self-registering
-  static lists/registries over scene searches or interface `GetComponent` calls.
+- **Namespaces:** top-level only (`namespace Player { }`, never `Player.Locomotion`).
+- **Serialized fields:** no underscore (`[SerializeField] private float moveSpeed;`). **Private non-serialized:** leading underscore (`_snapTurnQueued`), static readonly caches too (`_gripCurlParam`).
+- **Public properties:** no underscore; prefer auto-property with private setter (`public Vector2 MoveAxis { get; private set; }`) over a passthrough expression body when the value should be cached/set elsewhere. Cheap derived values as expression bodies are fine (`IsLeftGrabbing => LeftGrip > 0.5f`).
+- **Comments:** `/// <summary>` on methods; detailed inline comments encouraged (project is a teaching exercise: build new systems step-by-step with explanation, not a finished file at once). Never empty comment lines.
+- **Braces (hybrid, keep consistent, don't unify):** control flow (`if`/`for`/`while`/`switch`) same line `if (x) {`; class/method/property declarations Allman (own line).
+- **UI draws last, on top**, never hidden by world or hands (hand reticles, mantle arrow, markers). Materials via `OverlayMaterial.Create()` (`Scripts/Core`; shader `TeaLeaf/Overlay`: Overlay queue, `ZTest Always`, stereo-safe), not depth-tested shaders; built-ins can't do this (see `Scripts/Player/CLAUDE.md`). Things held/worn on a hand (pack, compass) are objects, depth-tested like the hand.
+- **Debug scripts:** always in a system `Debug` subfolder (`Scripts/Player/Debug`, `Scripts/Inventory/Debug`, `Scripts/AI/Debug`...), never beside runtime code.
+- **Gizmos must show in the headset:** implement `IDebugDrawable`, draw through `DebugLines` (never `Gizmos` directly) so Scene view and headset (`InHeadsetGizmos`) share code; plain Gizmos show in one eye only. See `Scripts/Core/CLAUDE.md`.
+- **Performance habits:** no per-frame allocations; cache `Animator.StringToHash`/`Shader.PropertyToID`; `MaterialPropertyBlock` not `.material`; touch renderers/materials only on state transitions; self-registering static lists/registries over scene searches or interface `GetComponent`.
 
 ### Performance rules
 
-New systems, shaders, content and editor builders are designed against these from the start,
-not fixed up in a late performance pass. Say so when a request would break one, and offer
-the cheaper route. The matching tasks are in `Assets/DEVROADMAP.txt` (the "Performance rules"
-block, and Phases 6, 8 and 10).
+Design new systems, shaders, content and editor builders against these from the start. Say when a request breaks one and offer the cheaper route. Tasks: `Assets/DEVROADMAP.txt` ("Performance rules" block, Phases 6, 8, 10).
 
-- **The budget is 8.3 ms a frame, CPU and GPU each, on the target rig** (RTX 3060, 5600X
-  class, 16 GB, 2000 x 2000 per eye). Nothing has been measured on such a machine yet:
-  until it has, a cost is a judgement, and should be called one.
-- **Pixels are the biggest cost** (8 million a frame, 90 times a second). The game must not
-  *depend* on a full-screen or post-process effect, or on the camera depth or opaque
-  texture: an optional one that can be switched off is allowed once measured. No parallax
-  occlusion on surfaces that fill the view. The procedural surface shaders (cobblestone,
-  brick, water) are acceptable, subject to measuring. Keep transparent overdraw small; UI and
-  markers stay simple unlit shapes. 4x MSAA is wanted (thin edges shimmer in a headset
-  without it).
-- **Shaders:** the cheapest lit model that does the job; SRP Batcher compatible
-  (properties in `CBUFFER_START(UnityPerMaterial)`); single-pass-instanced stereo macros;
-  work per vertex rather than per pixel where it looks the same.
-- **Lighting:** baked where it can be, with light probes for things that move. Realtime
-  lights are few and short-ranged. **Torches may cast realtime shadows from moving things**
-  (guards, props, hands) with the level's shadows baked - Mixed lights in Shadowmask mode,
-  Indirect Multiplier 0 so a torch put out leaves no baked glow (planned, untested) - but
-  as a quality setting that can be turned off, and never the whole level drawn into a
-  torch's shadow map. At most four mixed lights overlap at any one spot (the shadowmask's
-  limit; the moon counts as one if it is Mixed).
-- **Static level geometry** is marked Static, on `Environment`, with a small number of shared
-  materials, so it batches, bakes and occlusion-culls. Editor builders that make level or
-  test geometry should set this. **A probe-lit renderer is never Batching Static** (static
-  batching reads its probes at the merged mesh's centre, not its own); the variants tool
-  keeps this, see `Assets/Scripts/Core/CLAUDE.md`. Runtime-made renderers turn shadow casting and receiving off
-  unless they need them.
-- **Depth is modelled, detail is textured:** shapes the player gets close to are real
-  geometry (cheap, and correct in stereo); normal maps are for fine surface detail only.
-- **Layout culls:** break long sightlines with level shape and doors, backed by an occlusion
-  bake. Distance haze, nearer cull distances for small props and impostors are reserves,
-  tried only when profiling asks.
-- **CPU work is sliced:** anything costly (AI senses, pathfinding, light sampling, sound
-  paths) runs a few times a second on a staggered timer, never per frame, and less often
-  when far away or unseen. Physics queries are non-allocating, with their own `LayerMask`.
-- **Nothing is created or destroyed during play:** pool bolts, effects and audio voices;
-  build runtime meshes and materials once, at load.
-- **Kept so a Quest port stays possible:** all of the above except realtime torch shadows,
-  optional post-processing and the procedural shaders, which a port would have to drop or
-  bake.
+- **Budget 8.3 ms/frame CPU and GPU each on the target rig.** Nothing measured on such a machine yet: any cost is a judgement and must be called one.
+- **Pixels are the biggest cost** (8M/frame x 90). Never *depend* on a full-screen/post effect or camera depth/opaque texture (an optional, switchable one is allowed once measured). No parallax occlusion on view-filling surfaces. Procedural surface shaders (cobblestone, brick, water) acceptable subject to measuring. Small transparent overdraw; UI/markers simple unlit shapes. 4x MSAA wanted (thin edges shimmer).
+- **Shaders:** cheapest lit model that works; SRP Batcher compatible (`CBUFFER_START(UnityPerMaterial)`); single-pass-instanced stereo macros; per-vertex over per-pixel where it looks the same.
+- **Lighting:** baked where possible, light probes for movers; few, short-range realtime lights. **Torches may cast realtime shadows from moving things** (guards, props, hands) with level shadows baked - Mixed lights, Shadowmask, Indirect Multiplier 0 so an extinguished torch leaves no baked glow (planned, untested) - as a switchable quality setting, never drawing the whole level into a torch shadow map. **Max four mixed lights overlap at any spot** (shadowmask limit; moon counts if Mixed).
+- **Static level geometry**: Static, on `Environment`, few shared materials (batch, bake, occlusion-cull); editor builders making level/test geometry set this. **A probe-lit renderer is never Batching Static** (static batching reads probes at the merged mesh centre); the variants tool keeps this (`Assets/Scripts/Core/CLAUDE.md`). Runtime-made renderers: shadow cast/receive off unless needed.
+- **Depth is modelled, detail is textured:** shapes the player gets close to are real geometry; normal maps for fine detail only.
+- **Layout culls:** break long sightlines with level shape and doors, plus an occlusion bake. Distance haze, nearer small-prop cull distances, impostors: reserves, only when profiling asks.
+- **CPU work is sliced:** costly work (AI senses, pathfinding, light sampling, sound paths) a few times a second on staggered timers, never per frame, less when far/unseen. Physics queries non-allocating with their own `LayerMask`.
+- **Nothing created/destroyed during play:** pool bolts, effects, audio voices; build runtime meshes/materials once at load.
+- **Quest-port compatible:** all of the above except realtime torch shadows, optional post-processing and procedural shaders (a port drops or bakes those).
 
 ## Working with this codebase
 
-This is a Unity project, not a CLI/npm/dotnet-cli project — there is no command-line build,
-lint, or test workflow set up. Builds and Play Mode testing are driven through
-the Unity Editor; there are no automated tests (open the project with the exact editor version in
-`ProjectSettings/ProjectVersion.txt`). **Claude drives the open Editor through Unity's own
-CLI** (`unity`, in the user's `AppData/Local/Unity/bin`) and the experimental
-`com.unity.pipeline` package (editor-only, in `Packages/manifest.json`): `unity status`
-shows whether the Editor is reachable, `unity command recompile_status` / `console` /
-`save_scene` and `unity command eval --code '...'` (C# run in the Editor; project
-`internal` types are reached by reflection) do the rest. After any change to the level
-generator, Claude runs it on the spec in use and saves the scene (see
-`Assets/Scripts/LevelGen/CLAUDE.md`). `.sln`/`.csproj` files at the repo root are
-Unity-generated for IDE tooling (Rider/Visual Studio) and should not be hand-edited.
+- Unity project; no CLI build/lint/test, no automated tests. Builds and Play Mode via the Editor (exact version in `ProjectSettings/ProjectVersion.txt`).
+- **Claude drives the open Editor via Unity's CLI** (`unity`, in user's `AppData/Local/Unity/bin`) + experimental editor-only `com.unity.pipeline` (in `Packages/manifest.json`): `unity status` (reachable?), `unity command recompile_status` / `console` / `save_scene`, `unity command eval --code '...'` (C# in the Editor; project `internal` types via reflection).
+- **After any level generator change**, run it on the spec in use and save the scene (`Assets/Scripts/LevelGen/CLAUDE.md`).
+- Root `.sln`/`.csproj` are Unity-generated; never hand-edit.
+- All gameplay scripts compile into `Assembly-CSharp`; no `.asmdef` files.
 
-Version control: git, remote `origin` on GitHub, branch `master`. **Commit once per session**:
-a single commit at the end, with the session's devlog/roadmap wrap-up, rather than one per
-change - unless the maintainer asks for a commit sooner. A Unity `.gitignore` excludes
-generated folders, `.csproj`/`.sln`, and `.idea/`. `.meta` files must always be committed with
-their assets. `*.blend` source files (`Blends/`) are ignored because they exceed GitHub's
-100 MB limit — they need Git LFS before they can be tracked. `Assets/ASTROFISH_GAMES` (the
-bought level art packs, 3.9 GB) is ignored too: a fresh clone re-imports the packs from the
-Asset Store, then converts their materials to URP (Window > Rendering > Render Pipeline
-Converter, Material Upgrade), caps their textures at 2048 and turns Read/Write off on
-every pack model again (their meshes are never read at runtime; readable meshes keep a
-second copy in memory). Mesh compression stays off: it saves nothing at runtime and can
-open seams between modular pieces.
-
-All gameplay scripts compile into the default `Assembly-CSharp` assembly — no `.asmdef` files
-exist, so there is only one compilation unit for `Assets/Scripts`.
+**Git:** remote `origin` (GitHub), branch `master`. **One commit per session**, at the end, with the devlog/roadmap wrap-up, unless the maintainer asks sooner. Unity `.gitignore` excludes generated folders, `.csproj`/`.sln`, `.idea/`. Always commit `.meta` files with their assets. `*.blend` (`Blends/`) ignored (exceed GitHub's 100 MB; need Git LFS to track). `Assets/ASTROFISH_GAMES` (bought art packs, 3.9 GB) ignored: a fresh clone re-imports from the Asset Store, converts materials to URP (Window > Rendering > Render Pipeline Converter, Material Upgrade), caps textures at 2048, turns Read/Write off on every pack model (meshes never read at runtime; readable = second copy in memory). Mesh compression stays off (saves nothing at runtime, can open seams between modular pieces).
 
 ## Architecture
 
 ### Frame ordering: explicit `Tick()` pattern
 
-`PlayerController` (on the Player root) is the only player script with an `Update()`. It calls
-every other player system's `Tick()`-style methods explicitly, so frame order is deterministic
-rather than depending on Unity's unspecified order between components. It holds sequencing
-and wiring only, with no gameplay logic: decisions belong in the system that owns the
-behaviour. The current order is:
+`PlayerController` (Player root) is the only player script with `Update()`; it calls every player system's `Tick()`-style method explicitly for deterministic order. Sequencing and wiring only, no gameplay logic (decisions live in the owning system). Order:
 
-1. `playerInput.Tick()` — cache this frame's input (must be first); then
-   `playerTracking.Tick()` — smooth the hands' tracked poses (below), then, if the headset
-   was recentred since last frame, put the view
-   upright and at standing height again, before anything reads the head or hands.
-   **Once the level has ended** (`LevelManager.StateChanged` → not `Playing`; caught or won,
-   during the end fade) **the frame stops here**: the body is frozen - only
-   `playerHandInteraction.Tick()`, `playerHandDoors.TickHeld()`, `playerHandVisuals.Tick()`, `playerHandHolding.TickHeld()`,
-   `playerHandThrowing.Tick(false)`,
-   `TickReticles()` and `playerHandAnimation.Tick()` run, so the hands (and anything they
-   carry) still follow the controllers.
-2. `playerLocomotion.TickBody()` — re-centre the capsule under the headset and apply crouch
-   height (before the hand systems, since crouch moves the tracked hierarchy).
-3. `playerHandInteraction.Tick()` — hand rays + targets (reticles are placed at 8b).
-   3b. `playerPack.TickSummon()` — bring the pack out (a hand reaching over a shoulder and
-   gripping) or put it away (that grip let go); skipped while mantling, and if the rig has
-   no `PlayerPack`. Then `playerLockpicking.Tick()` — take the lockpicks, put them in a
-   lock, take hold of a pick on the big lock (skipped likewise, and if the rig has no
-   `PlayerLockpicking`). Both before the other grab systems: the pack and the picks are
-   taken by reaching, not by the hand rays, so a hand that takes one must already be busy
-   when climbing, carrying and doors run. Then
-   `playerKeys.Tick()` — take the keyring from the pack, put it in a lock, take hold of
-   the key (skipped likewise, and if the rig has no `PlayerKeys`). Then
-   `playerCrossbow.TickWheel()` — the other hand taking the crossbow's wheel (its ray on
-   the wheel and grip held, like a prop), and either hand picking up a bolt its ray is on -
-   and `playerBlackjack.Tick()` — drawing the
-   blackjack at the chest (taken by reaching); both skipped likewise, and if the rig has
-   no `PlayerCrossbow` / `PlayerBlackjack`.
-4. `playerClimbing.Tick()` — grab/release, zip line slide, climb movement (skipped while
-   mantling); then
-   4a. `playerHandHolding.Tick()` — pick up / drop props (also skipped while mantling; after
-   climbing, since a hand either grips a climbable or carries a prop); then
-   `playerPack.Tick()` — loot let go of at the pack this frame going into
-   it, and items being taken out (skipped if the rig has no `PlayerPack`); then
-   `playerHandDoors.Tick()` — take / let go of door handles (also skipped while mantling;
-   last of the three, a hand does one of them; skipped if the rig has no `PlayerHandDoors`);
-   then `playerCrossbow.Tick()` — the crossbow becoming active or stopping (also skipped
-   while mantling; after every grab system, so a grab always wins over it; skipped if the
-   rig has no `PlayerCrossbow`);
-   then `playerMantling.Tick()` — detects a possible mantle (arrow), starts one on a stick push, or
-   advances the one in progress. **While `IsMantling`, the frame stops here**: the mantle has
-   already positioned the rig directly (CharacterController disabled), so only `TickState()`,
-   `playerVisibility.Tick()`, `playerKeyholes.Tick()`, `playerHandDoors.TickHeld()`, `playerHandVisuals.Tick()`, `playerHandHolding.TickHeld()`,
-   `playerHandThrowing.Tick(false)`,
-   `TickReticles()` and `playerHandAnimation.Tick()` run - no locomotion, turning or `Move()`.
-5. `_frameMovement` = `playerLocomotion.TickMovement(isClimbing)` (thumbstick + gravity;
-   zero while climbing) + `playerClimbing.FrameMovement` while climbing; then
-   `playerLocomotion.TickTurning()`.
-6. One `characterController.Move(_frameMovement)` (during which Unity calls
-   `PlayerBodyPushing.OnControllerColliderHit()`, so the body pushes open doors here), then
-   `playerClimbing.ReportAppliedMovement()` while climbing.
-7. `playerLocomotion.TickState(isClimbing, appliedMovement, collisionFlags)` — after `Move()`,
-   because it needs the real applied movement, the `CollisionFlags` `Move()` returned (to stop
-   momentum pushing into walls/ceilings), and the `isGrounded` that `Move()` just updated.
-   7b. `playerFootsteps.Tick(appliedMovement)` — after `TickState()`, since a step depends on
-   this frame's `MovementState` and real movement (skipped if the Player has no
-   `PlayerFootsteps`; not run during a mantle or once the level has ended).
-   7c. `playerVisibility.Tick()` — after `TickState()` too: it samples the light where the
-   body ended up and applies this frame's `MovementState` (skipped if the Player has no
-   `PlayerVisibility`; also run during a mantle, not once the level has ended).
-   7d. `playerKeyholes.Tick()` — after `Move()`: the keyhole the head is near opens by
-   where the head ended up (skipped if the Player has no `PlayerKeyholes`; also run during
-   a mantle, not once the level has ended).
-8. `playerHandDoors.TickHeld()` — a hand on a door handle turns the lever and swings the
-   door, after `Move()` (the door follows where the hand ended up) and straight before the
-   visuals (the hand is then snapped onto the handle where the door now is). Then
-   `playerLockpicking.TickHeld()` — a hand on a pick turns it, the big lock runs (pins,
-   fade), and picking is given up if the player has moved away (wherever
-   `playerHandDoors.TickHeld()` runs, on every path). Then `playerKeys.TickHeld()` — a
-   hand on a key in a lock turns it with the wrist; the keyring goes back to the pack if
-   the player has moved away (every path too). Then
-   `playerHandVisuals.Tick()` — after turning/`Move()`: hand visuals are children of the rig,
-   so a world-space snap pose placed earlier would be dragged off by them, and the physical
-   hand sweep needs the controller's final position. (`TickHandVisuals()` runs the pair.)
-   8a. `playerHandHolding.TickHeld()` — once a hand visual has reached the prop it's picking
-   up, makes the prop a child of it; so straight after the visuals are placed (skipped if the
-   rig has no `PlayerHandHolding`). A carried prop is a child of the hand visual, so nothing
-   places it per frame. Then `playerHandThrowing.Tick(canAim)` — aimed throwing: the arc
-   starts from where the prop now is (skipped if the rig has no `PlayerHandThrowing`;
-   `canAim` is false during a mantle and once the level has ended, when nothing new is aimed
-   but a launch already under way still finishes). Then `playerPack.TickHeld()`, then
-   `playerCrossbow.TickHeld(canAim)` — the crossbow's wheel, arc and shot and its bolts in
-   flight (bolts keep flying on every path; nothing is aimed or shot when `canAim` is
-   false). Then `playerCompass.Tick()` — the compass placed on the wrist of the hand visual
-   that wears it (every path; skipped if the rig has no `PlayerCompass`). (`TickHeldProps()` runs all of
-   8a.)
-   8b. `playerHandInteraction.TickReticles()` — after grabs and hand visuals, so a hand that
-   grabbed this frame already hides its reticle.
-9. `playerHandAnimation.Tick()` — last, so it reads this frame's snap weight from step 8
-   (Animators evaluate after all `Update()` calls anyway).
+1. `playerInput.Tick()` (first: caches input); `playerTracking.Tick()` (smooth hand poses; if headset recentred since last frame, put view upright and at standing height) - before anything reads head/hands. **Once the level has ended** (`LevelManager.StateChanged` -> not `Playing`; caught or won, during end fade) **frame stops here**, body frozen; only `playerHandInteraction.Tick()`, `playerHandDoors.TickHeld()`, `playerHandVisuals.Tick()`, `playerHandHolding.TickHeld()`, `playerHandThrowing.Tick(false)`, `TickReticles()`, `playerHandAnimation.Tick()` run, so hands (and what they carry) follow the controllers.
+2. `playerLocomotion.TickBody()` - re-centre capsule under headset, apply crouch height (before hand systems: crouch moves the tracked hierarchy).
+3. `playerHandInteraction.Tick()` - hand rays + targets (reticles placed at 8b).
+   3b. Reach-taken items, before the other grab systems (a hand taking one must already be busy when climbing/carrying/doors run); each skipped while mantling and if the rig lacks the component: `playerPack.TickSummon()` (bring pack out by reaching over a shoulder + grip, or put away on release); `playerLockpicking.Tick()` (take picks, put in lock, take hold of a pick on the big lock); `playerKeys.Tick()` (take keyring from pack, put in lock, take hold of key); `playerCrossbow.TickWheel()` (other hand taking the wheel - ray on it + grip, like a prop - and either hand picking up a bolt its ray is on); `playerBlackjack.Tick()` (drawing at the chest).
+4. `playerClimbing.Tick()` - grab/release, zip line, climb movement (skipped while mantling).
+   4a. `playerHandHolding.Tick()` - pick up/drop props (skipped while mantling; after climbing, a hand grips a climbable or carries a prop); `playerPack.Tick()` - loot released at the pack goes in, items taken out (skipped without `PlayerPack`); `playerHandDoors.Tick()` - take/release door handles (skipped while mantling and without `PlayerHandDoors`; last of the three); `playerCrossbow.Tick()` - crossbow becomes active/stops (skipped while mantling and without `PlayerCrossbow`; after every grab system so a grab always wins); `playerMantling.Tick()` - detect (arrow), start on stick push, or advance a mantle. **While `IsMantling` the frame stops here** (mantle positions the rig directly, CharacterController disabled): only `TickState()`, `playerVisibility.Tick()`, `playerKeyholes.Tick()`, `playerHandDoors.TickHeld()`, `playerHandVisuals.Tick()`, `playerHandHolding.TickHeld()`, `playerHandThrowing.Tick(false)`, `TickReticles()`, `playerHandAnimation.Tick()` run - no locomotion, turning or `Move()`.
+5. `_frameMovement = playerLocomotion.TickMovement(isClimbing)` (stick + gravity; zero while climbing) + `playerClimbing.FrameMovement` while climbing; then `playerLocomotion.TickTurning()`.
+6. One `characterController.Move(_frameMovement)` (Unity calls `PlayerBodyPushing.OnControllerColliderHit()` during it: body pushes open doors), then `playerClimbing.ReportAppliedMovement()` while climbing.
+7. `playerLocomotion.TickState(isClimbing, appliedMovement, collisionFlags)` - after `Move()`: needs real applied movement, returned `CollisionFlags` (stop momentum into walls/ceilings), and updated `isGrounded`.
+   7b. `playerFootsteps.Tick(appliedMovement)` - after `TickState()` (needs this frame's `MovementState` + real movement); skipped without `PlayerFootsteps`, not run in a mantle or after level end.
+   7c. `playerVisibility.Tick()` - after `TickState()`: samples light where the body ended up, applies `MovementState`; skipped without `PlayerVisibility`; runs in a mantle, not after level end.
+   7d. `playerKeyholes.Tick()` - after `Move()`: keyhole near the head opens by final head position; skipped without `PlayerKeyholes`; runs in a mantle, not after level end.
+8. `playerHandDoors.TickHeld()` - hand on a handle turns the lever and swings the door, after `Move()` and straight before visuals (hand then snapped onto the handle where the door now is). `playerLockpicking.TickHeld()` - hand on a pick turns it, big lock runs (pins, fade), picking given up if the player moved away (runs wherever `playerHandDoors.TickHeld()` runs, every path). `playerKeys.TickHeld()` - key in a lock turned by the wrist; keyring returns to pack if player moved away (every path). `playerHandVisuals.Tick()` - after turning/`Move()`: visuals are rig children, so an earlier world-space snap pose would be dragged off, and the physical hand sweep needs the final controller position. (`TickHandVisuals()` runs the pair.)
+   8a. `TickHeldProps()`: `playerHandHolding.TickHeld()` - once a visual reaches the prop being picked up, parent the prop to it (straight after visuals; skipped without `PlayerHandHolding`); a carried prop is a hand-visual child, nothing places it per frame. `playerHandThrowing.Tick(canAim)` - arc starts from the prop's current position (skipped without `PlayerHandThrowing`; `canAim` false in a mantle and after level end: nothing new aimed, a launch under way still finishes). `playerPack.TickHeld()`. `playerCrossbow.TickHeld(canAim)` - wheel, arc, shot, bolts in flight (bolts fly on every path; no aim/shot when `canAim` false). `playerCompass.Tick()` - compass placed on the wearing hand visual's wrist (every path; skipped without `PlayerCompass`).
+   8b. `playerHandInteraction.TickReticles()` - after grabs and visuals, so a hand that grabbed this frame hides its reticle.
+9. `playerHandAnimation.Tick()` - last; reads this frame's snap weight from step 8 (Animators evaluate after all `Update()`s anyway).
 
-New per-frame player systems get a `Tick()` (or a `Tick…()` that returns a movement
-contribution) and a slot in `PlayerController.Update()`. `PlayerController.Reset()`
-auto-fills its references when the component is added (root components via `GetComponent`,
-hand components via `GetComponentInChildren`).
+New per-frame player systems get a `Tick()` (or `Tick...()` returning a movement contribution) and a slot in `PlayerController.Update()`. `PlayerController.Reset()` auto-fills references (root via `GetComponent`, hands via `GetComponentInChildren`).
 
-**One `Move()` per frame (`_frameMovement` accumulator)** — `PlayerController.Update()` zeroes
-`_frameMovement`, adds each system's movement contribution, then calls
-`characterController.Move(_frameMovement)` exactly once. Any new movement-contributing system
-(ladders, knockback, ...) should return or expose its contribution for `PlayerController` to
-add, rather than calling `Move()` directly. The one exception is a mantle, which positions the
-rig directly. Everything runs in **`Update()`, not `FixedUpdate()`** — CharacterController
-movement and VR tracking both want per-frame updates, for lower latency.
+**One `Move()` per frame:** `Update()` zeroes `_frameMovement`, adds each contribution, calls `characterController.Move()` once. New movement sources (ladders, knockback...) return/expose a contribution, never call `Move()`. Only exception: a mantle positions the rig directly. Everything in **`Update()`, not `FixedUpdate()`** (CharacterController and VR tracking want per-frame, lower latency).
 
 ### Player hierarchy (`Main.unity`)
 
@@ -336,327 +109,91 @@ movement and VR tracking both want per-frame updates, for lower latency.
 Player                 [Player layer] CharacterController, PlayerTracking, PlayerInputXR,
                        PlayerHaptics, PlayerLocomotion, PlayerClimbing, PlayerMantling,
                        PlayerFootsteps, PlayerVisibility, PlayerKeyholes, PlayerBodyPushing,
-                       PlayerInventory (Inventory namespace), PlayerController,
+                       PlayerInventory (Inventory ns), PlayerController,
                        PcPlay (Debug; disables itself unless LevelManager's PC Play is on)
-  Camera Offset        (saved at y 1.6m = standing eye height; crouch shifts it)
-    Main Camera        Tracked Pose Driver (Tracking/Head* actions)
-      Mantle Indicator (MantleIndicator - head-locked, placed a little below centre ~0.5m ahead)
-      Screen Fade      (Core.ScreenFade - at the camera's local origin; fade to/from black)
+  Camera Offset        (saved y 1.6m = standing eye height; crouch shifts it)
+    Main Camera        Tracked Pose Driver (Tracking/Head*)
+      Mantle Indicator (MantleIndicator - head-locked, a little below centre ~0.5m ahead)
+      Screen Fade      (Core.ScreenFade - at camera local origin)
     Hands              PlayerHandInteraction, PlayerHandHolding, PlayerHandThrowing,
                        PlayerPack, PlayerKeys, PlayerHandDoors, PlayerLockpicking, PlayerCrossbow,
                        PlayerBlackjack, PlayerCompass, PlayerHandVisuals,
-                       PlayerHandState (added at runtime if the scene has none),
-                       PlayerHandAnimation (identity transform)
-      Left/Right Throw Arc   (made at runtime by PlayerHandThrowing)
-      Crossbow Arc           (made at runtime by PlayerCrossbow)
-      Blackjack              (made at runtime by PlayerBlackjack; inactive here, moved
-                             onto a hand visual while drawn)
-      Compass                (made at runtime by PlayerCompass; placed each frame on the
-                             wrist of the hand visual the lockpicks are on, never its
-                             child)
+                       PlayerHandState (added at runtime if none), PlayerHandAnimation
+                       (identity transform)
+      Left/Right Throw Arc   (runtime, PlayerHandThrowing)
+      Crossbow Arc           (runtime, PlayerCrossbow)
+      Blackjack              (runtime, PlayerBlackjack; inactive here, moved onto a hand
+                             visual while drawn)
+      Compass                (runtime, PlayerCompass; placed each frame on the wrist of the
+                             lockpicks' hand visual, never its child)
       Left Hand        [PlayerHands] tracked controller - Tracked Pose Driver (Tracking/LeftHand*)
         Left Hand Visual   (hand.fbx instance, Animator)
-          Lockpicks        (made at runtime by PlayerLockpicking, on the left hand visual
-                           for a right-handed player; moves to the other hand visual or
-                           into a lock while in use)
-          Crossbow         (made at runtime by PlayerCrossbow, on the hand visual the
-                           lockpicks are not on: the right for a right-handed player)
-          Pack             (Inventory.Pack - saved as a child of the Player root, moved by
-                           PlayerPack onto whichever hand visual brings it out; active
-                           only while out)
+          Lockpicks        (runtime, PlayerLockpicking; left visual for right-handed; moves to
+                           other visual or into a lock in use)
+          Crossbow         (runtime, PlayerCrossbow; visual without the lockpicks: right for
+                           right-handed)
+          Pack             (Inventory.Pack - saved as Player root child, moved by PlayerPack onto
+                           the hand visual that brings it out; active only while out)
         Left Hand Reticle
       Right Hand       [PlayerHands] same, visual mirrored (scale.x -1)
 ```
 
-**A hand does one thing at a time** (climbing, carrying, a door, the lockpicks, the keys,
-holding the pack, the crossbow active or its wheel, the blackjack):
-before a hand system takes a hand it asks `PlayerHandState.IsBusyExcept()` whether another
-has it, rather than checking the other systems itself. A new hand system is added there,
-once - see `Assets/Scripts/Player/CLAUDE.md`.
-
-Body/movement systems sit on the root, hand systems on `Hands`. `Hands` must stay under
-`Camera Offset` with an identity transform: the tracked hands' poses are relative to it, and
-crouch lowers the tracked hierarchy by moving `Camera Offset`.
-
-**The head moves again before rendering; the hands don't.** The Main Camera's Tracked Pose
-Driver uses "Update And Before Render"; the two hands' use **"Update"** only - with
-before-render updates on the hands, a carried prop lagged the hand. Don't switch them back.
-World-fixed things (a snapped hand, a hand held off a wall) are detached from the controller.
-
-**The controller objects hold a smoothed pose, not the raw tracking.**
-`PlayerTracking.Tick()` overwrites the pose the hands' Tracked Pose Drivers wrote with a
-smoothed one (a One Euro filter), so everything under or reading `Left Hand`/`Right Hand` is
-steadied. It relies on the hands' drivers being "Update" only. Climbing uses the smoothed
-pose as well; nothing reads the raw tracking. Detail in `Assets/Scripts/Player/CLAUDE.md`.
-
-**Tracking setup:** `PlayerTracking.Start()` puts XR tracking in **Device** mode (head
-measured from where the headset started or was last recentred, not the real floor), and
-`Camera Offset`'s saved 1.6m lifts that to standing eye height - the same for every player,
-while real crouching still lowers the head. It then calibrates the view itself
-(`calibrateView`), after waiting for a tracked head pose, while `ScreenFade` holds the
-level-start black: if the head is upside down it turns `Camera Offset` half a turn, and it
-shifts `Camera Offset` so the head is at standing eye height; `PlayerTracking.Tick()` repeats
-this whenever the headset is recentred (through Virtual Desktop/SteamVR the tracking space
-often starts upside down with its origin on the floor - so `Camera Offset` isn't always at
-its saved pose). The three Tracked Pose Drivers (Input System's) read the project's own
-`Tracking` action map, auto-enabled with the rest of `InputSystem_Actions`. Controllers bind
-the **pointer** (aim) pose, not the grip pose - hand visual placement, ray angles and snap
-offsets are all tuned against it. An untracked controller stays active and holds its last
-pose; the few guards for an inactive controller (`HandRayReticle.Tick()`, the physical
-follow) are kept in case untracked hands are hidden later.
+- **A hand does one thing at a time** (climbing, carrying, door, lockpicks, keys, holding pack, crossbow active or its wheel, blackjack): before taking a hand a system asks `PlayerHandState.IsBusyExcept()`, never checks other systems itself. New hand systems are added there once (`Assets/Scripts/Player/CLAUDE.md`).
+- Body/movement systems on root, hand systems on `Hands`. `Hands` stays under `Camera Offset` with identity transform (tracked poses are relative to it; crouch moves `Camera Offset`).
+- **Head re-updates before render; hands don't.** Main Camera TPD: "Update And Before Render"; hands' TPDs: **"Update"** only (before-render on hands made carried props lag). Don't switch back. World-fixed things (snapped hand, hand held off a wall) are detached from the controller.
+- **Controller objects hold a smoothed pose:** `PlayerTracking.Tick()` overwrites the TPD pose with a One Euro filtered one (relies on hands' TPDs being "Update" only). Climbing uses it too; nothing reads raw tracking. Detail in `Assets/Scripts/Player/CLAUDE.md`.
+- **Tracking:** XR tracking in **Device** mode (not floor); `Camera Offset` 1.6m gives every player the same standing eye height, real crouching still lowers it. `PlayerTracking` calibrates the view (`calibrateView`: flips an upside-down head, shifts to standing height) under the start fade and again on recentre (VD/SteamVR often start upside down with origin on the floor, so `Camera Offset` isn't always at its saved pose). TPDs read the project's `Tracking` action map (in `InputSystem_Actions`). Controllers bind the **pointer (aim) pose, not grip** - visuals, rays, snap offsets are tuned to it. Untracked controllers stay active holding last pose. Detail: `Assets/Scripts/Player/CLAUDE.md`.
 
 ### Physics layers
 
-User layers 6-14: `Environment` (static world geometry), `Player` (the CharacterController
-object, the Player root), `PlayerHands` (Left/Right Hand objects), `Interactable` (grabbables,
-doors, loot, locks), `Climbable` (`ClimbableEdge`s, ladders, ropes), `Guard` (body capsule),
-`GuardHead` (blackjack target), `Projectile` (bolts), `PlayerBlocker` (invisible boxes only
-the player's body collides with). Unassigned objects stay on `Default`,
-which still collides with everything. Collision matrix pairs that are ON among these:
-Environment with Environment/Player/PlayerHands/Interactable/Guard/Projectile;
-Player-Interactable; Player-Guard; PlayerHands-Interactable; Interactable with
-Interactable/Guard/Projectile; Guard-Projectile; Player-PlayerBlocker. Everything else is off
-(notably Player-PlayerHands, and Climbable with everything - it's a grab volume, not
-geometry). **`PlayerBlocker` collides with `Player` and nothing else, and no query mask
-includes it**: hands, carried and thrown props, bolts, guards, hand rays, light rays and
-guard sight all pass through a blocker. A new query's mask must leave it out. How blockers
-are used is in `Assets/Scenes/CLAUDE.md`. **A
-prop being carried is moved onto `PlayerHands`** (and back when dropped; it's also a child of
-the hand visual while carried), so the body doesn't collide with it and hand rays, the hand
-sweep and light rays ignore it. **A door** is on `Interactable` (its leaf and its handle's
-trigger grab volume), on a kinematic Rigidbody turned from code; it checks the `Player` layer
-itself so it never swings into the body, and the body walking into an open door pushes it
-(`PlayerBodyPushing`). The matrix doesn't affect raycasts/overlaps: queries must pass their
-own `LayerMask` (hand rays use Environment + Interactable + Climbable, so walls block them;
-physical hand sweeps use Environment + Interactable; light rays - `SceneLight` - use
-Environment + Interactable, so both block light).
+User layers 6-14: `Environment` (static world), `Player` (CharacterController, Player root), `PlayerHands` (Left/Right Hand), `Interactable` (grabbables, doors, loot, locks), `Climbable` (`ClimbableEdge`s, ladders, ropes), `Guard` (body capsule), `GuardHead` (blackjack target), `Projectile` (bolts), `PlayerBlocker` (invisible player-only boxes). Unassigned = `Default` (collides with everything).
 
-### Vertical slice design (see `Assets/DEVROADMAP.txt` for the full plan)
+Matrix pairs ON: Environment with Environment/Player/PlayerHands/Interactable/Guard/Projectile; Player-Interactable; Player-Guard; PlayerHands-Interactable; Interactable with Interactable/Guard/Projectile; Guard-Projectile; Player-PlayerBlocker. All else off (notably Player-PlayerHands, and Climbable with everything: it's a grab volume).
 
-Target: one greybox docks/warehouse level — steal an objective item and escape; being caught
-fails and restarts. The mechanics:
+- **`PlayerBlocker` collides only with `Player`; no query mask includes it** (hands, props, bolts, guards, hand rays, light rays, guard sight pass through). New query masks must leave it out. Usage in `Assets/Scenes/CLAUDE.md`.
+- **A carried prop moves to `PlayerHands`** (back on drop; also a hand-visual child) so the body doesn't hit it and hand rays, hand sweep and light rays ignore it.
+- **Doors**: `Interactable` (leaf + handle trigger grab volume), kinematic Rigidbody turned from code; checks `Player` layer itself so it never swings into the body; body walking into an open door pushes it (`PlayerBodyPushing`).
+- Matrix doesn't affect queries; each passes its own `LayerMask`: hand rays Environment + Interactable + Climbable (walls block); physical hand sweeps Environment + Interactable; light rays (`SceneLight`) Environment + Interactable (both block light).
 
-- **Visibility:** worked out from the level's geometry, nothing placed by hand but the
-  lights. Levels are at night: the base light is **moonlight**, and a point is in full
-  shadow when geometry stands between it and the moon - one physics ray towards the moon, so
-  gameplay shadows fall where the rendered ones do. **Light sources** (torches, lamps) add
-  light within their range, blocked by geometry the same way; extinguishing one just
-  disables it. The brightest light wins. Crouch/sprint modify it: standing in moonlight can
-  be seen, crouching in it only from close up. The rendered shadow map is not read back (too
-  slow); rays stand in for it. No designer-placed shadow or light volumes.
-- **Noise:** footsteps by surface type (scaled by stance), thrown/dropped physics objects,
-  doors/interactions — all via a shared noise event system that guards listen to.
-- **Sound:** a sound must tell the player truthfully where it is on stereo headphones.
-  Thief-style rooms and portals: designer-placed sound rooms joined by portals (doorways,
-  stairwells); sound travels room to room only through portals, never through walls, and is
-  heard from the last portal at the distance of the whole path - so a guard on the floor
-  above is heard from the stairwell or not at all. Closed doors muffle (high end rolled
-  off). Guards' hearing follows the same paths. No ray-cast muffling inside a room.
-  **Reverb belongs to the room the listener is in, not the sound's**: one shared reverb,
-  tuned per `SoundRoom`. Looping sounds (`SoundLoop`) and a per-room ambience follow the
-  same rooms. Direction by ear comes from the project's own simple spatialiser
-  (`SpatialVoice`: time difference between the ears, head shadow, duller from behind; no
-  up/down cue). No third-party audio package is installed; Steam Audio is the fallback if
-  up/down turns out to matter. Detail in `Assets/Scripts/Core/CLAUDE.md`.
-- **Guard AI:** patrol → suspicion → search → chase → catch (no combat). Knockout state;
-  **a knocked-out guard can always be woken by an awake one** that sees it and walks
-  over. **A guard hit by a bolt that does nothing to it becomes suspicious and searches
-  where it was shot from.** A first guard is built (`AI.Guard`, working in the headset): a
-  state machine driven by one detection meter that sight fills (by the player's
-  `Visibility`, distance and how much of them shows) and noises add to; it walks on a
-  baked NavMesh, looks a few times a second rather than every frame, and ends the level
-  through `LevelManager.Caught()`. A rigged, textured model (a prefab in
-  `Assets/Prefabs/Characters`) animated from its state and speed by `GuardAnimation`.
-  Guards have their own `Update()`, outside the player's
-  tick order. Detail in `Assets/Scripts/AI/CLAUDE.md`.
-  **Voice lines don't repeat** (not built): guards draw barks and idle patrol mutterings
-  from very large pools, and a lightweight shared record of the lines used this play session
-  (kept across level restarts) stops one repeating until its whole pool has been heard.
-  Several guard voices, each with its own pools. Other guards don't react to idle chatter
-  (sound only, no noise event); two-guard conversations may come later.
-- **Weapons:** the blackjack and the hand crossbow; there is no weapon menu. **Nobody
-  dies, guard or player: every weapon's effect is non-fatal**, and the player is
-  dissuaded from aggression towards the guards. **The
-  blackjack is drawn from the chest**: a hand that is empty, close to the chest and has its
-  palm towards it draws the blackjack by pressing grip, and holds it while grip is held;
-  letting go puts it away (it is not dropped). Either hand. **A swing that brings its head
-  against a guard's head knocks the guard out if the guard isn't chasing and the player is
-  behind it**; otherwise the guard turns on the player. Built (`PlayerBlackjack`,
-  `AI.Guard.TryKnockOut()`), working in the headset.
-  **The crossbow is always mounted on the back of one hand**, as the lockpicks are on the
-  other: the right hand for a right-handed player (`PlayerInputXR.IsLeftHanded` swaps the
-  two). It becomes active when grip is pressed on that hand while it is empty, its ray is
-  on nothing it could grab (**a grab always wins**) and its palm faces the floor; it stays
-  active until grip is let go. Active, it shows a ballistic arc like an aimed throw's but
-  much flatter and longer: a bolt's speed comes from a **range** set in the editor (how
-  far it carries over level ground at the best angle), worked out once at load. **The
-  trigger shoots on the press** (a throw is on the release). It is clockwork: it winds
-  itself, ready again after a short wait. **Five kinds of bolt**, each with its own
-  model and each shot using one from `PlayerInventory`: **water** (blue tip) puts out
-  every `Core.Flame` near where it lands; a **noisemaker** makes noise where it lands for
-  a while; a **rope** bolt (shaft wound with rope) hangs a rope to climb from where it
-  sticks; a **stun** bolt (black tip) that hits a guard's head leaves it stunned for 10s,
-  after which it comes round and searches; a **sleep dart** that hits a guard anywhere
-  knocks it out 10s later. **At most three of each kind are carried.** Water and
-  noisemaker bolts are used up where they land. **The rest stick only into surfaces
-  tagged as holding a bolt** (wood, plaster, carpet, grass) **and bounce off everything
-  else**, a guard included - a bounced bolt is a real physics object until it settles.
-  **A stun bolt, or a sleep dart that hit no guard, is picked up again** by pointing at
-  it and gripping: it goes straight back into the inventory, never carried. A rope bolt
-  is never recovered, and its rope only bears weight where the surface's `SurfaceTag`
-  has **Supports Rope Bolt** ticked: elsewhere the bolt still sticks, but pulls out and
-  the rope falls as soon as the player takes hold. **The kind is chosen by gripping the wheel at the back of the crossbow with the
-  other hand and turning it.** Built (`PlayerCrossbow`), greybox, working in the
-  headset.
-- **Open flames can be put out, lamps can't:** a torch or fire pit carries a
-  `Core.Flame`, which switches its gameplay light, its visible light, its flame and
-  its sound off together; a lamp post has no `Flame` and burns on.
-- **Chests** (`Interaction.Chest`, `ChestLid`): the same lock kinds as doors (none, simple
-  = pickable, keyed), through the same `PickableLock` / `KeyLock`. Once unlocked by any
-  means, a hand takes the front of the lid and lifts it open.
-- **The compass** (`PlayerCompass`) is the player's readout, **always worn on the back of
-  the wrist of the hand the lockpicks are on**, a little further up the arm than they
-  are: it is looked at like a watch, takes no input and never makes its hand busy. A disc: a rim fixed to the hand, a dial
-  inside it that stays turned to the world with a triangle at each of north, east, south
-  and west (**north is world +Z**; its triangle is bigger), a **light gem** in the middle
-  showing `PlayerVisibility`, and **an arrow outside the rim for each of the last few
-  footsteps and voices heard** (never the player's own; no other kind of sound is
-  shown), pointing where it is heard from - the portal, for one from another room -
-  bigger the louder it was, and fading.
-- **Text** is drawn with TextMeshPro (in the `com.unity.ugui` package). Its font and
-  shader are in the project, in `Assets/TextMesh Pro` (the TMP Essential Resources).
-- **Controls:** left stick moves; right stick turns, up mantles, **down toggles crouch**;
-  grip grabs; trigger aims a throw; **A jumps**; **B is the universal cancel** (an aimed
-  throw, for now); grip with the palm down brings the crossbow up and the trigger then
-  shoots; grip at the chest, palm to the
-  chest, draws the blackjack; grip over a shoulder brings the pack out; **a click of the
-  left stick toggles sprint**; X, Y, Menu and the right stick's
-  click are unassigned. **PC Play** (a development switch on `LevelManager`, off for a
-  build): Play Mode from the desk with no headset - WASD walks, the mouse looks, Space
-  jumps, C crouches, Left Shift toggles sprint; movement only, the hands just ride under
-  the camera (`PcPlay`, `Scripts/Player/Debug`).
-- **Tools:** the lockpicks are the only tool; no others are planned. Two-handed
-  lockpicking with haptics (built, in `PlayerLockpicking`, `Interaction.BigLock`
-  and `PickableLock`): two picks worn on the back of the left hand snap into a simple lock's
-  keyhole, a large copy of the lock fades in front of the door, the right hand turns one
-  pick clockwise through three stops and a last turn while the left sweeps the other to find
-  each stop's random pin by haptics; a hand turns a pick by moving round the lock, not by
-  twisting the wrist. Detail in `Assets/Scripts/Interaction/CLAUDE.md` and
-  `Assets/Scripts/Player/CLAUDE.md`.
-- **Inventory:** a backpack that only holds so much, so the player keeps the most valuable
-  loot and leaves the rest. **Brought out by reaching over a shoulder with either hand and
-  gripping**: it rides on that hand for as long as the grip is held, letting go puts it
-  away, and the other hand puts loot into it: a grid of spaces (3 x 3), one per piece of loot,
-  chosen by holding it over a free space; a gold space for small loot, and separate spaces
-  for the objective and the keyring. Carried loot shows one to three coins for its worth.
-  Keys are coloured and live on the keyring, which is taken from the pack and held to a
-  lock. All built. **One coin level is worth one gold piece**: a piece of loot is worth
-  one, two or three gold, and the pack's gold is shown as a number (TextMeshPro).
-  **Handedness** is one setting, `PlayerInputXR.leftHanded`: off, the lockpicks are on
-  the left hand (the compass with them) and the crossbow on the right; on, the other way round. The pack and
-  keyring work in either hand, and the lock puzzle itself is never mirrored. Detail in `Assets/Scripts/Inventory/CLAUDE.md`.
-- **Throwing is both aimed and physical** (both built, in `PlayerHandThrowing` and
-  `PlayerHandHolding`). Grip picks an object up. Aimed, for accuracy: holding that hand's
-  trigger shows a trajectory arc (distance from hand pitch, teleport-arc style), and
-  releasing the trigger plays a short hand launch (a forward move of the hand visual, not an
-  animation clip) and throws along the arc. **B cancels** the aim, the prop staying in the
-  hand; an arc that lands on nothing is drawn red and releasing then throws nothing. Physical, for a quick natural throw: moving the hand and letting go of grip sends
-  the object off with the hand's movement; a still hand just drops it. Detail in
-  `Assets/Scripts/Player/CLAUDE.md`.
-- **Traversal:** sprint, jump, mantling, ladders, rope climbing (built); drag/hide KO'd
-  bodies (with the guards).
-- **Physical hands:** the visual hand collides with the world, stops at surfaces, and
-  elastic-bands back to the controller once clear (Alyx / Thief VR style); kinematic sweep,
-  no Rigidbody (detail in `Assets/Scripts/Player/CLAUDE.md`).
-- **Sky:** no skybox - the camera clears to black and `Core.ProceduralSky` draws the stars
-  (camera-locked quads built at level load, none below the horizon, twinkling in the shader)
-  and the moon, a disc where the Directional Light shines from, its cratered face painted
-  into a small texture at level load. A picture only: it lights nothing. **Shafts of
-  moonlight** (`Core.MoonShaft`) are placed geometry, never a screen effect: a component
-  describes an opening (a strip of sky between two eaves, a window, an alley's mouth) and
-  builds a soft prism of light from the Directional Light's direction and colour at load,
-  cut to the part the moon reaches by rays, with the beam drawn by `TeaLeaf/MoonShaft`;
-  the level generator can lay one over each of its alleys, the rest are placed by hand.
-  **Switched off for now** (none in any scene; the generator's shaft width is 0) until
-  the look is right. Detail in `Assets/Scripts/Core/CLAUDE.md`.
-- **Art:** the slice is to look like a finished game, not a greybox. **Shapes are
-  storybook-crooked**: half-timbered houses that lean storey by storey, swept roofs with
-  flared eaves, bowed timbers, staggered chimneys. **Surfaces are painted, in the manner
-  of Dishonored**: broad brush dabs, a grimy washed-out palette with cool shadows and warm
-  lights, light painted onto edges. **What the player stands on, holds or opens stays
-  true** - floors flat, ledges and rails level and straight, ladders straight, door hinges
-  upright: the crookedness is in the silhouette. **Levels and prefabs are built from the
-  bought Astrofish Games packs** in `Assets/ASTROFISH_GAMES`:
-  `STYLZ_MVillage` (medieval village: walls, roofs, doors, windows, steps, bridges,
-  fences, foliage, terrain), `DETAILED_MCastle` (castle, cliff rock) and
-  `DETAILED_FantasyMarkets` (market stalls and goods). **Level art is placed by hand or
-  by the level generator (`Assets/Scripts/LevelGen`), and by nothing else**: the
-  generator lays out streets and buildings from real `Assets/Prefabs` variants under its
-  own root (with pipes, vents, walkways and lamp posts on its facades, chimneys,
-  dormers and railings on its roofs, smoke and steam, grass and nettles in its
-  streets, and shafts of moonlight over its alleys, lays the sound rooms and portals
-  and bakes the guards' NavMesh over its streets); **the streets' ground is the one thing it builds rather than
-  places: meshes of its own, one per level and per slope, vertex-painted for the
-  `TeaLeaf/GroundBlend` shader** (dirt, cobbles and puddles blended by height, as
-  Thief VR's streets are; `Assets/Scripts/Core/CLAUDE.md`), and everything else -
-  other set dressing, lighting, gameplay - is placed by hand.
-  Don't propose any other editor builder for level art. The pack folder is git-ignored and its
-  own prefabs are left untouched; **the game's prefabs live in `Assets/Prefabs`, each a
-  prefab variant of a pack prefab** holding what the game adds - Static and the
-  `Environment` layer, a collider, a `SurfaceTag` where it is walked on or shot at, and
-  scripts such as `Door` or `Ladder` - and levels are built from those variants, never
-  straight from the pack. **TeaLeaf > Modify Prefab > Make Environment Variants** makes the variants for
-  static pieces in bulk from the pack prefabs or folders selected in the Project window
-  (`Environment` layer and Static set; see `Assets/Scripts/Core/CLAUDE.md`). The packs' materials are URP Lit and their textures are
-  imported at 2048 at most; keep both so. **The project's own copies and colour
-  variants of pack materials** (`<material>_<suffix>`, which the level generator draws
-  from), **the lit window material and the streets' ground material live in
-  `Assets/Art/Materials/Environment`** (by kind: `Roofs`, `Walls`, `Extensions`,
-  `Windows`, `Ground`); the
-  packs' own materials are left as they are. Their demo scenes, skyboxes, lighting
-  settings, post effects and `SimpleCameraController` are not used. Organic models (the
-  guard, hands, hero props) come from outside. The test areas are the
-  exception: they are built from code by the TeaLeaf > Dev Room menu's editor builders, the Smithy
-  textured (`Assets/Scripts/Interaction/CLAUDE.md`) and the rest greybox, as are the
-  props. The guard is a Tripo-generated model (`Assets/TripoModels/guard_1`) in a
-  plain URP Lit material, not yet in the painted style.
-  Out of scope: settings/main menu, save/load, combat, fall damage and health.
+### Vertical slice design (full plan: `Assets/DEVROADMAP.txt`)
+
+Target: one docks/warehouse level - steal an objective, escape; caught = fail and restart.
+
+- **Visibility:** from level geometry; only lights are hand-placed. Night levels: base light **moonlight**; a point is in full shadow when geometry blocks one physics ray towards the moon (gameplay shadows match rendered). **Light sources** (torches, lamps) add light in range, blocked likewise; extinguishing = disabling. Brightest light wins. Crouch/sprint modify: standing in moonlight is visible, crouching only from close. Shadow map not read back (too slow); rays stand in. No designer-placed shadow/light volumes.
+- **Noise:** footsteps by surface (scaled by stance), thrown/dropped physics objects, doors/interactions - via a shared noise event system guards listen to.
+- **Sound:** must tell the player truthfully where it is on stereo headphones. Thief-style designer-placed sound rooms joined by portals (doorways, stairwells); sound passes room to room only via portals, never through walls, heard from the last portal at the whole path's distance (a guard upstairs is heard from the stairwell or not at all). Closed doors muffle (high end rolled off). Guard hearing uses the same paths. No ray-cast muffling inside a room. **Reverb is the listener's room's, not the sound's**: one shared reverb tuned per `SoundRoom`. `SoundLoop`s and per-room ambience follow rooms. Direction from the project's own spatialiser (`SpatialVoice`: interaural time difference, head shadow, duller from behind; no up/down cue). No third-party audio package; Steam Audio is the fallback if up/down matters. Detail: `Assets/Scripts/Core/CLAUDE.md`.
+- **Guard AI:** patrol -> suspicion -> search -> chase -> catch (no combat). Knockout state; **a knocked-out guard can always be woken by an awake one** that sees it and walks over. **A guard hit by a bolt that does nothing to it becomes suspicious and searches where it was shot from.** Built (`AI.Guard`, working in headset): one detection meter filled by sight (player `Visibility`, distance, how much shows) and noises; baked NavMesh; looks a few times a second; catches via `LevelManager.Caught()`; model prefab in `Assets/Prefabs/Characters` animated by `GuardAnimation`. Guards have their own `Update()`, outside the player tick order. **Voice lines don't repeat** (not built): large pools per voice, a session-wide record (kept across restarts) blocks repeats until a pool is exhausted; idle chatter is sound only, no noise event. Detail: `Assets/Scripts/AI/CLAUDE.md`.
+- **Weapons:** blackjack and hand crossbow; no weapon menu. **Nobody dies (guard or player); every weapon is non-fatal**, and aggression towards guards is dissuaded.
+  - **Blackjack** (`PlayerBlackjack`, `AI.Guard.TryKnockOut()`; built, working in headset): drawn from the chest by an empty hand close to the chest, palm towards it, pressing grip; held while grip held; release puts it away (never dropped). Either hand. **Head-to-head swing knocks out if the guard isn't chasing and the player is behind it**; otherwise the guard turns on the player.
+  - **Crossbow** (`PlayerCrossbow`; built, greybox, working in headset): **always mounted on the back of one hand**, lockpicks on the other (see Handedness). Active when grip pressed on that hand while empty, its ray on nothing grabbable (**a grab always wins**) and palm facing the floor; stays active until grip released. Shows a ballistic arc like an aimed throw's but much flatter/longer; bolt speed from an editor-set **range** (carry over level ground at best angle), computed once at load. **Trigger shoots on press** (throw is on release). Clockwork: self-winds, ready after a short wait. Kind chosen by gripping the wheel at the back with the other hand and turning it.
+  - **Five bolt kinds**, each own model, each shot uses one from `PlayerInventory`, **max three of each carried**: **water** (blue tip) puts out every `Core.Flame` near where it lands; **noisemaker** makes noise where it lands for a while; **rope** (shaft wound with rope) hangs a climbable rope from where it sticks; **stun** (black tip) on a guard's head stuns 10s, then it comes round and searches; **sleep dart** hitting a guard anywhere knocks it out 10s later. Water and noisemaker are used up where they land. **The rest stick only into surfaces tagged as holding a bolt** (wood, plaster, carpet, grass) **and bounce off everything else**, guards included - a bounced bolt is a real physics object until it settles. **A stun bolt, or a sleep dart that hit no guard, is picked up** by pointing + grip: straight into inventory, never carried. Rope bolts never recovered; the rope bears weight only where the `SurfaceTag` has **Supports Rope Bolt** ticked - elsewhere it sticks but pulls out and the rope falls when the player takes hold.
+- **Open flames can be put out, lamps can't:** torch/fire pit has a `Core.Flame` (switches gameplay light, visible light, flame and sound off together); lamp posts have none and burn on.
+- **Chests** (`Interaction.Chest`, `ChestLid`): same lock kinds as doors (none, simple = pickable, keyed) via `PickableLock` / `KeyLock`. Once unlocked, a hand takes the lid front and lifts it.
+- **Compass** (`PlayerCompass`; detail `Assets/Scripts/Player/CLAUDE.md`): **always worn on the back of the wrist of the lockpicks' hand**, further up the arm; read like a watch, no input, never makes its hand busy. World-aligned dial (**north = world +Z**), **light gem** showing `PlayerVisibility`, **arrows for the last few footsteps and voices heard** (never the player's own; no other sounds) pointing where heard from (the portal, for another room), sized by loudness, fading.
+- **Text:** TextMeshPro (`com.unity.ugui`); font and shader in `Assets/TextMesh Pro` (TMP Essential Resources).
+- **Controls:** left stick moves; right stick turns, up mantles, **down toggles crouch**; grip grabs; trigger aims a throw; **A jumps**; **B is the universal cancel** (aimed throw, for now); crossbow, blackjack and pack gestures as above/below; **left stick click toggles sprint**; X, Y, Menu, right stick click unassigned. **PC Play** (dev switch on `LevelManager`, off for a build): Play Mode at the desk without headset - WASD walk, mouse look, Space jump, C crouch, Left Shift toggles sprint; movement only, hands ride under the camera (`PcPlay`, `Scripts/Player/Debug`).
+- **Tools:** lockpicks only; no others planned. Two-handed lockpicking with haptics (built: `PlayerLockpicking`, `Interaction.BigLock`, `PickableLock`): two picks worn on the back of the left hand snap into a simple lock's keyhole; a large copy of the lock fades in front of the door; right hand turns one pick clockwise through three stops and a last turn while the left sweeps the other to find each stop's random pin by haptics; a pick is turned by moving the hand round the lock, not twisting the wrist. Detail: `Assets/Scripts/Interaction/CLAUDE.md`, `Assets/Scripts/Player/CLAUDE.md`.
+- **Inventory** (all built; `Assets/Scripts/Inventory/CLAUDE.md`): backpack of limited size, so the player keeps the most valuable loot. **Brought out by reaching over a shoulder with either hand + grip**; rides on that hand while grip held, release puts it away; the other hand puts loot in: 3x3 grid, one loot per space, chosen by holding loot over a free space; a gold space for small loot; separate spaces for objective and keyring. Carried loot shows one to three coins for worth. Coloured keys on the keyring, taken from the pack and held to a lock. **One coin level = one gold piece** (loot worth 1-3 gold); pack gold shown as a number (TextMeshPro). **Handedness** is one setting, `PlayerInputXR.leftHanded` (read as `IsLeftHanded`): off = lockpicks (and compass) left, crossbow right; on = swapped. Pack and keyring work in either hand; the lock puzzle is never mirrored.
+- **Throwing, aimed and physical** (both built: `PlayerHandThrowing`, `PlayerHandHolding`; detail `Assets/Scripts/Player/CLAUDE.md`). Grip picks up. Aimed: hold that hand's trigger for a trajectory arc (distance from hand pitch, teleport-arc style); release plays a short hand launch (forward move of the visual, not a clip) and throws along the arc. **B cancels** (prop stays in hand); an arc landing on nothing is red and releasing throws nothing. Physical: move the hand and release grip to throw with the hand's movement; a still hand just drops.
+- **Traversal:** sprint, jump, mantling, ladders, rope climbing (built); drag/hide KO'd bodies (with the guards).
+- **Physical hands:** visual hand collides with the world, stops at surfaces, elastic-bands back to the controller once clear (Alyx / Thief VR); kinematic sweep, no Rigidbody.
+- **Sky:** no skybox; camera clears to black; `Core.ProceduralSky` draws stars and the moon (disc where the Directional Light shines from). Picture only, lights nothing. **Moon shafts** (`Core.MoonShaft`, shader `TeaLeaf/MoonShaft`) are placed geometry built at load, never a screen effect; generator can lay one per alley, others hand-placed. **Off for now** (none in any scene; generator shaft width 0) until the look is right. Detail: `Assets/Scripts/Core/CLAUDE.md`.
+- **Art:** slice must look like a finished game, not greybox.
+  - **Shapes storybook-crooked**: leaning half-timbered houses storey by storey, swept roofs with flared eaves, bowed timbers, staggered chimneys. **Surfaces painted, Dishonored-style**: broad dabs, grimy washed-out palette, cool shadows, warm lights, light painted onto edges. **What the player stands on, holds or opens stays true** (flat floors, level straight ledges/rails, straight ladders, upright door hinges): crookedness is in the silhouette.
+  - **Built from the Astrofish Games packs** in `Assets/ASTROFISH_GAMES`: `STYLZ_MVillage` (village walls, roofs, doors, windows, steps, bridges, fences, foliage, terrain), `DETAILED_MCastle` (castle, cliff rock), `DETAILED_FantasyMarkets` (stalls, goods).
+  - **Level art is placed by hand or by the level generator (`Assets/Scripts/LevelGen`), nothing else.** Generator lays streets and buildings from real `Assets/Prefabs` variants under its own root (pipes, vents, walkways, lamp posts on facades; chimneys, dormers, railings on roofs; smoke/steam; grass and nettles; moon shafts over alleys), lays sound rooms/portals, bakes the guards' NavMesh over streets. **Street ground is the one thing it builds**: own meshes, one per level and per slope, vertex-painted for `TeaLeaf/GroundBlend` (dirt, cobbles, puddles blended by height, as Thief VR; `Assets/Scripts/Core/CLAUDE.md`). Other dressing, lighting, gameplay by hand. **Don't propose any other editor builder for level art.**
+  - Pack folder git-ignored, its prefabs untouched. **Game prefabs live in `Assets/Prefabs`, each a variant of a pack prefab** adding Static + `Environment` layer, a collider, a `SurfaceTag` where walked on/shot at, scripts (`Door`, `Ladder`...). Levels use the variants, never the pack directly. **TeaLeaf > Modify Prefab > Make Environment Variants** bulk-makes variants for static pieces from selected pack prefabs/folders (`Environment` + Static; `Assets/Scripts/Core/CLAUDE.md`). Pack materials URP Lit, textures max 2048: keep so.
+  - **Project copies and colour variants of pack materials** (`<material>_<suffix>`, drawn on by the generator), the lit window material and the street ground material live in `Assets/Art/Materials/Environment` (`Roofs`, `Walls`, `Extensions`, `Windows`, `Ground`); pack materials left as they are. Pack demo scenes, skyboxes, lighting settings, post effects and `SimpleCameraController` unused.
+  - Organic models (guard, hands, hero props) from outside. Exceptions built from code by TeaLeaf > Dev Room editor builders: test areas (the Smithy textured - `Assets/Scripts/Interaction/CLAUDE.md` - the rest greybox) and props. Guard: Tripo model (`Assets/TripoModels/guard_1`), plain URP Lit, not yet painted style.
+- **Out of scope:** settings/main menu, save/load, combat, fall damage, health.
 
 ### Planned systems
 
-`Assets/Scripts/UI` is an empty placeholder folder. Future systems land in their folder
-following the same one-class, one-responsibility pattern (UI: menus). The level generator
-(`Assets/Scripts/LevelGen`) is being built in stages; its `CLAUDE.md` holds the design and
-which stages exist.
-Ending the level always goes through `LevelManager` (`Caught()`, `SetObjectiveCarried()`): no
-other system fades out or reloads the scene itself.
+`Assets/Scripts/UI` is an empty placeholder (menus). New systems follow one-class, one-responsibility. Level generator (`Assets/Scripts/LevelGen`) built in stages; its `CLAUDE.md` holds design and which stages exist. **Ending the level always goes through `LevelManager`** (`Caught()`, `SetObjectiveCarried()`); no other system fades out or reloads the scene.
 
 ### Scenes
 
-`Assets/Scenes/Main.unity` is the game's scene, and the only scene in the build
-list. **It holds the start of the docks level**, built by hand from the `Assets/Prefabs`
-variants and laid out as `Assets/Scenes/CLAUDE.md` describes (`Environment`, `Gameplay`
-and `Sound` roots, with `Sector 1` the only sector), beside the Player, `Level Manager`,
-`Sound Player` and Debug objects. So far it is
-dock sections, foundations, floors and buildings, with its lighting baked (Shadowmask), a
-light probe group and an occlusion bake (see `Assets/Scripts/Core/CLAUDE.md`): **no guard, no NavMesh, no sound rooms and no test
-area is in the scene**. Test areas are built from the **TeaLeaf > Dev Room** submenu
-(editor scripts in each system's `Debug/Editor`; the test-area builders and set-up
-commands are all there, and tools for building real levels sit directly in the
-**TeaLeaf** menu) and can be built at any time: the Sound Test House, the Grabbable Test
-Props, the Door Test Area (which also sets up lockpicking, including a `Big Lock` object
-under the `Gameplay` root, and a keyed door), the Chest Test Area, the Smithy (a textured,
-climbable blacksmith's house), a locomotion course, a town, a sound test area, noise
-listeners, a physical hands area and the Guard Tests (a floor with one guard model per
-animation clip, each looping its clip, for matching the clips' feet to the guard's speeds). **TeaLeaf > Dev Room > Set Up Test Guard** puts a
-`Test Guard` on the Sound Test House's path and bakes a NavMesh from the Environment layer
-(`NavMesh` object at the scene root; run it again after level geometry changes). Don't
-assume any of them is there. **TeaLeaf > Dev Room > Add Hand Tools To Player** adds the crossbow, blackjack and compass
-components to the `Hands` object if they are missing.
-
-Two more scenes, neither in the build list: **`Assets/Scenes/Intro.unity`** holds the
-`three-streets` level laid out by the level generator (sector `Three Streets` under
-`Environment` > `Generated`, with its own lightmap and occlusion bake in
-`Assets/Scenes/Intro/`, and the sound rooms and NavMesh the generator lays over its streets) and
-nothing else yet - no Player, `Level Manager`, `Sound Player` or gameplay; **`Assets/Scenes/Level Gen Test.unity`** is the generator's test scene, where the
-example specs are generated (`Assets/Scripts/LevelGen/CLAUDE.md`).
+- **`Assets/Scenes/Main.unity`**: the game scene, only one in the build list. **Holds the start of the docks level**, hand-built from `Assets/Prefabs` variants per `Assets/Scenes/CLAUDE.md` (`Environment`, `Gameplay`, `Sound` roots; `Sector 1` only sector), plus Player, `Level Manager`, `Sound Player`, Debug objects. So far: dock sections, foundations, floors, buildings; lighting baked (Shadowmask), a light probe group, occlusion bake (`Assets/Scripts/Core/CLAUDE.md`). **No guard, NavMesh, sound rooms or test area in it.**
+- **Test areas** from **TeaLeaf > Dev Room** (editor scripts in each system's `Debug/Editor`; real-level tools sit directly in the **TeaLeaf** menu), buildable any time: Sound Test House, Grabbable Test Props, Door Test Area (also sets up lockpicking incl. a `Big Lock` under `Gameplay`, and a keyed door), Chest Test Area, Smithy (textured, climbable blacksmith's house), locomotion course, town, sound test area, noise listeners, physical hands area, Guard Tests (floor with one guard per animation clip, each looping it, for matching clip feet to guard speeds). **Set Up Test Guard** puts a `Test Guard` on the Sound Test House path and bakes a NavMesh from `Environment` (`NavMesh` at scene root; rerun after geometry changes). Never assume any is present. **Add Hand Tools To Player** adds missing crossbow, blackjack, compass components to `Hands`.
+- **`Assets/Scenes/Intro.unity`** (not in build): the `three-streets` level from the generator (sector `Three Streets` under `Environment` > `Generated`; own lightmap and occlusion bake in `Assets/Scenes/Intro/`; generator's sound rooms and NavMesh) and nothing else - no Player, `Level Manager`, `Sound Player` or gameplay.
+- **`Assets/Scenes/Level Gen Test.unity`** (not in build): generator test scene where example specs are generated (`Assets/Scripts/LevelGen/CLAUDE.md`).

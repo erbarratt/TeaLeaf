@@ -26,9 +26,9 @@ namespace AI
     /// plays) and moveSpeed (how fast the ground goes by) in the
     /// Inspector while playing until the feet hold: the numbers that
     /// work are what the guard's blend tree and its patrol, search and
-    /// chase speeds should agree on. The walk clip was made at 1.07 m/s
-    /// and the run at 3.58 m/s, so at playback 1 those travel speeds
-    /// should already be right. A label over the guard shows the clip
+    /// chase speeds should agree on. A planted foot travels back at
+    /// 0.97 m/s in the walk and 3.1 m/s in the run, so at playback 1
+    /// those travel speeds should already be right. A label over the guard shows the clip
     /// and the two numbers.
     /// </summary>
     public class GuardAnimationTest : MonoBehaviour

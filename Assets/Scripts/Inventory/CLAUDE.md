@@ -1,157 +1,38 @@
-# Inventory systems (`Assets/Scripts/Inventory/`, namespace `Inventory`)
+# Inventory (`Assets/Scripts/Inventory/`, namespace `Inventory`)
 
-Detail for what the player owns and carries: the pack, loot and the inventory data. The root
-`CLAUDE.md` holds the project rules, the tick order and the physics layers; this file is
-loaded when working in this folder. Keep it up to date with every change to these systems,
-like the root file.
+Roadmap Phase 4. Pack design is in root `CLAUDE.md`. Built and working in headset except: gold number untried; bolt pickups in the level and any display of bolt counts not built (crossbow uses counts, returns re-picked bolts: `Scripts/Player/CLAUDE.md`).
+Also: each loot piece takes exactly one space (no multi-space items, no hip pocket); stored items shrink to fit, grow back before the hand takes them. Key turns 90 deg: anticlockwise if the lock is right of the leaf from the player's side, clockwise if left.
 
-Phase 4 of `Assets/DEVROADMAP.txt`. **Built and working in the headset:** the pack, loot, the
-worth coins, the inventory data, keys and the keyring. **Not built:** bolt pickups placed in the
-level, and any showing of the bolt counts (the crossbow uses them, and puts a shot bolt
-picked up again back: `Scripts/Player/CLAUDE.md`). **Not yet
-tried in the headset:** the gold number.
+## Pack
 
-## The design
+- **`Pack`** — one, saved as an **active** child of the Player root (lookup skips inactive); built in `Awake()` from its fields. `Player.PlayerPack` finds it (or makes a default) and parents it to the hand bringing it out (x scale -1 under the mirrored right hand visual, so never mirrored). Axes X player's right, Y up board, Z away; origin board middle; unscaled. No `Update()`.
+- **Layout** (`Build()`): `columns` x `rows` grid (`cellSize` 0.09, `cellGap` 0.012, `depth` 0.05) + top row of two wide spaces (objective left, keyring right). Grid indexed row-wise from top left; **0 = gold** (`GoldCell`). One vertex-coloured mesh (`Interaction.LockMeshBuilder`, `TeaLeaf/LockFade` solid, lit, floor `minLight`); gold pile and highlight share one block mesh, tinted by property block once at load.
+- **No solid colliders.** Non-gold grid spaces each have a `PackSlot` trigger (Interactable, reaching 0.1m towards player), **enabled only while occupied**. Kinematic Rigidbody so physics moves triggers cheaply. `Open()`/`Close()` = `SetActive` (an item part way out goes back in); `IsOpen`.
+- **`TargetSpace(loot, worldPoint)`**: `NoSpace` if not `IsInReach()` (`storeRadius` 0.24m of board middle); gold → gold space; objective → `ObjectiveSpace` if empty; else nearest grid space by x/y only (depth ignored), and only if free - never another space. `Hover()` (each frame loot is carried, from `PlayerPack`) moves the highlight there (free lights, taken doesn't), touching it only on change; `ClearHover()`.
+- **`TryStore(loot, worldPoint)`** → `PackResult`: `Gold` (adds to `Gold`, `Loot.Collect()`, pile grows, full at `goldForFullPile` 20, number rewritten), `Objective` (`PlayerInventory.TakeObjective()`; **never taken out again**), `Stored`, `NoRoom`. `PutIn()`: `Grabbable.Stow()`, parented, upright, old parent/scale remembered.
+- **Shrink** (`Tick()`, `ApplyShrink()`): 0→1 over `shrinkDuration` 0.12s to `fitFactor` = `cellSize x fit(0.8) / (2 x HoldRadius)`, max 1; `Grabbable.LocalCentre` (not origin) kept on space middle, one shrunk radius off the board.
+- **Take out**: `CanTakeFrom(cell)`, `BeginTake(cell)` grows it; at full size `TakeOut()` restores parent/scale, frees space, holds it for `TryPopTaken(out loot)`; caller `Unstow()`s and hands it over, drops or returns it. One at a time. **Gotcha: stays stowed until hand-over** - unstowed a frame early, `PlayerHandHolding.Tick()` picks it up before `PlayerPack.Tick()` and the pack "puts back" a held prop; so `PlayerPack` unstows in the pick-up call, after the holding tick.
+- Calls `PlayerInventory.AddLoot`/`RemoveLoot` on in/out.
+- **Gold number** (`BuildGoldNumber()`): 3D `TextMeshPro` (not canvas) at top of gold space, proud of pile, facing player; `goldNumberHeight` 0.03m, `goldNumberColor`, no shadows, depth-tested. Set only in `UpdateGoldPile()` via `SetText("{0}", Gold)` (no alloc); hidden at 0. If TMP Essential Resources are missing (`Resources.Load<TMP_Settings>("TMP Settings")` null) no number, with a warning.
+- **`PackSlot`** — grid space as `IHandTarget` (`Pack`, `Index`, `SetTargetable()` toggles trigger), in `HandTargetRegistry`. Stands in for the stored item's disabled colliders, so the reticle shows on takeables and empty spaces never block rays.
 
-**A backpack that only holds so much.** The player searches the level and keeps the most
-valuable things, discarding the rest. Each piece of loot takes exactly one of the pack's
-spaces, chosen by holding it over that space (a free space lights up); small things (coins,
-rings) just add to a gold amount. The pack is a physical bag the player brings out by
-reaching over a shoulder with either hand and gripping; it rides on that hand's visual for
-as long as the grip is held (letting go puts it away), the other hand puts things into it,
-and it collides with nothing. Its layout: along the top, side by side, a space for the
-**objective** and one for the **keyring** - both apart from the loot - and under them a
-tunable grid, 3 x 3, whose top left space is the **gold** space. An item in the pack snaps to
-a space and shrinks to fit it; taken out, it grows back first and then the hand takes it as
-normal. Carried loot shows **one to three coins** hovering near it for its worth: **one coin level
-is one gold piece**, so loot is worth one, two or three gold. No hip pocket and no multi-space items.
+## Keys
 
-**Keys:** coloured; collected keys show on the keyring in the pack. To unlock, the keyring is
-taken from the pack and held to a door's lock: if the right key is on it, it snaps into the
-lock, and the player grips it and turns it 90 degrees - anticlockwise if the lock is on the
-right of the door leaf from the player's side, clockwise if on the left.
-
-## The pack
-
-- **`Pack`** — the physical pack and what's in it. One in the scene, saved as a child of
-  the Player root and active (the lookup skips an inactive one), built in `Awake()` from
-  its own fields; `Player.PlayerPack` finds it (or makes one with defaults) and puts it on
-  whichever hand brings it out (x scale -1 under the mirrored right hand visual, so the
-  pack itself is never mirrored). Own axes: X to the player's right, Y up the board, Z away from the player;
-  origin = the middle of the board; unscaled. **Layout** (`Build()`): a board `columns` x
-  `rows` spaces wide/tall (`cellSize` 0.09, `cellGap` 0.012, `depth` 0.05) plus a top row
-  of two wide spaces (objective left, keyring right). Grid spaces are numbered row by row
-  from the top left; **space 0 is the gold space** (`GoldCell`). One vertex-coloured mesh
-  from `Interaction.LockMeshBuilder` with the `TeaLeaf/LockFade` solid material (a lit
-  colour that's never darker than `minLight`); a gold pile and the highlight share one block
-  mesh, tinted by property block once at load. **No solid colliders.** Each grid space but
-  the gold one has a trigger box (`PackSlot`, Interactable layer, reaching 0.1m out towards
-  the player) that is **only enabled while an item sits there**; the pack has a kinematic
-  Rigidbody so physics moves the triggers cheaply. `Open()` / `Close()` are `SetActive` (an
-  item part way out goes back in on closing); `IsOpen`. No `Update()`.
-  **Choosing a space** (every item takes exactly one space, chosen by holding the loot over
-  it). `TargetSpace(loot, worldPoint)`: `NoSpace` out of reach (`IsInReach()`: within
-  `storeRadius` 0.24m of the board's middle); the gold space for gold; `ObjectiveSpace` for
-  the objective if its space is empty; otherwise the grid space whose middle is nearest
-  **across the board** (x and y only - how far out in front doesn't matter), and only if
-  it's free - loot never goes into a space other than the one it's over. `Hover(loot,
-  worldPoint)` (called every frame a hand carries loot, by `PlayerPack`) moves one
-  highlight block onto that space (**a free space lights up, a taken one doesn't**) and
-  returns it; `ClearHover()`; the block is only touched when the space changes.
-  **Storing:** `TryStore(loot, worldPoint)` uses the same `TargetSpace()` → `PackResult`:
-  **`Gold`** (its worth added to `Gold`, `Loot.Collect()`, the pile grows - a full pile at
-  `goldForFullPile` 20 - and the gold number is rewritten), **`Objective`** (into its own space;
-  `PlayerInventory.TakeObjective()`; **can't be taken out again**), **`Stored`**, or
-  **`NoRoom`** (the space it was over is taken, or it wasn't over the pack). `PutIn()`:
-  `Grabbable.Stow()`, child of the pack, upright, its original parent and scale remembered.
-  **Shrinking** (`Tick()`, `ApplyShrink()`): `shrink` goes 0 → 1 over `shrinkDuration`
-  (0.12s), scaling the item from full size to `fitFactor` = `cellSize x fit (0.8) / (2 x
-  HoldRadius)` (never above 1), with its middle (`Grabbable.LocalCentre`, not its origin)
-  kept on the space's middle, one shrunk radius out of the board.
-  **Taking out:** `CanTakeFrom(cell)`, `BeginTake(cell)` → the item grows back; at full size
-  `TakeOut()` puts it back under its old parent at its old scale, frees its space and holds
-  it for `TryPopTaken(out loot)` - the caller must `Unstow()` it and hand it to a hand, let
-  it drop, or put it back. **The item stays stowed until that hand-over**: unstowed a frame
-  early it is an ordinary prop in front of the hand, the hand's own pick-up takes it in
-  `PlayerHandHolding.Tick()` before `PlayerPack.Tick()` runs, and the pack then "puts back"
-  a prop that is in the hand. `PlayerPack` unstows it in the same call as the pick-up, after
-  the holding tick. One item is taken at a time. The pack tells `PlayerInventory`
-  (`AddLoot` / `RemoveLoot`) as things go in and out.
-- **The gold number** — `BuildGoldNumber()` makes a `TextMeshPro` (3D text, not a canvas)
-  child in the top of the gold space, just proud of the pile, facing the player:
-  `goldNumberHeight` (0.03m), `goldNumberColor`, shadows off, depth-tested like the rest of
-  the pack. Written only in `UpdateGoldPile()`, when the gold changes, with
-  `SetText("{0}", Gold)` (no string made); hidden at zero. **It needs TextMeshPro's font
-  and shader in the project** (Window > TextMeshPro > Import TMP Essential Resources):
-  without them (`Resources.Load<TMP_Settings>("TMP Settings")` is null) no number is made
-  and a warning says why.
-- **`PackSlot`** — one grid space as an `IHandTarget` (made by the pack; `Pack`, `Index`,
-  `SetTargetable()` enables its trigger). Registered with `HandTargetRegistry`. The stored
-  item's own colliders are off; this stands in for them, so the reticle shows on what can
-  be taken out and an empty space never blocks a hand ray.
-
-## Keys and the keyring
-
-- **`Key`** — makes a prop a key pickup: `[RequireComponent(typeof(Grabbable))]`, `keyId`
-  (the same text as the door's Key Id) and `color`. `Awake()` tints the prop's renderers
-  in its colour by property block. A static `Grabbable → Key` dictionary; `Key.Find()`.
-  `Collect()` switches it off. **Collected by putting it into the pack like loot**: held
-  near the pack it lights the keyring's space wherever it is (`Pack.HoverKey()`), and let
-  go of there `Pack.TryStoreKey()` adds it to the keyring and it's gone. No coins show.
-- **`Keyring`** — the ring and what's on it: up to `MaxKeys` (6) ids and colours in fixed
-  arrays (`Add()`, `Has(keyId)`, `TryGetColor()`, `Count`), drawn as a square ring (one
-  mesh) with a coloured bar per key hanging below it, all made hidden at load and shown as
-  keys are added; `ShowKeyInLock(isShown, color)` shows a bar from the ring's middle
-  along its Z - the key going into the door. Made by the `Pack` in `Build()`, sharing its
-  material and block mesh; real size (it fits its space unscaled). It doesn't move itself:
-  whoever has it makes it their child. Own axes: X viewer's right, Y up, Z away.
-- **In the `Pack`:** the keyring's space is the top right one (`KeyringSpace` = -3, with
-  `ObjectiveSpace` -1 and `NoSpace` -2), with its own `PackSlot` trigger, on only while the
-  keyring is home **with at least one key on it**. `Keyring`, `IsKeyringHome`,
-  `TakeKeyring()` (false if the pack is shut, the ring away or empty), `ReturnKeyring()`.
-  `CanTakeFrom()` is false for it, so `PlayerPack`'s taking ignores that slot.
-- Carrying the ring to a lock and turning the key is `Player.PlayerKeys`
-  (`Scripts/Player/CLAUDE.md`); the lock is `Interaction.KeyLock`
-  (`Scripts/Interaction/CLAUDE.md`).
+- **`Key`** — `[RequireComponent(typeof(Grabbable))]`; `keyId` (= door's Key Id), `color` (tints renderers by property block in `Awake()`). Static `Grabbable → Key` dict, `Key.Find()`. Stored like loot: near the pack it lights the keyring space wherever held (`Pack.HoverKey()`); released, `Pack.TryStoreKey()` adds it and `Collect()` switches it off. No coins.
+- **`Keyring`** — up to `MaxKeys` 6 ids/colours in fixed arrays (`Add()`, `Has(keyId)`, `TryGetColor()`, `Count`); square ring mesh + hanging bar per key, hidden at load, shown as added. `ShowKeyInLock(isShown, color)`: bar from ring middle along Z. Made by `Pack.Build()` (shares material, block mesh); real size. Never moves itself: holder parents it. Axes X right, Y up, Z away.
+- **In `Pack`**: keyring space top right (`KeyringSpace` -3, `ObjectiveSpace` -1, `NoSpace` -2), own `PackSlot`, on only while home **with at least one key**. `Keyring`, `IsKeyringHome`, `TakeKeyring()` (false if shut, away or empty), `ReturnKeyring()`. `CanTakeFrom()` false for it.
+- Using it: `Player.PlayerKeys`; the lock: `Interaction.KeyLock`.
 
 ## Loot
 
-- **`Loot`** — makes a prop loot: `[RequireComponent(typeof(Grabbable))]`. `coinLevel`
-  (1-3, the coins shown over it while carried, and its worth: `Value` is the coin level); `isGold` (small loot: adds to
-  the pack's gold and is gone); `isObjective` (the level's objective: its own space in the
-  pack). Picked up, carried and thrown by its `Grabbable` like any prop. Self-registers in a
-  static `Grabbable → Loot` dictionary (`OnEnable`/`OnDisable`); `Loot.Find(grabbable)`
-  answers "is this prop loot?" without a `GetComponent` (not while it's in a closed pack:
-  it's inactive then). `Collect()` switches the object off rather than destroying it.
+- **`Loot`** — `[RequireComponent(typeof(Grabbable))]`; `coinLevel` 1-3 (`Value` = coin level), `isGold`, `isObjective`. Static `Grabbable → Loot` dict (`OnEnable`/`OnDisable`); `Loot.Find(grabbable)` instead of `GetComponent` (misses it in a closed pack: inactive). `Collect()` deactivates, never destroys.
 
 ## Inventory data
 
-- **`PlayerInventory`** — on the Player root; `Instance` (static), like `LevelManager`.
-  **Data only**. Made again with the scene on a level restart. Holds: `LootTotal`,
-  `LootCount` (`AddLoot(value)` / `RemoveLoot(value)` - the worth of what's in the pack,
-  gold included); `HasObjective` (`TakeObjective()`, which also calls
-  `LevelManager.SetObjectiveCarried(true)` - ending the level stays the level manager's
-  business); tools owned (`Owns(tool)`, `GiveTool(tool)`; starting set from `ownsBlackjack`
-  / `ownsCrossbow`); bolt counts (`GetBoltCount(bolt)`, `AddBolts(bolt, count)`,
-  `TryUseBolt(bolt)`, `TryAddBolt(bolt)` - one picked up off the floor, false if full;
-  starting counts from one field per kind, `waterBolts` to `sleepBolts`, 0 by default;
-  **at most `maxBoltsPerKind` (3) of any kind**, which the starting counts and
-  `AddBolts()` are cut down to). **`Changed`** (a plain C#
-  instance event) is raised after any change. No `Update()`.
-- **`ToolType`** (`Blackjack`, `Crossbow`) and **`BoltType`** (`Water`, `Noisemaker`,
-  `Rope`, `Stun`, `Sleep`) — enums. Add values at the end, no explicit numbers (`BoltType` is an array
-  index). The lockpicks aren't a `ToolType`: they're always worn on the back of a hand.
+- **`PlayerInventory`** — Player root, static `Instance`. **Data only**, no `Update()`, remade on restart. `LootTotal`/`LootCount` (`AddLoot`/`RemoveLoot(value)`, gold included); `HasObjective` (`TakeObjective()` calls `LevelManager.SetObjectiveCarried(true)` - ending stays LevelManager's job); `Owns`/`GiveTool(tool)`, start from `ownsBlackjack`/`ownsCrossbow`; `GetBoltCount`, `AddBolts(bolt, count)`, `TryUseBolt`, `TryAddBolt` (false if full); start counts `waterBolts`..`sleepBolts` (default 0); **cap `maxBoltsPerKind` 3**, start counts and `AddBolts()` clamped. **`Changed`** (C# instance event) after any change.
+- **`ToolType`** (`Blackjack`, `Crossbow`), **`BoltType`** (`Water`, `Noisemaker`, `Rope`, `Stun`, `Sleep`): append only, no explicit numbers (`BoltType` is an array index). Lockpicks aren't a `ToolType`.
 
 ## Debug
 
-- **`InventoryDebug`** (`Inventory/Debug`, on the Player root) — logs the whole inventory
-  to the Console on each `Changed`. The only place the gold's exact amount shows.
-- **`LootTestProps`** (`Inventory/Debug/Editor`, menu **TeaLeaf > Dev Room > Add Loot Test Props**) —
-  a table 1.2m ahead of and 1.7m to the right of the main camera with more loot than the
-  pack holds: four coins (gold, 1 each), four purses (one coin), three goblets (two
-  coins), two candlesticks (two coins), a crown (three coins) and
-  an idol (three coins, the objective), in `Assets/Art/Materials/LootGold.mat`. Props are made by
-  `Player.GrabbableTestProps.MakeGrabbable()` plus a `Loot`. Adds `PlayerInventory` and
-  `InventoryDebug` to the Player root and `PlayerPack` to the Hands object, and makes a
-  **`Pack`** object as a child of the Player root (outside the test props, so a rebuild
-  keeps its tuning), each only if missing.
+- **`InventoryDebug`** (`Inventory/Debug`, Player root) — logs inventory on each `Changed`; only place exact gold shows.
+- **`LootTestProps`** (`Inventory/Debug/Editor`, **TeaLeaf > Dev Room > Add Loot Test Props**) — table 1.2m ahead, 1.7m right of main camera, more loot than fits: 4 coins (gold, 1), 4 purses (1), 3 goblets (2), 2 candlesticks (2), crown (3), idol (3, objective); `Assets/Art/Materials/LootGold.mat`; via `Player.GrabbableTestProps.MakeGrabbable()` + `Loot`. Adds if missing: `PlayerInventory`, `InventoryDebug` (Player root), `PlayerPack` (Hands), `Pack` child of Player root (outside the props so rebuilds keep its tuning).

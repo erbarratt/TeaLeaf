@@ -1,238 +1,54 @@
 # AI systems (`Assets/Scripts/AI/`, namespace `AI`)
 
-Detail for the guards. The root `CLAUDE.md` holds the project rules, the physics layers and
-the slice design; this file is loaded when working in this folder. Keep it up to date with
-every change to these systems, like the root file.
-
-Phase 6 of `Assets/DEVROADMAP.txt`. **Built and working in the headset** (no guard is in `Main.unity` at present; the test guard is set up from the menu): a guard that patrols, sees, hears, becomes suspicious, searches, chases, catches,
-notices bodies and can be knocked out. It is a rigged, textured model with animations
-(the prefab and `GuardAnimation`, below); the animation set-up has been checked in Play
-Mode from the desk, not yet looked at in the headset. Every number is a first guess.
+Guards; roadmap Phase 6. **Built, working in headset** (none in `Main.unity`; test guard from the menu). Model animation checked in Play Mode at the desk only. All numbers are first guesses.
 
 ## The guard
 
-- **`GuardState`** (enum) — `Patrol`, `Suspicious`, `Search`, `Chase`, `Stunned`,
-  `KnockedOut`. **Nothing kills a guard**: every weapon stuns or knocks out.
-- **`Guard`** (on the guard's root, `[RequireComponent(NavMeshAgent)]`; `INoiseListener`,
-  `IDebugDrawable`) — the whole guard: an explicit state machine (a switch on `State`),
-  its senses and its sounds. **It has its own `Update()`**: guards aren't part of the
-  player's tick order. Walking is Unity's `NavMeshAgent` (`GoTo()`, `Stop()`,
-  `HasArrived()`); the guard only turns itself when standing (`FaceTowards()`).
-  - **The detection meter** (`Detection`, 0-1) is what moves it between states. Seeing the
-    player fills it, a noise adds to it at once, and it drains over `decayTime` (6s) with
-    nothing to notice (not while chasing). At `suspiciousThreshold` (0.3) a patrolling
-    guard becomes Suspicious; at 1 it chases, from any state.
-  - **Sight** (`Look()`): **not per frame** - every `lookInterval` (0.15s), each guard
-    starting at a random moment so they never all look in one frame, and every
-    `farLookInterval` (0.5s) with no rays at all while the player is more than `viewRange`
-    + 2m away. Two points on the player (`Player.PlayerVisibility.Instance`:
-    `HeadPosition`, `BodyPosition`), each seen if within `viewRange` (14m), inside the
-    cone (`viewAngle` 110° in all, by dot product against a cosine worked out once) and one `Physics.Linecast` on
-    `sightLayers` (Environment + Interactable, triggers ignored) is clear
-    (`CanSeePoint()`). The fill rate = share of points seen x `PlayerVisibility.Visibility`
-    (light and stance; raised to `closeVisibility` 0.5 within `closeRange` 2.5m, so nobody
-    is invisible at arm's length; under `minVisibility` 0.05 = unseen) x a distance scale
-    (1 close up to `farDetectionScale` 0.25 at the view range) / `detectionTime` (1s).
-  - **A guard never senses a player behind it.** Outside the cone the player is given
-    away only by a noise, or by **bumping into it** (`HasBumped()`, in each look: the
-    player's feet within `bumpRange` 0.5m of the guard's, level, and on the same floor -
-    a little more than the two bodies' radii, so standing at arm's length to use the
-    blackjack is not a bump). A bump puts the meter up to `investigateThreshold`, makes
-    the player's position the stimulus and makes the guard Suspicious, so it turns to
-    look; seeing them is then up to its eyes. Not during a chase.
-  - **Hearing** (`OnNoiseHeard()`, from `Core.NoiseSystem`, which has already routed the
-    noise through rooms and portals): adds loudness x `hearingGain` (0.7; `distractionGain`
-    1.5 for a noisemaker) to the meter, and the heard-from point becomes where to look.
-    **Ignored: another guard's noises** (the noise's source is a guard's root - a static
-    dictionary) and everything during a chase. In a search, a noise that takes the meter
-    to `investigateThreshold` moves the search there - **only if it is more than 1.5m
-    from the place being searched**: restarting the search for every noise from the same
-    place would root the guard there for as long as the noise went on.
-  - **Patrol:** walks its `PatrolRoute` at `patrolSpeed` (1.2 m/s), waiting the route's
-    wait time at each point; with no route it stands at the place and facing it was put.
-    Entering Patrol takes the route up at its nearest point.
-  - **Suspicious:** stops, turns towards the stimulus, barks, and after `suspiciousTime`
-    (3s) goes to Search if the meter's peak reached `investigateThreshold` (0.6), back to
-    Patrol if not - **with the meter emptied**, or the next look would make it suspicious
-    again at once.
-  - **Search:** walks (at `patrolSpeed`) to the place, looks about for `searchLookTime`
-    (2.5s, turning slowly), then tries `searchPointCount` (3) random places within
-    `searchRadius` (4m) put onto the NavMesh (`NavMesh.SamplePosition`), then gives up
-    (bark) and patrols - or after `searchTimeout` (30s), doubled (`alertedSearchScale`)
-    once any guard has found a body.
-  - **Chase:** runs (`chaseSpeed` 3.6) at the player; the destination is renewed at each
-    look while they are seen, not per frame. **Caught** = seen, within `catchRange` (1.1m,
-    level) and on the same floor: `LevelManager.Caught()`. Unseen for `chaseLostTime` (4s)
-    it searches from where it last saw them.
-  - **Bolts** (called by `Player.PlayerCrossbow`, which holds the two times). `Guard.FindByBody(collider)` (a static dictionary) is how a bolt finds the
-    guard whose body it hit. **`IsHeadOnLine(from, direction, distance)`** - one
-    `Collider.Raycast` against the head collider alone: the head sphere is inside the
-    body capsule, so a bolt's ray always finds the body first, and this asks whether its
-    line runs on through the head. **`Stun(seconds)`**: from any state but knocked out,
-    a chase included - `Stunned`: the agent stopped dead, no looking (so no sight, bump or
-    body finding), noises ignored, no footsteps; a second stun starts the wait again.
-    When it runs out (`TickStunned()`) the meter goes to `investigateThreshold` and the
-    guard **searches round where it stands** (it doesn't know where the bolt came from),
-    with the look timer started afresh. **`Sedate(seconds)`** (a sleep dart): not a
-    state - a timer counted down at the top of `Update()` whatever the guard is doing,
-    stunned included, and `KnockOut()` when it runs out; the guard doesn't notice the
-    dart, and a second dart doesn't restart the wait. **`HitByBolt(shotFrom)`** - any
-    other bolt that hits a guard (water, noisemaker, rope, a stun bolt to the body): the
-    meter goes up to `investigateThreshold` and where the bolt was shot from becomes the
-    stimulus - on patrol it becomes Suspicious (which, with the meter that high, ends in
-    a search there), in a search the search moves there; nothing to a guard chasing,
-    stunned or down.
-  - **Knocking out:** `TryKnockOut(attackerPosition)` (called by `Player.PlayerBlackjack`)
-    - the guard goes down if it is stunned (from any side), or if it isn't chasing and
-    the attacker is behind it (the dot
-    product of its facing and the level direction from attacker to guard is at least
-    `behindDot` 0.2); otherwise it turns on them (Chase). `KnockOut()`: agent off, both
-    colliders off, the `visual` laid flat, the component disabled (so no more looking,
-    hearing or `Update()`). It stays down until another guard wakes it. `Guard.FindByHead(collider)` (a static
-    dictionary) is how the blackjack finds the guard a head collider belongs to.
-  - **Bodies:** in each look, a knocked-out guard that is in view and lying in at least
-    `bodyLightThreshold` (0.15) of light (`Core.SceneLight.LevelAt()`) is found: the
-    finder barks and goes to it (a Search whose first place is the body), and every
-    guard's searches are longer from then on (a static flag, cleared when the scene's
-    last guard is destroyed). **A knocked-out guard can always be woken by one that is
-    awake**, however it was knocked out: arrived within `WakeReach`
-    (1.5m), the finder faces it for `wakeTime` (3s, `TickWaking()`), then `WakeUp()`
-    undoes `KnockOut()` - component, agent and colliders back on, the `visual` stood up
-    at the pose saved in `Awake()`, senses started afresh - and the woken guard searches
-    round where it lay; the finder carries on with its own search. One guard goes to a
-    body at a time: the body's `_isBodyFound` is the claim, given up
-    (`DropWakeTarget()`, in `SetState()` and `BeginSearchAt()`) whenever the finder
-    changes state or its search moves elsewhere, so the body can be found again. A body
-    the finder can't walk to within reach stays claimed and is never woken.
-  - **Sounds:** footsteps through `Core.SurfaceSounds.PlayStep()` on the floor under it,
-    one per `walkStride` (1.4m) or `runStride` (1.8m), **sound only** (noise scale 0).
-    Barks (`suspiciousBark`, `searchBark`, `gaveUpBark`, `spottedBark`, `foundBodyBark`)
-    played from the head, sound only. Both show on the player's compass.
-  - **State tint:** `stateRenderer` is optional, for a greybox guard: tinted by state
-    through a property block, on a change only - grey patrol, yellow suspicious, orange
-    search, red chase, violet stunned, dark knocked out. **Left empty on the model
-    guard** (the tint would darken its texture); its state shows in the gizmo's cone
-    colour and the `GuardDebug` log. `visual` is optional in the same way: greybox
-    shapes laid flat by `KnockOut()`; empty on the model guard, whose fall is animated.
-  - **The level ending** (`LevelManager.State` not `Playing`) stops it where it is.
-  - Gizmo: the view cone's edges in the state's colour and a line above the head as long
-    as the meter is full; selected, the close range and a line to the stimulus.
-- **`PatrolRoute`** — a route's points are **its child objects, in Hierarchy order**
-  (positions read once in `Awake()`). `waitTime` (2s at each point), `loops` (off = there
-  and back). `Count`, `GetPoint(i)`, `NearestIndex(position)`. `IDebugDrawable`: the route,
-  drawn from the children so it shows while editing.
-- **The guard prefab** (`Assets/Prefabs/Characters/Guard.prefab`) is how a guard is put
-  together, and every guard is an instance of it: root on the `Guard` layer with
-  `NavMeshAgent` (radius 0.3, height 1.8, angular speed 360, acceleration 12, stopping
-  distance 0.1), a kinematic `Rigidbody`, a `CapsuleCollider` (radius 0.3, height 1.8),
-  `Guard` and `GuardAnimation`; a `Head` child on `GuardHead` at 1.65m with a
-  `SphereCollider` (radius 0.17) - the blackjack's target, and the guard's `eye` (its
-  forward is the way the guard looks; it is fixed to the root, not to the head bone,
-  so the view cone follows the body's facing); and a `Model` child, the guard model
-  with its `Animator`, everything under it on `Guard`. The prefab carries the
-  placeholder bark cues and surface sounds; a route is set per instance.
-- **The model** is `Assets/TripoModels/guard_1/guard_1.fbx` (Tripo-generated, 21k
-  triangles, one `SkinnedMeshRenderer` with 67 bones, URP Lit material `guard_1.mat`
-  beside it with base colour, normal and packed metallic/smoothness maps at 2048).
-  Imported at scale 1.8 (the file is 1m tall) as a **Generic** rig with an avatar from
-  the model and no root node; the Tripo-generated model's animations are baked to its
-  own skeleton, so Generic is the cheapest rig that plays them (no Humanoid
-  retargeting). Its 15 takes are named clips (`idle`, `walk`, `run`, `look_around`,
-  `turn`, `wait`, `scratch`, `fold_arms`, `frustrated_01`, `fall`, `defeat_03`, `dive`,
-  `slash`, `run_upstairs`, `walk_slow`), the cyclic ones looping. Skinned motion
-  vectors off; shadows cast and received; `CullUpdateTransforms` culling (the state
-  machine keeps time unseen, the bones aren't moved). No LODs yet.
-- **The clips the guard plays are project copies** in `Assets/Art/Animations/Guard/`
-  (`Guard_Idle`, `Guard_Walk`, `Guard_Run`, `Guard_LookAround`, `Guard_Stunned` from
-  `frustrated_01`, `Guard_Fall` from `fall`): the FBX clips move the hips along the
-  ground (the walk 1.07 m/s, the run 3.58 m/s, the fall 1.3m sideways), and the copies
-  have the hips' two ground-plane position curves (`Armature/Hips` local x and y; the
-  armature is turned -90° about X, so local z is up) frozen at their first-frame
-  value, so they play in place under the agent. **Don't make the hips the rig's root
-  node instead**: the pose still travels, and the path form `Armature/Hips` stops the
-  takes importing at all. The copies were made by script once; remake them the same
-  way if the FBX changes.
-- **`Guard.controller`** (same folder): parameters `Speed` (float), `IsLookingAbout`,
-  `IsStunned`, `IsKnockedOut` (bools). States: `Locomotion` (default; a 1D blend tree
-  on `Speed`: idle at 0, walk at 1.07, run at 3.58 - the clips' own speeds, so the
-  feet roughly keep up at `patrolSpeed` (patrol and search) and `chaseSpeed`; a speed
-  between the two would blend the gaits into a shuffle), `Look Around`, `Stunned`,
-  `Knocked Out` (the fall, not looping, so it holds its last frame on the floor).
-  `Locomotion` <-> `Look Around` on `IsLookingAbout` (0.25s); Any State -> `Stunned` / `Knocked Out` on their bool (0.1s, no transition
-  to self), each back to `Locomotion` when it clears (0.25s / 0.5s - a woken guard just
-  blends up to standing; there is no get-up clip). Root motion off.
-- **`GuardAnimation`** (on the root, `[RequireComponent(Guard, NavMeshAgent)]`) — drives
-  the model's `Animator` (found in the children if not assigned) from what the guard is
-  doing, so `Guard` knows nothing about animation: its own `Update()` (it keeps running
-  after `KnockOut()` disables the `Guard`, so the fall plays) sets `Speed` from the
-  agent's ground velocity every frame (damped over `speedDamping` 0.1s; 0 with the
-  agent off or off the NavMesh), and the three bools only on a change:
-  `IsLookingAbout` from `Guard.IsLookingAbout` (Suspicious, or standing at a place in
-  a Search), the others from `Guard.State`. The footsteps stay distance-based in
-  `Guard`, not tied to the clips' feet.
+- **`GuardState`**: `Patrol`, `Suspicious`, `Search`, `Chase`, `Stunned`, `KnockedOut`. **Nothing kills a guard.**
+- **`Guard`** (root, `[RequireComponent(NavMeshAgent)]`, `INoiseListener`, `IDebugDrawable`): switch-on-`State` machine, senses, sounds. **Own `Update()`**, outside player tick order. Moves via agent (`GoTo()`, `Stop()`, `HasArrived()`); turns itself only standing (`FaceTowards()`).
+  - **Turn before walk:** `GoTo()` from standing (agent < 0.1 m/s) sets `isStopped`; `TickTurningToWalk()` (each frame, before state tick) turns on the spot at `turnSpeed` to `steeringTarget`, releases within 15°; `TurnedDegrees` feeds the turn clip. All set-offs use it; `GoTo()` while walking (chase renewal) carries on; `Stop()` cancels a turn.
+  - **Meter** `Detection` 0-1: sight fills, noise adds instantly, drains over `decayTime` 6s (not in chase). `suspiciousThreshold` 0.3 patrol->Suspicious; 1 -> Chase from any state.
+  - **Sight** `Look()`, not per frame: `lookInterval` 0.15s (random per-guard offset); `farLookInterval` 0.5s, no rays, when player > `viewRange`+2m. Points `Player.PlayerVisibility.Instance.HeadPosition`/`BodyPosition`: seen if <= `viewRange` 14m, in cone (`viewAngle` 110° total, cached cosine) and `Physics.Linecast` on `sightLayers` (Environment+Interactable, triggers ignored) clear (`CanSeePoint()`). Fill/s = share seen x `PlayerVisibility.Visibility` (min `closeVisibility` 0.5 within `closeRange` 2.5m; < `minVisibility` 0.05 = unseen) x distance scale (1 -> `farDetectionScale` 0.25 at range) / `detectionTime` 1s.
+  - **Never senses behind it** except noise or **bump** (`HasBumped()`, per look: feet within `bumpRange` 0.5m, level, same floor - over both radii, so arm's-length blackjack isn't a bump): meter -> `investigateThreshold`, stimulus = player, Suspicious. Not in chase.
+  - **Hearing** `OnNoiseHeard()` (from `Core.NoiseSystem`, already room/portal-routed): + loudness x `hearingGain` 0.7 (`distractionGain` 1.5 noisemaker); heard-from = stimulus. **Ignores guards' noises** (source a guard root, static dictionary) and all noise in chase. In Search, a noise reaching `investigateThreshold` moves the search only if > 1.5m away (else a steady noise roots it).
+  - **Patrol**: `PatrolRoute` at `patrolSpeed` 1.07; no route = holds placed pose; resumes at nearest point.
+  - **Suspicious**: stops, faces stimulus, barks; after `suspiciousTime` 3s -> Search if meter peak >= `investigateThreshold` 0.6, else Patrol **with meter emptied** (else instant re-trigger).
+  - **Search**: walk to place, look about `searchLookTime` 2.5s (slow turn), then `searchPointCount` 3 random spots within `searchRadius` 4m (`NavMesh.SamplePosition`), then give up (bark) -> Patrol; or `searchTimeout` 30s, x`alertedSearchScale` (2) once any body found.
+  - **Chase**: `chaseSpeed` 3.6; destination renewed per look while seen. **Caught** = seen, within `catchRange` 1.1m level, same floor -> `LevelManager.Caught()`. Unseen `chaseLostTime` 4s -> Search from last seen.
+  - **Bolts** (called by `Player.PlayerCrossbow`, which holds the durations). `Guard.FindByBody(collider)` static dictionary. `IsHeadOnLine(from, direction, distance)`: `Collider.Raycast` on head collider only (head sphere is inside the body capsule, which a ray always hits first). `Stun(seconds)`: any state but KO, chase included -> `Stunned` (agent stopped, no looking/bump/body finding, noises ignored, no footsteps; re-stun restarts); expiry (`TickStunned()`): meter -> `investigateThreshold`, searches where it stands, look timer reset. `Sedate(seconds)`: not a state, timer at top of `Update()` in any state, then `KnockOut()`; unnoticed; 2nd dart doesn't restart. `HitByBolt(shotFrom)` (water, noisemaker, rope, stun to body): meter -> `investigateThreshold`, stimulus = shot-from; patrol -> Suspicious (-> search there), Search moves there; nothing if chasing/stunned/down.
+  - **Knock-out** `TryKnockOut(attackerPosition)` (from `Player.PlayerBlackjack`): down if stunned (any side) or not chasing and attacker behind (facing · level attacker->guard dir >= `behindDot` 0.2); else Chase. `KnockOut()`: agent and both colliders off, `visual` laid flat, component disabled. Down until woken. `Guard.FindByHead(collider)` static dictionary.
+  - **Bodies**: per look, a KO'd guard in view in light >= `bodyLightThreshold` 0.15 (`Core.SceneLight.LevelAt()`) is found: bark, Search with the body first; all searches longer (static flag, cleared when last guard destroyed). **Always wakeable** by an awake guard: within `WakeReach` 1.5m, faces it `wakeTime` 3s (`TickWaking()`), `WakeUp()` undoes `KnockOut()` (`visual` back to pose saved in `Awake()`, senses fresh); woken guard searches where it lay, finder resumes. Claim = body's `_isBodyFound`, released by `DropWakeTarget()` (in `SetState()`, `BeginSearchAt()`) when finder changes state or search moves. Unreachable body stays claimed, never woken.
+  - **Sounds**: footsteps `Core.SurfaceSounds.PlayStep()` per `walkStride` 1.4m / `runStride` 1.8m, sound only (noise scale 0). Barks `suspiciousBark`, `searchBark`, `gaveUpBark`, `spottedBark`, `foundBodyBark` from head, sound only. Both show on the compass.
+  - **Optional `stateRenderer`** (greybox): property-block tint on change - grey/yellow/orange/red/violet/dark for patrol/suspicious/search/chase/stunned/KO. **Empty on the model guard** (darkens texture); state shows in gizmo colour and `GuardDebug`. Optional `visual` (greybox, laid flat on KO) likewise empty (fall animated).
+  - Level ended (`LevelManager.State` != `Playing`): stops in place.
+  - Gizmo: cone edges in state colour, line above head scaled by meter; selected: close range, line to stimulus.
+- **`PatrolRoute`**: points = child objects in Hierarchy order (read in `Awake()`). `waitTime` 2s, `loops` (off = ping-pong). `Count`, `GetPoint(i)`, `NearestIndex(position)`. `IDebugDrawable` from children (shows while editing).
+- **Prefab** `Assets/Prefabs/Characters/Guard.prefab` (every guard an instance): root on `Guard` with `NavMeshAgent` (r 0.3, h 1.8, angular 360, accel 12, stopping 0.1), kinematic `Rigidbody`, `CapsuleCollider` (r 0.3, h 1.8), `Guard`, `GuardAnimation`, `GuardFootLock`; `Head` on `GuardHead` at 1.65m, `SphereCollider` r 0.17 = blackjack target and `eye` (forward = gaze; on root, not head bone, so cone follows body); `Model` child (+`Animator`, all on `Guard`). Placeholder barks/surface sounds on prefab; route per instance.
+- **Model** `Assets/TripoModels/guard_1/guard_1.fbx`: 21k tris, one `SkinnedMeshRenderer`, 67 bones, URP Lit `guard_1.mat` (base/normal/packed metal-smooth, 2048). Scale 1.8 (file 1m), **Generic** rig, avatar from model, no root node (anims baked to own skeleton; cheapest, no retarget). Takes: `idle`, `walk`, `run`, `look_around`, `turn`, `wait`, `scratch`, `fold_arms`, `frustrated_01`, `fall`, `defeat_03`, `dive`, `slash`, `run_upstairs`, `walk_slow`. Skinned motion vectors off, shadows on, `CullUpdateTransforms`. No LODs.
+- **Clips are project copies** in `Assets/Art/Animations/Guard/`: `Guard_Idle`, `Guard_Walk`, `Guard_Run`, `Guard_LookAround`, `Guard_Stunned` (`frustrated_01`), `Guard_Fall` (`fall`). FBX hips travel (walk 1.07 m/s, run 3.58, fall 1.3m sideways); copies freeze `Armature/Hips` local x,y curves (armature -90° about X; local z up) at first-frame value - the run at the walk's (its first frame is 0.91m ahead). **`Guard_Turn`**: `turn` take 1.0-2.16s (192° right, left foot steps), re-timed so time = angle (1s, 48 keys, t 0.5 = 96°), hips yaw and travel removed; code turns the root. **Planted-foot speeds 0.97 walk, 3.1 run** (ankles; hips' figures include surge) - the gait speeds everything uses. **Don't make the hips the root node**: pose still travels and path `Armature/Hips` breaks import. Copies made by script; remake likewise if the FBX changes.
+- **`Guard.controller`**: floats `Speed`, `TurnProgress`; bools `IsLookingAbout`, `IsTurning`, `IsStunned`, `IsKnockedOut`. Root motion off.
+  - `Turn` (`Guard_Turn`, normalized time = `TurnProgress`): from `Locomotion` (0.15s) and `Look Around` (0.2s, its first transition) on `IsTurning`; back to `Locomotion` 0.2s.
+  - `Locomotion` (default): 1D blend on `Speed`: idle 0, walk 0.97, run 3.1. Walk/run blend shuffles (feet out of step) - never requested.
+  - `Look Around` <-> `Locomotion` on `IsLookingAbout` (0.25s).
+  - `Stunned`, `Knocked Out` (fall, non-looping, holds last frame): Any State on bool (0.1s, no self), back to `Locomotion` 0.25s / 0.5s (no get-up clip).
+- **`GuardAnimation`** (root, `[RequireComponent(Guard, NavMeshAgent)]`): drives `Animator` (found in children if unassigned); `Guard` knows nothing of animation. Own `Update()` (runs after `KnockOut()` disables `Guard`, so fall plays). `Speed` per frame from agent ground speed (`speedDamping` 0.1s; 0 if agent off/off mesh): <= `walkSpeed` 0.97 as is; above, the nearer of `walkSpeed`/`runSpeed` with **`Animator.speed` = ground / gait speed** (1.1x walk at patrol, 1.16x run at chase). Bools on change only: `IsLookingAbout` <- `Guard.IsLookingAbout` (Suspicious or standing in Search), `IsTurning` <- `Guard.IsTurningToWalk`, rest <- `Guard.State`. `TurnProgress` = `TurnedDegrees` / `turnClipAngle` 192. Clip steps right only; left turns reuse it (Generic can't mirror). Footsteps stay distance-based in `Guard`.
+- **`GuardFootLock`** (root, `[RequireComponent(Guard)]`, `LateUpdate()` after Animator and agent): foot planted while animated ankle < `plantHeight` 0.135m above root; world pos held by two-bone IK (law of cosines, knee in the animated bend plane, knee pushed 2cm forward first - a straight back leg otherwise flips plane and jitters; foot keeps animated rotation) until lift, then fades over `releaseTime` 0.12s. Lock > `maxSlip` 0.15m from animated foot releases at once (spot turn, gait change), no relock until lift. Bones by name `Left_UpperLeg`/`Left_LowerLeg`/`Left_Foot` (and Right). Only while `isVisible` (culled model isn't re-posed, IK would accumulate), within `maxDistance` 20m of camera, not stunned/KO. No rays (no slope/step fit). `IDebugDrawable` (Play Mode): ball per locked foot (green planted, yellow fading), line to animated pos. Measured slide: 0.14 -> 0.004 m/s walk, 0.69 -> 0.04 run.
 
 ## Navigation
 
-- **The NavMesh agent is guard-sized**: radius 0.3, height 1.8, step 0.4, slope 45°
-  (`ProjectSettings/NavMeshAreas.asset`), so 0.9m doorways are walkable.
-- **The NavMesh is baked in the editor** by a `NavMeshSurface` (the AI Navigation
-  package). **A hand-built level** (`Main.unity`): a surface on a `NavMesh` object at
-  the scene root, every physics collider on the **Environment** layer, data in
-  `Assets/Scenes/Main-NavMesh.asset`; **bake again after changing level geometry**
-  (TeaLeaf > Dev Room > Set Up Test Guard does it). **A generated level**
-  (`Intro.unity`): the level generator bakes a surface of its own on its `Generated`
-  root as it generates, walkable only on the streets (Not Walkable modifier volumes
-  carve away everything beside and above them), data in
-  `Assets/Scenes/<scene>/NavMesh - <sector>.asset`; a regeneration bakes it again,
-  and so does the surface's own Bake button (`Assets/Scripts/LevelGen/CLAUDE.md`,
-  NavMesh), with a 0.05m voxel rather than the default 0.1m, which bakes slivers
-  standing off a flight of steps, and a height mesh. Both use the default agent type.
-- **Doors aren't in the NavMesh**: they are on Interactable, so a guard walks through a
-  shut door.
+- Agent: r 0.3, h 1.8, step 0.4, slope 45° (`ProjectSettings/NavMeshAreas.asset`); 0.9m doorways pass. Default agent type.
+- Editor-baked `NavMeshSurface` (AI Navigation package):
+  - **`Main.unity`**: on `NavMesh` object at scene root, colliders on **Environment**, data `Assets/Scenes/Main-NavMesh.asset`; **rebake after geometry changes** (Set Up Test Guard does).
+  - **Generated (`Intro.unity`)**: generator's own surface on `Generated` root, streets only (Not Walkable modifier volumes), data `Assets/Scenes/<scene>/NavMesh - <sector>.asset`; rebaked on regenerate or Bake button (see `LevelGen/CLAUDE.md`); 0.05m voxel (0.1m leaves slivers off steps), height mesh.
+- **Doors aren't in the NavMesh** (Interactable): guards walk through shut doors.
 
 ## Debug and set-up
 
-- **`GuardDebug`** (`AI/Debug`, on a guard's root) — logs to the Console, prefixed
-  `[Guard]`: where the guard starts and whether it is on the NavMesh, every change of
-  state (with the meter and position) and, with `logMovement`, each time it sets off or
-  stops. **Read these in the editor log before guessing why a guard did something.**
-- **A guard that hears the player stops**: one footstep of about 0.45 loudness at its ears
-  makes it Suspicious, so a guard standing still near a walking player is usually
-  listening, not broken. Left alone it walks the whole test route (checked by playing the
-  scene headless: about 40s from the Bedroom to the Hall).
-- **`GuardTestSetup`** (`AI/Debug/Editor`, menu **TeaLeaf > Dev Room > Set Up Test Guard**) — places
-  the `Test Guard` (an instance of the guard prefab, given the route, the placeholder
-  sounds where the prefab has none, and a `GuardDebug`) and bakes the NavMesh. With a
-  Sound Test House in the scene the guard
-  patrols a `Test Guard Route` copied from the house's `Guard Path` (Bedroom, Landing,
-  stairs, Hall, Kitchen, there and back); without one it stands 4m ahead of the camera.
-  Also runs **Add Hand Tools To
-  Player** and gives the blackjack the placeholder impact cue. **TeaLeaf > Dev Room > Check Test
-  Guard Route** asks the NavMesh for a path between each pair of route points and logs any
-  that fail. Both have command-line entry points (`BuildInBatch()`, `CheckRouteInBatch()`)
-  for `Unity.exe -batchmode -quit -projectPath ... -executeMethod AI.GuardTestSetup.…`,
-  which open and save `Main.unity` with the editor closed.
-- **`GuardTestsArea`** (`AI/Debug/Editor`, menu **TeaLeaf > Dev Room > Guard Tests**) — lays a
-  plain floor (`Guard Tests`, Environment layer) 3m ahead of the camera with one guard on it
-  for every clip in `Assets/Art/Animations/Guard`, each a bare instance of the model (no
-  `Guard`, agent or controller) named after its clip, with a TextMeshPro label over its
-  head and a **`GuardAnimationTest`** (`AI/Debug`) that loops the clip through a Playable
-  graph straight onto the `Animator` (every clip loops, the fall included). Each guard has
-  a lane running across the view, walked over and over: it travels along its forward at
-  `moveSpeed` and is put back at its start after `lapLength` (6m). **Tweak `playbackSpeed`
-  and `moveSpeed` in the Inspector while playing until the feet stay planted**: those are
-  the numbers the blend tree thresholds and the guard's patrol, search and chase speeds
-  should agree on. The walk and run start at their clips' authored speeds (1.07 and 3.58
-  m/s), the rest at 0; the label shows the clip and both numbers. Rebuilding replaces the
-  last area.
+- **`GuardDebug`** (`AI/Debug`, root): `[Guard]` Console log - start pos and on-NavMesh, every state change (meter, pos), with `logMovement` set-offs/stops. **Read the log before guessing why a guard acted.**
+- A guard stopping near a walking player is usually listening (one ~0.45 footstep at its ears -> Suspicious). Alone it walks the test route (~40s Bedroom to Hall, headless).
+- **`GuardTestSetup`** (`AI/Debug/Editor`, **TeaLeaf > Dev Room > Set Up Test Guard**): places `Test Guard` (prefab instance + route, placeholder sounds where missing, `GuardDebug`), bakes NavMesh. With a Sound Test House: `Test Guard Route` copied from its `Guard Path` (Bedroom, Landing, stairs, Hall, Kitchen, ping-pong); else stands 4m ahead of camera. Also runs **Add Hand Tools To Player**, gives blackjack the placeholder impact cue. **Check Test Guard Route** (same submenu) paths each point pair, logs failures. Batch: `BuildInBatch()`, `CheckRouteInBatch()` via `Unity.exe -batchmode -quit -projectPath ... -executeMethod AI.GuardTestSetup.…` (open/save `Main.unity`, editor closed).
+- **`GuardTestsArea`** (`AI/Debug/Editor`, **TeaLeaf > Dev Room > Guard Tests**): floor `Guard Tests` (Environment) 3m ahead; per clip in `Assets/Art/Animations/Guard` a bare model instance (no `Guard`/agent/controller) named after it, TMP label, **`GuardAnimationTest`** (`AI/Debug`) looping it via Playable graph (all loop). Each moves along its forward at `moveSpeed`, reset every `lapLength` 6m. **Tune `playbackSpeed`/`moveSpeed` live until feet stay planted** - these set blend thresholds and guard speeds. Walk/run start 0.97/3.1, rest 0. Rebuild replaces it.
 
 ## Not built
 
-Dragging and hiding a knocked-out guard; voice lines that don't repeat (the barks are one
-placeholder grunt cue), idle chatter and several voices; a get-up clip, a spotted
-reaction, idle variety at patrol points (`scratch`, `fold_arms`, `wait` are imported
-but unused), head look-at towards the stimulus, LOD meshes for the model, and the
-painted look (the material is plain URP Lit);
-doors on the NavMesh and guards opening them; guards thinking less often when far from the
-player beyond the sight cut-off; any reaction to a fire going out, or to a
-sleep dart before it works; anything to show a guard has a dart in it; guards telling each other anything.
+Dragging/hiding KO'd guards; non-repeating voices (barks = one placeholder grunt), chatter, multiple voices; get-up clip, spotted reaction, patrol idle variety (`scratch`, `fold_arms`, `wait` unused), head look-at, model LODs, painted look; doors on NavMesh / opening them; thinking less when far beyond sight cut-off; reacting to a fire going out or a dart before it works; visible dart; guard-to-guard communication.

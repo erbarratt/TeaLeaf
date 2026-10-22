@@ -1,1004 +1,190 @@
 # Core systems (`Assets/Scripts/Core/`, namespace `Core`)
 
-Detail for the core systems. The root `CLAUDE.md` holds the project rules, the tick order and
-the physics layers; this file is loaded when working in this folder. Keep it up to date with
-every change to these systems, like the root file.
-
-Here: the game state/level manager, the screen fade, noise events, sound, surfaces, gameplay
-light, the procedural night sky, the moon shafts, the level surface shaders and the shared
-debug drawing.
+Game state/level manager, screen fade, noise, sound, surfaces, gameplay light, night sky, moon shafts, level surface shaders, shared debug drawing. Root `CLAUDE.md` holds project rules, tick order, physics layers. Keep this file current with every change here.
 
 ## Render settings
 
-- **PC** (`Assets/Settings/PC_RPAsset.asset` and `PC_Renderer.asset`, the `PC` quality level,
-  the default for Standalone): no depth texture, no opaque texture, HDR off, 2x MSAA
-  (unmeasured; 4x is the aim), render scale 1, lens flares off, SRP Batcher on, GPU
-  Resident Drawer on (Instanced); main light shadows 2048, 25m, **two cascades, hard
-  edges** (soft shadows off) - with the level's shadows baked they cover only moving
-  things; the renderer's **ambient occlusion feature is switched off**
-  (`m_Active: 0` - still listed, not removed); no volume profile; rendering mode 2 (to be
-  checked in the Inspector: it appears to be Forward+). Additional-light shadows, light
-  cookies and reflection probe blending are still enabled and unused. The Main Camera has
-  post-processing off.
-- **Baked lighting** (`Main.unity`): the moon (`Moon and Sky`) is a **Mixed** Directional
-  Light and the lighting mode is **Shadowmask** - plain Shadowmask in the `PC` quality
-  level, not Distance Shadowmask, so static pieces are never drawn into the realtime
-  shadow map; their shadows come from the bake. Every point light in the pack's prefabs
-  (buildings, lampposts, the tower bridge's torch) is overridden to **Baked** in the scene
-  - the `TL_Lampost` variant's own light is **Mixed** (intensity 10, Indirect
-  Multiplier 2, hard shadows, 5m) with a `LightSource` and a `FlameFlicker` and a
-  second, **Baked** shadowless spot for ambience round the post, the level
-  generator's gameplay lamp (`Assets/Scripts/LevelGen/CLAUDE.md`); **a lamp post has
-  no `Flame`, since it can't be put out** (only open flames can). `Main.unity`'s
-  three instances override the point light to Baked while keeping the `LightSource`
-  (so their flicker switches itself off). Each lit window variant (`TL_Window_*_Lit`)
-  carries a **Baked** spot light that pools its glow on the street below, no
-  `LightSource` (`Assets/Scripts/LevelGen/CLAUDE.md`).
-  Settings asset `Assets/Settings/Docks Lighting.lighting` (GPU lightmapper, 10 texels/m,
-  2048 maps, Non-Directional, 4 bounces, AO reaching 1m, no direct denoiser or direct
-  filter so the moon's shadow edges stay sharp). **Walls are baked at twice the texel
-  density and roofs at half**: every static mesh renderer under `Assets/Prefabs/Environment`
-  with a wall material (`Medieval_PlasterWalls_A_4k`, `_B_4k`, `Medieval_WallsTall_A_4k`
-  and their colour variants) has Scale In Lightmap 2, and every one with a roof material
-  (`Medieval_Roofs_4k`, `Medieval_RoofPeaked_4k` and theirs) 0.5, prefab-variant overrides
-  the scenes inherit; masonry foundations, the gable `RoofWall` pieces and the bridge walls
-  are at 1. **After every bake the shadow floor is applied** (`ShadowFloor`, below): no
-  lightmap texel or light probe is left darker than `Moonlight.shadowFloor`. `Main.unity`
-  has no bake output at present (`Assets/Scenes/Main/` holds only the occlusion data, so
-  it needs Place Light Probes and a bake); `Level Gen Test.unity` has its own (ten
-  lightmaps with shadowmasks in `Assets/Scenes/Level Gen Test/`), its ambient a blue-grey
-  (0.08, 0.09, 0.11) and its default reflection Custom with no cubemap. Small pieces and
-  everything that moves are lit by the light probes (`EnvironmentVariants`,
-  `LightProbePlacer`, below). Moving, adding or removing a static piece, or changing a
-  light, needs Place Light Probes run again and a rebake.
-- The Main Camera's far clip plane is 200m (the sky is drawn at the far plane whatever its
-  distance; `Moonlight.maxDistance` is a physics ray, unrelated).
+- **PC** (`Assets/Settings/PC_RPAsset.asset` + `PC_Renderer.asset`, `PC` quality level, Standalone default): no depth/opaque texture, HDR off, 2x MSAA (unmeasured; 4x is the aim), render scale 1, lens flares off, SRP Batcher on, GPU Resident Drawer on (Instanced); main light shadows 2048, 25m, **two cascades, hard edges** (level shadows are baked, so these cover only moving things); renderer's **AO feature off** (`m_Active: 0`, still listed); no volume profile; rendering mode 2 (check in Inspector: appears to be Forward+). Additional-light shadows, light cookies, reflection probe blending enabled but unused. Main Camera post-processing off.
+- **Baked lighting** (`Main.unity`): moon (`Moon and Sky`) is a **Mixed** Directional Light; lighting mode **Shadowmask** - plain, not Distance Shadowmask, in `PC`, so static pieces never enter the realtime shadow map.
+  - Every pack-prefab point light (buildings, lampposts, tower bridge torch) overridden to **Baked** in the scene.
+  - `TL_Lampost` variant's own light is **Mixed** (intensity 10, Indirect Multiplier 2, hard shadows, 5m) with `LightSource` + `FlameFlicker`, plus a **Baked** shadowless spot for ambience round the post - the generator's gameplay lamp (`Assets/Scripts/LevelGen/CLAUDE.md`). **Lamp posts have no `Flame`** (can't be put out; only open flames can). `Main.unity`'s three instances override the point light to Baked, keeping the `LightSource` (flicker then disables itself).
+  - Each lit window variant (`TL_Window_*_Lit`) has a **Baked** spot pooling glow on the street, no `LightSource`.
+  - Settings asset `Assets/Settings/Docks Lighting.lighting`: GPU lightmapper, 10 texels/m, 2048 maps, Non-Directional, 4 bounces, AO 1m, no direct denoiser/filter (keeps moon shadow edges sharp).
+  - **Scale In Lightmap**: every static mesh renderer under `Assets/Prefabs/Environment` with a wall material (`Medieval_PlasterWalls_A_4k`, `_B_4k`, `Medieval_WallsTall_A_4k` + colour variants) = 2; roof material (`Medieval_Roofs_4k`, `Medieval_RoofPeaked_4k` + theirs) = 0.5; prefab-variant overrides the scenes inherit. Masonry foundations, gable `RoofWall` pieces, bridge walls = 1.
+  - **Shadow floor applied after every bake** (`ShadowFloor`): no texel or probe darker than `Moonlight.shadowFloor`.
+  - `Main.unity` has no bake output now (`Assets/Scenes/Main/` holds only occlusion data; needs Place Light Probes + bake). `Level Gen Test.unity` has its own (ten lightmaps + shadowmasks in `Assets/Scenes/Level Gen Test/`), ambient blue-grey (0.08, 0.09, 0.11), default reflection Custom with no cubemap.
+  - Small pieces and moving things lit by light probes (`EnvironmentVariants`, `LightProbePlacer`). Moving/adding/removing a static piece or changing a light needs Place Light Probes + rebake.
+- Main Camera far clip 200m (sky drawn at the far plane regardless; `Moonlight.maxDistance` is an unrelated physics ray).
 
 ## Foveated rendering (Quest builds only; never run on a device)
 
-- **`FoveatedRendering`** (static, no component, nothing per frame) — asks the XR display for
-  fixed foveated rendering in a Quest build. `Apply()` runs by itself once, after the first
-  scene loads (`[RuntimeInitializeOnLoadMethod(AfterSceneLoad)]`), on Android only, and sets
-  `XRDisplaySubsystem.foveatedRenderingLevel` to the `Level` constant (0.5; 0 = off, 1 =
-  strongest) with no flags (fixed, not eye-tracked). It needs the OpenXR **Foveated
-  Rendering** feature enabled for Android and the **Foveated Rendering API** set to **SRP
-  Foveation** (both set in `Assets/XR/Settings/OpenXR Package Settings.asset`). It does
-  nothing on PC. Only relevant to a possible Quest port.
-- `Mobile_RPAsset` (the `Mobile` quality level) has HDR off, MSAA off and render scale 0.8.
+- **`FoveatedRendering`** (static, no component, nothing per frame): `Apply()` runs once after first scene load (`[RuntimeInitializeOnLoadMethod(AfterSceneLoad)]`), Android only; sets `XRDisplaySubsystem.foveatedRenderingLevel` to `Level` (0.5; 0 off, 1 strongest), no flags (fixed, not eye-tracked). Needs OpenXR **Foveated Rendering** feature for Android and **Foveated Rendering API = SRP Foveation** (both set in `Assets/XR/Settings/OpenXR Package Settings.asset`). Nothing on PC.
+- `Mobile_RPAsset` (`Mobile` quality): HDR off, MSAA off, render scale 0.8.
 
-## Procedural night sky (not yet confirmed in the headset)
+## Procedural night sky (not yet confirmed in headset)
 
-**No skybox**: the camera clears to a flat colour (black) and the stars and moon are drawn
-over it as geometry. No star cubemap or panorama (a cubemap pixel is far coarser than a
-headset pixel, so stars go soft). **A picture only - nothing in it is emissive or lights the
-scene**; brightness is the Directional Light's and the ambient setting's job (ambient is
-Flat).
+**No skybox**: camera clears to flat black; stars and moon drawn as geometry. No star cubemap/panorama (cubemap pixels far coarser than headset pixels; stars go soft). **Picture only - nothing emissive, lights nothing**; brightness is the Directional Light's and ambient's (Flat) job.
 
-- **`ProceduralSky`** (`[ExecuteAlways]`; on the Directional Light or any scene object -
-  `Reset()` fills `viewCamera` with the main camera and `moonLight` from its own `Light`, else
-  the scene's `Moonlight`) — in `OnEnable()` makes a `TeaLeaf/Sky` material and two objects
-  at the scene root (`Sky Stars`, `Sky Moon`; `HideFlags.DontSave`, identity rotation - not
-  children, which would turn with the light), sets `RenderSettings.skybox` to null and the
-  camera (`viewCamera`, or `Camera.main` if empty) to clear to `skyColor`; `OnDisable()` puts
-  both back and destroys what it made. `Rebuild()` builds the meshes and sets the material:
-  about a millisecond, synchronous, before the first frame, behind `ScreenFade`'s level-start
-  black. Nothing per frame in a build: `OnValidate()` (flags a rebuild after an Inspector
-  change) and `Update()` (does it, and keeps the moon on the light while it's rotated) are
-  `#if UNITY_EDITOR`.
-- **Stars** — one mesh, one draw call: a quad per star. Settings: `seed`, `starCount` (2500),
-  `starSize` (degrees, faintest to brightest), `minStarPixels`,
-  `starMinBrightness`/`starMaxBrightness`, `starFaintBias` (higher = fewer bright ones),
-  `starColors` (Gradient, a random point per star), `starColorAmount`, `horizonFade`. One
-  random "magnitude" per star drives both brightness and size. **No star is made below the
-  horizon**: directions are picked on the upper hemisphere only, fading in over
-  `horizonFade` degrees (6) above the horizon.
-- **Moon** — a second one-quad mesh pointing +Z, on its own object that `AimMoon()` (public,
-  cheap) turns to `-moonLight.forward` (the same direction as `Moonlight.DirectionToMoon`);
-  call it if anything ever turns the light at runtime. Sorting order 1, so it's drawn after
-  the stars and covers them. `showMoon`, `moonSize` (degrees across, 4), `moonColor`. It has
-  its own material (same shader, `_SURFACE_TEXTURE` keyword on) when `showMoonSurface` is
-  set; off, a plain disc.
-- **Moon surface** (`MoonSurfaceBuilder`, static; settings in `MoonSurfaceSettings`, the
-  component's `moonSurface` field) — `Build(settings)` paints a greyscale RGBA32 texture
-  (`textureSize` 512, **with mipmaps**, trilinear) that the shader multiplies `moonColor` by.
-  Baked at level load rather than computed per pixel in the shader, because mipmaps stop
-  sub-pixel crater detail flickering with head movement. The texture is the ball seen
-  straight on: each pixel becomes a point on a unit sphere (`PointOnBall()`, z towards the
-  viewer) and every feature is worked out there, so craters foreshorten at the limb. Burst
-  jobs: `GroundJob` (parallel) - highlands, seas (`seaAmount`, `seaDarkness`, `seaScale`;
-  layered simplex noise over a threshold) and mottling (`roughness`); `CratersJob` (single
-  thread) - craters largest first so small ones overlie big (`craterCount`, `craterSize` as
-  a fraction of the moon's radius, `craterSmallBias`, `craterContrast`), then `rayCraters`
-  mid-sized craters with streaks (`rayBrightness`, `rayLength`), then `edgeDarkening` and the
-  8-bit encode. Lit flat as a full moon; no phases. A few milliseconds. Jobs must not read
-  static fields of the builder (it has none, for Burst).
-- **Shader `TeaLeaf/Sky`** (`Assets/Art/Shaders/Resources/Sky.shader`; in `Resources` for
-  `Shader.Find()`, stereo-instancing macros, `SRPDefaultUnlit`) — the mesh stores each
-  disc's centre direction (position), linear colour (alpha 0 = add, 1 = cover), corner +
-  radius + twinkle phase (UV0), twinkle speed + weight (UV1); the vertex shader builds the
-  quad. **Camera-locked**: corners are placed 1m from `_WorldSpaceCameraPos` in the star's
-  direction, then depth forced to the far plane - no parallax, identical direction in both
-  eyes, far clip distance irrelevant. **Minimum size**: a star under `_MinPixelRadius` pixels
-  is drawn at that size and dimmed by the area ratio instead (sub-pixel stars flicker with
-  head movement). **Twinkle**: three sines at unrelated speeds off `_Time`, per-star phase
-  and speed, `_TwinkleAmount`/`_TwinkleSpeed`, scaled from full at the horizon to
-  `_TwinkleOverhead` at the zenith (`twinkleAmount` 0.2, `twinkleSpeed` 5, `twinkleOverhead`
-  0.3 on the component); brightness only, all per vertex. Fragment: a disc with a one-pixel
-  `fwidth()` edge. Queue `Transparent-400` with `ZTest LEqual`, `ZWrite Off`: after opaques,
-  before other transparents. `Blend One OneMinusSrcAlpha` so one shader both adds (stars)
-  and covers (moon). `#pragma multi_compile_local _ _SURFACE_TEXTURE` (not `shader_feature`:
-  the moon's material is made in code, so a build would strip the variant) multiplies the
-  colour by `_SurfaceTex`, sampled with the quad's corner coordinates.
-- **Nebula clouds: not built** (wanted later). The route: a small cloud-only cubemap (about
-  256 per face) behind the stars - clouds are soft, so low resolution doesn't show.
-- The scene's default reflection was baked from an old sky and stays until lighting is
-  regenerated.
+- **`ProceduralSky`** (`[ExecuteAlways]`; on the Directional Light or any object; `Reset()` fills `viewCamera` with main camera and `moonLight` from own `Light`, else the scene's `Moonlight`). `OnEnable()`: makes a `TeaLeaf/Sky` material and two scene-root objects `Sky Stars`, `Sky Moon` (`HideFlags.DontSave`, identity rotation - not children, which would turn with the light), sets `RenderSettings.skybox` null and camera (`viewCamera` or `Camera.main`) to clear to `skyColor`; `OnDisable()` restores and destroys. `Rebuild()` builds meshes + material: ~1ms, synchronous, before first frame, behind `ScreenFade` black. Nothing per frame in a build: `OnValidate()` (flags rebuild) and `Update()` (rebuilds, keeps moon on the light while rotated) are `#if UNITY_EDITOR`.
+- **Stars**: one mesh, one draw call, a quad per star. `seed`, `starCount` (2500), `starSize` (degrees, faintest to brightest), `minStarPixels`, `starMinBrightness`/`starMaxBrightness`, `starFaintBias` (higher = fewer bright), `starColors` (Gradient, random point per star), `starColorAmount`, `horizonFade`. One random magnitude drives brightness and size. **None below the horizon**: upper hemisphere only, fading in over `horizonFade` (6°).
+- **Moon**: second one-quad mesh pointing +Z on its own object; `AimMoon()` (public, cheap) turns it to `-moonLight.forward` (= `Moonlight.DirectionToMoon`) - call it if anything turns the light at runtime. Sorting order 1 (after stars, covers them). `showMoon`, `moonSize` (degrees, 4), `moonColor`. Own material (same shader, `_SURFACE_TEXTURE` on) when `showMoonSurface`; else plain disc.
+- **Moon surface** (`MoonSurfaceBuilder`, static; settings `MoonSurfaceSettings` in the component's `moonSurface`): `Build(settings)` paints greyscale RGBA32 (`textureSize` 512, **mipmaps**, trilinear) multiplied into `moonColor`. Baked at load, not per pixel in the shader, because mipmaps stop sub-pixel crater flicker. Each pixel maps to a unit-sphere point (`PointOnBall()`, z to viewer) so craters foreshorten at the limb. Burst jobs: `GroundJob` (parallel) - highlands, seas (`seaAmount`, `seaDarkness`, `seaScale`; layered simplex over a threshold), mottling (`roughness`); `CratersJob` (single thread) - craters largest first (`craterCount`, `craterSize` as fraction of radius, `craterSmallBias`, `craterContrast`), then `rayCraters` with streaks (`rayBrightness`, `rayLength`), then `edgeDarkening` and 8-bit encode. Full moon, no phases. A few ms. Jobs must not read static fields of the builder (it has none, for Burst).
+- **Shader `TeaLeaf/Sky`** (`Assets/Art/Shaders/Resources/Sky.shader`; Resources for `Shader.Find()`; stereo-instancing macros; `SRPDefaultUnlit`). Mesh stores disc centre direction (position), linear colour (alpha 0 = add, 1 = cover), corner + radius + twinkle phase (UV0), twinkle speed + weight (UV1); vertex shader builds the quad.
+  - **Camera-locked**: corners 1m from `_WorldSpaceCameraPos` in the star's direction, depth forced to far plane - no parallax, same direction both eyes, far clip irrelevant.
+  - **Min size**: a star under `_MinPixelRadius` pixels drawn at that size, dimmed by area ratio (sub-pixel stars flicker).
+  - **Twinkle**: three sines at unrelated speeds off `_Time`, per-star phase/speed, `_TwinkleAmount`/`_TwinkleSpeed`, from full at horizon to `_TwinkleOverhead` at zenith (component: `twinkleAmount` 0.2, `twinkleSpeed` 5, `twinkleOverhead` 0.3); brightness only, per vertex.
+  - Fragment: disc with one-pixel `fwidth()` edge. Queue `Transparent-400`, `ZTest LEqual`, `ZWrite Off`. `Blend One OneMinusSrcAlpha` (adds stars, covers moon). `#pragma multi_compile_local _ _SURFACE_TEXTURE` (not `shader_feature`: moon material made in code, a build would strip it) multiplies by `_SurfaceTex` at the quad's corner coords.
+- **Nebula clouds: not built** (wanted). Route: small cloud-only cubemap (~256/face) behind the stars.
+- Scene default reflection baked from an old sky; stays until lighting is regenerated.
 
 ## Moon shafts
 
-Shafts of moonlight - the beam the moon throws through an opening, made visible by the
-dust in the air - as placed geometry, not a screen effect: no depth texture, no
-post-processing, correct in stereo. The level generator lays them over its alleys
-(`Assets/Scripts/LevelGen/CLAUDE.md`, Moon shafts); anywhere else one is placed by hand.
+Visible beams through openings as placed geometry, not a screen effect (no depth texture, no post, stereo-correct). Generator lays them over alleys (`Assets/Scripts/LevelGen/CLAUDE.md`); elsewhere by hand. **Look isn't right yet; no shaft in any scene**: in editor renders beams read as flat bright slabs, so generator shafts are off (`moonShaftStreetMaxWidth` 0 in its settings asset) until shading is reworked and judged in headset; component, shader, material stay.
 
-- **`MoonShaft`** (`[ExecuteAlways]`, `RequireComponent(MeshFilter, MeshRenderer)`) —
-  describes only the **opening**: a rectangle `width` across the object's local X and
-  `height` along its local Y, the object's position at the middle of its local-Y foot
-  edge, stood upright for a window or a mouth, laid level for the strip of sky between
-  two eaves. Keep its scale at 1. It builds the beam itself: `Rebuild()` (in `Start()`
-  at runtime, behind `ScreenFade`'s level-start black; in the editor on enable, after
-  an Inspector change and when the generator calls `Configure(width, height,
-  maxLength)`, always a tick later through `EditorApplication.delayCall`, since physics
-  may not be used from `OnValidate` and colliders enabled after the object would be
-  missed) takes the light's direction from the scene's `Moonlight` (`Instance`, or
-  `FindAnyObjectByType` in the editor, where `Moonlight` isn't registered), drops the
-  shaft if the light runs along the opening rather than through it (`MinThrough`
-  0.2), follows the light from each corner of the opening with one `Physics.Raycast`
-  (Environment + Interactable, the light rays' layers, triggers ignored) to where it
-  lands (`maxLength`, 40m, where nothing stops it; `Clearance` 5cm short of the
-  surface), and makes **a prism of six sheets** - the opening, its far end and the four
-  sides - in a `HideFlags.DontSave` mesh (24 vertices, flat normals; UV0 = where on its
-  sheet a vertex is, 0..1 each way, a side's second coordinate held at 0.5; UV1 = how
-  far along the beam, 0 near to 1 far, and the beam's thickness behind that sheet in
-  metres: the caps the mean length, the two long sides the opening's lit span, the two
-  ends the opening's width). Nothing is saved to the scene and nothing runs per frame;
-  the renderer casts and receives no shadows, uses no probes and no motion vectors.
-  `IsLit` says whether the last build drew anything. **Honest about shadow**
-  (`fitToMoon`, on): along each of the opening's two local-Y edges, from the foot, a ray
-  towards the moon (`LitFrom`, `IsMoonlit`: 200m, the same layers) finds where the edge
-  comes out of the shadow of whatever stands beside the opening - the foot and the top
-  tested first, then six halvings - and the sheets start there; an edge in shadow all
-  the way narrows to a point at its top, an opening in shadow altogether draws nothing.
-  So a shaft can be placed without working out where the moon is, and only shows light
-  that is there: **put the foot edge on the moon's side**, so the fit cuts the shadowed
-  side off. **The colour is the moon's**: `Rebuild()` sets the global `_MoonShaftLight`
-  to the `Light` on the `Moonlight`'s object, its colour (linear) times its intensity
-  (white with no `Light`) - not URP's `_MainLightColor`, which is black wherever the moon
-  is a Baked light (as in `Level Gen Test.unity`). `material` is the shared
-  `Assets/Art/Materials/MoonShaft.mat` (`MaterialPath`), filled in by the editor when
-  empty; every shaft wears the same one, so the look is tuned in one place.
-- **Shader `TeaLeaf/MoonShaft`** (`Assets/Art/Shaders/MoonShaft.shader`; `SRPDefaultUnlit`,
-  Transparent queue, `Blend One One` additive, `ZTest LEqual`, `ZWrite Off`, `Cull Off` -
-  the sheets are seen from inside when the player stands in the beam; SRP Batcher
-  CBUFFER, single-pass instanced stereo macros, two samples of `FlameNoise.png` a pixel,
-  no depth or opaque texture) shades the sheets as one soft volume: each sheet stands
-  for the beam behind it, `1 - exp(-_Density x thickness x |view . normal|)` (full
-  thickness seen square on, nothing seen edge on, so the seams between sheets never
-  show - the opening looked down the beam shows its whole length, a side looked at
-  square its width); times a fade in from each edge of the sheet (`_EdgeSoftness`, a
-  share of the sheet, 0.3), a fade along the beam (`_LengthFalloff`, 1.5, so it dies
-  away before the ground rather than cutting into it), and a fade within `_NearFade`
-  (1.5m) of the eye, so walking into a shaft never fills the view; `_Streaks` (0.5, at
-  `_StreakScale` 0.6, drifting at `_StreakDrift`) break the light into streaks that run
-  the length of the beam, `_Motes` (0.3, `_MoteScale` 3, `_MoteSpeed` 0.06) drift down
-  it. Colour = `_MoonShaftLight` x `_Tint` (0.85, 0.9, 1) x `_Intensity` (0.5). **Cost**
-  (a judgement; unmeasured): two texture samples a pixel over the pixels the sheets
-  cover, nothing on the CPU; the worst case is standing inside a beam, where up to six
-  sheets each cover the view at near-zero alpha but full fill rate. **The look isn't
-  right yet and no shaft is in any scene**: in editor renders the beams read as flat
-  bright slabs rather than soft light, so the generator's shafts are switched off
-  (`moonShaftStreetMaxWidth` 0 in its settings asset) until the shading is reworked and
-  judged in the headset; the component, shader and material stay as they are.
+- **`MoonShaft`** (`[ExecuteAlways]`, `RequireComponent(MeshFilter, MeshRenderer)`) describes only the **opening**: rectangle `width` along local X, `height` along local Y, position at the middle of its local-Y foot edge; upright for a window/mouth, level for sky strip between eaves. Keep scale 1.
+  - `Rebuild()`: in `Start()` at runtime (behind level-start black); in editor on enable, after Inspector change, and when the generator calls `Configure(width, height, maxLength)` - always a tick later via `EditorApplication.delayCall` (no physics from `OnValidate`; later-enabled colliders would be missed).
+  - Light direction from the scene's `Moonlight` (`Instance`, or `FindAnyObjectByType` in editor where it isn't registered). Drops the shaft if the light runs along rather than through the opening (`MinThrough` 0.2). From each corner one `Physics.Raycast` (Environment + Interactable, triggers ignored) to landing (`maxLength` 40m if unblocked; `Clearance` 5cm short).
+  - Mesh: **prism of six sheets** (opening, far end, four sides), `HideFlags.DontSave`, 24 verts, flat normals. UV0 = position on sheet 0..1 (side's second coord held at 0.5); UV1 = along beam 0..1, and beam thickness behind that sheet in metres (caps: mean length; long sides: opening's lit span; ends: opening width). Nothing saved, nothing per frame; renderer no shadows/probes/motion vectors. `IsLit` = last build drew anything.
+  - **Honest about shadow** (`fitToMoon`, on): along each local-Y edge from the foot, a ray towards the moon (`LitFrom`, `IsMoonlit`: 200m, same layers) finds where the edge leaves shadow - foot and top first, then six halvings; sheets start there. Edge fully in shadow narrows to a point at its top; opening fully shadowed draws nothing. **Put the foot edge on the moon's side** so the fit cuts the shadowed side.
+  - **Colour is the moon's**: sets global `_MoonShaftLight` = `Moonlight` object's `Light` colour (linear) x intensity (white if no `Light`) - not URP `_MainLightColor`, black where the moon is Baked (as in `Level Gen Test.unity`).
+  - `material` = shared `Assets/Art/Materials/MoonShaft.mat` (`MaterialPath`), filled by editor when empty; one look for all.
+- **Shader `TeaLeaf/MoonShaft`** (`Assets/Art/Shaders/MoonShaft.shader`; `SRPDefaultUnlit`, Transparent, `Blend One One`, `ZTest LEqual`, `ZWrite Off`, `Cull Off` (seen from inside in the beam); SRP Batcher CBUFFER, SPI stereo; two `FlameNoise.png` samples/pixel; no depth/opaque texture). Each sheet stands for the beam behind it: `1 - exp(-_Density x thickness x |view . normal|)` (full square on, nothing edge on, so seams never show). Times edge fade (`_EdgeSoftness` 0.3 of sheet), length fade (`_LengthFalloff` 1.5, dies before the ground), near-eye fade within `_NearFade` 1.5m. `_Streaks` 0.5 (`_StreakScale` 0.6, `_StreakDrift`) along the beam; `_Motes` 0.3 (`_MoteScale` 3, `_MoteSpeed` 0.06) drift down. Colour = `_MoonShaftLight` x `_Tint` (0.85, 0.9, 1) x `_Intensity` (0.5). Cost (judgement): two samples/pixel over covered pixels, no CPU; worst case inside a beam, up to six full-view sheets at near-zero alpha but full fill rate.
 
 ## Level surface shaders
 
-- **`TeaLeaf/GroundBlend`** (`Assets/Art/Shaders/GroundBlend.shader`; the material
-  `Assets/Art/Materials/Environment/Ground/StreetGround.mat`, which the level
-  generator's ground meshes draw with - `Assets/Scripts/LevelGen/CLAUDE.md`) — **the
-  streets' ground: three textured layers blended by vertex colour**, the way Thief
-  VR's prologue streets are made. Dirt is the base everywhere; **red** paints
-  cobbles over it, **blue** wet dirt (puddles) over that. Each layer has an albedo,
-  a tangent-space normal map and **greyscale height, occlusion and smoothness
-  maps** (single-channel textures; the ground isn't metal, so no metallic map),
-  read at the pixel's **world x
-  and z** (no mesh UVs but the lightmap's; a repeat size in metres and a turn per
-  layer, so the three don't line up and pieces join seamlessly), the tangent frame
-  made in the shader from the world axes (no mesh tangents). **The blend follows
-  the height maps** (`HeightBlend`: the classic score-and-transition height blend,
-  a sharpness per layer): where cobbles fade to dirt, the dirt fills the joints
-  first and the stones' tops show last; the wet layer is blended by the height of
-  what lies under it turned upside down, so water collects in the joints and low
-  places. A layer painted to nothing on a triangle isn't read (`[branch]` on the
-  interpolated paint). **Parallax** (`_PARALLAX` toggle, **on** in the material,
-  `_ParallaxDepth` 0.015m): offset mapping per layer - the view direction in the
-  layer's own frame, one height read at the plain coordinates, and the
-  coordinates slid along the view by how far the surface stands off the middle
-  height, over the repeat size, the out-of-surface part softened by 0.42 as
-  Unity's `ParallaxOffset` does so a floor at a grazing angle never smears - so
-  the joints look sunk below the stones; one shift, never parallax occlusion
-  (the project's rule for a view-filling surface), one extra read per painted
-  layer, nothing when off. Not yet judged in the headset (offset parallax on a
-  floor can swim at grazing angles; the depth is the knob). Lit with `UniversalFragmentPBR` (the pack's materials are
-  URP Lit; the puddles reflect the reflection probes), occlusion and smoothness
-  from the PBR texture scaled by `_Occlusion` and `_Smoothness`, `_NormalStrength`
-  on every normal map. SRP Batcher compatible, stereo instanced, fog-aware;
-  ForwardLit, ShadowCaster, DepthOnly, DepthNormals and **a Meta pass** (the bake
-  sees the blended colour; its entry points are `GroundMetaVertex` /
-  `GroundMetaFragment` because URP's `MetaInput.hlsl` defines `MetaFragment` as a
-  macro). **Textures:** `Assets/Art/Textures/Ground/<Dirt|Cobbles|WetDirt>_<Albedo|Normal|Height|Occlusion|Smoothness>_REPLACEME.png`
-  - 2048 each, repeat, trilinear, anisotropic 4; the normals imported as normal
-  maps, the three greyscale maps as single-channel (red), linear - are the Thief VR
-  prologue's ground textures (the greyscale ones split out of its packed PBR
-  texture: green occlusion, blue height, alpha smoothness; the wet dirt's height
-  is flat), **stand-ins to be replaced** (the suffix marks them). Cost: five to
-  fifteen texture reads and one PBR evaluation per pixel of a view-filling
-  surface, unmeasured.
-- **`TeaLeaf/Cobblestone`** (`Assets/Art/Shaders/Cobblestone.shader`; not in `Resources`; no
-  material uses it at present, and one made for it lives in `Assets/Art/Materials`) — a cobbled floor with no
-  textures: rounded irregular stones, each a colour from a range, a separate gap colour, no
-  repeat, the same cobble size on any object, everything tunable. **Don't rename existing
-  properties** (the material stores its tuned values by property name).
-  - **World-space**: the pattern is read from the pixel's world position along whichever
-    world axis the surface faces most, divided by `_CobbleSize` (0.14m) - object scale
-    doesn't matter and adjoining pieces join seamlessly, but the pattern slides across
-    anything that moves (floors and walls, not props).
-  - **Pattern**: Voronoi as a power diagram - a jittered point per grid cell
-    (`_Irregularity` 0.7), the pixel belongs to the nearest by distance squared less a
-    per-stone random weight (`_SizeVariation`; borders stay straight lines with an exact
-    distance, so gap width doesn't change with stone size). The distance to each border is
-    combined with a smooth minimum (`_CornerRoundness`), which rounds the corners.
-  - **Search size**: `SEARCH_RADIUS` 2 = 5x5 cells by default, or 3x3 with the
-    `_NARROW_SEARCH` toggle. 3x3 is only right with Size Variation near 0 and modest Corner
-    Roundness: otherwise a border goes missing over part of a large stone and the height
-    jumps at cell edges, drawn as thin lines by the derivative normal. Never hide missing
-    neighbours by fading a point's pull - search far enough to have them.
-  - **Gaps**: `_GapWidth` may be negative (range -1 to 0.4), growing the rounded outline
-    back out; `_MinGap` (0.02) is a line always kept along the true (unsmoothed) border.
-    `Cobbles()` returns how far inside the stone the pixel is:
-    `min(rounded - GapWidth/2, border - MinGap/2)`. Height = 0 at the stone's edge and in
-    the gap, rising over `_Bevel` to 1.
-  - **Colour**: a per-cell random point along `_ColorA`-`_ColorB`-`_ColorC`,
-    `_BrightnessVariation`, `_EdgeDarkening` down the shoulder, `_GapColor`; `_Seed` changes
-    the layout.
-  - **Crevice shadow** (stands in for ambient occlusion): colour and shine are multiplied by
-    `1 - _OcclusionStrength * (1 - smoothstep(0, _OcclusionWidth, abs(edge)))` (0.6 and 0.12
-    of a cobble). Applied after the dirt, faded out with the distance fade; a colour
-    multiply, not `surfaceData.occlusion`. Not in BrickWall.
-  - **Normal** from screen-space derivatives of the height (`_Depth` metres x
-    `_NormalStrength`, Mikkelsen's method) - no tangents, no normal map.
-  - **Lit** with URP's Blinn-Phong (`UniversalFragmentBlinnPhong`), optional shine
-    (`_SPECULAR_COLOR` toggle); SRP Batcher compatible, stereo instanced, fog-aware;
-    ShadowCaster, DepthOnly and DepthNormals passes; **no Meta pass** (a lightmap bake won't
-    see its colours - add one before baking the level).
-  - **Distance fade** (`_FadeStart`/`_FadeEnd`, cobbles per pixel): pattern and bump fade to
-    a flat average colour before the cobbles get sub-pixel.
-  - **Parallax** (`_PARALLAX` toggle, off, `_ParallaxDepth`): one offset-limited shift of
-    the coordinates by the height, not parallax occlusion - it works the pattern out twice.
-  - **Dirt layer** (`_DIRT` toggle, off): three two-channel value noises (`Noise2()`). A
-    slow one places grime patches (`_GrimeAmount`, `_GrimeCoverage`, `_GrimeScale` metres;
-    `_GrimeLowBias` puts dirt in gaps and down shoulders), tinting to `_DirtColor` and
-    dulling the shine; applied after the distance fade. A second warps the coordinates
-    before the cobbles are found (`_WarpAmount`, `_WarpScale`). A fine one ("flecks",
-    `_MottleScale`) mottles the stones (`_MottleAmount`), pits them for the lighting
-    (`_MottleBump`), varies the gap colour (`_GapNoiseAmount`) and chips the outline
-    (`_EdgeRaggedness`). **Flecks grow with distance instead of fading**: whenever a fleck
-    would be under `_FleckPixels` (4) pixels the noise is read at double the size, as many
-    times as needed, blending the two nearest doublings. `FleckNoise2()` wraps each grid
-    corner into 0-1023 before hashing, because `Hash22()` runs out of float precision at
-    large grid coordinates.
-  - **Cost** is per pixel on a view-filling surface (about 25 hashes and 24 border distances
-    with the 5x5 search - 9 and 8 with Narrow Search - doubled with parallax, plus 16 hashes
-    with dirt). Unmeasured; the fallback is baking the pattern to textures.
-- **`TeaLeaf/BrickWall`** (`Assets/Art/Shaders/BrickWall.shader`; **not yet compiled or
-  seen**) — the cobblestone shader's sister for brick and coursed-stone walls. Same frame
-  (world-space, no textures, Blinn-Phong, derivative normal, distance fade, optional
-  one-shift parallax, the same Dirt layer, the same four passes, no Meta pass) - **the shared
-  code is duplicated, not in an include**, so a fix to one must be made in both. All sizes
-  are in **metres**. **Pattern, with no search**: rows `_BrickHeight` high, bricks
-  `_BrickWidth` long (each including its share of mortar); odd rows slid by `_RowOffset`
-  (0.5 = running bond) plus a per-row random `_RowOffsetVariation`; the lines between rows
-  and between bricks each nudged up to 0.45 of a brick (`_HeightVariation`,
-  `_WidthVariation` - 0 for brick, raised for stone). `FindSpan()` finds a pixel's brick from
-  the nearest dividing line and the next one out: two hashes per axis. Edge distance is a
-  rounded-rectangle distance (`_CornerRadius`) less half `_MortarWidth`; height rises over
-  `_Bevel`. `_FaceTilt` leans each brick's face a random way. Colours A-B-C per brick,
-  `_MortarColor`. **Direction**: on a wall, u runs along the wall and level
-  (`cross(up, normal)`), v straight up; a surface facing mostly up or down uses world X/Z.
-  Bricks don't wrap round a corner between two walls. About 6 hashes a pixel.
-- **`TeaLeaf/Water`** (`Assets/Art/Shaders/Water.shader`; material
-  `Assets/Art/Materials/TeaLeaf_Water.mat`; **not yet confirmed in the headset**) — harbour water at night: opaque (Geometry queue), world-space, no
-  textures but an optional foam mask. It never reads the camera's depth or opaque texture:
-  no see-through shallows, no refraction, no depth-found foam. **Don't rename existing
-  properties.**
-  - **Swell, per vertex**: three sine waves (`_WaveA/B/C`: direction in degrees, length m,
-    crest height m, speed m/s) move each vertex **up and down only**, so the water's edge
-    stays put against a wall; the slope is worked out with the height and gives the vertex
-    normal. `Swell()`/`SwellPositionWS()` are in the `HLSLINCLUDE` block and every pass uses
-    them. Something that floats must work the same sum out on the CPU from the material's
-    wave values and `Time.time` (not built).
-  - **The mesh** must be level, face up, and have vertices across it: Unity's default
-    Plane (10m, a vertex every metre), tiled rather than scaled - the pattern is in world
-    space, so tiles join. A wave needs at least four vertices along its length.
-  - **Ripples, per pixel**: two layers of value noise with exact derivatives
-    (`RippleNoise()`, 4 hashes each), the second turned 37 degrees, 0.45 of the size
-    (`_RippleSize`) and half the height (`_RippleHeight`), sliding across the first. Their
-    coordinates are made per vertex. They only add to the slope the normal is made from.
-    Each layer fades out by ripples per pixel (`_FadeStart`/`_FadeEnd`), and the glint is
-    spread wider where they have faded.
-  - **Lighting is its own**, not URP's Blinn-Phong: `_WaterColor` lit by probe ambient
-    (`SampleSH` straight up, per vertex) and each light's Lambert, plus `_HorizonColor`
-    by Fresnel (`_FresnelPower`; a fixed colour, no reflection probe), plus a Blinn-Phong
-    glint per light (`_GlintColor`, `_GlintStrength`, `_Smoothness`) that `_GlintHardness`
-    squeezes into hard-edged dabs. Main light with shadows (the glint stops in a shadow),
-    additional lights per pixel through `LIGHT_LOOP_BEGIN` (Forward+ or not), shadowmask
-    from the probes, fog. **No screen-space derivative inside the light loop** (it doesn't
-    compile in a loop of varying length). No lightmap or probe-volume variants.
-  - **Foam** (`_FOAM` toggle, off): `_FoamMask`, a top-down texture laid over the world
-    rectangle `_FoamArea` (centre X, centre Z, size X, size Z), white at the wall fading to
-    black; foam is drawn where the mask, scaled by the ripples (`_FoamBreakup`) and a slow
-    per-vertex sine (`_FoamLap`, `_FoamLapSpeed`), passes one half. Matt: no reflection or
-    glint. Import the mask with Clamp and a black border.
-  - **Passes**: ForwardLit, DepthOnly, DepthNormals. No ShadowCaster (water casts none) and
-    no Meta pass. SRP Batcher compatible, stereo instanced.
-  - **In a level**: on `Environment`, **no collider** (the bed below it has one), Cast
-    Shadows off, not Contribute GI.
-  - **Cost**: 8 hashes a pixel, one texture read with Foam on, one `pow` a light.
-    Unmeasured.
-- **`TeaLeaf/DoorLeaf`** (`Assets/Art/Shaders/DoorLeaf.shader`; a material references it) —
-  a door leaf with a keyhole opening cut out of it, for `Interaction.DoorKeyhole` (see
-  `Scripts/Interaction/CLAUDE.md`). A flat `_BaseColor` (no texture), Blinn-Phong, the same
-  frame and passes as Cobblestone (lighting code copied, not shared). `KeyholeDistance()` is
-  the signed distance in metres to a keyhole outline - the smaller of a circle's and a
-  slot's distances - measured across the face only, from
-  `_KeyholeCentre`/`_KeyholeRight`/`_KeyholeUp` (leaf object space) and `_KeyholeSize` (x =
-  the circle's radius; the circle's centre is one radius above the keyhole's middle, the
-  slot one radius wide down to two radii below it; `DoorKeyhole.BuildOutline()` must
-  match), all set per renderer by `DoorKeyhole`'s `MaterialPropertyBlock` (which takes that
-  leaf out of the SRP Batcher); all zero = no opening. Pixels inside are clipped, in
-  ForwardLit, DepthOnly and DepthNormals; **the ShadowCaster pass doesn't cut**, so the door
-  casts a whole shadow. The edge is one pixel of coverage sent out as alpha with
-  `AlphaToMask On`. `_RimColor`/`_RimWidth` darken a band round the opening. Back faces are
-  culled; the opening's walls are a mesh `DoorKeyhole` makes, drawn with this shader. `clip`
-  weakens early depth rejection: for door leaves, not walls. A lock plate on the door uses
-  it too (its own material), with its own block from `DoorKeyhole`.
-- **`TeaLeaf/LockFade`** (`Assets/Art/Shaders/Resources/LockFade.shader`; in Resources for
-  `Shader.Find()`) — the lockpicking pieces, the pack and the keyring. **Colour per vertex**
-  (set when the mesh is built, `Interaction.LockMeshBuilder`) times `_BaseColor`, so a piece
-  is one mesh and one material with no texture. **Lit per vertex**: `SampleSH` ambient plus
-  the main light's Lambert, no shadows, no extra lights, never below `_MinLight` (0.35). No
-  fog. **One shader, two materials** (`LockMeshBuilder.CreateMaterial(seeThrough,
-  minLight)`): solid = Geometry queue, `Blend One Zero`; see-through = Transparent queue,
-  `SrcAlpha OneMinusSrcAlpha`, faded by `_Alpha`. `ZWrite On` both ways. The big lock wears
-  the see-through one only while fading and the solid one otherwise. ForwardLit and
-  DepthOnly passes; SRP Batcher compatible; stereo instancing macros.
+- **`TeaLeaf/GroundBlend`** (`Assets/Art/Shaders/GroundBlend.shader`; material `Assets/Art/Materials/Environment/Ground/StreetGround.mat`, used by generator ground meshes): streets' ground, **three textured layers blended by vertex colour** (as Thief VR prologue). Dirt base; **red** = cobbles over it; **blue** = wet dirt (puddles) over that.
+  - Per layer: albedo, tangent-space normal, **greyscale height, occlusion, smoothness** (single-channel; no metallic). Read at world **x/z** (no mesh UVs but lightmap's), repeat size in metres + a turn per layer (layers don't line up; pieces join seamlessly); tangent frame from world axes (no mesh tangents).
+  - **Height blend** (`HeightBlend`: classic score-and-transition, sharpness per layer): dirt fills joints first, stone tops show last; wet layer blended by inverted height of what's under it, so water collects in joints/low spots. A layer painted to zero on a triangle isn't read (`[branch]` on interpolated paint).
+  - **Parallax** (`_PARALLAX`, **on** in material, `_ParallaxDepth` 0.015m): offset mapping per layer - view dir in layer frame, one height read, coords slid by height off middle over repeat size, out-of-surface part softened by 0.42 like Unity's `ParallaxOffset` (no smear at grazing). One shift, **never parallax occlusion** (view-filling surface rule); one extra read per painted layer; nothing when off. Not yet judged in headset (can swim at grazing; depth is the knob).
+  - Lit with `UniversalFragmentPBR` (puddles reflect reflection probes); occlusion/smoothness scaled by `_Occlusion`, `_Smoothness`; `_NormalStrength` on all normals. SRP Batcher, stereo instanced, fog. Passes: ForwardLit, ShadowCaster, DepthOnly, DepthNormals, **Meta** (bake sees blended colour; entry points `GroundMetaVertex`/`GroundMetaFragment` because URP's `MetaInput.hlsl` defines `MetaFragment` as a macro).
+  - **Textures** `Assets/Art/Textures/Ground/<Dirt|Cobbles|WetDirt>_<Albedo|Normal|Height|Occlusion|Smoothness>_REPLACEME.png`: 2048, repeat, trilinear, aniso 4; normals as normal maps; greyscale as single-channel (red), linear. Thief VR prologue textures (greyscale split from its packed PBR: G occlusion, B height, A smoothness; wet dirt height flat) - **stand-ins to replace** (the suffix marks them). Cost: 5-15 texture reads + one PBR eval per pixel, unmeasured.
+- **`TeaLeaf/Cobblestone`** (`Assets/Art/Shaders/Cobblestone.shader`; not in Resources; no material uses it now; one made for it is in `Assets/Art/Materials`): textureless cobbled floor - rounded irregular stones, colour from a range, gap colour, no repeat, same size on any object. **Don't rename existing properties** (materials store values by name).
+  - **World-space**: pattern from world position on the axis the surface faces most, / `_CobbleSize` (0.14m); scale irrelevant, pieces join, but slides across moving things (floors/walls, not props).
+  - **Pattern**: Voronoi power diagram - jittered point per cell (`_Irregularity` 0.7), nearest by distance² less per-stone random weight (`_SizeVariation`; borders stay straight with exact distance, so gap width is size-independent). Border distances combined by smooth min (`_CornerRoundness`).
+  - **Search**: `SEARCH_RADIUS` 2 = 5x5 default, 3x3 with `_NARROW_SEARCH`. 3x3 only right with Size Variation ~0 and modest Corner Roundness, else borders go missing and height jumps at cell edges (thin lines from derivative normal). **Never hide missing neighbours by fading a point's pull** - search far enough.
+  - **Gaps**: `_GapWidth` may be negative (-1 to 0.4); `_MinGap` (0.02) line always kept on the true border. `Cobbles()` returns depth inside stone: `min(rounded - GapWidth/2, border - MinGap/2)`. Height 0 at edge/gap, rising over `_Bevel` to 1.
+  - **Colour**: per-cell point along `_ColorA`-`_ColorB`-`_ColorC`, `_BrightnessVariation`, `_EdgeDarkening` down shoulder, `_GapColor`; `_Seed` changes layout.
+  - **Crevice shadow** (AO stand-in): colour and shine x `1 - _OcclusionStrength * (1 - smoothstep(0, _OcclusionWidth, abs(edge)))` (0.6, 0.12 cobble). After dirt, faded with distance fade; colour multiply, not `surfaceData.occlusion`. Not in BrickWall.
+  - **Normal** from screen-space derivatives of height (`_Depth` m x `_NormalStrength`, Mikkelsen) - no tangents/normal map.
+  - **Lit** with `UniversalFragmentBlinnPhong`, optional shine (`_SPECULAR_COLOR`); SRP Batcher, stereo, fog; ShadowCaster, DepthOnly, DepthNormals; **no Meta pass** (bake won't see colours - add one before baking a level with it).
+  - **Distance fade** (`_FadeStart`/`_FadeEnd`, cobbles per pixel) to flat average before sub-pixel.
+  - **Parallax** (`_PARALLAX`, off, `_ParallaxDepth`): one offset-limited shift, not POM - computes the pattern twice.
+  - **Dirt** (`_DIRT`, off): three two-channel value noises (`Noise2()`). Slow: grime patches (`_GrimeAmount`, `_GrimeCoverage`, `_GrimeScale` m; `_GrimeLowBias` puts dirt in gaps/shoulders) tint to `_DirtColor`, dull shine; after distance fade. Second warps coords before cobbles (`_WarpAmount`, `_WarpScale`). Fine "flecks" (`_MottleScale`): mottle (`_MottleAmount`), pits (`_MottleBump`), gap colour variation (`_GapNoiseAmount`), ragged outline (`_EdgeRaggedness`). **Flecks grow with distance instead of fading**: under `_FleckPixels` (4) px the noise is read at double size, repeatedly, blending the two nearest doublings. `FleckNoise2()` wraps grid corners into 0-1023 before hashing (`Hash22()` loses float precision at large coords).
+  - **Cost** per pixel: ~25 hashes + 24 border distances (5x5; 9 and 8 narrow), doubled with parallax, +16 hashes with dirt. Unmeasured; fallback is baking to textures.
+- **`TeaLeaf/BrickWall`** (`Assets/Art/Shaders/BrickWall.shader`; **not yet compiled or seen**): Cobblestone's sister for brick/coursed stone. Same frame (world-space, textureless, Blinn-Phong, derivative normal, distance fade, optional one-shift parallax, same Dirt layer, same four passes, no Meta). **Shared code is duplicated, not in an include - fix both.** Sizes in **metres**. **Pattern, no search**: rows `_BrickHeight`, bricks `_BrickWidth` (each incl. mortar share); odd rows slid `_RowOffset` (0.5 = running bond) + per-row `_RowOffsetVariation`; row and brick lines nudged up to 0.45 brick (`_HeightVariation`, `_WidthVariation`; 0 brick, higher stone). `FindSpan()`: nearest line and next out, two hashes/axis. Edge = rounded-rect distance (`_CornerRadius`) less half `_MortarWidth`; height over `_Bevel`. `_FaceTilt` random face lean. Colours A-B-C per brick, `_MortarColor`. **Direction**: on a wall u = `cross(up, normal)` (along, level), v up; mostly up/down-facing uses world X/Z. Doesn't wrap corners. ~6 hashes/pixel.
+- **`TeaLeaf/Water`** (`Assets/Art/Shaders/Water.shader`; material `Assets/Art/Materials/TeaLeaf_Water.mat`; **not yet confirmed in headset**): night harbour water, opaque (Geometry), world-space, no textures but optional foam mask. Never reads depth/opaque texture (no see-through shallows, refraction, depth foam). **Don't rename existing properties.**
+  - **Swell, per vertex**: three sines (`_WaveA/B/C`: direction °, length m, crest height m, speed m/s), **vertical only** (edge stays put against walls); slope gives vertex normal. `Swell()`/`SwellPositionWS()` in `HLSLINCLUDE`, used by every pass. Floating objects must compute the same sum on CPU from material wave values + `Time.time` (not built).
+  - **Mesh** level, face up, with vertices across: Unity default Plane (10m, vertex/m), tiled not scaled (world-space, tiles join). A wave needs ≥4 vertices per length.
+  - **Ripples, per pixel**: two value-noise layers with exact derivatives (`RippleNoise()`, 4 hashes each); second turned 37°, 0.45 size (`_RippleSize`), half height (`_RippleHeight`), sliding over the first. Coords per vertex. Only add to slope. Each fades by ripples per pixel (`_FadeStart`/`_FadeEnd`); glint spread wider where faded.
+  - **Own lighting** (not URP Blinn-Phong): `_WaterColor` x probe ambient (`SampleSH` up, per vertex) + per-light Lambert; + `_HorizonColor` by Fresnel (`_FresnelPower`; fixed colour, no reflection probe); + Blinn-Phong glint per light (`_GlintColor`, `_GlintStrength`, `_Smoothness`) squeezed by `_GlintHardness` into hard dabs. Main light shadowed (glint stops in shadow); additional lights per pixel via `LIGHT_LOOP_BEGIN` (Forward+ or not); shadowmask from probes; fog. **No screen-space derivative inside the light loop** (won't compile in a variable-length loop). No lightmap/probe-volume variants.
+  - **Foam** (`_FOAM`, off): `_FoamMask` top-down over world rect `_FoamArea` (centre X, centre Z, size X, size Z), white at wall to black; foam where mask x ripples (`_FoamBreakup`) and slow per-vertex sine (`_FoamLap`, `_FoamLapSpeed`) passes 0.5. Matt (no reflection/glint). Import mask Clamp with black border.
+  - **Passes**: ForwardLit, DepthOnly, DepthNormals; no ShadowCaster, no Meta. SRP Batcher, stereo.
+  - **In a level**: `Environment`, **no collider** (bed below has one), Cast Shadows off, not Contribute GI.
+  - **Cost**: 8 hashes/pixel, +1 texture read with Foam, one `pow`/light. Unmeasured.
+- **`TeaLeaf/DoorLeaf`** (`Assets/Art/Shaders/DoorLeaf.shader`; a material uses it): door leaf with a keyhole cut out, for `Interaction.DoorKeyhole` (`Scripts/Interaction/CLAUDE.md`). Flat `_BaseColor`, Blinn-Phong, same frame/passes as Cobblestone (lighting copied, not shared). `KeyholeDistance()` = signed distance (m) to the outline, min of circle and slot, across the face only, from `_KeyholeCentre`/`_KeyholeRight`/`_KeyholeUp` (leaf object space) and `_KeyholeSize` (x = circle radius; circle centre one radius above keyhole middle, slot one radius wide down to two radii below; **`DoorKeyhole.BuildOutline()` must match**). Set per renderer via `DoorKeyhole`'s `MaterialPropertyBlock` (takes the leaf out of SRP Batcher); all zero = no opening. Inside clipped in ForwardLit, DepthOnly, DepthNormals; **ShadowCaster doesn't cut** (whole shadow). Edge = one pixel coverage as alpha with `AlphaToMask On`. `_RimColor`/`_RimWidth` darken a band round it. Back faces culled; opening's walls are a mesh `DoorKeyhole` makes, with this shader. `clip` weakens early-Z: door leaves only, not walls. A lock plate uses it too (own material, own block from `DoorKeyhole`).
+- **`TeaLeaf/LockFade`** (`Assets/Art/Shaders/Resources/LockFade.shader`; Resources for `Shader.Find()`): lockpicking pieces, pack, keyring. **Vertex colour** (set at build, `Interaction.LockMeshBuilder`) x `_BaseColor`: one mesh, one material, no texture. **Lit per vertex**: `SampleSH` + main-light Lambert, no shadows/extra lights, floor `_MinLight` (0.35). No fog. **One shader, two materials** (`LockMeshBuilder.CreateMaterial(seeThrough, minLight)`): solid = Geometry, `Blend One Zero`; see-through = Transparent, `SrcAlpha OneMinusSrcAlpha`, `_Alpha`. `ZWrite On` both. Big lock uses see-through only while fading. ForwardLit + DepthOnly; SRP Batcher; stereo.
 
 ## Gameplay light
 
-How much light falls on a point, for visibility. **Worked out from the level's geometry;
-only the lights are placed by hand.** No shadow volumes or light volumes. Levels are at
-night. The player's side (`Player.PlayerVisibility`) is in `Scripts/Player/CLAUDE.md`.
+Light on a point for visibility. **From level geometry; only lights placed by hand.** No shadow/light volumes. Night levels. Player side (`Player.PlayerVisibility`) in `Scripts/Player/CLAUDE.md`.
 
-- **`SceneLight`** (static) — `LevelAt(worldPoint)`: 0 = full shadow, 1 = fully lit; the
-  **brightest** light reaching the point (they don't add). Moon first: one
-  `Physics.Raycast` from the point towards the moon; nothing hit = `Moonlight.Level`. Then
-  each lit `LightSource`: skipped if out of range or no brighter here than what's already
-  found, otherwise one `Physics.Linecast` from the source to the point. Rays use
-  Environment + Interactable (mask cached on first use), triggers ignored - so walls, roofs,
-  props and closed doors block light, and gameplay shadows fall where the rendered ones do
-  **provided every shadow-casting mesh has a collider on one of those layers**. The rendered
-  shadow map is deliberately not read back from the GPU. No allocation; callers should
-  sample a few times a second, not per frame.
-- **`Moonlight`** — on the scene's Directional Light. `level` (0.4), `maxDistance` (200m, how
-  far the ray looks), `DirectionToMoon` = `-transform.forward`; `shadowFloor` (0.045, 0.05,
-  0.06, a linear light level in the moon's blue-grey) is the least light any baked surface
-  or light probe receives, applied to the bake by `ShadowFloor` (`Core/Editor`) - the
-  rendered look only, nothing to do with the gameplay light. `Moonlight.Instance` set in
-  `OnEnable`; with none in the scene nothing is moonlit.
-- **`LightSource`** — a torch or lamp: `level` (0-1), `range` (metres) and
-  `fullBrightnessFraction` (0.5): full level out to that fraction of the range, then a
-  straight-line fade to 0 at the range (`LevelAtDistance()`). Self-registering static list
-  (`Count`/`Get(i)`). **Disabling the component puts it out.** It's the gameplay light only;
-  the visible light is an ordinary Unity `Light` on the same object. Place it a little out
-  from the wall it hangs on. `IDebugDrawable`: orange wire sphere at the range, plus the
-  full-brightness distance when selected.
-- **`Flame`** — something burning that can be put out (a torch, a brazier): the one place
-  that switches a fire's parts off, or on again, together - its `LightSource`, its Unity
-  `Light`, its `SoundLoop` (each found on the same object if not wired) and an optional
-  `flameVisual` object. `Extinguish()` (with an optional `extinguishCue`), `Relight()`,
-  `IsLit`, `startsLit`. Self-registering static list; **`Flame.ExtinguishNear(point,
-  radius)`** puts out every lit one within the radius (distance checks only) and returns
-  how many - what the water bolt calls. No `Update()`. It also pauses the fire's
-  `FlameFlicker` (found on the same object if not wired) while the fire is out.
-- **`FlameFlicker`** — makes a fire's visible light waver: its Unity `Light`'s intensity
-  (`flameLight`, found on the same object if not wired) wanders round the value set in
-  the editor by up to `amount` (0.15) of it either way, at `speed` (6), from two octaves
-  of `Mathf.PerlinNoise` - a slow wander with a quicker tremble on top. **Only the
-  visible light moves; the `LightSource` guards see by stays steady**, so detection never
-  jitters. It works because the light is Mixed and the lighting mode is Shadowmask: the
-  direct part is computed every frame, so the change shows on static and moving things
-  alike with no rebake; only the baked bounce stays constant. On a **Baked** light it
-  disables itself in `Awake()` (nothing would show) and costs nothing. **Each flame
-  starts at its own point in the noise**, hashed from its world position in `Awake()`,
-  so neighbouring lamps never flicker in step. Its own `Update()` (one float write a
-  frame; not a player system). Disabling it puts the intensity back where the editor
-  set it. On the `TL_Lampost` variant (which has no `Flame`); the Sound Test House builder
-  adds one to each of its lights. **A flame is drawn by one quad
-  with the `TeaLeaf/Flame` shader** (`Assets/Art/Shaders/Flame.shader`,
-  `Assets/Art/Materials/Flame.mat`, the noise `Assets/Art/Textures/FlameNoise.png`, a
-  128 R8 tiling value noise): unlit, billboarded round the up axis in the vertex
-  shader from the per-eye camera position, two samples of the noise bending a
-  teardrop with a low rounded heart, each flame's phase hashed from its world xz,
-  flicker per vertex, premultiplied blend (`Blend One OneMinusSrcAlpha`), SRP Batcher
-  CBUFFER and stereo macros. The `TL_Lampost`, `TL_IronFixtures_Lamp`, `_LargeTorch`
-  and `_TorchBracket` variants each carry a `Flame Visual` child (a built-in Quad with
-  `Flame.mat`; `Environment` layer; Occludee static only - Batching static would lose
-  the pivot the billboard turns about; no shadows, probes or motion vectors) set as
-  the `Flame`'s `flameVisual`, with the pack's nested `Fire_Effect` particle system
-  turned off: its URP Particles/Lit material wants the depth and opaque textures,
-  both off by project rule, and drew a lit square. Sizes: lantern 0.09 x 0.16m at the
-  cage floor, brazier 0.40 x 0.55m, bracket torch 0.22 x 0.40m. Not yet tuned in the
-  headset; the lantern's point light (intensity 3) washes the flame's heart out.
-- The Sound Test House has three sources with matching point lights (Hall torch, Kitchen
-  torch, Lounge lamp at 0.7); moonlight reaches the Yard and the roofless upper floor; the
-  Store is dark behind its closed door.
+- **`SceneLight`** (static): `LevelAt(worldPoint)` 0 = full shadow, 1 = lit; the **brightest** light wins (no adding). Moon first: one `Physics.Raycast` towards the moon; no hit = `Moonlight.Level`. Then each lit `LightSource`: skip if out of range or not brighter than found; else one `Physics.Linecast` source→point. Mask Environment + Interactable (cached on first use), triggers ignored - walls, roofs, props, closed doors block. Gameplay shadows match rendered ones **only if every shadow-casting mesh has a collider on those layers**. Shadow map deliberately not read back. No allocation; callers sample a few times/s, not per frame.
+- **`Moonlight`** (on the Directional Light): `level` (0.4), `maxDistance` (200m ray), `DirectionToMoon` = `-transform.forward`; `shadowFloor` (0.045, 0.05, 0.06, linear, moon's blue-grey) = least light any baked surface/probe gets, applied by `ShadowFloor` (`Core/Editor`) - rendered look only, not gameplay light. `Moonlight.Instance` set in `OnEnable`; none = nothing moonlit.
+- **`LightSource`** (torch/lamp): `level` (0-1), `range` (m), `fullBrightnessFraction` (0.5): full out to that share of range, linear to 0 at range (`LevelAtDistance()`). Self-registering (`Count`/`Get(i)`). **Disabling puts it out.** Gameplay only; visible light is an ordinary `Light` on the same object. Place a little out from its wall. `IDebugDrawable`: orange wire sphere at range, plus full-brightness distance when selected.
+- **`Flame`** (torch, brazier - can be put out): the one place that switches a fire's parts together: its `LightSource`, `Light`, `SoundLoop` (found on same object if unwired), optional `flameVisual`. `Extinguish()` (optional `extinguishCue`), `Relight()`, `IsLit`, `startsLit`. Self-registering; **`Flame.ExtinguishNear(point, radius)`** puts out all lit within radius (distance checks), returns count - the water bolt calls it. No `Update()`. Pauses the fire's `FlameFlicker` (same object if unwired) while out.
+- **`FlameFlicker`**: visible `Light` intensity (`flameLight`, same object if unwired) wanders round its editor value by up to `amount` (0.15) of it, at `speed` (6), two octaves of `Mathf.PerlinNoise`. **Only the visible light moves; `LightSource` stays steady** (detection never jitters). Works because light is Mixed + Shadowmask (direct part per frame, no rebake; baked bounce constant). On a **Baked** light it disables itself in `Awake()`. Each flame's noise offset hashed from world position in `Awake()` (neighbours never in step). Own `Update()` (one float write/frame; not a player system). Disabling restores editor intensity. On `TL_Lampost` (no `Flame`); Sound Test House builder adds one per light.
+- **Flame visual**: one quad, shader `TeaLeaf/Flame` (`Assets/Art/Shaders/Flame.shader`, `Assets/Art/Materials/Flame.mat`, noise `Assets/Art/Textures/FlameNoise.png`, 128 R8 tiling value noise): unlit, billboarded round up axis in vertex shader from per-eye camera position, two noise samples bend a teardrop with a low rounded heart, phase hashed from world xz, flicker per vertex, premultiplied (`Blend One OneMinusSrcAlpha`), SRP Batcher CBUFFER, stereo. `TL_Lampost`, `TL_IronFixtures_Lamp`, `_LargeTorch`, `_TorchBracket` variants each have a `Flame Visual` child (built-in Quad, `Flame.mat`, `Environment`, **Occludee static only** - Batching static loses the billboard pivot; no shadows/probes/motion vectors) set as `flameVisual`; the pack's nested `Fire_Effect` particles are off (URP Particles/Lit wants depth+opaque textures, off by rule; drew a lit square). Sizes: lantern 0.09 x 0.16m at cage floor, brazier 0.40 x 0.55m, bracket torch 0.22 x 0.40m. Untuned in headset; lantern point light (intensity 3) washes out the flame's heart.
+- Sound Test House: three sources with matching point lights (Hall torch, Kitchen torch, Lounge lamp at 0.7); moonlight reaches the Yard and roofless upper floor; Store dark behind its closed door.
 
 ## Surfaces
 
-What a floor is made of, for footsteps and landings - the player's
-(`Player.PlayerFootsteps`, see `Scripts/Player/CLAUDE.md`), guards' later - the ramp
-that stands in for a flight of steps, and the barrels' shared collision shape.
+Floor material for footsteps/landings (player's `Player.PlayerFootsteps`, guards' later), step ramps, barrel collision, and the editor tools for level pieces.
 
-- **`SurfaceType`** (enum) — `Stone`, `Wood`, `Carpet`, `Metal`, `Water`, `Tile`, `Grass`,
-  `Gravel`, `Plaster`. `Stone` is first, so it's what anything untagged is: only floors that differ need
-  a tag. **Add new values at the end** - tags and `SurfaceSounds` entries are serialized as
-  the number.
-- **`SurfaceTag`** — data-only component holding a `SurfaceType`, on the collider's object or
-  **any parent** (a tag covers everything beneath it; a nearer tag overrides).
-  `SurfaceTag.Of(collider)` walks up the hierarchy with `TryGetComponent` and returns `Stone`
-  if there is none - called only when a foot comes down, never per frame.
-  `SurfaceTag.TryFindBelow(from, distance, layers, out surface)` is the shared floor lookup:
-  one ray straight down (triggers ignored), false on a miss. `SurfaceTag.Find(collider)`
-  is the same walk returning the tag itself, or null. **Crossbow bolts:**
-  `SurfaceTag.HoldsBolt(surface)` says which kinds a bolt sticks into - `Wood`, `Carpet`,
-  `Grass`, `Plaster`; it bounces off the rest, so off everything untagged - and the tag's
-  **`supportsRopeBolt`** toggle (off by default) says whether a rope bolt stuck there
-  bears a climber's weight (see the crossbow in `Scripts/Player/CLAUDE.md`).
-- **`SurfaceSounds`** (ScriptableObject, Create > TeaLeaf > Surface Sounds) — one entry per
-  surface: a footstep `SoundCue`. `GetFootstep(surface)` indexes a lookup array built on
-  first use (rebuilt after an Inspector edit); a surface with no cue uses Stone's.
-  `GetLoudness(surface)` = the surface's footstep noise radius over Stone's (1 for stone,
-  about 0.4 carpet, 1.7 metal; 1 if a cue is missing): how loud a surface is for anything
-  else landing on it, used by `Interaction.ImpactNoise`. **No landing cues**: a landing is
-  the surface's step played loud, once per foot, by the walker. **A surface's loudness to
-  guards is its cue's `noiseRadius`**; the walker scales it by stance through `Play()`'s
-  `noiseScale`.
-  **Heel and toe** (for hard surfaces; on for Stone and Tile): per entry, `heelAndToe`
-  (toggle), `heelAndToeRatio` (share of steps that get it), `toeVolume` (the second sound's
-  volume as a fraction of the first), `toeDelay` (seconds from heel to toe) and `toeMuffle`
-  (0-1, passed as `Play()`'s `muffle`). `PlayStep(surface, position, source, noiseScale,
-  volumeScale, ref cadence)` is how a walker makes a step: the cue with its noise, then the
-  toe - the same cue again (its own random clip), audio only, through `Play()`'s `delay`.
-  **Normal heel first, quieter toe second - never the reverse.** Which steps get a toe is
-  decided by the walker's own **`HeelAndToeCadence`** (struct): each step adds the ratio to
-  a credit, and a toe sounds when the credit reaches a target re-picked at random in
-  0.5-1.5, spending 1 - the average is the ratio, with no long runs either way (not a
-  per-step dice roll).
-- **`RampCollider`** — the collision for a flight of steps: one convex `MeshCollider`
-  holding a six-corner wedge, so the player walks up a smooth ramp rather than each step.
-  `[RequireComponent(MeshCollider)]`, on an empty child of the steps' prefab variant, at
-  the foot of the first step in the middle of its width, on `Environment` (the
-  `SurfaceTag` on it or a parent). **Own axes:** X across the steps, Y up, +Z up the
-  flight - the slope starts on the floor at the object's position and reaches `height` at
-  `length` along Z, `width` centred on X; the wedge is solid (sides, back and bottom too),
-  so it suits free-standing steps. Sizes are in the object's own units: keep it at scale
-  1. **The mesh is never saved**: `Rebuild()` makes it from the three sizes in `Awake()`
-  (once, at load) and in `OnValidate()` (scene load and Inspector edits, so editor bakes
-  such as the NavMesh see it), reusing one `Mesh` per component; it sets the collider's
-  mesh and `convex` itself. No gizmo of its own: the `MeshCollider` draws the wedge when
-  selected.
-- **`BarrelCollider`** — the tuning tool for a barrel's collision, **not a runtime
-  collider builder**: a twelve-sided shape of four rings (`bottomRim`, `lowerBelly`,
-  `upperBelly`, `topRim`, each a `height` above the object and a `radius`), baked to one
-  mesh asset that every barrel's convex `MeshCollider` shares, so the shape is cooked at
-  import and nothing is built at load. `[RequireComponent(MeshCollider)]`, on a
-  `BarrelCollider` child of the `Prefabs/Containers/Barrel` variant (which replaces the
-  pack's own collision child), at the middle of the barrel's base, on `Environment` with a
-  Wood `SurfaceTag`; local +Y up the barrel, scale 1. **The collider only changes on a
-  bake**: right-click > **Bake To Mesh Asset** writes the mesh to `meshAssetPath`
-  (`Assets/Art/Colliders/BarrelCollider.asset`), filling the existing asset in again
-  rather than replacing it, and assigns it to its own `MeshCollider`. The numbers are
-  shown as a yellow outline while selected (`IDebugDrawable` through `DebugLines`, **not
-  registered** with `DebugDrawRegistry`: it is a Scene view tool, and registering would
-  cost every barrel something at runtime). Everything but the outline is
-  `#if UNITY_EDITOR`; no `Awake()` or `Update()` - it stays on the prefab only to keep
-  the numbers. **Other barrel prefabs get a plain convex `MeshCollider` with the baked
-  mesh, no `BarrelCollider`.** Convex, so a ring narrower than the line between its
-  neighbours is bridged over.
-- **`EnvironmentVariants`** (`Core/Editor`, menu **TeaLeaf > Modify Prefab > Make Environment Variants**)
-  — makes the prefab variants for static level geometry in bulk. Select pack prefabs, or
-  folders holding them, in the Project window and run it: each gets a variant in
-  `Assets/Prefabs/Environment/<category>/` under the pack's name with a leading
-  pack prefix (`Medieval_`, `S_MVillage_`) swapped for `TL_` and a duplicate-name
-  suffix such as ` (1)` dropped (other names are kept), with every object in it
-  (LOD meshes and collision children too) on `Environment` and marked Static (Contribute
-  GI, Occluder, Occludee, Batching, Reflection Probe). The category is the pack folder the
-  prefab is in, or that folder's parent when it is only the pack's prefabs folder
-  (`Walls/Prfbs` gives `Walls`; the pack's `Masonary` is filed as `Masonry`). **A pack
-  prefab that already has a variant anywhere under `Assets/Prefabs` is skipped** - found
-  from the variants themselves, so one that was renamed or moved still counts - so it can
-  be run again without overwriting hand work. It adds no colliders, `SurfaceTag`s or
-  scripts. **Not for things that move**: doors, and foliage that sways, get their variants
-  by hand. **Small pieces are lit by light probes**: every static (Contribute GI) mesh
-  renderer whose longest side is under 1m, or whose middle side is under 0.15m (a rod:
-  rails, beams, brackets), gets Receive Global Illumination: Light Probes, measured on the
-  mesh's own bounds times the object's scale (`SmallPieceSize`, `ThinPieceWidth`); thin
-  flat pieces (floors, roof tile panels and hip bases, wall panels) keep their lightmaps.
-  **A probe-lit renderer is never Batching Static** - one set to Light Probes, or one
-  that doesn't Contribute GI (lit by probes whatever it is set to, lamp posts for one):
-  static batching merges it into one mesh with its neighbours, and the probes are then
-  read at the merged mesh's centre, so a prop at the far end of its batch takes the
-  light and moon shadow of a spot many metres away. The tool takes the flag off every
-  such renderer, keeping its other static flags. New variants get both as they are made;
-  **TeaLeaf > Lighting > Set Small Pieces To Light Probes** applies both to every prefab
-  already under `Assets/Prefabs` (opened with `LoadPrefabContents`, saved only if
-  something changed, so on a variant it is an override, nested pack pieces included).
-  Non-static pieces are left alone.
-- **`LodMeshBuilder`** (`Core/Editor`, an editor window, menu **TeaLeaf > Modify Prefab > Make LOD
-  Meshes**) — makes the lower-detail meshes for a model the way the packs' models carry
-  them (Medieval_Barrel: `_LOD0`, `_LOD1`, `_LOD2` and `_Collision` meshes). Select
-  models (FBX) or meshes in the Project window and press the button: the model's own mesh
-  is LOD0, and next to the model it saves `<name>_LOD1.asset` and `<name>_LOD2.asset`
-  cut to a share of the triangles (0.5 and 0.2 by default), plus `<name>_Collision.asset`
-  (0.1) when **Collision mesh** is ticked - off by default - for a convex `MeshCollider`.
-  `<name>` is the model file's name, or the mesh's own when a model holds several; a
-  mesh already named `_LOD1`/`_LOD2`/`_Collision` is skipped. **Mesh assets only**: the
-  prefab (root with a `LODGroup`, a child per LOD, a collision child) is put together by
-  hand. Running it again rewrites the existing assets in place (`CopySerialized`), so a
-  prefab built on them keeps its references. The reducing is the **Unity Mesh Simplifier**
-  package (`com.whinarn.unitymeshsimplifier`, from GitHub in the manifest; quadric edge
-  collapse keeping UVs, normals and tangents; used only here, nothing of it runs in the
-  game). Open edges are always kept (`PreserveBorderEdges`); **Preserve UV seams** is off
-  by default because a generated (Tripo) model is seamed everywhere and keeping them stops
-  the reduction - the Console report gives each mesh's triangle counts, so an unreached
-  ratio shows. Settings persist in EditorPrefs.
-- **`ColliderRemover`** (`Core/Editor`, menu **TeaLeaf > Remove Colliders From
-  Selection**, offered while something is selected) — removes every collider from the
-  objects selected in the Hierarchy and all their children, inactive ones included, as
-  one Undo step, logging the count. A `RampCollider` is removed too (first, since it
-  requires its `MeshCollider`). On a prefab instance the removal is an override; the
-  prefab is untouched.
-- **`ColliderFlattener`** (`Core/Editor`, menu **TeaLeaf > Modify Prefab > Flatten Variant Colliders**)
-  — moves the colliders of the prefabs selected in the Project window (prefabs or
-  folders, under `Assets/Prefabs` only) onto each prefab's root object and deletes the
-  child objects left holding nothing but a transform (and an undrawn mesh), logging a
-  total and a line per prefab changed. **The rule it applies: a prefab's colliders sit
-  on its root, and a collider gets a child object only when it needs one** - the packs
-  put every collider on its own child, most of them empty transforms (an extra
-  Transform each to sync and serialise, and a longer walk for `SurfaceTag.Find()`).
-  A collider stays on its child when it is turned relative to the root (within
-  `AlignedAngle`, 0.01°; a collider has no rotation of its own), when the child has
-  another layer or a `SurfaceTag` between it and the root or is a trigger, when it
-  carries another component (a `RampCollider`, a `BarrelCollider`), or when it is part
-  of a nested prefab instance; a `MeshCollider` moves only from a child at the root's
-  exact transform, since its mesh can't be re-centred. A box is re-centred with
-  `TransformPoint` and re-sized by the child's world scale over the root's, axis by
-  axis; a sphere's radius by the largest axis, a capsule's height along its axis and
-  radius by the larger of the other two. Each prefab is opened with
-  `LoadPrefabContents` and saved only if something moved, so on a variant the changes
-  are overrides (an added collider on the root, a removed component and a removed
-  object on the base) and the pack's prefab is untouched. Only the variants it is run
-  on change: run it on a prefab when its collider children matter (the cliff rocks and
-  the deciduous trees carry up to thirty each).
-- **`LightProbePlacer`** (`Core/Editor`, menu **TeaLeaf > Lighting > Place Light Probes**) — fills the
-  level's one `LightProbeGroup`, at `Environment/Sectors/Global/Lighting/Light Probes`
-  (made, with any missing groups on the way, if absent). A grid every 1.25m (`Spacing`) over
-  the box round every Environment collider; in each column, rays straight down find every
-  floor (normal y at least 0.7, so ramps count and walls don't; a floor within 0.5m below
-  the last gives nothing), and a probe goes 0.2m, 1m and 2m above each (`_heights`). The
-  lowest layer sits below the centre of anything small standing on the floor (grass, a
-  table, loot): Unity blends from the tetrahedron round a renderer's bounds centre, not
-  from the nearest probes, and a centre under the lowest layer is blended from a
-  tetrahedron reaching down to some lower floor. A probe-lit thing takes one value for
-  its whole body, blurred across the cell it stands in, so the grid is close to keep the
-  moon's shadow edge tight; the count costs bake time and a little memory, not frame
-  time (a renderer's lookup is cached until it moves). A probe is
-  left out if it is within 0.15m of geometry, if anything lies between it and its floor (a
-  low ceiling), or if at least three of six rays out from it first hit the inside of a mesh
-  collider (back faces on: shut inside a building with no interior). Each run replaces the
-  group's probes (undoable); rerun after layout changes, then rebake. Environment layer only,
-  so it also fills spaces the player can't reach (a sea bed under the water).
-- **`ShadowFloor`** (`Core/Editor`, menu **TeaLeaf > Lighting > Apply Shadow Floor**; also runs by
-  itself after every bake, through `Lightmapping.bakeCompleted`) — raises every lightmap
-  texel and every light probe of the open scene to at least `Moonlight.shadowFloor`, so
-  deep shade keeps its detail while the moon-to-shade contrast stays: a flat sky ambient
-  would reach an enclosed alley at about a thirtieth of what open shade gets, so any
-  ambient that lifts the alleys washes out the shade everywhere else, while flooring the
-  baked data lifts only what is below the floor. Each lightmap is read back through the
-  GPU (a blit to a float render texture, so the BC6H textures need no importer change),
-  floored, written over its EXR file and reimported synchronously; each probe gets an
-  ambient term where the darkest of six directions is below the floor, and the lighting
-  data is saved. Idempotent (a texel within 2% of the floor counts as done), so re-applying
-  changes nothing. The reimport raises `bakeCompleted` again from inside the import, which
-  is ignored while a floor is being applied. With no `Moonlight` in the scene nothing is
-  applied. Costs nothing at runtime and changes no shader.
+- **`SurfaceType`** (enum): `Stone`, `Wood`, `Carpet`, `Metal`, `Water`, `Tile`, `Grass`, `Gravel`, `Plaster`. `Stone` first = untagged default, so only differing floors need tags. **Add new values at the end** (serialized as numbers).
+- **`SurfaceTag`** (data-only, `SurfaceType`) on the collider's object or **any parent** (covers everything beneath; nearer overrides). `SurfaceTag.Of(collider)` walks up with `TryGetComponent`, `Stone` if none - only when a foot lands, never per frame. `SurfaceTag.TryFindBelow(from, distance, layers, out surface)`: shared floor lookup, one ray down (triggers ignored), false on miss. `SurfaceTag.Find(collider)`: same walk, returns tag or null. **Bolts**: `SurfaceTag.HoldsBolt(surface)` = `Wood`, `Carpet`, `Grass`, `Plaster` (bounce off the rest, incl. untagged); **`supportsRopeBolt`** (off default) = a rope bolt there bears weight (crossbow in `Scripts/Player/CLAUDE.md`).
+- **`SurfaceSounds`** (ScriptableObject, Create > TeaLeaf > Surface Sounds): one entry per surface with a footstep `SoundCue`. `GetFootstep(surface)` indexes a lookup array built on first use (rebuilt after Inspector edit); no cue = Stone's. `GetLoudness(surface)` = footstep noise radius / Stone's (1 stone, ~0.4 carpet, 1.7 metal; 1 if cue missing) - used by `Interaction.ImpactNoise`. **No landing cues**: a landing is the step played loud, once per foot, by the walker. **Loudness to guards = cue's `noiseRadius`**, scaled by stance via `Play()`'s `noiseScale`.
+  - **Heel and toe** (hard surfaces; on for Stone, Tile): per entry `heelAndToe`, `heelAndToeRatio` (share of steps), `toeVolume` (fraction of first), `toeDelay` (s), `toeMuffle` (0-1, as `Play()`'s `muffle`). `PlayStep(surface, position, source, noiseScale, volumeScale, ref cadence)`: cue with noise, then toe = same cue again (own random clip), audio only, via `Play()`'s `delay`. **Normal heel first, quieter toe second - never reversed.** Toes chosen by walker's **`HeelAndToeCadence`** (struct): each step adds ratio to credit; toe when credit reaches a target re-picked in 0.5-1.5, spending 1 (average = ratio, no long runs; not a per-step dice roll).
+- **`RampCollider`**: collision for a flight of steps - one convex `MeshCollider` six-corner wedge (smooth ramp). `[RequireComponent(MeshCollider)]`, on an empty child of the steps' variant, at the foot of the first step mid-width, on `Environment` (`SurfaceTag` on it or parent). Axes: X across, Y up, +Z up the flight; slope from floor at origin to `height` at `length` along Z, `width` centred on X; solid wedge (suits free-standing steps). Keep scale 1. **Mesh never saved**: `Rebuild()` in `Awake()` and `OnValidate()` (scene load/Inspector, so editor bakes like NavMesh see it), one reused `Mesh`; sets collider mesh and `convex`. No own gizmo (collider draws it).
+- **`BarrelCollider`**: **tuning tool, not a runtime builder**. Twelve-sided, four rings (`bottomRim`, `lowerBelly`, `upperBelly`, `topRim`, each `height` + `radius`), baked to one mesh asset all barrels' convex `MeshCollider`s share (cooked at import, nothing built at load). `[RequireComponent(MeshCollider)]`, on a `BarrelCollider` child of `Prefabs/Containers/Barrel` (replaces the pack's collision child), at base middle, `Environment`, Wood `SurfaceTag`; +Y up, scale 1. **Only changes on a bake**: right-click > **Bake To Mesh Asset** writes `meshAssetPath` (`Assets/Art/Colliders/BarrelCollider.asset`), refilling the existing asset, and assigns it. Yellow outline while selected (`IDebugDrawable` via `DebugLines`, **not registered** with `DebugDrawRegistry` - Scene-view tool; registering would cost every barrel at runtime). All but the outline `#if UNITY_EDITOR`; no `Awake()`/`Update()`; kept on the prefab to hold the numbers. **Other barrel prefabs: plain convex `MeshCollider` with the baked mesh, no `BarrelCollider`.** Convex: a ring narrower than its neighbours' line is bridged.
+- **`EnvironmentVariants`** (`Core/Editor`, **TeaLeaf > Modify Prefab > Make Environment Variants**): bulk variants for static geometry. Select pack prefabs/folders in Project; each gets a variant in `Assets/Prefabs/Environment/<category>/` named as the pack's with prefix (`Medieval_`, `S_MVillage_`) swapped for `TL_` and duplicate suffix like ` (1)` dropped; every object (LOD meshes, collision children) on `Environment`, Static (Contribute GI, Occluder, Occludee, Batching, Reflection Probe). Category = the pack folder, or its parent when it's just the pack's prefabs folder (`Walls/Prfbs` → `Walls`; `Masonary` filed as `Masonry`). **Skips a pack prefab already having a variant anywhere under `Assets/Prefabs`** (found from the variants, so renamed/moved count) - safe to rerun. Adds no colliders, `SurfaceTag`s or scripts. **Not for moving things** (doors, swaying foliage: by hand).
+  - **Small pieces light-probe-lit**: static (Contribute GI) mesh renderers with longest side < 1m or middle side < 0.15m (rods: rails, beams, brackets) get Receive GI: Light Probes, measured on mesh bounds x object scale (`SmallPieceSize`, `ThinPieceWidth`); thin flat pieces (floors, roof tile panels, hip bases, wall panels) keep lightmaps.
+  - **A probe-lit renderer is never Batching Static** (set to Light Probes, or not Contribute GI, e.g. lamp posts): batching reads probes at the merged mesh's centre, so a prop takes light/moon shadow from metres away. Tool clears that flag, keeping others.
+  - New variants get both; **TeaLeaf > Lighting > Set Small Pieces To Light Probes** applies both to every existing prefab under `Assets/Prefabs` (`LoadPrefabContents`, saved only if changed; on variants an override, nested pack pieces included). Non-static pieces untouched.
+- **`LodMeshBuilder`** (`Core/Editor`, editor window, **TeaLeaf > Modify Prefab > Make LOD Meshes**): lower-detail meshes as the packs carry them (Medieval_Barrel: `_LOD0`, `_LOD1`, `_LOD2`, `_Collision`). Select models (FBX) or meshes, press the button: own mesh = LOD0; saves next to the model `<name>_LOD1.asset`, `<name>_LOD2.asset` (0.5, 0.2 of triangles default) and `<name>_Collision.asset` (0.1) when **Collision mesh** ticked (off default), for a convex `MeshCollider`. `<name>` = model file name, or mesh name when a model holds several; meshes already named `_LOD1`/`_LOD2`/`_Collision` skipped. **Mesh assets only**: prefab (root `LODGroup`, child per LOD, collision child) assembled by hand. Reruns rewrite assets in place (`CopySerialized`), keeping references. Uses **Unity Mesh Simplifier** (`com.whinarn.unitymeshsimplifier`, GitHub in manifest; quadric edge collapse keeping UVs/normals/tangents; editor-only use). `PreserveBorderEdges` always; **Preserve UV seams** off by default (Tripo models are seamed everywhere, blocking reduction); Console reports triangle counts so unreached ratios show. Settings in EditorPrefs.
+- **`ColliderRemover`** (`Core/Editor`, **TeaLeaf > Remove Colliders From Selection**, only with a selection): removes every collider from selected Hierarchy objects and all children (inactive too), one Undo step, logs count. Removes `RampCollider` first (requires its `MeshCollider`). On prefab instances it's an override.
+- **`ColliderFlattener`** (`Core/Editor`, **TeaLeaf > Modify Prefab > Flatten Variant Colliders**): for prefabs/folders selected in Project (under `Assets/Prefabs` only), moves colliders to the prefab root and deletes children left with only a transform (and an undrawn mesh); logs total + a line per prefab. **Rule: a prefab's colliders sit on its root; a collider gets a child only when it needs one** (packs put each on its own mostly-empty child: extra Transforms, longer `SurfaceTag.Find()` walk). Stays on its child if: rotated relative to root (beyond `AlignedAngle` 0.01°; colliders have no own rotation), different layer or a `SurfaceTag` between it and root, trigger, carries another component (`RampCollider`, `BarrelCollider`), or in a nested prefab instance; a `MeshCollider` moves only from a child at the root's exact transform. Box re-centred via `TransformPoint`, re-sized by child/root world scale per axis; sphere radius by largest axis; capsule height along its axis, radius by larger of the others. `LoadPrefabContents`, saved only if changed (variant overrides; pack untouched). Run per prefab when it matters (cliff rocks, deciduous trees carry up to thirty).
+- **`LightProbePlacer`** (`Core/Editor`, **TeaLeaf > Lighting > Place Light Probes**): fills the level's one `LightProbeGroup` at `Environment/Sectors/Global/Lighting/Light Probes` (made with missing parents if absent). Grid every 1.25m (`Spacing`) over the box round all Environment colliders; per column, rays down find every floor (normal y ≥ 0.7: ramps yes, walls no; a floor within 0.5m below the last gives nothing); probes 0.2m, 1m, 2m above each (`_heights`). Low layer sits below the centre of small things on the floor (Unity blends from the tetrahedron round a renderer's bounds centre, not nearest probes; a centre below the lowest layer blends from a tetrahedron reaching a lower floor). Close grid keeps the moon shadow edge tight on probe-lit things; count costs bake time and a little memory, not frame time (lookup cached until moved). Probe skipped if within 0.15m of geometry, if anything lies between it and its floor, or if ≥3 of six rays out hit a mesh collider's inside (back faces on: sealed building). Each run replaces the group's probes (undoable); rerun after layout changes, then rebake. Environment only, so it fills unreachable spaces too (sea bed).
+- **`ShadowFloor`** (`Core/Editor`, **TeaLeaf > Lighting > Apply Shadow Floor**; auto after every bake via `Lightmapping.bakeCompleted`): raises every lightmap texel and probe in the open scene to ≥ `Moonlight.shadowFloor`. Why: flat sky ambient reaches an enclosed alley at ~1/30 of open shade, so any ambient lifting alleys washes out shade elsewhere; flooring baked data lifts only what's below the floor. Lightmaps read back via GPU (blit to float RT, so BC6H needs no importer change), floored, written over the EXR, reimported synchronously; probes get an ambient term where the darkest of six directions is below the floor; lighting data saved. Idempotent (within 2% counts as done). Reimport re-raises `bakeCompleted` inside the import - ignored while applying. No `Moonlight` = nothing applied. No runtime cost, no shader change.
 
 ## Noise and sound
 
-Two systems fed from one asset, so what the player hears and what guards hear are tuned
-together: **noise** is the gameplay event guards listen to; **sound** is the audio the player
-hears. Both travel the same way - **Thief-style rooms and portals**: straight within a room,
-room to room only through portals, never through walls. The aim is that a sound always tells
-the player truthfully where it is, on stereo headphones.
+One asset feeds both, so tuned together: **noise** = gameplay event guards hear; **sound** = audio the player hears. Both travel **Thief-style rooms and portals**: straight within a room, room to room only via portals, never through walls. Aim: a sound always tells the player truthfully where it is on stereo headphones.
 
-- **`Noise`** (readonly struct) — `Position`, `Radius` (metres it carries), `Type`
-  (`NoiseType`), `Source` (the `Transform` that made it, may be null; lets a listener ignore
-  its own noises). A struct passed with `in`, so emitting allocates nothing.
-- **`NoiseType`** (enum) — `Footstep`, `Landing`, `Impact`, `Mechanism` (doors, chests,
-  locks), `Voice` (barks), `Distraction` (noisemaker bolt).
-- **`INoiseListener`** — `EarPosition` and `OnNoiseHeard(in Noise, float loudness, Vector3
-  heardFrom)`: loudness is 1 at the noise, falling linearly to 0 when the *path* is as long as
-  the radius; `heardFrom` is the noise itself in the same room, otherwise the point of the
-  last portal it came through (where a guard should turn to look). Guards will implement it.
-  `NoiseSystem.Register(this)`/`Unregister(this)` in `OnEnable`/`OnDisable`.
-- **`NoiseSystem`** (static) — `Emit(position, radius, type, source)`: per listener, a
-  straight-line squared-distance reject first (a path is never shorter), then
-  `SoundPropagation.TryGetPath()` with the radius as the limit (the noise's room is looked up
-  once). Listeners are looped backwards so one may unregister while reacting. Nothing per
-  frame, no scene search. Static event `Emitted(Noise)` is raised for every noise, heard or
-  not - for debug drawing and UI, not for guards; subscribers must unsubscribe in
-  `OnDisable` because a static event outlives a scene reload.
-- **`SoundCue`** (ScriptableObject, Create > TeaLeaf > Sound Cue) — one kind of sound. Audio
-  half: `clips` (random pick), `volume`, `pitchVariation`, `audibleRange` (metres; beyond it
-  the sound isn't played). Noise half: `noiseType`, `noiseRadius` (0 = guards never hear it).
-  `EmitNoise(position, source, radiusScale)` emits the noise half (scale e.g. by stance). The
-  audible range and the noise radius are separate on purpose.
-- **`SoundRoom`** — a maths box like `ExitZone` (serialized `size`, `IDebugDrawable`, blue),
-  self-registering, `[ExecuteAlways]` so rooms are also registered in Edit Mode.
-  `SoundRoom.Find(worldPoint)` = the room containing a point; where rooms overlap, the one
-  with the higher `priority` (an int, 0 by default; the level generator's junction rooms are
-  1, so each wins over the street rooms running into it), then the smallest, **null =
-  outside, which acts as one big room**. Neighbouring rooms should meet in
-  the middle of the wall between them. Outdoor areas that should block each other need their
-  own rooms (two points both "outside" always hear each other directly). It also holds the
-  room's `reverb` and `ambience` (below). **In Play Mode a room's box is worked out once and
-  kept** (`Cache()`: world-to-local matrix, half size, volume), since `Find()` runs for every
-  sound, loop check and noise listener; `OnEnable()` and `OnValidate()` throw the kept
-  values away, and in Edit Mode nothing is kept. A room moved by code while playing would
-  need re-enabling.
-- **`SoundPortal`** — an opening between two rooms (doorway, stairwell, window): a rectangle
-  (`size`) in the object's local X/Y plane, local Z through the opening, placed mid-wall. Its
-  two rooms are found automatically by probing `probeDistance` (0.25m) out from each face
-  (`FrontRoom`/`BackRoom`; warns if both are the same). **Open**: passing through adds
-  `openMuffle` (0.3) to the path's muffle - except a source in the next room heard in a
-  straight line through the opening, which stays clear (`CrossingPoint`'s
-  `isStraightThrough`). **Closed** (`startsOpen` off, or `SetOpen(false)` - for doors to
-  call): sound still passes, with `closedMuffle` (0.6) and `closedExtraDistance` (4m) added
-  to the path. A portal that never opens is how a thin wall or window leaks sound - **walls
-  never leak by themselves**. `CrossingPoint(from, to)` = where the straight line crosses
-  the portal plane, clamped to the rectangle. Drawn cyan (open), red (closed) or **yellow if
-  both sides are the same room** - checked live by `ProbeRooms()`, in Edit Mode too.
-  **`SoundPortalEditor`** (`Core/Editor`) adds a box to the Inspector naming the two rooms it
-  joins, or the same warning. Not baked: the links are worked out at runtime.
-- **`SoundPropagation`** (static) — `TryGetPath(from, to, maxDistance, out SoundPath)` (and
-  an overload taking the two rooms). Same room: the straight line. Otherwise the shortest
-  route through portals: each portal of the source's room against each of the listener's,
-  `|from - first| + table[first, last] + |last - to|` plus closed penalties, using portal
-  centres - except a single portal joining the two rooms, which is measured through its exact
-  crossing point. False if no route or longer than `maxDistance`. The portal-to-portal tables
-  (distance, muffle, previous portal; flat arrays) are built with Floyd-Warshall, lazily, the
-  first query after `MarkDirty()` (a portal opened or closed) or `MarkLayoutDirty()` (a room
-  or portal enabled or disabled) - only the latter makes the portals look their rooms up
-  again. Rooms and portals are assumed not to move while playing. No physics, no allocation
-  per query. **`SoundPath`** (readonly struct): `Distance`, `Muffle` (0-1), `HeardFrom`,
-  `IsDirect`.
-- **`SoundPlayer`** (one per scene, on a `Sound Player` object at the scene root;
-  `SoundPlayer.Instance`, set in `Awake()`) — plays every sound.
-  `Play(cue, position, source = null, noiseScale = 1, volumeScale = 1, delay = 0, muffle = 0)`
-  emits the cue's noise (scaled; 0 = none) and plays its audio if it reaches the `listener`
-  (the Main Camera transform): a straight-line range reject, then
-  `SoundPropagation.TryGetPath()` limited to the cue's `audibleRange` - no path = not played.
-  `volumeScale` multiplies the cue's volume (a crouched footstep, a hard landing); `delay`
-  starts the audio that many seconds from now via `AudioSource.PlayDelayed()` (two-part
-  sounds, so callers need no timers); `muffle` (0-1) is added to the route's muffle for the
-  low-pass cutoff only, not the volume. Same room: played at its real position. Through
-  portals: played at `ears + direction to HeardFrom * path Distance`, so panning and the
-  distance fade follow the route. The fade is `(1 - distance / audibleRange) ^
-  falloffSharpness` (default 2), reaching silence at `audibleRange` - not linear, which made
-  sounds fade in noticeably when moving fast. Muffle: volume towards `muffledVolume` (0.5)
-  and the voice's `AudioLowPassFilter` cutoff from 22 kHz towards `muffledCutoff` (1200 Hz),
-  interpolated by ratio (octaves); **the filter is disabled unless the sound is muffled**.
-  A fixed pool of `voiceCount` (16) child `AudioSource`s made in `Awake()` (no doppler);
-  when all are busy the oldest is reused. A one-shot's position and muffle are fixed when it
-  starts. The voice caps (16 one-shot, 8 loop) are the main cost control.
-  **It does the one-off sounds itself and hands the rest to three plain classes it makes
-  and ticks**: `SoundLoopPlayer` (loops), `ListenerReverb` (reverb) and `RoomAmbience`
-  (ambience), below. It keeps every serialized sound setting (the helpers are given values
-  or read them through its properties, so they tune live), makes every voice
-  (`CreateVoice()`, also used by the loop player), and owns `SetMuffle()`,
-  `HeardOffset()` (static) and `RefreshListenerRoom(ears)`. Its own `Update()` (not a
-  `Tick()`: it isn't a player system and has no ordering needs; unscaled time, steps capped
-  at 0.05s): the spatialiser's one-off voices, the listener's room every
-  `listenerCheckInterval` (0.2s) - which sets the reverb's and ambience's targets - then
-  the three helpers' ticks. `ListenerRoom`, `Spatialiser`, `IsSpatialised`,
-  `PlayingVoiceCount`, `PlayingLoopCount`. **`Heard`** (instance event: heard-from point,
-  loudness, the cue's `NoiseType`, source) is raised by `Play()` for every one-off sound
-  that actually reaches the player - the real point it is heard from (the sound itself in
-  the same room, otherwise the portal it came through: `SoundPath.HeardFrom`) and its
-  loudness at the ears (cue volume x `volumeScale` x the distance fade);
-  not for loops or ambience. `Player.PlayerCompass` listens to it for its sound arrows.
-- **`SoundLoop`** — a sound that never stops, from one place (a torch, a fire): a `cue` and
-  a `volumeScale`, on the object that makes it. Self-registering static list
-  (`Count`/`Get(i)`); **disabling it fades it out**. The cue's noise half is ignored; one
-  clip is picked when it starts to be heard, started at a random point so two torches don't
-  crackle in step. It also holds the `SoundPlayer`'s bookkeeping for it (`NextCheckTime`,
-  `IsAudible`, `Path`, `Loudness`, `VoiceIndex`). **`SoundLoopPlayer`** (plain class) runs
-  them: each
-  loop's route is worked out again on its own timer - `loopCheckInterval` (0.2s) within
-  straight-line earshot, `loopFarCheckInterval` (1s) beyond it, each interval ±10% at random
-  so loops drift apart (`TickChecks()`; the listener's room is looked up once per frame
-  that has a check). A loop that reaches the player takes one of `loopVoiceCount` (8) **loop
-  voices, a separate pool** so one-shots can't cut a torch off; with none free it takes the
-  quietest one's only if it is 1.25 times louder (`StealMargin`). Per frame, only for loops
-  with a voice (`TickVoices()`): the voice is placed at `ears + offset`. In the same
-  room and settled the offset is exact; through a portal, and for `4 x loopEaseTime` after
-  changing between direct and through-a-portal, it is eased towards the target with
-  `Vector3.Slerp` (turns the direction and slides the distance separately - a straight line
-  from one side of the head to the other would pass through it and be loud on the way).
-  Muffle is eased over `loopEaseTime` (0.25s), the fade in/out over `loopFadeTime` (0.4s);
-  volume and filter are only written when changed.
-- **Reverb** — **one shared reverb, set by the room the listener is in, not the sound's**:
-  every sound heard while standing in an echoey room gets that room's reverb.
-  **`ReverbSettings`** (serializable struct) is four numbers: `level` (0-2, 1 = as loud as
-  Unity's presets), `decayTime` (seconds), `damping` (0 bright stone - 1 dull carpet: lowers
-  `roomHF` and `decayHFRatio`) and `size` (metres to the walls: sets the two delays and
-  quietens the first echoes). `ApplyTo(AudioReverbFilter, amount)` maps them to Unity's
-  parameters; `Lerp()`, `Matches()`; static presets `None`, `SmallRoom`, `Room`,
-  `StoneRoom`, `StoneHall`, `Cellar`, `Warehouse`, `Alley`, `Outdoors`. Each `SoundRoom` has a `reverb` field (default `Room`) with the presets
-  on the component's right-click menu (**Reverb Preset/...**); outside every room uses
-  `SoundPlayer.outsideReverb` (`Outdoors`). **`ListenerReverb`** (plain class) adds one
-  `AudioReverbFilter` (User preset) to the object the `AudioListener` is on, where it works
-  on the whole mix after spatialising; every 0.2s `SoundPlayer` gives it the listener's
-  room's settings (`SetWanted()`) and, if they differ from the target (a new room, or a room tuned in the Inspector
-  while playing), blends there over `reverbBlendTime` (0.6s, SmoothStep) - the filter is
-  only written during a blend. `reverbAmount` (1, live) multiplies every room's level.
-  **Never an `AudioReverbZone`**: with one riding on the listener and voices sending by
-  `reverbZoneMix`, no reverb was heard at all. The listener filter has no per-source send,
-  and the room ambience gets the reverb too. `reverb` off on the player = no filter added.
-- **Room ambience** (**`RoomAmbience`**, plain class) — a background loop with no position,
-  chosen by the listener's room:
-  `SoundRoom.ambience` (a cue; its **first** clip) and `ambienceVolume`,
-  `SoundPlayer.outsideAmbience`/`outsideAmbienceVolume` for no room. Two plain 2D sources; a
-  change of room fades one out and the other in over `ambienceFadeTime` (1.5s). Rooms that
-  share a cue carry on without a restart, and stepping back into the room just left turns
-  its fade round rather than restarting the clip. Nothing runs once the fades have arrived.
-  A sound that comes from somewhere is a `SoundLoop`, not this.
-- **Spatialiser** — the project's own; no third-party audio package is installed.
-  `SoundPlayer.spatialiserMode` (`SpatialiserMode`: `UnityPanning`, `BuiltIn` - the default
-  - or `Plugin`; read in `Awake()`). **`SpatialVoice`** is one voice's spatialiser, added to
-  each voice object after its low-pass filter, with the voice's `AudioSource` set to **2D**
-  (`spatialBlend` 0) so Unity adds no panning or distance fade of its own - `SpatialVoice`
-  does both. Three cues, from where the sound is in the head's own axes: the **time
-  difference** between the ears (Woodworth's ball-head formula, up to about 0.7ms, a
-  fractional delay line of 256 samples), the **head shadow** (the far ear quieter and with a
-  one-pole low-pass mixed in, the near ear slightly up) and **behind** (a low-pass mixed
-  into both ears, slightly quieter). "To the side" is the direction's x, so a sound above,
-  ahead or behind on the middle plane is centred. **No cue for up and down** - that takes
-  measured ear data (an HRTF). Direction fades out within 0.25m of the head. Two threads:
-  `SetTarget(localOffset, range, falloffSharpness)` on the main thread works out per-ear
-  targets (volume including the distance fade, delay, shadow mix, rear mix);
-  `OnAudioFilterRead()` on the audio thread slides from the values in use to the targets
-  across each buffer (no clicks) and **must never allocate**. `Begin()` (a new sound on the
-  voice) jumps instead of sliding and clears the delay line and filter memories.
-  `SetTarget` is called every frame for every playing voice (`SoundPlayer.TickSpatialVoices()`
-  for one-shots, from each one's remembered world position, until the end time worked out
-  when it started - clip length over pitch, plus the delay - so no voice is asked whether
-  it is playing; `SoundLoopPlayer.TickVoices()` for loops), so the direction follows the head as it turns - most of how
-  front and behind are told apart. **`SpatialiserSettings`** (serializable class,
-  `SoundPlayer.spatialiser`, read every frame so it tunes live): `volume`, `headRadius`,
-  `timeDifference`, `farEarVolume`, `nearEarVolume`, `shadowCutoff`, `shadowAmount`,
-  `rearCutoff`, `rearAmount`, `rearVolume`; `Prepare(sampleRate)` once a frame
-  works out the two filter coefficients. A script on each voice, not a native Unity
-  spatialiser plugin. The ambience is 2D and not spatialised. `Plugin` mode sets
-  `AudioSource.spatialize` (`spatialiseAfterMuffle` = `spatializePostEffects`) and logs once
-  if no plugin is chosen - for trying Steam Audio (open source, every platform, real
-  up/down) if the built-in one isn't enough. A spatialiser plugin's sources may not feed
-  Unity reverb zones.
-- **No line-of-sight ray muffling inside a room**: with portals handling walls, a guard in
-  the same room is heard clearly.
-- **Not done:** tuning the loop easing by ear; measuring the
-  spatialiser's cost (C# on the audio thread); real loop and ambience recordings.
+- **`Noise`** (readonly struct, passed `in`, no allocation): `Position`, `Radius` (m), `Type` (`NoiseType`), `Source` (`Transform`, may be null; lets listeners ignore own noises).
+- **`NoiseType`**: `Footstep`, `Landing`, `Impact`, `Mechanism` (doors, chests, locks), `Voice` (barks), `Distraction` (noisemaker bolt).
+- **`INoiseListener`**: `EarPosition`, `OnNoiseHeard(in Noise, float loudness, Vector3 heardFrom)`; loudness 1 at the noise, linear to 0 when the *path* = radius; `heardFrom` = the noise in the same room, else the last portal's point (where a guard turns). `NoiseSystem.Register(this)`/`Unregister(this)` in `OnEnable`/`OnDisable`.
+- **`NoiseSystem`** (static): `Emit(position, radius, type, source)`: per listener a straight-line squared-distance reject, then `SoundPropagation.TryGetPath()` limited by radius (noise's room looked up once). Listeners looped backwards (one may unregister while reacting). Nothing per frame, no scene search. Static event `Emitted(Noise)` for every noise heard or not - debug/UI, not guards; **subscribers must unsubscribe in `OnDisable`** (static event outlives scene reload).
+- **`SoundCue`** (ScriptableObject, Create > TeaLeaf > Sound Cue): audio half `clips` (random), `volume`, `pitchVariation`, `audibleRange` (m; beyond = not played); noise half `noiseType`, `noiseRadius` (0 = guards never hear). `EmitNoise(position, source, radiusScale)`. Audible range and noise radius are separate on purpose.
+- **`SoundRoom`**: maths box like `ExitZone` (serialized `size`, `IDebugDrawable` blue), self-registering, `[ExecuteAlways]` (registered in Edit Mode too). `SoundRoom.Find(worldPoint)`: on overlap, higher `priority` (int, 0 default; generator junction rooms 1, beating street rooms) then smallest; **null = outside, one big room**. Neighbours meet mid-wall. Outdoor areas that should block each other need own rooms (two "outside" points always hear each other directly). Holds `reverb` and `ambience`. **In Play Mode the box is cached** (`Cache()`: world-to-local matrix, half size, volume) since `Find()` runs per sound/loop check/listener; `OnEnable()`/`OnValidate()` clear it; nothing cached in Edit Mode. A room moved by code while playing needs re-enabling.
+- **`SoundPortal`**: opening (doorway, stairwell, window): rectangle `size` in local X/Y, local Z through, mid-wall. Rooms found automatically probing `probeDistance` (0.25m) out from each face (`FrontRoom`/`BackRoom`; warns if same). **Open**: adds `openMuffle` (0.3) - except a source in the next room heard straight through the opening stays clear (`CrossingPoint`'s `isStraightThrough`). **Closed** (`startsOpen` off or `SetOpen(false)` - doors call it): passes with `closedMuffle` (0.6) + `closedExtraDistance` (4m). A never-opening portal is how a thin wall/window leaks - **walls never leak by themselves**. `CrossingPoint(from, to)` = line's crossing of the portal plane, clamped to the rect. Drawn cyan open, red closed, **yellow if both sides same room** (live `ProbeRooms()`, Edit Mode too). **`SoundPortalEditor`** (`Core/Editor`): Inspector box naming the two rooms, or the warning. Not baked; links found at runtime.
+- **`SoundPropagation`** (static): `TryGetPath(from, to, maxDistance, out SoundPath)` (+ overload taking the two rooms). Same room: straight line. Else shortest portal route: each source-room portal vs each listener-room portal, `|from - first| + table[first, last] + |last - to|` + closed penalties, using portal centres - except a single portal joining the two rooms, measured through its exact crossing point. False if no route or > `maxDistance`. Portal-to-portal tables (distance, muffle, previous; flat arrays) via Floyd-Warshall, lazily on first query after `MarkDirty()` (portal opened/closed) or `MarkLayoutDirty()` (room/portal enabled/disabled; only this makes portals re-find rooms). Rooms/portals assumed static in play. No physics, no per-query allocation. **`SoundPath`** (readonly struct): `Distance`, `Muffle` (0-1), `HeardFrom`, `IsDirect`.
+- **`SoundPlayer`** (one per scene, `Sound Player` object at scene root; `SoundPlayer.Instance` in `Awake()`): plays every sound.
+  - `Play(cue, position, source = null, noiseScale = 1, volumeScale = 1, delay = 0, muffle = 0)`: emits cue noise (scaled; 0 = none); plays audio if it reaches `listener` (Main Camera transform): straight-line reject, then `TryGetPath()` limited to `audibleRange` - no path = not played. `volumeScale` multiplies volume; `delay` via `AudioSource.PlayDelayed()` (two-part sounds, no caller timers); `muffle` (0-1) added to route muffle for the low-pass only, not volume.
+  - Same room: at real position. Via portals: at `ears + direction to HeardFrom * path Distance` (pan and fade follow the route). Fade `(1 - distance / audibleRange) ^ falloffSharpness` (2), silent at `audibleRange` (not linear: linear made sounds fade in noticeably when moving fast). Muffle: volume towards `muffledVolume` (0.5), `AudioLowPassFilter` cutoff 22 kHz towards `muffledCutoff` (1200 Hz) by ratio (octaves); **filter disabled unless muffled**.
+  - Fixed pool `voiceCount` (16) child `AudioSource`s made in `Awake()` (no doppler); all busy = oldest reused. One-shot position/muffle fixed at start. Voice caps (16 one-shot, 8 loop) are the main cost control.
+  - Does one-offs itself; hands the rest to three plain classes it makes and ticks: `SoundLoopPlayer`, `ListenerReverb`, `RoomAmbience`. Keeps every serialized sound setting (helpers get values or read its properties, so live-tunable), makes every voice (`CreateVoice()`, also used by loop player), owns `SetMuffle()`, `HeardOffset()` (static), `RefreshListenerRoom(ears)`.
+  - Own `Update()` (not `Tick()`: not a player system, no ordering needs; unscaled time, steps capped 0.05s): spatialiser one-off voices, listener's room every `listenerCheckInterval` (0.2s) (sets reverb/ambience targets), then helper ticks. `ListenerRoom`, `Spatialiser`, `IsSpatialised`, `PlayingVoiceCount`, `PlayingLoopCount`.
+  - **`Heard`** (instance event: heard-from point, loudness, cue `NoiseType`, source) raised by `Play()` for every one-off that reaches the player - point = `SoundPath.HeardFrom` (the sound in same room, else the portal); loudness at the ears = cue volume x `volumeScale` x distance fade; not for loops/ambience. `Player.PlayerCompass` uses it for sound arrows.
+- **`SoundLoop`**: never-stopping sound from one place (torch, fire): `cue`, `volumeScale`. Self-registering (`Count`/`Get(i)`); **disabling fades it out**. Cue's noise half ignored; one clip picked when it becomes audible, started at a random point (torches not in step). Holds the player's bookkeeping (`NextCheckTime`, `IsAudible`, `Path`, `Loudness`, `VoiceIndex`).
+- **`SoundLoopPlayer`** (plain class): each loop's route rechecked on its own timer - `loopCheckInterval` (0.2s) within straight-line earshot, `loopFarCheckInterval` (1s) beyond, each ±10% random (`TickChecks()`; listener room looked up once per frame with a check). An audible loop takes one of `loopVoiceCount` (8) **loop voices, separate pool** (one-shots can't cut a torch off); none free = steals the quietest only if 1.25x louder (`StealMargin`). Per frame, voiced loops only (`TickVoices()`): voice at `ears + offset`; same room and settled = exact; via portal, and for `4 x loopEaseTime` after switching direct/portal, eased with `Vector3.Slerp` (turns direction and slides distance separately - a straight line across the head would pass through it, loud). Muffle eased over `loopEaseTime` (0.25s), fade in/out `loopFadeTime` (0.4s); volume/filter written only on change.
+- **Reverb**: **one shared reverb, set by the listener's room, not the sound's.** **`ReverbSettings`** (serializable struct): `level` (0-2, 1 = Unity preset loudness), `decayTime` (s), `damping` (0 bright stone - 1 dull carpet: lowers `roomHF`, `decayHFRatio`), `size` (m to walls: the two delays, quieter early echoes). `ApplyTo(AudioReverbFilter, amount)`, `Lerp()`, `Matches()`; presets `None`, `SmallRoom`, `Room`, `StoneRoom`, `StoneHall`, `Cellar`, `Warehouse`, `Alley`, `Outdoors`. `SoundRoom.reverb` (default `Room`; presets on right-click **Reverb Preset/...**); outside = `SoundPlayer.outsideReverb` (`Outdoors`). **`ListenerReverb`** (plain class): one `AudioReverbFilter` (User preset) on the `AudioListener`'s object (whole mix, after spatialising); every 0.2s gets the room's settings (`SetWanted()`), and if different from target (new room, or Inspector tweak in play) blends over `reverbBlendTime` (0.6s, SmoothStep); filter written only during a blend. `reverbAmount` (1, live) scales every room's level. **Never an `AudioReverbZone`**: one riding the listener with voices sending by `reverbZoneMix` gave no reverb at all. No per-source send; ambience gets reverb too. `reverb` off on the player = no filter added.
+- **`RoomAmbience`** (plain class): positionless background loop by listener's room: `SoundRoom.ambience` (cue; **first** clip) + `ambienceVolume`; `SoundPlayer.outsideAmbience`/`outsideAmbienceVolume` for no room. Two 2D sources crossfading over `ambienceFadeTime` (1.5s). Rooms sharing a cue continue without restart; stepping back into the room just left reverses its fade. Nothing runs once fades arrive. A sound from somewhere is a `SoundLoop`, not this.
+- **Spatialiser** (own; no third-party audio package). `SoundPlayer.spatialiserMode` (`SpatialiserMode`: `UnityPanning`, `BuiltIn` (default), `Plugin`; read in `Awake()`).
+  - **`SpatialVoice`**: per-voice, on each voice object after its low-pass, with the `AudioSource` **2D** (`spatialBlend` 0) so Unity adds no pan/fade - `SpatialVoice` does both. Cues in head axes: **time difference** (Woodworth ball-head, up to ~0.7ms, fractional delay line of 256 samples); **head shadow** (far ear quieter + one-pole low-pass mix, near ear slightly up); **behind** (low-pass into both ears, slightly quieter). Side = direction's x (above/ahead/behind on midplane centred). **No up/down cue** (needs an HRTF). Direction fades within 0.25m of head.
+  - Threads: `SetTarget(localOffset, range, falloffSharpness)` on main thread computes per-ear targets (volume incl. distance fade, delay, shadow mix, rear mix); `OnAudioFilterRead()` on audio thread slides to targets across each buffer (no clicks), **must never allocate**. `Begin()` (new sound) jumps, clears delay line and filter memory.
+  - `SetTarget` called every frame for every playing voice (`SoundPlayer.TickSpatialVoices()` for one-shots from remembered world position until the end time computed at start - clip length / pitch + delay - so no voice is asked if playing; `SoundLoopPlayer.TickVoices()` for loops), so direction follows head turns - most of front/behind discrimination.
+  - **`SpatialiserSettings`** (serializable class, `SoundPlayer.spatialiser`, read every frame, live): `volume`, `headRadius`, `timeDifference`, `farEarVolume`, `nearEarVolume`, `shadowCutoff`, `shadowAmount`, `rearCutoff`, `rearAmount`, `rearVolume`; `Prepare(sampleRate)` once/frame computes the two filter coefficients. A script per voice, not a native plugin. Ambience is 2D, unspatialised.
+  - `Plugin` mode sets `AudioSource.spatialize` (`spatialiseAfterMuffle` = `spatializePostEffects`), logs once if no plugin chosen - for trying Steam Audio (open source, all platforms, real up/down) if built-in isn't enough. Plugin-spatialised sources may not feed Unity reverb zones.
+- **No line-of-sight ray muffling inside a room** (portals handle walls; same-room guard heard clearly).
+- **Not done:** loop easing tuned by ear; spatialiser cost (C# on audio thread) measured; real loop/ambience recordings.
 
 ### Sound debug and test content
 
-- **`NoiseDebug`** (`Core/Debug`, on the Debug object) — draws each noise as a wire sphere of
-  its radius fading over `showDuration` (fixed ring of 16, no allocation), logs it, and `N`
-  emits a test noise at `emitFrom`, then (`logReport`) writes one "NOISE REPORT" Console
-  entry, no stack trace, listing every `NoiseListenerDebug`: room, straight distance, path
-  distance, muffle, heard-from point and heard/silent - readable afterwards from
-  `%LOCALAPPDATA%/Unity/Editor/Editor.log`.
-- **`NoiseListenerDebug`** (`Core/Debug`) — stand-in ears for any object: the object turns
-  yellow (`MaterialPropertyBlock` on `_BaseColor`, only on change), a 0.3m wire marker round
-  it turns yellow with a line to where it heard the noise from and on to the noise, and it
-  logs the loudness.
-- **`SoundEmitterDebug`** (`Core/Debug`) — plays a cue from its position every `interval`
-  seconds (noise off by default). With `surfaceSounds` assigned it's a walker: each play is
-  a `SurfaceSounds.PlayStep()` on the floor beneath it (`SurfaceTag.TryFindBelow()`, 1m
-  down), falling back to its own cue.
-- **`SoundDebug`** (`Core/Debug`, on the Debug object) — `L` writes one "SOUND REPORT"
-  Console entry: the listener's room, voices playing, the spatialiser, the room's reverb,
-  every loop (room, path, muffle, loudness, voice) and each emitter's room, range, straight
-  and path distance, muffle, heard-from point and played/not.
-- **`NoiseTestListeners`** (`Core/Debug/Editor`, menu **TeaLeaf > Dev Room > Add Noise Test
-  Listeners**) adds three collider-less listener cubes under one root, 3m, 6m and 12m ahead
-  of the main camera at ear height.
-- **`SoundTestArea`** (`Core/Debug/Editor`, menu **TeaLeaf > Dev Room > Build Sound Test Area**; not in
-  the scene) builds three 4m rooms in a row at (-14, 0, 4), no ceilings: A (doorway to
-  outside + doorway to B), B, and C behind a solid wall with a closed portal from B (the
-  thin-wall case), with rooms, portals, listener cubes and two emitters. Its helpers
-  (`AddRoom`, `AddPortal`, `AddEmitter`, `AddListener`, `EnsureSceneObjects`; internal) are
-  reused by the test house. `EnsureSceneObjects()` makes sure the scene has a `Sound Player`
-  object (with the wind as its outside ambience if it has none) and the Debug object a
-  `SoundDebug`. Uses `Player.TestGeometry` (editor-only).
-- **`SoundTestHouse`** (`Core/Debug/Editor`, menu **TeaLeaf > Dev Room > Build Sound Test House**) — a
-  two-storey 12m x 8m house with its own ground, at (-36, 0, 12); a rebuild keeps where the
-  old one was moved to. Ground floor: Hall (front door, a 35° stair ramp up its left wall),
-  Kitchen, Store (behind a closed-door portal and a door slab) and Lounge (closed "window"
-  portal in the back wall); upper floor: Landing and Bedroom, no roof; a walled Yard in
-  front with a gate. Seven `SoundRoom`s (the Yard is one) and eight `SoundPortal`s,
-  including a **stairwell portal lying flat in the stair hole** (rotated 90° about X), the
-  only link between the floors. Nine listener cubes, a knock in the Store, and a `Guard Path`
-  (points only, for the test guard - see `Scripts/AI/CLAUDE.md`): Bedroom → Landing → stairs →
-  Hall → Kitchen. A `SoundLoop` on the Hall and Kitchen torches and a `Flame` on all three
-  lights (in a house built since `Flame` was written; add it by hand to older ones); a different reverb per room
-  (Hall `StoneHall`, Kitchen `StoneRoom`, Store `Cellar`, Lounge `SmallRoom`, upper floor and
-  Yard `Alley`); the indoor tone on the ground floor and the wind upstairs and in the Yard.
-  Footstep surfaces: upper floor and stairs tagged Wood, and 2cm floor coverings tagged
-  Carpet (Lounge), Tile (Kitchen), Metal (Store) and, across the Yard, Water, Gravel and
-  Grass; the Hall and the Yard's edges are untagged stone.
-- **`PlaceholderSounds`** (`Core/Debug/Editor`, menu **TeaLeaf > Dev Room > Create Placeholder Sounds**)
-  — generated stand-in `.wav` files in `Assets/Audio/Placeholder` and cues in `Assets/Data`.
-  Existing files are kept. Cues: `FootstepPlaceholder` (stone; range 25m, noise 6m),
-  `ImpactPlaceholder` (35m, 10m), `CreakPlaceholder` (`CreakCuePath`; volume 0.6, range 20m,
-  `NoiseType.Mechanism`, noise 5m, given to the test doors by `DoorTestArea`), per-surface
-  footsteps from one recipe (`SurfaceStep()`) for wood (noise 7m), carpet (2.5m, range 15m),
-  metal (10m, range 30m) and water (8m), and `SurfaceSoundsPlaceholder.asset`
-  (`SurfaceSoundsPath`) listing them. `BarkPlaceholder` (`BarkCuePath`; `Bark()`: a
-  two-part grunt; `NoiseType.Voice`, noise 0, range 25m, pitch variation 0.12) stands in
-  for every guard line. Three loops, each made seamless by `Seamless()` (the
-  last half second blended into the first with square-root weights): `TorchLoopPlaceholder`
-  (`Fire()`; volume 0.5, range 12m), `AmbienceOutsidePlaceholder` (`Wind()`, 0.3) and
-  `AmbienceIndoorPlaceholder` (`RoomTone()`, 0.25), all noise radius 0 and no pitch
-  variation (`TorchLoopCuePath`, `OutsideAmbienceCuePath`, `IndoorAmbienceCuePath`).
-  **The footstep cues play real recordings** from `Assets/Audio/footsteps/<set>/` (`.ogg`,
-  each folder with a `license.txt`) while keeping their "Placeholder" names (the test
-  builders load them by path): `boots` (stone), `wood`, `metal`, `water`; carpet plays the
-  `grass` clips. Three more cues were made by hand, not by the generator (which would
-  recreate `SurfaceSoundsPlaceholder` with only the first five if it were deleted):
-  `FootstepTile` (noise 9m, range 28m), `FootstepGrass` (3m, 18m, volume 0.6) and
-  `FootstepGravel` (9m, 28m). Unused sets: `bones`, `dog`, `mech`. Most sets are CC-BY 3.0
-  (swuing, Eelke, EminYILDIRIM, ceberation, sabotovat, Lee Barkovich - credit needed in a
-  release); `bones` and `gravel` are CC0.
+- **`NoiseDebug`** (`Core/Debug`, Debug object): each noise as a wire sphere of its radius fading over `showDuration` (fixed ring of 16, no allocation), logged; `N` emits a test noise at `emitFrom`, then (`logReport`) one "NOISE REPORT" Console entry (no stack trace) listing every `NoiseListenerDebug`: room, straight distance, path distance, muffle, heard-from, heard/silent - readable from `%LOCALAPPDATA%/Unity/Editor/Editor.log`.
+- **`NoiseListenerDebug`** (`Core/Debug`): stand-in ears; object turns yellow (`MaterialPropertyBlock` `_BaseColor`, on change only), 0.3m wire marker turns yellow with a line to heard-from and on to the noise; logs loudness.
+- **`SoundEmitterDebug`** (`Core/Debug`): plays a cue every `interval` s (noise off default). With `surfaceSounds` it's a walker: each play a `SurfaceSounds.PlayStep()` on the floor below (`SurfaceTag.TryFindBelow()`, 1m), falling back to its own cue.
+- **`SoundDebug`** (`Core/Debug`, Debug object): `L` writes one "SOUND REPORT": listener room, voices playing, spatialiser, room reverb, every loop (room, path, muffle, loudness, voice), each emitter's room, range, straight/path distance, muffle, heard-from, played/not.
+- **`NoiseTestListeners`** (`Core/Debug/Editor`, **TeaLeaf > Dev Room > Add Noise Test Listeners**): three collider-less listener cubes under one root, 3m, 6m, 12m ahead of main camera at ear height.
+- **`SoundTestArea`** (`Core/Debug/Editor`, **TeaLeaf > Dev Room > Build Sound Test Area**; not in scene): three 4m rooms in a row at (-14, 0, 4), no ceilings: A (doorway outside + doorway to B), B, C behind a solid wall with a closed portal from B (thin-wall case); rooms, portals, listener cubes, two emitters. Internal helpers (`AddRoom`, `AddPortal`, `AddEmitter`, `AddListener`, `EnsureSceneObjects`) reused by the test house. `EnsureSceneObjects()` ensures a `Sound Player` (wind as outside ambience if none) and a `SoundDebug` on the Debug object. Uses `Player.TestGeometry` (editor-only).
+- **`SoundTestHouse`** (`Core/Debug/Editor`, **TeaLeaf > Dev Room > Build Sound Test House**): two-storey 12m x 8m house with own ground at (-36, 0, 12); rebuild keeps its moved position. Ground: Hall (front door, 35° stair ramp up left wall), Kitchen, Store (closed-door portal + door slab), Lounge (closed "window" portal in back wall); upper: Landing, Bedroom, no roof; walled Yard in front with a gate. Seven `SoundRoom`s (Yard is one), eight `SoundPortal`s incl. a **stairwell portal lying flat in the stair hole** (rotated 90° about X), the only link between floors. Nine listener cubes, a knock in the Store, a `Guard Path` (points only, for the test guard - `Scripts/AI/CLAUDE.md`): Bedroom → Landing → stairs → Hall → Kitchen. `SoundLoop` on Hall and Kitchen torches; `Flame` on all three lights (houses built before `Flame` existed need it added by hand). Reverb: Hall `StoneHall`, Kitchen `StoneRoom`, Store `Cellar`, Lounge `SmallRoom`, upper floor + Yard `Alley`; indoor tone downstairs, wind upstairs and Yard. Surfaces: upper floor + stairs Wood; 2cm coverings Carpet (Lounge), Tile (Kitchen), Metal (Store), and across the Yard Water, Gravel, Grass; Hall and Yard edges untagged stone.
+- **`PlaceholderSounds`** (`Core/Debug/Editor`, **TeaLeaf > Dev Room > Create Placeholder Sounds**): generated stand-in `.wav`s in `Assets/Audio/Placeholder`, cues in `Assets/Data`; existing files kept.
+  - Cues: `FootstepPlaceholder` (stone; range 25m, noise 6m), `ImpactPlaceholder` (35m, 10m), `CreakPlaceholder` (`CreakCuePath`; volume 0.6, range 20m, `Mechanism`, noise 5m; given to test doors by `DoorTestArea`), per-surface footsteps via `SurfaceStep()`: wood (noise 7m), carpet (2.5m, range 15m), metal (10m, range 30m), water (8m); `SurfaceSoundsPlaceholder.asset` (`SurfaceSoundsPath`) lists them. `BarkPlaceholder` (`BarkCuePath`; `Bark()` two-part grunt; `Voice`, noise 0, range 25m, pitch variation 0.12) stands in for every guard line.
+  - Loops made seamless by `Seamless()` (last 0.5s blended into the first, square-root weights): `TorchLoopPlaceholder` (`Fire()`; volume 0.5, range 12m), `AmbienceOutsidePlaceholder` (`Wind()`, 0.3), `AmbienceIndoorPlaceholder` (`RoomTone()`, 0.25); all noise 0, no pitch variation (`TorchLoopCuePath`, `OutsideAmbienceCuePath`, `IndoorAmbienceCuePath`).
+  - **Footstep cues play real recordings** from `Assets/Audio/footsteps/<set>/` (`.ogg`, each folder has `license.txt`) but keep "Placeholder" names (builders load by path): `boots` (stone), `wood`, `metal`, `water`; carpet plays `grass` clips. Three hand-made cues (not generated; deleting `SurfaceSoundsPlaceholder` would recreate it with only the first five): `FootstepTile` (noise 9m, range 28m), `FootstepGrass` (3m, 18m, volume 0.6), `FootstepGravel` (9m, 28m). Unused sets: `bones`, `dog`, `mech`. Most sets CC-BY 3.0 (swuing, Eelke, EminYILDIRIM, ceberation, sabotovat, Lee Barkovich - credit needed in a release); `bones`, `gravel` CC0.
 
 ## Game state and level manager
 
-- **`GameState`** (enum) — `Playing`, `Caught`, `Won`: the single value for whether the level
-  is still being played.
-- **`LevelManager`** (one per scene, on its own `Level Manager` object at the scene root) —
-  owns `State` and what ending the level does. `LevelManager.Instance` (set in `Awake()`, no
-  scene search), `State`, `HasObjective`, and the instance event `StateChanged(GameState)`
-  (instance, not static, so a reload leaves no subscribers from the old scene). Other systems
-  report, this class decides: guards call `Caught()`; the objective item calls
-  `SetObjectiveCarried(bool)` (picked up / dropped or thrown). The level ends only from
-  `Playing`, so the first ending wins and nothing reloads twice: `EndLevel()` sets the state,
-  raises `StateChanged`, then `ScreenFade.FadeOut(duration, ReloadLevel)` - the reload runs in
-  the fade's callback, behind full black (`caughtFadeDuration` 1s, `wonFadeDuration` 2s), and
-  the reloaded scene's `ScreenFade` fades back in by itself. Restart = `SceneManager.LoadScene`
-  of the active scene (synchronous; the hitch is hidden by the black). **Win** is private:
-  the manager's own `Update()` checks `ExitZone.AnyContains(player.position)` (`player` = the
-  Player root transform, a plain `Transform` so `Core` doesn't depend on `Player`), and that
-  `Update()` only runs while the objective is carried (component disabled otherwise). Won
-  restarts like Caught until there is a "Mission complete" panel. **The player's body is
-  frozen during the end fade**: `PlayerController` subscribes to `StateChanged` and, once the
-  level is over, runs only the hand systems (see the tick order in the root `CLAUDE.md`).
-  Right-click "Test Caught"/"Test Take Objective" in Play Mode. Also holds the **PC Play**
-  development switch: `pcPlay` (`IsPcPlay`, off by default, off for a build) - Play Mode
-  with the mouse and keyboard and no headset, done by `PcPlay` on the Player root (see
-  `Scripts/Player/CLAUDE.md`); the manager only holds the switch.
-- **`ExitZone`** — a box (serialized `size`, centred on the object, following its
-  position/rotation/scale) tested with `InverseTransformPoint`, not a trigger collider: no
-  physics layer, nothing for hand rays to hit, and it works while a mantle has the
-  CharacterController off. Self-registering static list; `AnyContains(worldPoint)`,
-  `Contains(worldPoint)`. The point tested is the player's feet, so sink the box a little into
-  the floor. `IDebugDrawable` (green wire box).
-- **`GameStateDebug`** (`Core/Debug`, on the Debug object) — keyboard driver (Game view needs
-  focus): `C` = caught, `O` = toggle objective carried; logs every state change.
+- **`GameState`** (enum): `Playing`, `Caught`, `Won`.
+- **`LevelManager`** (one per scene, `Level Manager` object at scene root): owns `State` and ending. `LevelManager.Instance` (`Awake()`, no scene search), `State`, `HasObjective`, instance event `StateChanged(GameState)` (instance, not static, so a reload leaves no old subscribers). Others report, it decides: guards call `Caught()`; objective calls `SetObjectiveCarried(bool)`. Ends only from `Playing` (first ending wins, no double reload): `EndLevel()` sets state, raises `StateChanged`, then `ScreenFade.FadeOut(duration, ReloadLevel)` - reload in the callback behind full black (`caughtFadeDuration` 1s, `wonFadeDuration` 2s); the reloaded scene's `ScreenFade` fades in by itself. Restart = synchronous `SceneManager.LoadScene` of the active scene. **Win** private: own `Update()` checks `ExitZone.AnyContains(player.position)` (`player` = Player root as plain `Transform`, so `Core` doesn't depend on `Player`); component disabled unless the objective is carried. Won restarts like Caught until a "Mission complete" panel exists. **Body frozen during end fade**: `PlayerController` subscribes to `StateChanged` and runs only hand systems (root tick order). Right-click "Test Caught"/"Test Take Objective" in Play Mode. Holds the **PC Play** switch `pcPlay` (`IsPcPlay`, off default, off for a build); `PcPlay` on the Player root does the work (`Scripts/Player/CLAUDE.md`).
+- **`ExitZone`**: box (serialized `size`, centred, follows transform incl. scale) tested with `InverseTransformPoint`, not a trigger (no layer, nothing for hand rays, works while a mantle has the CharacterController off). Self-registering; `AnyContains(worldPoint)`, `Contains(worldPoint)`. Tests the player's feet - sink the box a little into the floor. `IDebugDrawable` (green wire box).
+- **`GameStateDebug`** (`Core/Debug`, Debug object): keys (Game view focused) `C` = caught, `O` = toggle objective carried; logs state changes.
 
 ## Screen fade
 
-- **`ScreenFade`** (on a `Screen Fade` child of Main Camera at the local origin, so
-  head-locked with no code) — fades the whole view to `fadeColor` (black) and back.
-  `FadeOut(duration, onComplete)` covers the view (caught, restart: reload in the callback,
-  once nothing can be seen); `FadeIn(duration, onComplete)` clears it. A fade starts from the
-  current `Alpha`, so interrupting one is smooth; a replaced fade's callback is dropped.
-  `ScreenFade.Instance` (set in `Awake()`, no scene search), `Alpha`, `IsFading`.
-  **Level start:** with `fadeInOnStart` (default on) `Awake()` makes the view black before the
-  first frame renders, holds for `startHoldDuration` (0.3s), then fades to clear over
-  `startFadeDuration` (1.5s). A scene reload therefore fades back in by itself. Drawn as a
-  runtime-built 1m cube around the head (from inside, every view direction crosses exactly
-  one face) with an `OverlayMaterial` at queue Overlay + 100, so it also covers the UI
-  markers. Eased with SmoothStep on unscaled time, each frame's step capped at 0.05s so a
-  loading hitch can't jump it. **Costs nothing while clear:** the renderer is off and the
-  component disables itself, so `Update()` only runs during a fade. The colour is set on the
-  material it created, not via `renderer.material`. Right-click "Test Fade Out"/"Test Fade
-  In" in Play Mode. **`Hold()`/`Release()`** (counted) freeze any fade until every hold is
-  released - for work that must finish behind the black: `PlayerTracking` holds the
-  level-start fade while it waits for tracking and calibrates the view.
-- **`OverlayMaterial`** — the static factory for overlay (drawn last, no depth test)
-  materials; in `Core` because `ScreenFade` needs it and `Core` shouldn't depend on `Player`.
-  Detail in `Scripts/Player/CLAUDE.md` (its users are mostly the player's UI markers).
+- **`ScreenFade`** (on `Screen Fade` child of Main Camera at local origin - head-locked with no code): fades view to `fadeColor` (black) and back. `FadeOut(duration, onComplete)` / `FadeIn(duration, onComplete)`; starts from current `Alpha` (interrupts smoothly); a replaced fade's callback is dropped. `ScreenFade.Instance` (`Awake()`), `Alpha`, `IsFading`.
+  - **Level start**: `fadeInOnStart` (on) makes the view black in `Awake()` before first render, holds `startHoldDuration` (0.3s), fades over `startFadeDuration` (1.5s); so a reload fades in by itself.
+  - Drawn as a runtime-built 1m cube round the head (every view direction crosses exactly one face from inside), `OverlayMaterial` at queue Overlay + 100 (covers UI markers). SmoothStep on unscaled time, step capped 0.05s (hitches can't jump it). **Free while clear**: renderer off and component disabled, `Update()` only during a fade. Colour set on its own created material, not `renderer.material`. Right-click "Test Fade Out"/"Test Fade In".
+  - **`Hold()`/`Release()`** (counted) freeze any fade until all released - for work behind the black: `PlayerTracking` holds the level-start fade while waiting for tracking and calibrating.
+- **`OverlayMaterial`**: static factory for overlay (drawn last, no depth test) materials; in `Core` because `ScreenFade` needs it and `Core` mustn't depend on `Player`. Detail in `Scripts/Player/CLAUDE.md`.
 
 ## Debug drawing (`Core/Debug`) - gizmos that also show in the headset
 
-Unity's Gizmos can't be seen properly in VR: they're drawn for one flat camera, so they show in
-one eye only, offset and distorted. So every component with gizmos writes its drawing **once**,
-against `DebugLines`, and the same code feeds both the Scene view and the headset.
+Gizmos draw for one flat camera, so in VR they show in one eye, offset/distorted. Every gizmo component draws **once** against `DebugLines`, feeding both Scene view and headset.
 
-- **`DebugLines`** — wireframe drawing built only from straight lines: `Line`, `Circle`,
-  `WireSphere` (three circles, like Gizmos), `WireCube`, `WireCapsule`, in `Matrix` space and
-  `Color` (like `Gizmos.matrix`/`color`). Two outputs: `DebugLines.ForGizmos` draws with
-  `Gizmos` (only valid inside `OnDrawGizmos*`); a `new DebugLines()` collects line vertices that
-  `CopyTo(mesh)` turns into a line mesh. `Draw(drawable, detailed)` resets matrix and colour
-  before each drawable. Nothing allocates once its lists have grown.
-- **`IDebugDrawable`** — `DrawDebug(DebugLines lines, bool detailed)`; `detailed` is the
-  "selected in the editor" view. Pattern for an implementer:
-  `DebugDrawRegistry.Register(this)`/`Unregister(this)` in `OnEnable`/`OnDisable`,
-  `DebugLines.ForGizmos.Draw(this, false)` in `OnDrawGizmos`, and
-  `DebugLines.ForGizmos.Draw(this, true)` in `OnDrawGizmosSelected` if it has a detailed view.
-  **Any new component with gizmos does this rather than call `Gizmos` directly.**
-  `DebugLines` is the only code that calls `Gizmos`.
-- **`DebugDrawRegistry`** — static list of enabled drawables (self-registering, no scene
-  search), read with `Count`/`Get(i)`.
-- **`InHeadsetGizmos`** — put it on any scene object and enable it (it can be toggled in the
-  Inspector while playing). Builds one line mesh from every registered drawable each frame
-  (one draw call), on a `MeshRenderer` it creates at the scene root with identity transform and
-  fixed huge bounds (never culled). Rebuilt in
-  `RenderPipelineManager.beginContextRendering`, guarded to once per frame, not
-  `LateUpdate()`: the head's Tracked Pose Driver moves again just before rendering.
-  `showDetail` picks each drawable's detailed view; `seeThroughWalls` sets the depth test
-  (Always / LessEqual). Disabled, it costs nothing.
-- **`DefaultLayerGizmos`** (`IDebugDrawable`, on the Debug object) — outlines, in magenta,
-  every enabled collider left on the Default layer (layer 0), in the Scene view and in the
-  headset: box/sphere/capsule as their real scaled shape, other colliders as their bounds.
-  The one scene search in the debug code, done every `rescanInterval` (1s) rather than per
-  frame, and it allocates, so it's debug-only. Disable the component to turn it off.
-- **`FogTestDebug`** (`Core/Debug`; **temporary**, for judging the look of Silent Hill 2
-  style fog - distance haze is only a reserve) — on the Debug object; while enabled in Play
-  Mode it turns on Unity's built-in fog (`RenderSettings`: `fogColor` pale grey, `mode`
-  Linear 1-18m, or `density` for the exponential modes), sets the main camera's clear colour
-  to the fog colour and, with `hideSky`, deactivates `Sky Stars`/`Sky Moon`. Disabling it
-  puts everything back; nothing is saved to the scene. Two untested extras:
-  **`skyGradient`** (the sky stays, and a 100m ball of vertices round the head, `Fog Test Sky
-  Haze`, is drawn over it in the fog colour - solid from straight down to `hazeFullAngle`
-  (5°) above the horizon, thinning to `overheadFog` (0.35) at `hazeClearAngle` (50°); it
-  borrows the `TeaLeaf/DebugLines` shader with its queue set to Transparent - 390) and
-  **`clearIndoors`** (one ray straight up from the head every `roofCheckInterval` (0.2s) on
-  `roofLayers` within `roofCheckHeight` (6m) = indoors; the fog then eases to
-  `indoorFogAmount` (0.1) over `indoorBlendTime` (1.5s)). Fog is global, so from indoors the
-  street through a window is clear too. Not a full-screen effect, and the project's own
-  shaders (overlay, ghost, sky, debug lines) ignore fog. Remove it once the look has been
-  judged.
-- **Shader `TeaLeaf/DebugLines`** (`Assets/Art/Shaders/Resources/DebugLines.shader`) — like
-  `TeaLeaf/Overlay` (unlit, Overlay queue, `ZWrite Off`, `Cull Off`, alpha blend, single-pass
-  instanced stereo macros, `SRPDefaultUnlit` pass, in `Resources` for `Shader.Find()`) but
-  coloured per vertex, with the depth test as a `_ZTest` material property. Lines are one pixel
-  wide in the headset.
+- **`DebugLines`**: line-only wireframes: `Line`, `Circle`, `WireSphere` (three circles), `WireCube`, `WireCapsule`, in `Matrix` space and `Color`. Outputs: `DebugLines.ForGizmos` draws via `Gizmos` (only inside `OnDrawGizmos*`); `new DebugLines()` collects vertices, `CopyTo(mesh)` makes a line mesh. `Draw(drawable, detailed)` resets matrix/colour per drawable. No allocation once lists have grown. **The only code that calls `Gizmos`.**
+- **`IDebugDrawable`**: `DrawDebug(DebugLines lines, bool detailed)` (`detailed` = selected view). Pattern: `DebugDrawRegistry.Register(this)`/`Unregister(this)` in `OnEnable`/`OnDisable`; `DebugLines.ForGizmos.Draw(this, false)` in `OnDrawGizmos`; `DebugLines.ForGizmos.Draw(this, true)` in `OnDrawGizmosSelected` if it has a detailed view. **Every new gizmo component does this, never `Gizmos` directly.**
+- **`DebugDrawRegistry`**: static list of enabled drawables (`Count`/`Get(i)`).
+- **`InHeadsetGizmos`**: on any scene object, enable (toggleable while playing). Builds one line mesh from all registered drawables each frame (one draw call) on a `MeshRenderer` it makes at scene root, identity transform, huge fixed bounds (never culled). Rebuilt in `RenderPipelineManager.beginContextRendering`, once per frame, **not `LateUpdate()`** (head Tracked Pose Driver moves again before render). `showDetail` = detailed views; `seeThroughWalls` = depth test Always / LessEqual. Disabled = free.
+- **`DefaultLayerGizmos`** (`IDebugDrawable`, Debug object): magenta outlines of every enabled collider on Default (layer 0), Scene view and headset; box/sphere/capsule as real scaled shape, others as bounds. The one scene search in debug code, every `rescanInterval` (1s), allocates - debug-only. Disable to turn off.
+- **`FogTestDebug`** (`Core/Debug`; **temporary**, judging Silent Hill 2 style fog; distance haze is only a reserve; remove once judged): on Debug object; while enabled in Play Mode turns on built-in fog (`RenderSettings`: `fogColor` pale grey, `mode` Linear 1-18m, or `density` for exponential), sets main camera clear colour to fog colour, with `hideSky` deactivates `Sky Stars`/`Sky Moon`. Disabling restores; nothing saved. Untested extras: **`skyGradient`** (sky stays; a 100m vertex ball round the head, `Fog Test Sky Haze`, in fog colour - solid from straight down to `hazeFullAngle` (5°) above horizon, thinning to `overheadFog` (0.35) at `hazeClearAngle` (50°); borrows `TeaLeaf/DebugLines` with queue Transparent - 390); **`clearIndoors`** (one ray up from the head every `roofCheckInterval` (0.2s) on `roofLayers` within `roofCheckHeight` (6m) = indoors; fog eases to `indoorFogAmount` (0.1) over `indoorBlendTime` (1.5s)). Fog is global (street through a window clears too). Not full-screen; project shaders (overlay, ghost, sky, debug lines) ignore fog.
+- **Shader `TeaLeaf/DebugLines`** (`Assets/Art/Shaders/Resources/DebugLines.shader`): like `TeaLeaf/Overlay` (unlit, Overlay queue, `ZWrite Off`, `Cull Off`, alpha blend, SPI stereo, `SRPDefaultUnlit`, Resources for `Shader.Find()`) but vertex-coloured, depth test as `_ZTest` property. Lines one pixel wide in headset.

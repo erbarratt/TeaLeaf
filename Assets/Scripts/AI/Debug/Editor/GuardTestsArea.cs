@@ -45,10 +45,10 @@ namespace AI
         // floor already there.
         private const float FloorLift = 0.02f;
 
-        // The speeds the walk and run clips were made at, as the starting
-        // point for matching their feet.
-        private const float WalkClipSpeed = 1.07f;
-        private const float RunClipSpeed = 3.58f;
+        // How fast a planted foot travels back in the walk and run clips,
+        // the starting point for matching their feet.
+        private const float WalkClipSpeed = 0.97f;
+        private const float RunClipSpeed = 3.1f;
 
         [MenuItem("TeaLeaf/Dev Room/Guard Tests")]
         private static void Build()

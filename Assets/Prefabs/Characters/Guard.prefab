@@ -67,6 +67,7 @@ GameObject:
   - component: {fileID: 6630445598390008114}
   - component: {fileID: 823970431578149243}
   - component: {fileID: 1388694834986731243}
+  - component: {fileID: 1092821135610948165}
   m_Layer: 11
   m_Name: Guard
   m_TagString: Untagged
@@ -181,7 +182,7 @@ MonoBehaviour:
   headCollider: {fileID: 7970386983979706407}
   stateRenderer: {fileID: 0}
   patrolRoute: {fileID: 0}
-  patrolSpeed: 1.2
+  patrolSpeed: 1.07
   chaseSpeed: 3.6
   turnSpeed: 240
   viewRange: 14
@@ -238,6 +239,31 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AI.GuardAnimation
   animator: {fileID: 3675994528401739515}
   speedDamping: 0.1
+  walkSpeed: 0.97
+  runSpeed: 3.1
+--- !u!114 &1092821135610948165
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8353593655831311469}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 56d8d75c0e5528f45be59464d67fb9db, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AI.GuardFootLock
+  leftUpperLeg: {fileID: 0}
+  leftLowerLeg: {fileID: 0}
+  leftFoot: {fileID: 0}
+  rightUpperLeg: {fileID: 0}
+  rightLowerLeg: {fileID: 0}
+  rightFoot: {fileID: 0}
+  bodyRenderer: {fileID: 0}
+  plantHeight: 0.135
+  releaseTime: 0.12
+  maxSlip: 0.15
+  maxDistance: 50
 --- !u!1001 &7091291610027848554
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -330,6 +356,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 11
       objectReference: {fileID: 0}
+    - target: {fileID: -6859803428536488069, guid: 67fa2a8bb7d4d5e409744f8cc5946fa4, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: -944668943935152995, guid: 7829c551ddc9db546ba518753b7a0b4f, type: 3}
     - target: {fileID: -6859803428536488069, guid: 67fa2a8bb7d4d5e409744f8cc5946fa4, type: 3}
       propertyPath: m_SkinnedMotionVectors
       value: 0

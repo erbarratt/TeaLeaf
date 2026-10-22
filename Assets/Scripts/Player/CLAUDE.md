@@ -1,1068 +1,197 @@
 # Player systems (`Assets/Scripts/Player/`, namespace `Player`)
 
-Detail for the player systems. The root `CLAUDE.md` holds the project rules, the tick order,
-the Player hierarchy and the physics layers; this file is loaded when working in this folder.
-Keep it up to date with every change to these systems, like the root file.
+Per-system detail; root `CLAUDE.md` has rules, tick order, Player hierarchy, layers. Keep this file current with every change.
 
-Code that doesn't match the coding standards yet: `PlayerLocomotion.cs` (several `if (...){`
-lines in `HandleTurning()` missing the space before `{`; many field comments using `///`
-without `<summary>`) and `PlayerTracking.cs` (odd indentation on the accessors, empty `//`
-comment lines).
+Not yet matching standards: `PlayerLocomotion.cs` (`if (...){` missing space in `HandleTurning()`; field comments `///` without `<summary>`), `PlayerTracking.cs` (odd accessor indentation, empty `//` lines).
 
 ## Input
 
-- **`PlayerInputXR`** — the single source of truth for controller input. Wraps Input System
-  `InputActionReference`s (grip/trigger per hand, move/turn thumbsticks, crouch, sprint) and
-  caches them once per frame in `Tick()` as typed properties (`MoveAxis`, `TurnAxis`,
-  `LeftGrip`, `IsLeftGrabbing`, `CrouchPressed`, `SprintPressed`, `JumpPressed`,
-  `CancelPressed`, etc.), and holds the **handedness** setting: `leftHanded`
-  (`IsLeftHanded`; off = lockpicks on the left hand and crossbow on the right, on = the
-  other way round; read at startup by `PlayerLockpicking` and `PlayerCrossbow`). **`CrouchPressed`
-  is the right stick pushed down** (`ReadCrouchStick()`: past `crouchStickThreshold` 0.7
-  and further down than to either side, then not again until it is back above
-  `crouchStickRearm` 0.4), or the keyboard's crouch key through the `Crouch` action.
-  The `Cancel` action
-  needs no wiring in the scene: it is found by name in the action map the other actions
-  are in (`FindByName()`); a warning, and never pressed, if it is missing. Enables every action it reads in `OnEnable()` rather
-  than relying on the asset being enabled, and caches the resolved `InputAction`s there (no
-  `.action` lookups per frame). Also calls `Tick()` from its own `Update()` as a fallback so
-  Debug scripts work without a full rig; `Tick()` is guarded by `Time.frameCount`, so only
-  the first call each frame reads input. Gameplay code always reads input through this class
-  rather than referencing Input Actions directly.
-- **`PlayerHaptics`** (on the Player root) — the single way to buzz a controller:
-  `Pulse(isLeftHand, amplitude, duration)`. Sends through Unity's XR device for that hand
-  (`UnityEngine.XR.InputDevice.SendHapticImpulse`, channel 0), each device found with
-  `InputDevices.GetDeviceAtXRNode()` and kept, looked up again only when it stops being
-  valid - so a pulse creates nothing and may be sent many times a second. Not through
-  `OpenXRInput.SendHapticImpulse` on an input action: that builds a control name on every
-  call. Working in the headset. No `Update()`/`Tick()`. Right-click "Test
-  Left/Right Pulse" (Play Mode) checks it. Also owns the feedback tuning: it
-  subscribes to `PlayerHandVisuals.HandContactStarted` and taps that controller
-  (`contactAmplitude` 0.15, `contactDuration` 0.03s), at most once per `contactCooldown`
-  (0.25s) per hand. Global on/off: `HapticsEnabled` (serialized `hapticsEnabled`, default
-  on), checked once in `Pulse()` so it silences every haptic.
+- **`PlayerInputXR`** — sole source of controller input; gameplay never references Input Actions directly. Wraps `InputActionReference`s, caches per frame in `Tick()` as properties (`MoveAxis`, `TurnAxis`, `LeftGrip`, `IsLeftGrabbing`, `CrouchPressed`, `SprintPressed`, `JumpPressed`, `CancelPressed`, ...). Holds handedness `leftHanded` (`IsLeftHanded`; off = lockpicks left, crossbow right; read at startup by `PlayerLockpicking`, `PlayerCrossbow`, `PlayerCompass`).
+  - `CrouchPressed` = right stick down (`ReadCrouchStick()`: past `crouchStickThreshold` 0.7 and more down than sideways; re-arms above `crouchStickRearm` 0.4) or keyboard via `Crouch` action.
+  - `Cancel` needs no scene wiring: found by name in the same map (`FindByName()`); missing = warning, never pressed.
+  - `OnEnable()` enables every action it reads (doesn't rely on asset) and caches resolved `InputAction`s (no per-frame `.action`). Own `Update()` also calls `Tick()` as fallback for Debug scripts without a rig; guarded by `Time.frameCount`.
+- **`PlayerHaptics`** (Player root) — the only way to buzz: `Pulse(isLeftHand, amplitude, duration)` via `UnityEngine.XR.InputDevice.SendHapticImpulse` channel 0, device from `InputDevices.GetDeviceAtXRNode()` cached, re-looked-up only when invalid (no allocations). Not `OpenXRInput.SendHapticImpulse` (builds a control name per call). No `Tick()`. Context menu "Test Left/Right Pulse". Taps on `PlayerHandVisuals.HandContactStarted` (`contactAmplitude` 0.15, `contactDuration` 0.03s, `contactCooldown` 0.25s per hand). `HapticsEnabled` (serialized `hapticsEnabled`, default on) checked in `Pulse()` silences all.
 
-**Input assets:** all gameplay input reads the project-owned, project-wide
-`Assets/InputSystem_Actions.inputactions` (auto-enabled by Unity, every map). The `Tracking`
-map holds the head and controller poses the three Tracked Pose Drivers read
-(`Head`/`LeftHand`/`RightHand` + `Position`/`Rotation`/`TrackingState`: head
-`<XRHMD>/centerEye*`, controllers `<XRController>{Hand}/pointerPosition`/`pointerRotation` -
-the aim pose everything is tuned against - and `/trackingState`). The `Player` map has an
-`XR`-group action for every Quest controller input, named by function where gameplay uses it
-and by button as a placeholder where it doesn't yet:
+**Input assets:** project-wide `Assets/InputSystem_Actions.inputactions` (auto-enabled, all maps). `Tracking` map: `Head`/`LeftHand`/`RightHand` + `Position`/`Rotation`/`TrackingState` (head `<XRHMD>/centerEye*`; controllers `<XRController>{Hand}/pointerPosition`/`pointerRotation` (aim pose, everything tuned to it) and `/trackingState`). `Player` map has an `XR`-group action per Quest input, named by function if used, by button if placeholder:
 
 | Action | XR binding | Used by |
 |---|---|---|
 | `Move` | `{LeftHand}/{Primary2DAxis}` | movement |
-| `Turn` | `{RightHand}/{Primary2DAxis}` | turning, mantle (stick up), crouch toggle (stick down) |
-| `LeftGrip` / `RightGrip` | `{LeftHand}`/`{RightHand}/{Grip}` | grabbing, finger curl |
-| `LeftTrigger` / `RightTrigger` | `{LeftHand}`/`{RightHand}/{Trigger}` | index curl; aim/throw a held prop (`PlayerHandThrowing`); shoot the crossbow (`PlayerCrossbow`) |
+| `Turn` | `{RightHand}/{Primary2DAxis}` | turning, mantle (up), crouch toggle (down) |
+| `LeftGrip`/`RightGrip` | `{LeftHand}`/`{RightHand}/{Grip}` | grabbing, finger curl |
+| `LeftTrigger`/`RightTrigger` | `{LeftHand}`/`{RightHand}/{Trigger}` | index curl; aimed throw (`PlayerHandThrowing`); crossbow shot (`PlayerCrossbow`) |
 | `Sprint` | `{LeftHand}/{Primary2DAxisClick}` | sprint toggle |
-| `Crouch` | none on a controller | crouch toggle from the keyboard; on a controller it is `Turn`'s stick down |
+| `Crouch` | none on controller | keyboard crouch; controller uses `Turn` down |
 | `Jump` | `{RightHand}/{PrimaryButton}` (A) | jump |
-| `Cancel` | `{RightHand}/{SecondaryButton}` (B) | the universal cancel: an aimed throw (`PlayerHandThrowing`) |
-| `RightStickClick` | `{RightHand}/{Primary2DAxisClick}` | unassigned placeholder |
-| `ButtonX` | `{LeftHand}/{PrimaryButton}` | unassigned placeholder |
-| `ButtonY` | `{LeftHand}/{SecondaryButton}` | unassigned placeholder |
-| `Menu` | `{LeftHand}/{MenuButton}` | unassigned placeholder |
-| `LeftHaptic` / `RightHaptic` | `{LeftHand}`/`{RightHand}/haptic` | unused (output actions; `PlayerHaptics` sends through the XR devices instead) |
+| `Cancel` | `{RightHand}/{SecondaryButton}` (B) | universal cancel: aimed throw |
+| `RightStickClick` | `{RightHand}/{Primary2DAxisClick}` | placeholder |
+| `ButtonX` | `{LeftHand}/{PrimaryButton}` | placeholder |
+| `ButtonY` | `{LeftHand}/{SecondaryButton}` | placeholder |
+| `Menu` | `{LeftHand}/{MenuButton}` | placeholder |
+| `LeftHaptic`/`RightHaptic` | `{LeftHand}`/`{RightHand}/haptic` | unused (`PlayerHaptics` uses XR devices) |
 
-Rename a placeholder to its function when it gets a job, and add it to `PlayerInputXR` then -
-not before. Bind XR actions to a specific hand (`{LeftHand}`/`{RightHand}`) - a bare
-`<XRController>` binding fires from either controller - and never add interactions unless
-they're wanted (a Sector interaction on a stick binding reads (0, 0) unless the stick goes
-straight from centre into that sector). The asset also keeps Unity's `UI` map and its
-Keyboard&Mouse, Gamepad, Touch and Joystick control schemes, unused by the game: the Input
-System reports an error in the editor if the project-wide actions have no `UI` map, and
-that map's bindings use those schemes. `Move` and a few other `Player` actions still carry
-the template's keyboard and gamepad bindings.
+Rename a placeholder and add it to `PlayerInputXR` only when it gets a job. Bind XR actions to a specific hand (bare `<XRController>` fires from either). No interactions unless wanted (a Sector interaction on a stick reads (0,0) unless the stick goes straight from centre into the sector). Unity's `UI` map and Keyboard&Mouse/Gamepad/Touch/Joystick schemes stay (unused): the Input System errors if project-wide actions lack a `UI` map. `Move` and some `Player` actions keep template keyboard/gamepad bindings.
 
 ## Body and movement
 
-- **`PlayerTracking`** — the single source of truth for tracked XR transforms (head, left hand,
-  right hand), exposing position/rotation accessors. Other systems query this class instead
-  of walking the rig hierarchy.
-  - **Hand smoothing:** `SmoothHands()`, first thing in `Tick()` (tick step 1, every frame,
-    calibrated or not), overwrites each controller object's tracked local pose with a
-    smoothed one - so the hand visuals, hand rays, throw arc, carried props and climbing are
-    all steadied with no changes of their own. It works because the hands' Tracked Pose
-    Drivers write the tracked pose once per frame before `Update()` and not again before
-    rendering. **`HandPoseFilter`** (plain class, one per hand) is a One Euro filter: simple
-    smoothing whose cutoff frequency rises with the hand's speed, so a still hand is
-    steadied and a moving one isn't lagged; position and rotation each have their own pair
-    of numbers. Filtered in the controllers' parent space (tracking space), so the body
-    walking or turning isn't hand movement, with `Time.unscaledDeltaTime`. **Per device**
-    (`HandSmoothingSettings`, a serializable class: `enabled`,
-    `positionMinCutoff`/`positionSpeedCoefficient`, `rotationMinCutoff`/
-    `rotationSpeedCoefficient`): `pcvrSmoothing` (3 Hz, 40, 3 Hz, 15) and `questSmoothing`
-    (5 Hz, 40, 5 Hz, 15; untuned) chosen by `smoothingTarget`: `Auto` (Android build =
-    Quest, anything else = PCVR) or forced to either. Read every frame, so tunable in Play
-    Mode. Nothing reads the raw tracking.
-  - **Tracking mode and calibration:** `Start()` sets XR tracking to Device mode (see
-    "Tracking setup" in the root `CLAUDE.md`), then - with `calibrateView` (default on) and
-    XR running - starts the one-off `CalibrateWhenTracked()` coroutine:
-    `ScreenFade.Instance.Hold()`, wait until the head reports a tracked position and
-    rotation (`InputDevices`/`CommonUsages.trackingState`) or `trackingTimeout` (3s),
-    `Calibrate()`, one more frame, `Release()`. **`Calibrate()`** puts the view right by
-    moving Camera Offset (`head.parent`), never the tracked transforms: (1) if the head's up
-    points below the horizon (`IsHeadUpsideDown()`), `FlipTrackingSpace()` turns Camera
-    Offset half a turn about the head's level facing direction, through the head's position
-    - same spot, same facing, upright - and logs the rotations it found; (2) it shifts
-    Camera Offset vertically so the head is at standing eye height (Camera Offset's saved
-    1.6m, captured in `Awake()`) less the game crouch's drop (standing capsule height -
-    current). **`Tick()`** recalibrates whenever the head's raw local pose jumps faster than
-    a head can move (8 m/s or 1500°/s, scaled by frame time) - i.e. the headset was
-    recentred. Through Virtual Desktop/SteamVR the level often starts with the tracking
-    space rolled 180° and its origin on the floor; `XRInputSubsystem.TryRecenter()` doesn't
-    cure it. **Camera Offset can therefore be rotated and moved** - don't assume its saved
-    pose.
-- **`PlayerController`** — the tick orchestrator and sole owner of `characterController.Move()`
-  (see the tick order in the root `CLAUDE.md`). Subscribes to `Core.LevelManager.StateChanged`
-  in `Start()`: once the level has ended, the body is frozen for the end fade and only the
-  hand systems tick.
-- **`PlayerLocomotion`** — thumbstick movement, turning, gravity, and crouch for the
-  `CharacterController`, exposed as `TickBody()`/`TickMovement(isClimbing)`/`TickTurning()`. It
-  returns its movement rather than calling `Move()` itself. Movement is relative to the rig root
-  (`playerTransform`), not the headset. Supports snap turn and smooth turn (`useSmoothTurn`);
-  turning works while climbing. The controller's horizontal centre is re-centred under the
-  headset whenever the head has drifted more than `recentreThreshold` (2mm) from it, so
-  tracking jitter doesn't rewrite the physics shape every frame
-  (`UpdateCharacterControllerCentre()` only touches X/Z). Exposes `IsSprinting`,
-  `IsCrouching`, `MoveSpeed`/`SprintSpeed` (the full-stick speeds), `MovementState`, and a
-  `Landed` event (fall speed).
-  - **Momentum:** horizontal movement is one persistent `_horizontalVelocity`: set from the
-    stick while grounded, kept as momentum while airborne (light air control/drag), and
-    reduced to the actually-applied velocity when an airborne `Move()` hits a side.
-  - **Jump** (right A; `HandleJump()`, before gravity): `_verticalVelocity` is set from a
-    tunable jump *height* (`sqrt(2h·-g)`); coyote time, a jump buffer and a `_hasJumped`
-    guard. Walls redirect the momentum and ceilings stop the rise (via `Move()`'s
-    `CollisionFlags`, no pre-jump clearance check). **Jump while crouched only stands up**;
-    a jump waits for full standing height.
-  - **Sprint is click-to-toggle** (left stick click), not hold: holding a stick click while
-    pushing the stick is tiring in VR. `sprintSpeed` replaces `moveSpeed`. The sprint ends
-    when the stick returns to centre, on a second click, on crouch or on climb, and can't
-    start while crouched.
-  - **Crouch is a toggle (right stick down), not physical:** `HandleCrouch()` smoothly moves the
-    CharacterController height between the standing height (captured in `Awake`) and
-    `minimumHeight`, keeps `center.y` in sync, and shifts `cameraOffsetTransform` by the
-    *relative* height delta (never an absolute value, which would discard `Camera Offset`'s
-    saved 1.6m standing eye height).
-  - **CharacterController settings:** Slope Limit 45°, Step Offset 0.3m. The
-    CharacterController is kept rather than replaced with a custom one: it runs natively
-    inside PhysX, and a C# replacement would be slower and a large source of bugs.
-- **`MovementState`** (enum) — `Still`, `Walking`, `Sprinting`, `CrouchStill`, `CrouchWalking`,
-  `Climbing`, `Airborne`, `Mantling` (set whenever a mantle is running): the single value
-  noise, visibility, AI and the compass read, rather than combining flags themselves.
-  Set by `PlayerLocomotion.TickState()` in priority order (Climbing > Airborne > crouch >
-  still > sprint/walk). "Moving" means the real horizontal applied movement exceeds
-  `movingSpeedThreshold`, so pushing into a wall counts as still. `Airborne` only kicks in after
-  `airborneGraceTime` off the ground, since `isGrounded` flickers on steps and slopes - except
-  after a jump, which is `Airborne` immediately. Physical roomscale walking doesn't count as
-  moving.
-- **`PlayerFootsteps`** (on the Player root) — footsteps and landings. A step is one
-  `Core.SurfaceSounds.PlayStep()`, giving the audio, the noise event (the Player root as the
-  noise source) and the toe sound on heel-and-toe surfaces (its own `HeelAndToeCadence`; see
-  `Scripts/Core/CLAUDE.md`). `Tick(appliedMovement)` (tick step 7b) adds up the real
-  horizontal distance moved and steps each time it reaches the current gait's `stride`,
-  keeping the remainder. Three serialized `Gait`s (`stride`, `noiseScale`, `volumeScale`):
-  walking (1.4m, 1, 1), sprinting (1.6m, 1.6, 1), crouching (1.2m, 0.4, 0.5), picked from
-  `MovementState`. `Still`/`CrouchStill` keep the distance so far (dropping it would let
-  short bursts of movement cross a room silently); `Airborne`/`Climbing` zero it.
-  **Creeping is quieter**: each step's noise and volume are also scaled by
-  `Lerp(slowestStepScale (0.4), 1, speed fraction)`, where the speed is the average over the
-  stride (distance / time spent moving, `_timeSinceStep`) against the gait's full speed
-  (`MoveSpeed`, or `SprintSpeed` when sprinting; crouch moves at walk speed). So loudness to
-  guards = the surface cue's noise radius x stance x speed. **A slow crouched step is
-  silent**: while `CrouchWalking`, a step whose speed fraction is under `silentCrouchSpeed`
-  (0.3; 0 = off) plays no sound and emits no noise, though its stride is still used up. The surface is found only when a
-  sound is made: one ray down from 0.3m above the capsule's bottom (`groundLayers`,
-  Environment + Interactable; `SurfaceTag.TryFindBelow()`); a miss reuses the last surface.
-  **A landing is the surface's step sound played loud, twice** (no separate landing cue): on
-  `PlayerLocomotion.Landed`, strength = fall speed / `referenceLandingSpeed` (3 m/s, about a
-  flat jump) clamped to `minLandingScale`-`maxLandingScale` (0.5-2); the first foot plays at
-  once and the second `secondFootDelay` (0.1s) later (`Play()`'s `delay`), both at volume x
-  `landingVolumeScale` (1.25) x strength, with noise scale 0. The noise is emitted once,
-  directly through `NoiseSystem.Emit()`, as `NoiseType.Landing` with radius = the cue's noise
-  radius x `landingNoiseScale` (1.5) x strength. Sounds play 0.1m above the feet so they're
-  inside the sound room being stood in. Needs `surfaceSounds` assigned
-  (`Assets/Data/SurfaceSoundsPlaceholder.asset`); silent without it or without a
-  `SoundPlayer`.
-- **`PlayerVisibility`** (on the Player root) — how easy the player is to see: `Visibility`
-  0 (hidden) to 1 (plain sight), the one value guards' vision and the compass's light gem read.
-  `PlayerVisibility.Instance` (static, set in `Awake()`) with `HeadPosition`,
-  `BodyPosition` and `FeetPosition` is how `AI.Guard` reaches the player without a scene
-  search.
-  `Tick()` (tick step 7c, and during a mantle) averages `Core.SceneLight.LevelAt()` at the
-  head (Main Camera) and the capsule's centre (`LightLevel`, exposed for debug) - **sampled
-  every `sampleInterval` (0.1s), not per frame**, since each sample is a few physics rays -
-  then every frame multiplies by stance from `MovementState` (`crouchScale` 0.6 for both
-  crouch states, `sprintScale` 1.3), clamps to 0-1 and eases `Visibility` towards it at
-  `changeSpeed` (4 per second) so a shadow's edge fades rather than flickers. Stance
-  multiplies, so full shadow stays 0 even when sprinting. Moonlight (0.4) gives 0.4 standing
-  and 0.24 crouched: how far away each can be seen from is the guards' vision to decide.
-  **`VisibilityDebug`** (`Player/Debug`, on the Debug object) - a head-locked gauge drawn
-  through `DebugLines` (needs `InHeadsetGizmos` on): a frame with a bar that fills with
-  `Visibility` (blue to yellow) and a tick under it at the raw `LightLevel`; logs each time
-  the value moves into a different tenth.
+- **`PlayerTracking`** — sole source of tracked head/hand transforms (position/rotation accessors); others query it, not the rig.
+  - **Hand smoothing:** `SmoothHands()`, first in `Tick()` (every frame, calibrated or not), overwrites each controller's tracked local pose with a smoothed one, so visuals, rays, arcs, carried props, climbing are all steadied. Relies on hands' drivers writing once before `Update()` only. **`HandPoseFilter`** (plain class, per hand): One Euro filter (cutoff rises with speed), separate position/rotation params, filtered in tracking space (body walking/turning isn't hand movement), `Time.unscaledDeltaTime`. Per device `HandSmoothingSettings` (`enabled`, `positionMinCutoff`/`positionSpeedCoefficient`, `rotationMinCutoff`/`rotationSpeedCoefficient`): `pcvrSmoothing` (3 Hz, 40, 3 Hz, 15), `questSmoothing` (5 Hz, 40, 5 Hz, 15; untuned), picked by `smoothingTarget` (`Auto`: Android = Quest, else PCVR; or forced). Read every frame (Play Mode tunable). Nothing reads raw tracking.
+  - **Calibration:** `Start()` sets Device mode, then with `calibrateView` (default on) and XR running runs `CalibrateWhenTracked()`: `ScreenFade.Instance.Hold()`, wait for tracked head pos+rot (`InputDevices`/`CommonUsages.trackingState`) or `trackingTimeout` 3s, `Calibrate()`, one frame, `Release()`. `Calibrate()` moves Camera Offset (`head.parent`), never tracked transforms: (1) if head up is below horizon (`IsHeadUpsideDown()`), `FlipTrackingSpace()` turns Camera Offset 180° about the head's level facing through the head position (logs rotations); (2) shifts Camera Offset vertically so head = saved 1.6m (captured in `Awake()`) minus the crouch drop (standing capsule height − current). `Tick()` recalibrates when the raw head local pose jumps faster than 8 m/s or 1500°/s (recentre). Via Virtual Desktop/SteamVR tracking space often starts rolled 180° with origin on the floor; `XRInputSubsystem.TryRecenter()` doesn't fix it. **Camera Offset can be rotated/moved: don't assume its saved pose.**
+- **`PlayerController`** — tick orchestrator, sole owner of `characterController.Move()`. Subscribes to `Core.LevelManager.StateChanged` in `Start()`; level ended → body frozen, only hand systems tick.
+- **`PlayerLocomotion`** — stick movement, turning, gravity, crouch: `TickBody()`/`TickMovement(isClimbing)`/`TickTurning()`; returns movement, never calls `Move()`. Movement relative to rig root (`playerTransform`), not headset. Snap or smooth turn (`useSmoothTurn`); turning works while climbing. Capsule X/Z re-centred under head only when drift > `recentreThreshold` (2mm) (`UpdateCharacterControllerCentre()`). Exposes `IsSprinting`, `IsCrouching`, `MoveSpeed`/`SprintSpeed` (full-stick), `MovementState`, `Landed` event (fall speed).
+  - **Momentum:** one `_horizontalVelocity`: from stick when grounded, kept airborne (light air control/drag), reduced to applied velocity when an airborne `Move()` hits a side.
+  - **Jump** (A; `HandleJump()` before gravity): `_verticalVelocity = sqrt(2h·-g)` from jump height; coyote time, jump buffer, `_hasJumped` guard. Walls redirect, ceilings stop rise (via `CollisionFlags`, no pre-check). Jump while crouched only stands; jump waits for full height.
+  - **Sprint is click-toggle** (left stick click; holding is tiring in VR). `sprintSpeed` replaces `moveSpeed`. Ends on stick to centre, second click, crouch, climb; can't start crouched.
+  - **Crouch is a toggle, not physical:** `HandleCrouch()` eases height between standing (captured in `Awake`) and `minimumHeight`, syncs `center.y`, shifts `cameraOffsetTransform` by the *relative* delta (never absolute; would discard the 1.6m).
+  - **CharacterController:** Slope Limit 45°, Step Offset 0.3m. Kept (native PhysX; a C# replacement would be slower and buggy).
+- **`MovementState`** (enum) — `Still`, `Walking`, `Sprinting`, `CrouchStill`, `CrouchWalking`, `Climbing`, `Airborne`, `Mantling`: the single value noise, visibility, AI, compass read. Set in `TickState()`, priority Climbing > Airborne > crouch > still > sprint/walk. Moving = applied horizontal movement > `movingSpeedThreshold` (pushing a wall = still; roomscale walking doesn't count). `Airborne` after `airborneGraceTime` (isGrounded flickers on steps/slopes), immediately after a jump.
+- **`PlayerFootsteps`** (Player root) — a step = one `Core.SurfaceSounds.PlayStep()` (audio, noise event with Player root as source, toe sound via `HeelAndToeCadence`; see `Scripts/Core/CLAUDE.md`). `Tick(appliedMovement)` accumulates horizontal distance, steps per gait `stride`, keeps remainder. `Gait`s (`stride`, `noiseScale`, `volumeScale`): walking (1.4m, 1, 1), sprinting (1.6m, 1.6, 1), crouching (1.2m, 0.4, 0.5). `Still`/`CrouchStill` keep distance (else short bursts cross silently); `Airborne`/`Climbing` zero it.
+  - Creeping quieter: noise and volume × `Lerp(slowestStepScale 0.4, 1, speed fraction)`, speed = stride distance / `_timeSinceStep` vs gait full speed (`MoveSpeed`, or `SprintSpeed`; crouch uses walk speed). Loudness = cue radius × stance × speed. `CrouchWalking` step under `silentCrouchSpeed` (0.3; 0 = off) is silent (no sound/noise; stride still used).
+  - Surface found only when sounding: one ray down from 0.3m above capsule bottom (`groundLayers` Environment + Interactable; `SurfaceTag.TryFindBelow()`); miss reuses last.
+  - **Landing = step sound twice, loud** (no landing cue): on `Landed`, strength = fall speed / `referenceLandingSpeed` (3 m/s) clamped `minLandingScale`-`maxLandingScale` (0.5-2); second foot after `secondFootDelay` 0.1s (`Play()` `delay`), volume × `landingVolumeScale` 1.25 × strength, noise scale 0. Noise emitted once via `NoiseSystem.Emit()`, `NoiseType.Landing`, radius = cue radius × `landingNoiseScale` 1.5 × strength.
+  - Sounds 0.1m above feet (inside the room stood in). Needs `surfaceSounds` (`Assets/Data/SurfaceSoundsPlaceholder.asset`) and a `SoundPlayer`, else silent.
+- **`PlayerVisibility`** (Player root) — `Visibility` 0 (hidden)-1, read by guards and the light gem. `PlayerVisibility.Instance` (set in `Awake()`) with `HeadPosition`/`BodyPosition`/`FeetPosition` is how `AI.Guard` finds the player. `Tick()` averages `Core.SceneLight.LevelAt()` at head (Main Camera) and capsule centre (`LightLevel`) **every `sampleInterval` 0.1s** (rays), then each frame × stance (`crouchScale` 0.6 both crouch states, `sprintScale` 1.3), clamps 0-1, eases at `changeSpeed` 4/s. Full shadow stays 0 sprinting. Moonlight 0.4 → 0.4 standing, 0.24 crouched; seeing distance is the guards' job.
+  - **`VisibilityDebug`** (`Player/Debug`, Debug object): head-locked `DebugLines` gauge (needs `InHeadsetGizmos`), bar by `Visibility` (blue→yellow), tick at raw `LightLevel`; logs on crossing a tenth.
 
 ## What each hand is busy with
 
-**A hand does one thing at a time**, and eight systems can have a hand: climbing, carrying,
-doors (handles, bolts and chest lids), the lockpicks, the keys, holding the pack, the
-crossbow (active on its hand, or the other hand on its wheel) and the blackjack. The
-compass is only worn: it never has a hand.
+**A hand does one thing at a time**; eight systems can own one: climbing, carrying, doors (handles, bolts, chest lids), lockpicks, keys, pack, crossbow (active, or other hand on wheel), blackjack. The compass never owns a hand.
 
-- **`PlayerHandState`** (on `Hands`) — the one place that knows what each hand is busy
-  with. **It keeps no state**: each system owns what its hands are doing and says so
-  through its own flags (`PlayerClimbing.IsLeftHandGripping`,
-  `PlayerHandHolding.IsLeftHolding`, `PlayerHandDoors.IsLeftOnDoor`,
-  `PlayerLockpicking.IsLeftBusy`, `PlayerKeys.IsLeftBusy`, `PlayerPack.IsLeftBusy`,
-  `PlayerCrossbow.IsLeftBusy`, `PlayerBlackjack.IsLeftBusy`,
-  and the right-hand ones); this
-  class reads them when asked, so an answer is as fresh as the systems that have ticked so
-  far this frame. `HandUse` (enum: `None`, `Climbing`, `Carrying`, `Door`, `Lockpicks`,
-  `Keys`, `Pack`, `Crossbow`, `Blackjack`); `GetUse(isLeftHand)` / `LeftUse` / `RightUse`; **`IsBusyExcept(isLeftHand,
-  asker)`** - whether any system *other than the asker* has the hand, which is what every
-  hand system asks before taking one. Every system it reads is optional, found in `Awake()`.
-  Each hand system gets it through `PlayerHandState.GetOrAdd(playerHandVisuals)` in its own
-  `Awake()`, which adds the component to the Hands object if the scene has none.
-  **Adding a hand system:** a `HandUse` value, a line each in `GetUse()` and
-  `IsBusyExcept()`, the system's own busy flags, and one `IsBusyExcept()` call in it -
-  nothing in the other systems.
-- **`HandStateDebug`** (`Player/Debug`, on `Hands`) — logs each change of either hand's
-  `HandUse` to the Console ("Left: None -> Climbing").
+- **`PlayerHandState`** (on `Hands`) — **keeps no state**; reads each system's flags on demand (`PlayerClimbing.IsLeftHandGripping`, `PlayerHandHolding.IsLeftHolding`, `PlayerHandDoors.IsLeftOnDoor`, `PlayerLockpicking`/`PlayerKeys`/`PlayerPack`/`PlayerCrossbow`/`PlayerBlackjack.IsLeftBusy`, and right-hand ones), so answers are as fresh as systems ticked so far. `HandUse` enum: `None`, `Climbing`, `Carrying`, `Door`, `Lockpicks`, `Keys`, `Pack`, `Crossbow`, `Blackjack`. `GetUse(isLeftHand)`/`LeftUse`/`RightUse`; **`IsBusyExcept(isLeftHand, asker)`** asked by every system before taking a hand. All read systems optional, found in `Awake()`. Systems get it via `PlayerHandState.GetOrAdd(playerHandVisuals)` in `Awake()` (adds it if missing).
+  - **Adding a hand system:** a `HandUse` value, a line each in `GetUse()` and `IsBusyExcept()`, its own busy flags, one `IsBusyExcept()` call in it; nothing in other systems.
+- **`HandStateDebug`** (`Player/Debug`, on `Hands`) — logs `HandUse` changes ("Left: None -> Climbing").
 
 ## Carrying props
 
-- **`PlayerHandHolding`** (on `Hands`; optional everywhere - `PlayerController`,
-  `PlayerClimbing` and `PlayerHandInteraction` find it in `Awake()` and work without it) —
-  picks up, carries and drops `Interaction.Grabbable`s. `Tick()` (tick step 4a): a free hand
-  whose grip is held picks up the `Grabbable` its hand ray is on ("held" grabbing, like
-  climbing); letting go of grip drops it from rest, or throws it if the hand was moving.
-  `LeftHeld`/`RightHeld` expose the prop; `IsLeftHolding`/`IsRightHolding` are its busy
-  flags; `PlayerHandInteraction.TickReticles()` hides a carrying hand's reticle.
-  - **Pick-up: the hand goes to the prop, then both come back.** The prop goes kinematic at
-    once and stays where it lies while that hand's `HandVisualSnap` is snapped to the prop's
-    `GetSnapPose()` over `reachDuration` (0.12s, `isReaching`). When the snap's `Weight`
-    reaches 1, `FinishReach()` (in `TickHeld()`) calls `Grabbable.BeginCarry()` (from here
-    the prop is out of physics and pushes nothing; props resting on it are woken and fall),
-    parents the prop to the visual and releases the snap over `returnDuration` (0.18s), so
-    the prop rides the release blend back to the controller. Letting go mid-reach drops the
-    prop where it lies and releases the snap. The return is the snap's blend, so it isn't
-    collision-swept (the physical follow, with the held shape, takes over once it ends).
-    Picking up passes `PlayerTracking.HeadPosition` to `GetSnapPose()` (a cylinder prop is
-    gripped on the player's side).
-  - **The prop follows the hand visual, not the controller, as a child of the visual**:
-    `SetParent(visual, true)` when the reach ends, back to its original parent and local
-    scale on drop. Nothing places it per frame. The right visual is mirrored (x scale -1):
-    parenting with the world pose kept gives the prop a mirrored local scale that cancels
-    it, so it isn't drawn mirrored.
-  - **Finger pose while carrying:** the reach's snap brings the profile's `HandPose` in, and
-    `LeftPoseWeight`/`RightPoseWeight` (1 while a prop is in the hand, easing to 0 over
-    `poseReleaseDuration` 0.1s after a drop) keep it on - `PlayerHandAnimation` uses the
-    larger of that and the snap's `Weight`. A prop with no profile shows `LedgeGrip`.
-  - **Physical throw:** `TickThrowSamples()` (in `TickHeld()`) records, per hand, the
-    carried prop's middle (`centreInVisual`, a point in the hand visual's space, set in
-    `FinishReach()` - so a wrist flick counts, and the mirrored right hand is handled), the
-    visual's rotation and the time, **relative to the rig** (a snap turn would otherwise
-    read as a huge throw), in a 32-slot ring made once per hand. No samples while reaching
-    or while the snap's `Weight` is above 0. On letting go, `TryGetThrow()` takes the newest
-    sample and the oldest within `throwSampleWindow` (0.1s): velocity = distance / time,
-    spin from the turn between the two rotations. Slower than `throwMinSpeed` (1 m/s,
-    relative to the body) is a drop from rest. Otherwise the prop leaves with that velocity
-    x `throwStrength` (1) turned into the world, plus `CharacterController.velocity`, capped
-    at `throwMaxSpeed` (12 m/s). Measured from the **visual hand, not the controller**: a
-    hand held against a wall throws nothing however the controller moves. `Drop(hold,
-    canThrow)`: only a grip release can throw - `OnDisable` and a destroyed prop drop from
-    rest.
-  - **A dropped prop stays on the PlayerHands layer until it's clear of the hand**
-    (`released`, `TickReleased()` in `TickHeld()`): its layers go back
-    (`Grabbable.RestoreLayers()`) once its centre is `HoldRadius + releaseClearance` (0.12m)
-    from the hand visual, after `releaseTimeout` (0.5s), or when that hand picks up
-    something else.
-  - `TickHeld()` (tick step 8a, on every path through `Update()`) finishes reaches, samples
-    throws and restores released props. `TryPickUp(isLeftHand, grabbable, grabPoint)` picks
-    a prop up without the hand's ray being on it (for the pack); false if the hand is busy.
-    `TryGetCarriedCentre()` gives the carried prop's middle (picked up, snap weight 0, not
-    launching). `OnDisable` drops both hands, unless the scene is unloading.
-- **Held shape** — so a carried prop stops at surfaces with the hand:
-  `PlayerHandVisuals.SetHeldShape(isLeftHand, centreFromVisual, radius)`/`ClearHeldShape()` →
-  `HandPhysicalFollow.SetHeldShape()` swaps the swept capsule (wrist to fingertip, hand
-  radius, ends inset) for one from the wrist to the middle of the prop with the prop's
-  `holdRadius`, ends not inset, resizing the penetration collider (on pick-up and drop only).
-  One round shape for hand and prop together is approximate, but the whole collide-and-slide
-  runs unchanged. `ShapeRadius(handRadius)` is the radius in use (the debug capsules draw
-  it). `PlayerHandVisuals.LeftHandVisual`/`RightHandVisual` expose the visuals, read-only.
-- **`PlayerHandThrowing`** (on `Hands`; optional) — aimed throwing, for accuracy (thrown
-  distractions need to land where intended, which a physical throw is poor at in VR).
-  `Tick(canAim)` runs straight after `PlayerHandHolding.TickHeld()` (tick step 8a) on every
-  path through `Update()`; `canAim` is false during a mantle and once the level has ended
-  (nothing new is aimed, a launch under way still finishes).
-  - **Aiming:** a hand with a prop fully in hand starts aiming when its trigger passes
-    `aimStartTrigger` (0.6) and throws or cancels when it falls to `aimEndTrigger` (0.3) -
-    two values so a hovering finger can't flicker. Direction = **straight out of the
-    controller** (its forward axis, from `PlayerHandVisuals.GetLeft/RightHandPose()`), like
-    a menu pointer - not the hand rays' direction, which is angled out from the palm for
-    grabbing. Speed fixed (`launchSpeed`, 9 m/s), so distance comes from the hand's pitch.
-  - **The arc** (`ComputeArc()`, every frame of aiming): starts `launchReach` (0.15m) along
-    the throw from the prop's middle - where the launch move will let go. The path itself
-    is the shared **`BallisticArc`** (static; also the crossbow's): `Compute()` finds the
-    landing and fills the points, `Point()` is one moment on the path. The landing is
-    found with one `Physics.Linecast` per `arcCastTimeStep` (0.1s) of flight - at most 25 -
-    up to `arcMaxTime` (2.5s), on `arcLayers` (Default, Environment, Interactable, Guard;
-    triggers ignored), stopping at the first hit. The line is then drawn from the formula
-    alone, in `arcSegmentLength` (0.1m) pieces up to the landing time, ending exactly on the
-    hit point. A throw's points use **Unity's stepped gravity, not the textbook
-    formula**: `0.5 * g * t * (t + fixedDeltaTime)` (`BallisticArc`'s `fixedStep`; the
-    crossbow passes 0, since its bolts aren't moved by physics). The arc is cast with rays, not the
-    prop's shape, so a wide prop can clip something the line clears.
-  - **Cancel is the cancel button** (`PlayerInputXR.CancelPressed`, right B): the aim ends,
-    the prop stays in the hand, and that hand can't aim again until its trigger is let out
-    (`isCancelled`). One button for both hands. No pitch limits. The arc is still invalid
-    (red/faded; releasing the trigger throws nothing) when it hits nothing in time or the
-    launch move's path is blocked (drawn as a stub). Letting go of grip while aiming is
-    just `PlayerHandHolding`'s drop or physical throw.
-  - **Launch** (`BeginLaunch()`): a procedural move, not a clip - the hand's
-    `HandVisualSnap` is snapped `launchReach` forward along the throw over `launchDuration`
-    (0.08s) with its current rotation and finger pose, `PlayerHandHolding.BeginLaunch()`
-    makes the hand ignore grip, and when the snap's `Weight` reaches 1
-    `ReleaseLaunched(velocity, spin)` lets the prop go with exactly the arc's velocity (no
-    body velocity added - it must land where shown) and `launchSpin` (5 rad/s, end over
-    end); the snap is released over `launchReturnDuration` (0.2s). **After an aimed throw
-    the hand stays busy until grip is let go** (`isWaitingForGripRelease`;
-    `IsLeftHolding`/`IsRightHolding` stay true), or the still-held grip would pick up or
-    climb whatever the ray was on.
-- **`ThrowArc`** — the arc's display, one per hand, made at runtime by
-  `PlayerHandThrowing.Awake()` (`ThrowArc.Create()`, children of `Hands`): the arc and a
-  landing disc laid on the hit normal, all `OverlayMaterial`. White when valid; red, faded
-  and no disc when not. `Show()`/`Hide()` only touch renderers and the material colour when
-  something changes. **Two styles** (`ThrowArc.Style`, `PlayerHandThrowing.arcStyle`; passed
-  to `Show()` every frame, so it can be switched in the Inspector while aiming): `Line`, a
-  world-space `LineRenderer`; `Dots`, one dynamic mesh of up to 256 octagons (`MaxDots`),
-  `dotRadius` 0.012m, one every `dotSpacing` 0.12m of distance along the path, each turned
-  to face the head. The dots' object is at the scene root at the origin, so mesh vertices
-  are world positions; its triangles are set once, its vertex array is made once and
-  rewritten each frame of aiming (unused dots collapsed to a point), and its bounds are huge
-  so they never need recalculating. `OnDestroy()` removes the root object, the mesh and the
-  materials.
-- **`GrabbableTestProps`** (`Debug/Editor`, menu **TeaLeaf > Dev Room > Add Grabbable Test Props**) — a
-  table 1.2m ahead of the main camera with a cube, a bottle and a crate, each a
-  Rigidbody + `Grabbable` + `ImpactNoise` (placeholder impact cue and surface sounds, from
-  `Core.PlaceholderSounds`' paths) on Interactable, Rigidbody on `Interpolate`. The cube and
-  crate have no grip point or profile (held by the middle). The bottle (`BuildBottle()`) is
-  an unscaled root at the middle of the body with a `Body` cylinder (8cm x 18cm, box
-  collider so it stands) and a `Neck` cylinder (3cm x 8cm) as children, and has a cylinder
-  grip and the `BottleHold` profile (`Assets/Data/`, loaded by path; a warning and no
-  profile if it's missing). `MakeGrabbable()` is reused by the loot test props.
+- **`PlayerHandHolding`** (on `Hands`; optional - `PlayerController`, `PlayerClimbing`, `PlayerHandInteraction` find it in `Awake()`) — picks up/carries/drops `Interaction.Grabbable`. `Tick()`: free hand with grip held picks up the `Grabbable` its ray is on ("held" grabbing); grip release drops from rest or throws if moving. `LeftHeld`/`RightHeld`; busy flags `IsLeftHolding`/`IsRightHolding`; `TickReticles()` hides a carrying hand's reticle.
+  - **Pick-up: hand goes to prop, both come back.** Prop goes kinematic at once and stays put while `HandVisualSnap` snaps to `GetSnapPose()` over `reachDuration` 0.12s (`isReaching`; passes `PlayerTracking.HeadPosition` so cylinders are gripped on the player's side). At `Weight` 1, `FinishReach()` (in `TickHeld()`) calls `Grabbable.BeginCarry()` (out of physics; props resting on it woken), parents prop to visual, releases snap over `returnDuration` 0.18s. Release mid-reach drops it where it lies. Return blend isn't collision-swept (physical follow with held shape takes over after).
+  - **Prop is a child of the hand visual** (`SetParent(visual, true)`; original parent and local scale restored on drop); nothing places it per frame. World-pose-kept parenting under the mirrored right visual gives a cancelling mirrored local scale, so it isn't drawn mirrored.
+  - **Finger pose:** snap brings in the profile's `HandPose`; `LeftPoseWeight`/`RightPoseWeight` (1 while held, to 0 over `poseReleaseDuration` 0.1s after drop) keep it; `PlayerHandAnimation` uses max of that and snap `Weight`. No profile → `LedgeGrip`.
+  - **Physical throw:** `TickThrowSamples()` (in `TickHeld()`) records per hand the prop's middle (`centreInVisual`, in visual space, set in `FinishReach()`; wrist flicks count, mirrored hand handled), visual rotation and time, **relative to the rig** (snap turn isn't a throw), 32-slot ring made once. No samples while reaching or snap `Weight` > 0. `TryGetThrow()`: newest vs oldest within `throwSampleWindow` 0.1s → velocity, spin from rotation delta. Below `throwMinSpeed` 1 m/s (body-relative) = drop. Else velocity × `throwStrength` 1 into world + `CharacterController.velocity`, cap `throwMaxSpeed` 12 m/s. Measured from **visual, not controller** (hand against a wall throws nothing). `Drop(hold, canThrow)`: only a grip release throws; `OnDisable`/destroyed prop drop from rest.
+  - **Dropped prop stays on PlayerHands until clear** (`released`, `TickReleased()`): `Grabbable.RestoreLayers()` once centre is `HoldRadius + releaseClearance` (0.12m) from the visual, after `releaseTimeout` 0.5s, or when that hand picks up something else.
+  - `TickHeld()` (8a, every path): reaches, throw samples, released props. `TryPickUp(isLeftHand, grabbable, grabPoint)` without the ray (for the pack; false if busy). `TryGetCarriedCentre()` (picked up, snap weight 0, not launching). `OnDisable` drops both unless the scene is unloading.
+- **Held shape:** `PlayerHandVisuals.SetHeldShape(isLeftHand, centreFromVisual, radius)`/`ClearHeldShape()` → `HandPhysicalFollow.SetHeldShape()` swaps the swept capsule (wrist-fingertip, hand radius, ends inset) for wrist-to-prop-middle with prop `holdRadius`, ends not inset, resizing the penetration collider (pick-up/drop only). Approximate but collide-and-slide unchanged. `ShapeRadius(handRadius)` = radius in use. `PlayerHandVisuals.LeftHandVisual`/`RightHandVisual` read-only.
+- **`PlayerHandThrowing`** (on `Hands`; optional) — aimed throwing (physical throws are inaccurate in VR). `Tick(canAim)` straight after `PlayerHandHolding.TickHeld()`, every path; `canAim` false in mantle/level ended (launch under way still finishes).
+  - **Aiming:** prop fully in hand; starts at trigger > `aimStartTrigger` 0.6, throws/cancels at < `aimEndTrigger` 0.3 (hysteresis). Direction = **controller forward** (`PlayerHandVisuals.GetLeft/RightHandPose()`), not the hand-ray direction (angled for grabbing). Fixed `launchSpeed` 9 m/s; distance from pitch.
+  - **Arc** (`ComputeArc()` each aiming frame): starts `launchReach` 0.15m along the throw from the prop middle. Shared static **`BallisticArc`** (also crossbow): `Compute()` finds landing and fills points, `Point()` one moment. Landing: one `Physics.Linecast` per `arcCastTimeStep` 0.1s (max 25) up to `arcMaxTime` 2.5s on `arcLayers` (Default, Environment, Interactable, Guard; triggers ignored), first hit. Line drawn from formula in `arcSegmentLength` 0.1m pieces ending exactly on hit. Throw uses **Unity's stepped gravity**: `0.5 * g * t * (t + fixedDeltaTime)` (`fixedStep`; crossbow passes 0, bolts not physics-moved). Cast with rays, not prop shape (wide props may clip).
+  - **Cancel** = `CancelPressed` (B, both hands): aim ends, prop kept, no re-aim until trigger released (`isCancelled`). No pitch limits. Invalid arc (red/faded; release throws nothing) when no hit in time or the launch path is blocked (drawn as a stub). Grip release while aiming = `PlayerHandHolding` drop/throw.
+  - **Launch** (`BeginLaunch()`): procedural, not a clip - snap `launchReach` forward over `launchDuration` 0.08s keeping rotation/finger pose; `PlayerHandHolding.BeginLaunch()` makes the hand ignore grip; at `Weight` 1 `ReleaseLaunched(velocity, spin)` with exactly the arc velocity (no body velocity; must land where shown) and `launchSpin` 5 rad/s end over end; snap released over `launchReturnDuration` 0.2s. **Hand stays busy until grip released** (`isWaitingForGripRelease`; holding flags stay true), else the held grip grabs whatever the ray is on.
+- **`ThrowArc`** — arc display, one per hand, `ThrowArc.Create()` in `PlayerHandThrowing.Awake()` (children of `Hands`): arc + landing disc on hit normal, `OverlayMaterial`. White valid; red, faded, no disc invalid. `Show()`/`Hide()` touch renderers/colour only on change. Styles (`ThrowArc.Style`, `arcStyle`, passed to `Show()` each frame): `Line` (world `LineRenderer`); `Dots` (one dynamic mesh, up to 256 octagons `MaxDots`, `dotRadius` 0.012m, every `dotSpacing` 0.12m, facing head). Dots object at scene-root origin (vertices = world positions); triangles set once, vertex array made once, rewritten while aiming (unused collapse to a point), huge bounds. `OnDestroy()` removes root object, mesh, materials.
+- **`GrabbableTestProps`** (`Debug/Editor`, **TeaLeaf > Dev Room > Add Grabbable Test Props**) — table 1.2m ahead of camera: cube, bottle, crate, each Rigidbody (`Interpolate`) + `Grabbable` + `ImpactNoise` (placeholder cues from `Core.PlaceholderSounds` paths) on Interactable. Cube/crate held by the middle (no grip/profile). Bottle (`BuildBottle()`): unscaled root at body middle, `Body` cylinder 8×18cm (box collider so it stands), `Neck` 3×8cm; cylinder grip, `BottleHold` profile (`Assets/Data/`, by path; warns if missing). `MakeGrabbable()` reused by loot test props.
 
 ## The pack
 
-- **`PlayerPack`** (on `Hands`; optional - `PlayerController` finds it in `Awake()` and
-  works without it; needs `PlayerHandHolding`) — the player's half of `Inventory.Pack` (the
-  design and the pack itself: `Scripts/Inventory/CLAUDE.md`).
-  - **Bringing it out** (`TickSummon()`, tick step 3b, before the grab systems): **a hand
-    reaching over a shoulder and gripping**, either hand. The shoulder is a ball of
-    `shoulderRadius` (0.2m) at `shoulderOffset` ((0.2, -0.05, -0.12): right, up, ahead)
-    from the head, and its mirror image on the left, measured with the head's tilt ignored
-    (`HeadYaw()`); either hand may reach either one; the controller's position is what is
-    tested. A free hand (`PlayerHandState.IsBusyExcept(..., HandUse.Pack)`) arriving there
-    feels a tap, and on the frame its grip is pressed (pressed, not already held) the pack
-    comes out on it: `PlaceOnHand()` makes the pack a child of that hand's visual at
-    `packPosition` / `packRotation` ((0.14, -0.2, 0.08) and (90, 0, 0): the board in front
-    of a hand held thumb up, facing back at the player), with x scale -1 under the mirrored
-    right visual so the pack isn't drawn back to front. **It stays out while that grip is
-    held**; letting go puts it away (`ClosePack()`). `IsLeftBusy`/`IsRightBusy` are what
-    `PlayerHandState` reports as `HandUse.Pack`. The pack is first placed in `Start()`,
-    not `Awake()` (the ghost hands copy the hand visuals in `PlayerHandVisuals.Awake()`).
-    Working in the headset. `IDebugDrawable`: the two shoulder
-    balls, in the detailed view (yellow, green while the pack is out).
-  - **Putting loot in:** it doesn't change how props are carried; `Tick()` (tick step 4a,
-    straight after `PlayerHandHolding.Tick()`) compares what each hand holds with last
-    frame, and loot a hand has just let go of within the pack's reach (`Pack.IsInReach()` of
-    the loot's middle, not the hand) is offered to `Pack.TryStore()`: a pulse and `storeCue`
-    if it went in, a longer rougher pulse for `NoRoom` (it then just drops). **Thrown loot
-    never goes in**: after an aimed throw `IsLeftHolding` stays true until grip is let go,
-    and an empty hand that's still "holding" is taken as a throw.
-  - **Choosing the space** (`TickHover()`): each frame a hand carries loot with the pack
-    out, `Pack.Hover()` lights the space the loot is over if it's free, with a light tap
-    each time a different space lights; one hand a frame, and
-    `Pack.ClearHover()` when neither lights one. Hover and store measure the same point, so
-    the lit space is the one it goes into.
-  - **Taking out** (`TickTaking()`, **the hand not holding the pack**): empty
-    hand, grip held, ray on a `PackSlot` → `Pack.BeginTake()`; when the pack hands the
-    full-size item over (`TryPopTaken()`), the hand picks it up through
-    `PlayerHandHolding.TryPickUp()`; if grip was let go meanwhile or the hand isn't free it
-    goes back in (`PutBack()`, which drops it as a last resort). No busy flag for the other
-    hand systems: while the item grows the hand's ray target is a pack space, which none of
-    them act on.
-  - **Keys:** a carried prop that isn't loot is asked of `Inventory.Key.Find()` too; a key
-    held near the pack lights the keyring's space (`Pack.HoverKey()`) and let go of there
-    goes onto the keyring (`Pack.TryStoreKey()`), with the same pulse and sound as loot.
-  - `TickHeld()` (with the carried props, tick step 8a, every path): `Pack.Tick()` while
-    open, and the worth coins. The carried loot's middle comes from
-    `PlayerHandHolding.TryGetCarriedCentre()` (a prop under the mirrored right hand can't be
-    trusted for it).
-- **`LootWorthMarker`** — plain class, one per hand, made at load by `PlayerPack`: up to
-  three coin discs in a row, shown over loot a hand carries (`Loot.CoinLevel`),
-  `coinHeight` (0.05m) above its hold radius, facing the head. One shared disc mesh and one
-  `OverlayMaterial`. Renderers and positions are only touched when the number of coins
-  changes.
+- **`PlayerPack`** (on `Hands`; optional; needs `PlayerHandHolding`) — player side of `Inventory.Pack` (see `Scripts/Inventory/CLAUDE.md`).
+  - **Bringing out** (`TickSummon()`, 3b): shoulder ball `shoulderRadius` 0.2m at `shoulderOffset` (0.2, -0.05, -0.12; right, up, ahead) from head plus mirror, head tilt ignored (`HeadYaw()`); either hand either shoulder; controller position tested. Free hand (`IsBusyExcept(..., HandUse.Pack)`) arriving gets a tap; on grip **press** (not held) `PlaceOnHand()` parents pack to that visual at `packPosition` (0.14, -0.2, 0.08) / `packRotation` (90, 0, 0) (board in front of a thumb-up hand, facing player), x scale -1 under mirrored right. Out while grip held; release → `ClosePack()`. `IsLeftBusy`/`IsRightBusy` = `HandUse.Pack`. First placed in `Start()` (ghosts copy visuals in `Awake()`). `IDebugDrawable`: shoulder balls (detailed view; yellow, green while out).
+  - **Putting loot in:** `Tick()` (4a, after `PlayerHandHolding.Tick()`) compares held props with last frame; loot just let go within reach (`Pack.IsInReach()` of the loot's middle) → `Pack.TryStore()`: pulse + `storeCue`, or longer rougher pulse on `NoRoom` (drops). **Thrown loot never goes in** (holding flag stays true after an aimed throw; an empty "holding" hand = throw).
+  - **Choosing the space** (`TickHover()`): carrying loot with pack out, `Pack.Hover()` lights the free space under it, light tap per new space; one hand per frame; `Pack.ClearHover()` when none. Hover and store use the same point.
+  - **Taking out** (`TickTaking()`, hand not holding the pack): empty, grip held, ray on `PackSlot` → `Pack.BeginTake()`; on `TryPopTaken()` picks up via `TryPickUp()`; grip released or hand not free → `PutBack()` (drops as last resort). No busy flag: target is a pack space, which no other system acts on.
+  - **Keys:** non-loot carried prop checked with `Inventory.Key.Find()`; near pack lights keyring space (`Pack.HoverKey()`), released → `Pack.TryStoreKey()`, same pulse/sound.
+  - `TickHeld()` (8a, every path): `Pack.Tick()` while open, worth coins. Loot middle from `TryGetCarriedCentre()` (mirrored-hand props unreliable otherwise).
+- **`LootWorthMarker`** — plain class per hand, made at load: up to three coin discs (`Loot.CoinLevel`) `coinHeight` 0.05m above hold radius, facing head. Shared disc mesh, one `OverlayMaterial`. Touched only when coin count changes.
 
 ## Keys
 
-- **`PlayerKeys`** (on `Hands`, needs `PlayerPack` there; optional) — the player's half of
-  `Inventory.Keyring` and `Interaction.KeyLock`. The pack and keyring are found in
-  `Start()` (`PlayerPack.Pack`). The keyring is in one of three places (`RingPlace`):
-  **in the pack**; **in a hand** (`RingPlace.InHand`, `_isCarrierLeft`) - taken the usual
-  way by either hand that is free, so not the one holding the pack (grip held, ray on the
-  pack's keyring `PackSlot`; `Pack.TakeKeyring()`), a child of that hand's visual at
-  `inHandPosition` / `inHandRotation` (untuned; the same numbers give the mirror-image
-  place in either hand) while grip is held, back to the pack when it's let go; or **in a lock** - within `insertDistance`
-  (0.15m) of a `KeyLock.FindInRange()` lock whose `KeyId` the ring `Has()`, it snaps onto
-  the lock's face (`Insert()`; a child of the lock, the fitting key's colour shown going
-  into the door) and the carrying hand needs a regrip. **A lock the ring has no key for**
-  buzzes the carrying hand once (`_refusedBy`, re-armed away from every lock).
-  **Turning** (`TickHandAtKey()` in `Tick()`, tick step 3b after the lockpicks'): either
-  hand, free and holding grip within `keyReach` (0.1m) of the key's grip point (by
-  reaching, as for the lockpicks; a tap on coming into reach; one hand at a time) takes it
-  and its visual snaps on. `TickHeld()` (tick step 8, every path): the key's `_turn` is the
-  **wrist's twist** about the lock face's Z since it took hold (`TwistAboutZ()`, as a door
-  handle; the face's Z points away from the player, so positive is anticlockwise as they
-  see it), only in the unlocking direction (`KeyLock.TurnsAnticlockwise()`), clamped to
-  `unlockTurn` (90°); the keyring is shown turned by it and the snap pose turns with it
-  (`snapProfile`: the door handle's, a stand-in). At the full turn: a pulse,
-  `KeyLock.Unlock()`, and `ReturnRing()` - the keyring goes back to the pack. Let go of
-  sooner, the key springs back at `returnSpeed`; a controller over `breakDistance` (0.3m)
-  from the key lets go by force. The head more than `leaveDistance` (1.5m, level) from the
-  lock, or the lock opened another way, also returns the ring. `IsLeftBusy` /
-  `IsRightBusy` are what `PlayerHandState` reports as `HandUse.Keys`.
+- **`PlayerKeys`** (on `Hands`, needs `PlayerPack`; optional) — player side of `Inventory.Keyring` and `Interaction.KeyLock`. Pack/keyring found in `Start()` (`PlayerPack.Pack`). `RingPlace`:
+  - **in the pack**;
+  - **in a hand** (`InHand`, `_isCarrierLeft`): taken by a free hand (not the pack hand), grip held, ray on keyring `PackSlot` (`Pack.TakeKeyring()`); child of visual at `inHandPosition`/`inHandRotation` (untuned; same numbers mirror for either hand) while grip held, back to pack on release;
+  - **in a lock**: within `insertDistance` 0.15m of a `KeyLock.FindInRange()` lock whose `KeyId` the ring `Has()` → `Insert()` (child of the lock, fitting key's colour shown); carrying hand needs regrip. No key for it → one buzz (`_refusedBy`, re-armed away from all locks).
+  - **Turning** (`TickHandAtKey()` in `Tick()`, 3b after lockpicks): free hand holding grip within `keyReach` 0.1m of the key's grip point (by reaching; tap on entering reach; one hand) takes it, visual snaps. `TickHeld()` (8, every path): `_turn` = **wrist twist** about lock face Z since grab (`TwistAboutZ()`; face Z points away, positive = anticlockwise as seen), only in unlock direction (`KeyLock.TurnsAnticlockwise()`), clamped `unlockTurn` 90°; keyring and snap pose turn with it (`snapProfile`: the door handle's, stand-in). Full turn: pulse, `KeyLock.Unlock()`, `ReturnRing()`. Released early → springs back at `returnSpeed`; controller > `breakDistance` 0.3m → forced off. Head > `leaveDistance` 1.5m (level) or lock opened otherwise → ring returns. `IsLeftBusy`/`IsRightBusy` = `HandUse.Keys`.
 
 ## Lockpicking
 
-- **`PlayerLockpicking`** (on `Hands`; optional) — the player's half of
-  `Interaction.BigLock`/`PickableLock` (see `Scripts/Interaction/CLAUDE.md`): the picks and
-  the hands; the puzzle is the big lock's. The game doesn't pause.
-  - **The picks** are one object (`Lockpicks`: two thin boxes in one mesh, tips at its
-    origin, handles along its Z, no collider), made in **`Start()`** - not `Awake()`,
-    because `PlayerHandVisuals.Awake()` copies each hand visual for its ghost and would copy
-    picks already on it. **Which hand wears them is the handedness setting**
-    (`PlayerInputXR.IsLeftHanded`: off, the left wears them and the right takes them; on,
-    the other way round; read at startup). `_taker` is the hand that takes and carries. Always in one of three
-    places (`PicksPlace`): **on the wearing hand** (child of its visual at
-    `onHandPosition`/`onHandRotation` - the same numbers give the back of either hand,
-    since the right visual is the left mirrored), **in the taker's hand** (child of its
-    visual at `inHandPosition`/`inHandRotation`) or **in a lock** (child of the `PickableLock`, tips `insertDepth` inside the face, handles
-    straight out). `PlacePicks()` always sets the local scale to one, since the right hand
-    visual is mirrored. **The hand visual's axes**: fingers along -Y, back of the hand -X,
-    thumb side +Z, origin near the wrist.
-  - **Taken by reaching, not by the hand rays** (they're on or just in front of the player's
-    body): no reticle; a light tap (`reachAmplitude`) says a hand has come within reach.
-    `Tick()` (tick step 3b, before climbing, so a hand that takes a pick is already busy for
-    the systems after it): on the wearing hand, the free taker within `takeDistance`
-    (0.12m) takes them **on the frame grip is pressed**; carried, letting go of grip puts
-    them back, and within `insertDistance` (0.15m) of a lock that `CanBePicked`
-    (`PickableLock.FindInRange()`, each frame while carried) they go in (`Insert()`): the
-    taker needs a regrip, and the big lock is shown `bigLockDistance` (0.2m) out from
-    the real lock's face on the head's side, `bigLockBelowHead` (0.3m) below the head but
-    never lower than the real lock, facing the same way as the door. In a lock, a free hand
-    holding grip within `pickReach` (0.1m) of its own pick's grip point takes it (left hand
-    the left pick, right the right - **never mirrored**, whichever hand wears the picks)
-    and its hand visual snaps onto it.
-  - `TickHeld()` (tick step 8, with the doors', on every path through `Update()`): gives up
-    if the lock has gone or opened another way, or the head is more than `leaveDistance`
-    (1.5m, measured level) from it; else per held pick `BigLock.TurnPick(controller
-    position)`, the snap pose moved onto the pick (`SetSnapPose()`), and a hand whose
-    controller is over `breakDistance` (0.3m) from the grip point is let go by force (regrip
-    needed; the right hand's letting go resets the lock); then `BigLock.Tick()` (also while
-    it fades out), and the pin feel. `StopPicking()` (leaving, or the unlock): both hands
-    off, `BigLock.Hide()`, picks back on the wearing hand.
-  - **Haptics:** right hand on inserting and at each stop; left hand as a run of pulses
-    every `pinPulseInterval` (0.05s, each 1.5x that long) from `pinMinAmplitude` to `pinMaxAmplitude` by
-    `BigLock.PinNearness`, and a strong one when a pin sets; both on the unlock.
-  - `IsLeftBusy`/`IsRightBusy` (true through a needed regrip, and while the taker
-    carries the picks) are what `PlayerHandState` reports as `HandUse.Lockpicks`.
+- **`PlayerLockpicking`** (on `Hands`; optional) — player side of `Interaction.BigLock`/`PickableLock` (`Scripts/Interaction/CLAUDE.md`): picks and hands; the puzzle is `BigLock`'s. No pause.
+  - **Picks:** one `Lockpicks` object (two thin boxes, one mesh, tips at origin, handles along Z, no collider), made in **`Start()`** (ghosts copy visuals in `Awake()`). Wearing hand = handedness (`IsLeftHanded`, startup); `_taker` = other hand, takes and carries. `PicksPlace`: **on the wearing hand** (`onHandPosition`/`onHandRotation`; same numbers fit either back of hand), **in the taker's hand** (`inHandPosition`/`inHandRotation`), **in a lock** (child of `PickableLock`, tips `insertDepth` inside, handles straight out). `PlacePicks()` always sets local scale 1 (mirrored right visual). **Hand visual axes:** fingers -Y, back of hand -X, thumb side +Z, origin near wrist.
+  - **Taken by reaching, not rays** (they're on/near the body): no reticle; tap (`reachAmplitude`) on entering reach. `Tick()` (3b, before climbing): free taker within `takeDistance` 0.12m takes on grip **press**; carried, grip release puts back; within `insertDistance` 0.15m of a lock that `CanBePicked` (`PickableLock.FindInRange()` each carried frame) → `Insert()`: taker needs regrip; big lock shown `bigLockDistance` 0.2m out from face on head's side, `bigLockBelowHead` 0.3m below head but not below the real lock, facing as the door. In a lock: free hand holding grip within `pickReach` 0.1m of **its own** pick (left hand left pick, right right - **never mirrored**) takes it, visual snaps.
+  - `TickHeld()` (8, every path): gives up if lock gone/opened otherwise or head > `leaveDistance` 1.5m (level); else per held pick `BigLock.TurnPick(controller position)`, `SetSnapPose()` onto pick, controller > `breakDistance` 0.3m forced off (regrip; right hand letting go resets the lock); then `BigLock.Tick()` (also while fading) and pin feel. `StopPicking()`: hands off, `BigLock.Hide()`, picks back on wearing hand.
+  - **Haptics:** right on insert and each stop; left pulses every `pinPulseInterval` 0.05s (each 1.5× that long), `pinMinAmplitude`-`pinMaxAmplitude` by `BigLock.PinNearness`, strong on pin set; both on unlock.
+  - `IsLeftBusy`/`IsRightBusy` (through regrip, and while taker carries) = `HandUse.Lockpicks`.
 
 ## The crossbow
 
-- **`PlayerCrossbow`** (on `Hands`; optional - `PlayerController` finds it in `Awake()` and
-  works without it) — the hand crossbow, always worn on the back of one hand: the right
-  for a right-handed player (`PlayerInputXR.IsLeftHanded`), so never the hand the
-  lockpicks are on.
-  - **The model** (`BuildCrossbow()`, in `Start()` - after the ghost hands have copied the
-    visuals): a stock and a bow across the front as boxes in one mesh from
-    `Interaction.LockMeshBuilder`, `TeaLeaf/LockFade` solid, no collider; its own Z is the
-    way it shoots. A child of the hand visual at `onHandPosition` ((-0.035, -0.05, 0)),
-    pointing along the fingers (the visual's -Y) with its top away from the back of the
-    hand (-X), then turned by `onHandTilt`. Two children: the **`Wheel`** at the back (its
-    own mesh, with a notch, so it can be seen to turn) and the **`Loaded Bolt`** lying on
-    the stock, which wears the chosen kind's mesh and shows only while the crossbow is
-    wound and the player has a bolt of that kind (`ShowLoadedBolt()`).
-  - **Becoming active** (`Tick()`, tick step 4a, after every grab system): on the frame
-    grip is pressed on the crossbow hand, if the hand is free
-    (`PlayerHandState.IsBusyExcept(..., HandUse.Crossbow)`), its ray target is null (**a
-    grab always wins**) and the palm faces the floor - the visual's +X, turned into the
-    world with `TransformVector()` so the mirrored right hand's palm comes out the right
-    way (`TransformDirection()` ignores the mirroring), within `palmDownAngle` (50°) of
-    straight down. It stays active until grip is let go, however the hand is turned.
-    `IsLeftBusy`/`IsRightBusy` are what `PlayerHandState` reports as `HandUse.Crossbow`:
-    the crossbow hand while active, **and the other hand while it holds the wheel**.
-  - **The arc** (`TickHeld(canAim)`, tick step 8a): from `muzzleDistance` (0.1m) ahead of
-    the stock along the crossbow's own forward - what is shown is what is shot - through
-    `BallisticArc.Compute()` with no stepped-gravity allowance, drawn by a `ThrowArc`
-    (`Crossbow Arc`). **Speed comes from `range`** (40m: how far a bolt carries over level
-    ground at 45°): `speed = sqrt(range x gravity)`, worked out once in `Awake()`, with the
-    longest flight (1.5 x the time to reach the range) and the points array. Red with no
-    landing disc when it would come down on nothing; it can still be shot.
-  - **Shooting:** on the trigger's **press** (`fireTrigger` 0.6; it must fall to
-    `rearmTrigger` 0.3 before it counts again, and a trigger already held when the
-    crossbow comes up doesn't shoot). Clockwork: `reloadTime` (1s) after each shot before
-    the next; a pull while it winds is used up and does nothing. Optional `fireCue` and
-    `impactCue`, through `SoundPlayer`.
-  - **Ammunition:** `Fire()` takes one bolt of the chosen kind with
-    `Inventory.PlayerInventory.TryUseBolt()`; with none left the pull gives only a faint
-    tap (`emptyAmplitude`) and nothing is shot. **A scene with no `PlayerInventory` has
-    unlimited bolts.** The starting counts are the inventory's `waterBolts`,
-    `noisemakerBolts`, `ropeBolts`, `stunBolts` and `sleepBolts` fields (0 by default:
-    set them in the Inspector).
-  - **The wheel** (choosing the kind; `SelectedBolt`): `TickWheel()` (tick step 3b) - **taken
-    the way a door handle is**: the wheel has a trigger ball round it (`Wheel Grab`:
-    `wheelGrabRadius` 0.06m, Interactable layer, kinematic Rigidbody, a child of the
-    crossbow) registered as a hand target, **`CrossbowWheel`**, so the reticle shows on it.
-    `CrossbowWheel.CanBeTargetedFrom()` refuses the crossbow hand's own ray (a ray's hand
-    is the one its origin is nearer). The **other** hand, free, with its ray on the wheel
-    and grip held, takes it (a click) and **its hand visual snaps onto the wheel**
-    (`WheelSnapPose()`: on the wheel, facing down onto it from the crossbow's top, through
-    `wheelProfile` - empty = exactly on the grip frame; untuned), which also hides the
-    reticle. It holds it until that grip is let go (`LetGoOfWheel()`), or its controller
-    is more than `wheelBreakDistance` (0.3m) from the wheel (then a regrip is needed).
-    Held (`TickHeldWheel()`, in `TickHeld()`), the wheel is turned by **twisting that
-    hand**: each frame's turn of the controller since the last frame, the part of it that
-    is a twist about the wheel's axis (the crossbow's forward in the world; twice the
-    arctangent of the quaternion's share along the axis over w), is added up. The snapped
-    hand is shown turned by the total since it took hold, and each `wheelStepAngle` (40°)
-    steps to the next kind (or back, the other way; it wraps; five kinds, `BoltKinds`),
-    with a click on that controller, the wheel turned a fifth of a turn and the loaded
-    bolt's mesh swapped.
-    The snap pose is moved onto the wheel every frame, **after** the hand visuals are
-    placed (the wheel rides the crossbow hand's visual, placed in the same call), so the
-    snapped hand is one frame behind the wheel when the crossbow hand moves.
-  - **Bolts:** a pool of `BoltPoolSize` (16: the player carries at most three of each of
-    the five kinds, so they can never all be out) made at load under a `Crossbow Bolts`
-    object at the scene root. One mesh per kind (`BuildBoltMeshes()`: a thin
-    shaft, with a fat tip in `waterColor`, `noisemakerColor` or `stunColor` (black), or
-    rope-coloured winding round the back half for the rope bolt; the sleep dart is half
-    as long, with crossed flights in `sleepColor` (green) at its back), put on a pooled
-    bolt as it is shot. Each bolt is in one `BoltState`: `Away`, `Flying`, `Tumbling`,
-    `Resting`. `TakeBoltSlot()` picks the next to shoot: one that is away and not
-    sounding, else one at rest that can't be picked up, else the next in turn.
-    **In flight a bolt is not a physics object**: it is moved along
-    `BallisticArc.Point()` from where and how fast it left, so it lands where the arc
-    showed, with one `Physics.Linecast` a frame along its move in case something has come
-    into its way - reaching `LandingProbe` (5cm) past the landing point on the last
-    frame, so the collider it landed on is always found. One that lands on nothing is
-    put away at the end of its flight. Bolts tick on every path through `Update()`.
-  - **Where a bolt lands** (`Land()`). A guard first
-    (`HitGuard()`, below). Then **water** and **noisemaker** bolts are **used up
-    whatever they hit**, their effect set off, and put away: water -
-    `Core.Flame.ExtinguishNear(point, waterRadius)` (0.6m); noisemaker - sounds at once
-    and then every `noiseInterval` (1.5s) for `noiseDuration` (12s) from where it landed
-    (`MakeNoise()`: `noiseCue` through `SoundPlayer` if set, otherwise a bare
-    `NoiseSystem.Emit(..., noiseRadius 12m, NoiseType.Distraction, ...)` guards hear and
-    the player doesn't). **Stun, sleep and rope bolts stick or bounce**: a bolt sticks
-    only into static level geometry (a collider with no Rigidbody - not a door or a prop,
-    which would leave it hanging in the air) whose `Core.SurfaceTag` is a kind that
-    holds one (`SurfaceTag.HoldsBolt()`: Wood, Carpet, Grass, Plaster; untagged is Stone,
-    so **nothing holds a bolt unless it is tagged**) - then `Rest()`. Everything else,
-    a guard included, it bounces off (`Rebound()`).
-  - **Bouncing off - the one time a bolt is physics** (`Tumble()`, **`CrossbowBolt`**, a
-    component on each pooled bolt): the bolt is pulled back its own half length so its
-    point is clear of the surface, then `BeginTumble()` makes its Rigidbody non-kinematic
-    with gravity, continuous collision detection (asked for after it stops being
-    kinematic) and its solid `BoxCollider` on (the **Projectile** layer; a no-bounce,
-    high-friction `PhysicsMaterial`), moving at `reboundSpeed` (0.8 m/s) **level,
-    straight back the way it came**, turning end over end at `reboundSpin` (3 rad/s).
-    `Interpolate` while tumbling (physics steps at 50Hz; `None` again at rest).
-    Its first touch **on an upward-facing surface** (`CheckLanded()`, from
-    `OnCollisionEnter` and `OnCollisionStay`: contact normal y at least 0.5) raises its
-    damping to `landedDamping` (6) and `landedAngularDamping` (8), so it stops where it
-    comes down. **Never damp on any first touch**: the bolt starts its tumble touching
-    what it bounced off, and damped from then it sinks slowly without turning. `TickBolts()` waits for
-    `HasSettled` (touched something and nearly still, or asleep) or `TumbleTimeout` (5s),
-    then `Rest()`: `EndTumble()` makes it kinematic again with the solid collider off -
-    **a bolt at rest touches nothing**.
-  - **At rest and picking up:** a **stun bolt always, and a sleep dart that hit no
-    guard, can be picked up** (`CanBePickedUp()`); at rest they stay for good, with the
-    trigger ball on their `Bolt Grab` child on (`pickupRadius` 0.08m, Interactable
-    layer; `CrossbowBolt` is the `IHandTarget`, `HasLongReach`). `TickPickup()` (in
-    `TickWheel()`, tick step 3b, either hand): on the frame grip is pressed on a free
-    hand whose ray is on a bolt at rest, `PlayerInventory.TryAddBolt()` and the bolt is
-    put away - **never carried**. With the most of that kind already carried it stays,
-    with a faint tap. A rope bolt at rest with no rope on it is put away after
-    `boltLifetime` (30s).
-  - **Rope bolts** stick like the others and are never picked up. Stuck, `HangRope()`
-    takes the next of `RopePoolSize` (3) pooled `Interaction.ClimbableRope`s (made at
-    load on the Climbable layer under `Crossbow Bolts`, each with a thin box to be seen;
-    the oldest is reused, taking its old bolt with it), puts its top at the bolt and
-    sets its length to the ground below (one ray down on `ropeGroundLayers`,
-    Environment) or `ropeMaxLength` (8m); with less than `MinRopeLength` (0.5m) of drop
-    no rope is hung. **Whether it bears weight is the surface's `SurfaceTag`
-    `supportsRopeBolt` toggle** (off by default). On, it is climbed as usual. Off, it
-    looks the same, and `TickRopes()` (in `TickHeld()`) brings it down the moment
-    `PlayerClimbing.LeftGrabbed`/`RightGrabbed` is that rope (`DropRope()`):
-    `PlayerClimbing.Release(rope)`, its grab volume off, its bolt tumbling out, and the
-    rope's top falling under gravity as the visible rope shortens to nothing, then put
-    away. `ropeProfile` is the ropes' hand snap profile: `Assets/Data/RopeGrip.asset`,
-    the one every placed rope uses, so a hand sits on a bolt's rope as on any other
-    (empty = the bare grip frame, turned differently).
-  - **A bolt that hits a guard** (`HitGuard()`; `AI.Guard.FindByBody()` on the collider -
-    bolts' rays see the Guard layer, the body capsule, not GuardHead): a **sleep** dart
-    anywhere calls `Guard.Sedate(sleepDelay)` (10s) and is gone - it stays in the
-    guard; a **stun** bolt whose line runs on through the head (`Guard.IsHeadOnLine()`,
-    from `LandingProbe` short of the hit, `HeadProbe` 0.7m on) calls
-    `Guard.Stun(stunTime)` (10s); **every other hit** - any other kind, or a stun bolt
-    to the body - calls `Guard.HitByBolt()` with where the bolt was shot from. The bolt
-    then goes on as it would off any hard surface: water and noisemakers are used up
-    there, stun and rope bolts bounce off. What the guard does is in
-    `Scripts/AI/CLAUDE.md`. **No bolt kills.**
-  - **Not built:** bolt pickups placed in the level, any showing of how many bolts are
-    left, and real sounds.
+- **`PlayerCrossbow`** (on `Hands`; optional) — worn on the back of the non-lockpick hand (`IsLeftHanded`).
+  - **Model** (`BuildCrossbow()` in `Start()`): stock + bow boxes in one mesh (`Interaction.LockMeshBuilder`, `TeaLeaf/LockFade` solid, no collider), Z = shot direction. Child of visual at `onHandPosition` (-0.035, -0.05, 0), along fingers (-Y), top away from back of hand (-X), turned by `onHandTilt`. Children: **`Wheel`** (own mesh with notch) and **`Loaded Bolt`** (chosen kind's mesh; shown only when wound and a bolt of that kind is owned, `ShowLoadedBolt()`).
+  - **Active** (`Tick()`, 4a, after every grab system): on grip press, hand free (`IsBusyExcept(..., HandUse.Crossbow)`), ray target null (**a grab always wins**), palm down: visual +X via `TransformVector()` (handles mirroring; `TransformDirection()` doesn't) within `palmDownAngle` 50° of down. Stays active until grip released. `IsLeftBusy`/`IsRightBusy` = `HandUse.Crossbow`: crossbow hand while active **and other hand while on the wheel**.
+  - **Arc** (`TickHeld(canAim)`, 8a): from `muzzleDistance` 0.1m ahead along crossbow forward (shown = shot), `BallisticArc.Compute()` without stepped gravity, `ThrowArc` (`Crossbow Arc`). Speed from `range` 40m (level ground at 45°): `speed = sqrt(range × gravity)`, computed in `Awake()` with max flight (1.5 × time to range) and points array. Red, no disc on no landing; can still shoot.
+  - **Shooting:** trigger **press** (`fireTrigger` 0.6, re-arm below `rearmTrigger` 0.3; trigger already held on activation doesn't shoot). `reloadTime` 1s; a pull while winding is used up. Optional `fireCue`/`impactCue` via `SoundPlayer`.
+  - **Ammo:** `Fire()` uses `Inventory.PlayerInventory.TryUseBolt()`; none → faint tap (`emptyAmplitude`), no shot. **No `PlayerInventory` = unlimited.** Start counts: inventory's `waterBolts`, `noisemakerBolts`, `ropeBolts`, `stunBolts`, `sleepBolts` (0 default; set in Inspector).
+  - **Wheel** (`SelectedBolt`; `TickWheel()`, 3b) — **taken like a door handle**: trigger ball `Wheel Grab` (`wheelGrabRadius` 0.06m, Interactable, kinematic Rigidbody, child of crossbow) registered as hand target **`CrossbowWheel`** (reticle shows). `CanBeTargetedFrom()` refuses the crossbow hand's own ray (ray's hand = nearer origin). Other hand, free, ray on wheel, grip held → takes (click), visual snaps (`WheelSnapPose()`: facing down onto wheel from crossbow top, `wheelProfile`, empty = exact grip frame; untuned; hides reticle). Held until grip released (`LetGoOfWheel()`) or controller > `wheelBreakDistance` 0.3m (regrip needed). `TickHeldWheel()` (in `TickHeld()`): accumulate per-frame controller twist about the wheel axis (crossbow forward; 2·atan(axis component / w)); snapped hand shown turned by total; each `wheelStepAngle` 40° steps kind ±1 (wraps; five, `BoltKinds`) with a click, wheel turned 1/5, loaded bolt mesh swapped. Snap pose updated **after** hand visuals placed, so the hand lags the wheel one frame when the crossbow hand moves.
+  - **Bolts:** pool `BoltPoolSize` 16 (max 3 × 5 carried, can't all be out) under `Crossbow Bolts` at scene root. Meshes per kind (`BuildBoltMeshes()`): thin shaft with fat tip in `waterColor`/`noisemakerColor`/`stunColor` (black); rope bolt has rope winding on back half; sleep dart half length, crossed flights in `sleepColor` (green). `BoltState`: `Away`, `Flying`, `Tumbling`, `Resting`. `TakeBoltSlot()`: away and not sounding, else resting non-pickup-able, else next in turn. **In flight not physics**: moved along `BallisticArc.Point()`, one `Physics.Linecast` per frame along its move, last frame reaching `LandingProbe` 5cm past landing so the collider is always found. Landing on nothing → put away at flight end. Bolts tick on every path.
+  - **Landing** (`Land()`): guard first (`HitGuard()`). **Water/noisemaker used up whatever they hit**: water `Core.Flame.ExtinguishNear(point, waterRadius 0.6m)`; noisemaker sounds at once then every `noiseInterval` 1.5s for `noiseDuration` 12s (`MakeNoise()`: `noiseCue` via `SoundPlayer`, else bare `NoiseSystem.Emit(..., noiseRadius 12m, NoiseType.Distraction, ...)` - guards hear, player doesn't). **Stun/sleep/rope stick or bounce**: stick only into static geometry (collider without Rigidbody - not doors/props, would leave it floating) whose `SurfaceTag.HoldsBolt()` (Wood, Carpet, Grass, Plaster; untagged = Stone, so **nothing holds unless tagged**) → `Rest()`; else (guards too) `Rebound()`.
+  - **Bounce = only time a bolt is physics** (`Tumble()`, **`CrossbowBolt`** component per bolt): pulled back half its length, `BeginTumble()`: non-kinematic, gravity, continuous CD (set after leaving kinematic), solid `BoxCollider` on (**Projectile** layer; no-bounce high-friction `PhysicsMaterial`), `reboundSpeed` 0.8 m/s **level, straight back**, `reboundSpin` 3 rad/s end over end; `Interpolate` while tumbling (`None` at rest). First touch on an upward surface (`CheckLanded()` from `OnCollisionEnter`/`OnCollisionStay`, normal y ≥ 0.5) → `landedDamping` 6, `landedAngularDamping` 8. **Never damp on any first touch** (it starts touching what it bounced off; damped, it sinks without turning). `TickBolts()` waits for `HasSettled` (touched + nearly still, or asleep) or `TumbleTimeout` 5s → `Rest()`: `EndTumble()` kinematic, solid collider off - **a resting bolt touches nothing**.
+  - **Pick-up:** stun always, sleep dart that hit no guard (`CanBePickedUp()`); stays for good, `Bolt Grab` child trigger on (`pickupRadius` 0.08m, Interactable; `CrossbowBolt` is the `IHandTarget`, `HasLongReach`). `TickPickup()` (in `TickWheel()`, either hand): grip press, free hand, ray on resting bolt → `PlayerInventory.TryAddBolt()`, bolt put away - **never carried**. Already at max → stays, faint tap. Resting rope bolt without rope put away after `boltLifetime` 30s.
+  - **Rope bolts** never picked up. Stuck → `HangRope()`: next of `RopePoolSize` 3 pooled `Interaction.ClimbableRope`s (Climbable layer under `Crossbow Bolts`, thin visible box; oldest reused with its bolt), top at bolt, length to ground (ray down on `ropeGroundLayers` Environment) or `ropeMaxLength` 8m; drop < `MinRopeLength` 0.5m → no rope. **Weight-bearing = surface `SurfaceTag.supportsRopeBolt`** (off by default). Off: looks the same; `TickRopes()` (in `TickHeld()`) drops it when `PlayerClimbing.LeftGrabbed`/`RightGrabbed` is it (`DropRope()`: `PlayerClimbing.Release(rope)`, grab volume off, bolt tumbles, top falls as rope shortens to nothing, put away). `ropeProfile` = `Assets/Data/RopeGrip.asset` (same as placed ropes; empty = bare grip frame, turned differently).
+  - **Hitting a guard** (`HitGuard()`; `AI.Guard.FindByBody()`; rays see Guard layer, not GuardHead): **sleep** anywhere → `Guard.Sedate(sleepDelay 10s)`, bolt gone (stays in guard); **stun** whose line continues through the head (`Guard.IsHeadOnLine()` from `LandingProbe` short of hit, `HeadProbe` 0.7m on) → `Guard.Stun(stunTime 10s)`; **anything else** (other kinds, stun to body) → `Guard.HitByBolt()` with the shot origin. Then the bolt behaves as off a hard surface (water/noise used up, stun/rope bounce). Guard reaction: `Scripts/AI/CLAUDE.md`. **No bolt kills.**
+  - **Not built:** placed bolt pickups, bolt count display, real sounds.
 
 ## The blackjack
 
-- **`PlayerBlackjack`** (on `Hands`; optional) — drawing the blackjack, putting it
-  away, and hitting a guard with it. `Tick()` (tick step 3b, before the grab
-  systems: it is taken by reaching, not by the hand rays). **Drawn at the chest**: a hand
-  that is free (`IsBusyExcept(..., HandUse.Blackjack)`), inside the chest box - `chestSize`
-  ((0.4, 0.35, 0.4): width, height, depth) centred on the chest point, `chestOffset`
-  ((0, -0.3, 0.05): right, up, ahead) from the head, both placed and turned with the
-  head's tilt ignored - and whose palm (the visual's +X through `TransformVector()`)
-  is within `palmAngle` (60°) of pointing at that point, feels a tap; on the frame its
-  grip is pressed there the blackjack becomes a child of that hand's visual at
-  `inHandPosition` / `inHandRotation` (untuned; lying along the thumb side). **Held while
-  that grip is held; letting go puts it away** (inactive, back under `Hands`) - it is
-  never dropped. Either hand, one at a time; the pack's shoulder reach is ticked first and
-  wins where the two overlap. The model is two boxes in one mesh (`LockMeshBuilder`,
-  `TeaLeaf/LockFade`), made in `Awake()` under `Hands` - not on a hand visual, so the
-  ghost hands never copy it; no collider. **Hitting** (`TickSwing()`, each `Tick()` while
-  it is in hand): one `OverlapSphereNonAlloc` of `hitRadius` (0.07m) at the middle of the
-  blackjack's head on `guardHeadLayers` (GuardHead); a head found while the blackjack's
-  head is moving at `swingSpeed` (1.5 m/s) or more - measured in the Player root's space,
-  so walking and turning aren't a swing - is a blow: `AI.Guard.FindByHead()` then
-  `TryKnockOut(head position)` (the guard decides; see `Scripts/AI/CLAUDE.md`), a strong
-  pulse and the optional `hitCue`. One touch is one blow (`_isTouching`, cleared when the
-  head comes away). `IsOut`, `IsInLeftHand`;
-  `IsLeftBusy`/`IsRightBusy` are `HandUse.Blackjack`. `IDebugDrawable`: the chest box in
-  the detailed view (yellow, green while drawn).
+- **`PlayerBlackjack`** (on `Hands`; optional) — draw, put away, hit. `Tick()` (3b, by reaching). Free hand (`IsBusyExcept(..., HandUse.Blackjack)`) inside chest box `chestSize` (0.4, 0.35, 0.4; w, h, d) centred at `chestOffset` (0, -0.3, 0.05; right, up, ahead) from head (head tilt ignored), palm (visual +X via `TransformVector()`) within `palmAngle` 60° of the chest point → tap; grip press → child of visual at `inHandPosition`/`inHandRotation` (untuned; along thumb side). **Held while grip held; release puts it away** (inactive, under `Hands`), never dropped. Either hand, one at a time; pack shoulder reach ticks first and wins overlaps. Model: two boxes, one mesh (`LockMeshBuilder`, `TeaLeaf/LockFade`), made in `Awake()` under `Hands` (not a visual, so ghosts don't copy); no collider.
+  - **Hitting** (`TickSwing()` each `Tick()` while held): one `OverlapSphereNonAlloc` `hitRadius` 0.07m at the blackjack head on `guardHeadLayers` (GuardHead); head speed ≥ `swingSpeed` 1.5 m/s in Player-root space (walking/turning isn't a swing) → `AI.Guard.FindByHead()` → `TryKnockOut(head position)` (guard decides; `Scripts/AI/CLAUDE.md`), strong pulse, optional `hitCue`. One touch = one blow (`_isTouching`, cleared on separation). `IsOut`, `IsInLeftHand`; `IsLeftBusy`/`IsRightBusy` = `HandUse.Blackjack`. `IDebugDrawable`: chest box (detailed view; yellow, green while drawn).
 
 ## The compass
 
-- **`PlayerCompass`** (on `Hands`; optional) — the player's readout: north, how visible
-  they are, and where the sounds they have just heard came from.
-  - **Always worn, on the back of the wrist of the hand the lockpicks are on** (the left
-    for a right-handed player; `PlayerInputXR.IsLeftHanded`, read in `Awake()`), a little
-    further up the arm than the picks. It takes no input, is never put away and never
-    makes its hand busy: it is not a `HandUse`, and `PlayerHandState` doesn't know it.
-    One `Tick()` (tick step 8a, every path) places it. The object is switched off only
-    while the component is disabled.
-  - **Placed, not parented:** the `Compass` object is a child of `Hands`, put each frame
-    at `onWristPosition` ((-0.03, 0.06, 0): the back of the hand is -X, and the picks'
-    handles end at about y 0; untuned) in the hand visual's space, its face out of the
-    back of the wrist. Never a child of a hand visual: under the mirrored right one it
-    would be drawn mirrored, east and west swapped. Its own axes: Z into the wrist, Y up
-    its face, X to the right as it is looked at.
-  - **The model** (`BuildCompass()`, `LockMeshBuilder` cylinders, `TeaLeaf/LockFade`, no
-    colliders): the **rim** (`radius` 0.05, `thickness` 0.01), fixed to the hand; the
-    **dial** on top of it (`dialSize` 0.88 of the rim) with a triangular prism near its
-    edge at north (red, `northMarkScale` 1.6 times bigger), east, south and west, turned
-    every frame so its top is north laid flat onto the compass's face; and the **light
-    gem** on the middle of the dial. **North is world +Z** (east is +X), turned by
-    `northAngle` degrees about the vertical if a level needs it.
-  - **Light gem:** its own material with full least-light (so the scene's light never
-    darkens the reading), its `_BaseColor` set between `gemDarkColor` and `gemLightColor`
-    by `PlayerVisibility.Visibility` - written only when the value has moved by 0.02.
-  - **Sound arrows:** `arrowCount` (4) pooled triangular prisms outside the rim, each with
-    a see-through material of its own. `OnSoundHeard()` is subscribed to
-    `Core.SoundPlayer.Heard` (in `Start()`). **Only footsteps and voices that aren't the player's get an arrow**
-    (the cue's `NoiseType` is `Footstep` or `Voice`, and the source isn't under the Player
-    root): everything else - doors, impacts, bolts, locks - is ignored, as is a sound
-    quieter than `minLoudness` (0.02). **The arrow points where the sound is heard from**:
-    the sound itself in the same room, the portal it came through otherwise. A sound within `sameSourceDistance`
-    (1.5m) of a showing arrow's point renews that arrow (a guard's footsteps are one
-    arrow); otherwise it takes a free arrow, or the faintest one's place if it is louder
-    - so the arrows are the loudest few. An arrow holds for `arrowHoldTime` (0.5s) and
-    fades over `arrowFadeTime` (2s) (`_Alpha`). Each frame (`TickArrows()`), an arrow is put `arrowGap` beyond the rim towards its sound - the
-    level direction to the heard-from point (the sound itself, or the portal it came
-    through), laid flat onto the face - pointing outwards, sized between `arrowMinSize`
-    and `arrowMaxSize` by loudness. The points are in the world, so the arrows go round
-    the compass as the player turns. Loops and ambience raise no arrows.
-  - A worn object like the lockpicks, depth-tested, not an overlay marker.
-- **`PlayerHandTools`** (`Debug/Editor`, menu **TeaLeaf > Dev Room > Add Hand Tools To Player**) —
-  adds `PlayerCrossbow`, `PlayerBlackjack` and `PlayerCompass` to the `Hands` object, each
-  only if missing, and sets the crossbow's `ropeProfile` to `RopeGrip.asset` if it is
-  empty.
+- **`PlayerCompass`** (on `Hands`; optional) — north, visibility, recent sounds.
+  - Worn on the back of the wrist of the lockpick hand (`IsLeftHanded`, read in `Awake()`), further up than the picks. No input, never put away, **not a `HandUse`**. `Tick()` (8a, every path) places it. Object off only while component disabled.
+  - **Placed, not parented:** `Compass` is a child of `Hands`, set each frame at `onWristPosition` (-0.03, 0.06, 0; untuned) in visual space, face out of the back of the wrist. **Never a child of a hand visual** (mirrored right would swap east/west). Axes: Z into wrist, Y up the face, X right as viewed.
+  - **Model** (`BuildCompass()`, `LockMeshBuilder` cylinders, `TeaLeaf/LockFade`, no colliders): **rim** (`radius` 0.05, `thickness` 0.01) fixed; **dial** (`dialSize` 0.88 of rim) with triangular prisms at N (red, `northMarkScale` 1.6), E, S, W, turned each frame so its top is north projected on the face; **light gem** in the middle. **North = world +Z** (east +X), offset by `northAngle` about vertical.
+  - **Light gem:** own material, full least-light (scene light never darkens it); `_BaseColor` lerped `gemDarkColor`→`gemLightColor` by `Visibility`, written only on 0.02 change.
+  - **Sound arrows:** `arrowCount` 4 pooled prisms outside the rim, own see-through material each. `OnSoundHeard()` on `Core.SoundPlayer.Heard` (`Start()`). **Only `Footstep`/`Voice` cues whose source isn't under the Player root**, louder than `minLoudness` 0.02; loops and ambience raise none. Points to the heard-from point (the sound in the same room, else the portal). Within `sameSourceDistance` 1.5m of a shown arrow's point → renews it; else free arrow or replaces the faintest if louder (loudest few). Hold `arrowHoldTime` 0.5s, fade `arrowFadeTime` 2s (`_Alpha`). `TickArrows()`: placed `arrowGap` beyond rim along the level direction to the point projected on the face, pointing out, sized `arrowMinSize`-`arrowMaxSize` by loudness. Points are world-space, so arrows rotate as the player turns.
+  - Worn object: depth-tested, not an overlay.
+- **`PlayerHandTools`** (`Debug/Editor`, **TeaLeaf > Dev Room > Add Hand Tools To Player**) — adds missing `PlayerCrossbow`, `PlayerBlackjack`, `PlayerCompass` to `Hands`; sets empty crossbow `ropeProfile` to `RopeGrip.asset`.
 
 ## Opening doors
 
-- **`PlayerHandDoors`** (on `Hands`; optional) — the player's half of
-  `Interaction.Door`/`DoorHandle`/`DoorBolt` (see `Scripts/Interaction/CLAUDE.md`). `Tick()`
-  (tick step 4a, after climbing and carrying): a free hand whose grip is held takes the
-  `DoorHandle` its ray is on, if no other hand is on that door - the hand visual snaps onto
-  the lever on the head's side; letting go of grip lets go. `IsLeftOnDoor`/`IsRightOnDoor`
-  (true through a needed regrip; they cover a hand on a bolt or a chest lid too) are what
-  `PlayerHandState` reports as `HandUse.Door`. The reticle is hidden by the snap (`IsSnapped`), as for a
-  ledge.
-  - `TickHeld()` (tick step 8, after `Move()`, straight before `PlayerHandVisuals.Tick()`,
-    on every path through `Update()`), per held handle: **twist** = how far the controller
-    has turned about the spindle (door-local Z) since it took hold, both rotations taken
-    relative to the door so a swinging door isn't a twist (`TwistAboutZ()`: twice the
-    arctangent of the quaternion's z over w); the lever shows it up to its stop -
-    `Door.UnlatchTwist` (60°), or `LockedTwist` (10°) on a door that is locked or bolted
-    (`Door.IsHeldShut`). At the stop an unlocked door is unlatched (haptic click); a held-
-    shut one rattles once (haptic knock), re-armed when the lever is turned half way back.
-  - **Swing** (once unlatched, or at once on an already open door): each frame the change in
-    the controller's bearing round the hinge (`Door.TryGetBearing()`, `Mathf.DeltaAngle`) is
-    added to `swingAngle`, which is what the door is asked for - so the door turns as far as
-    the hand went round, at any distance from the hinge. The asked-for angle is kept when
-    the door can't follow (its limit, or the player's body), up to 45° past the limit: the
-    hand has to come back that far before the door moves again. Then the snapped pose is
-    moved onto the handle (`HandVisualSnap.SetSnapPose()`).
-  - **Break-away:** the real hand more than `breakDistance` (0.4m) from the grip point lets
-    go by force, and the hand needs a regrip.
-  - **Sliding bolts:** a free hand holding grip with its ray on an `Interaction.DoorBolt`
-    takes it the same way (`TakeBolt()`; one hand per bolt) and its visual snaps onto the
-    knob. In `TickHeld()` (`TickHeldBolt()`) the bolt's slide is `bolt.SlideAt(controller
-    position)` plus the offset noted at the grab - so it moves as far as the hand does along
-    the door, from where it was - with the unlatch haptic as it reaches an end; the snap
-    pose follows the knob; the same `breakDistance`. Letting go (`LetGoOfBolt()`) lets the
-    bolt settle.
-  - **Chest lids**: a free hand holding grip with its ray
-    on an `Interaction.ChestLid` takes it the same way (`TakeLid()`) and its visual snaps
-    onto the lid's front edge. In `TickHeld()` (`TickHeldLid()`) the lid is asked for
-    `chest.AngleAt(controller position)` plus the offset noted at the grab
-    (`Chest.SetAngle()`) - so **lifting the hand opens the lid**, as far as the hand goes
-    round the hinge. A locked chest's lid doesn't move: it rattles once with a haptic
-    knock (`Chest.RattleLocked()`). The snap pose follows the lid; the same
-    `breakDistance`. Letting go (`LetGoOfLid()`) calls `Chest.Release()`: a lid left
-    nearly shut drops shut, otherwise it stays where it was left.
-- **`PlayerBodyPushing`** (on the Player root, with the `CharacterController`) — the body
-  pushes open doors. `OnControllerColliderHit()`, which Unity calls from inside `Move()` (so
-  no `Tick()`: it happens at tick step 6): looks the collider up in
-  `Interaction.HandPushRegistry` and pushes it straight into the surface, level, by
-  `squareness x pushSpeed (1.5 m/s) x deltaTime`, where squareness is how directly the
-  body's move goes against the surface's normal (below `minSquareness` 0.2, or standing on
-  it: nothing). `ControllerColliderHit.moveLength` is the distance travelled *before* the
-  hit, not what was left, which is why a set speed is used. The body is stopped for the one
-  frame, then walks into the space. A hand and the body share the door's one push a frame.
-- **`PlayerKeyholes`** (on the Player root; optional) — the player's half of
-  `Interaction.DoorKeyhole`. `Tick()` (tick step 7d, and during a mantle): every
-  `searchInterval` (0.2s) asks `DoorKeyhole.FindInRange()` for the keyhole nearest the head
-  (`PlayerTracking.HeadPosition`; distance checks only, no physics); the one found is then
-  ticked every frame so its opening follows the head, until it reports it's back at rest.
-  Switching to a nearer keyhole shuts the old one at once. With none in range it only
-  counts down a timer.
+- **`PlayerHandDoors`** (on `Hands`; optional) — player side of `Interaction.Door`/`DoorHandle`/`DoorBolt` (`Scripts/Interaction/CLAUDE.md`). `Tick()` (4a, after climbing/carrying): free hand, grip held, ray on a `DoorHandle`, no other hand on that door → takes it, visual snaps onto the lever on the head's side; release lets go. `IsLeftOnDoor`/`IsRightOnDoor` (through regrip; also bolts and chest lids) = `HandUse.Door`. Reticle hidden by the snap (`IsSnapped`).
+  - `TickHeld()` (8, after `Move()`, right before `PlayerHandVisuals.Tick()`, every path): **twist** = controller turn about the spindle (door-local Z) since grab, both relative to the door (`TwistAboutZ()`: 2·atan(z/w)); lever shows it up to `Door.UnlatchTwist` 60°, or `LockedTwist` 10° if locked/bolted (`Door.IsHeldShut`). At the stop: unlocked → unlatched (haptic click); held shut → one rattle (knock), re-armed at half way back.
+  - **Swing** (after unlatch, or at once if open): per-frame change of controller bearing round the hinge (`Door.TryGetBearing()`, `Mathf.DeltaAngle`) added to `swingAngle` (door turns as far as the hand went round, any distance). Asked angle kept when the door can't follow (limit or body), up to 45° past the limit (hand must come back that far). Then `HandVisualSnap.SetSnapPose()` onto the handle.
+  - **Break-away:** hand > `breakDistance` 0.4m from grip point → forced off, regrip.
+  - **Sliding bolts:** same grab on an `Interaction.DoorBolt` (`TakeBolt()`; one hand per bolt), snaps onto knob. `TickHeldBolt()`: slide = `bolt.SlideAt(controller position)` + grab offset; unlatch haptic at an end; snap follows knob; same `breakDistance`. `LetGoOfBolt()` lets it settle.
+  - **Chest lids:** same grab on an `Interaction.ChestLid` (`TakeLid()`), snaps onto front edge. `TickHeldLid()`: `Chest.SetAngle(chest.AngleAt(controller position) + grab offset)` - lifting the hand opens it. Locked: doesn't move, one rattle + knock (`Chest.RattleLocked()`). Snap follows; same `breakDistance`. `LetGoOfLid()` → `Chest.Release()` (nearly shut drops shut, else stays).
+- **`PlayerBodyPushing`** (Player root, with CharacterController) — body pushes doors in `OnControllerColliderHit()` (inside `Move()`, step 6; no `Tick()`): `Interaction.HandPushRegistry` lookup, push straight into the surface, level, by `squareness × pushSpeed 1.5 m/s × deltaTime` (squareness = how directly the move opposes the normal; below `minSquareness` 0.2 or standing on it: nothing). Set speed because `ControllerColliderHit.moveLength` is distance *before* the hit. Body stopped one frame, then walks in. Hand and body share the door's one push per frame.
+- **`PlayerKeyholes`** (Player root; optional) — player side of `Interaction.DoorKeyhole`. `Tick()` (7d, also in mantle): every `searchInterval` 0.2s `DoorKeyhole.FindInRange()` nearest the head (`PlayerTracking.HeadPosition`; distance only, no physics); found one ticked every frame until back at rest. Nearer keyhole → old one shuts at once. None in range → just a timer.
 
 ## Climbing and mantling
 
-- **`PlayerClimbing`** — custom grab-and-pull climbing. A hand grabs the `IClimbable`
-  (ledge, ladder or rope) its hand ray is on (`PlayerHandInteraction.LeftTarget`/
-  `RightTarget`) while grip is held, so what the reticle is on is what gets grabbed and the
-  ray length (`rayLength`, the short one) is the grab reach; the most recent grab becomes
-  the primary hand, which drives movement (hand-off to the other hand on release). Hand
-  deltas are measured in `playerTransform` local space to avoid a feedback loop, and any
-  movement the CharacterController didn't apply is retried via `ReportAppliedMovement()` so
-  the grab point never drifts. On grab it asks the target for a `HandSnapPose` and hands it
-  to that hand's `HandVisualSnap` (`PlayerHandVisuals.LeftVisualSnap`/`RightVisualSnap`).
-  `ReleaseAll()` force-releases both hands (used by mantling) and `Release(climbable)`
-  any hand on one climbable (a rope bolt's rope coming loose); a force-released hand can't
-  grab again until its grip is let go, since "held" grabbing would otherwise instantly
-  re-grab. Sets `characterController.minMoveDistance = 0` so slow hand movement isn't
-  swallowed. Exposes `IsClimbing`, `IsLeftHandGripping`/`IsRightHandGripping`,
-  `FrameMovement`, and `LeftGrabbed`/`RightGrabbed` (the held `IClimbable` or null) with
-  `LeftGrabPoint`/`RightGrabPoint` (the ray hit at the moment of the grab) - used by
-  mantling. Ladder and rope movement is unconstrained like ledges; the bottom exit is
-  letting go, which falls normally. **No climb release momentum**: letting go drops the
-  player from rest. Don't add a launch - averaged over the release it is a brake-then-kick
-  stutter, and at the last frame's velocity it barely launches at all.
-  - **Zip lines:** grabbing an `IZipLine` with `IsZipLine` starts a ride (`BeginZipGrip()`:
-    from rest, direction from the line; a second hand joins at the ride's speed).
-    `TickZip()` (after the grabs, before `UpdateFrameMovement()`) speeds up towards
-    `ZipSpeed` and slides each hand on the line - `HandVisualSnap.MoveSnapPose()` moves the
-    snapped pose, and the primary hand's slide (`_zipMovement`) is added to `FrameMovement`,
-    so ordinary climbing still works on top and the single `Move()` rule holds. A hand
-    reaching the end is `ForceRelease()`d; with none left the player drops, from rest. The
-    ride also ends if the primary hand grabs something else (the hand left on the line is
-    let go), or if the body falls more than 0.5m behind the grip (`ZipBlockedDistance`:
-    blocked by a wall or the ground - checked in `ReportAppliedMovement()`).
-- **`PlayerMantling`** — a quick, committed, uncancellable move onto the top of what is
-  gripped. It decides when a mantle is possible (`CanMantle`, `MantleTarget`) and shows the
-  `MantleIndicator` to match: a hand grips an `IMantleable` whose own rule
-  (`CanMantleFrom()`) says so - a mantleable edge with the head at least `ledge top -
-  headBelowTopAllowance`, or a mantleable ladder with a hand on its top rung. No physics
-  queries - where the mantle lands and whether it ends crouched are per-target designer data
-  (`GetMantleLanding()`). Either stick pushed up (`stickUpThreshold`) starts the mantle:
-  `PlayerClimbing.ReleaseAll()`, `PlayerLocomotion.BeginMantle(endsCrouched)`,
-  CharacterController disabled, then the rig is positioned directly along an eased
-  up-and-over arc (`duration`, `riseEndsAt`, `forwardStartsAt`) so the capsule bottom lands
-  on the mantle point (+`landingLift`). `IsMantling` makes `PlayerController` skip
-  everything else. At the end the controller is re-enabled and `EndMantle()` hands back
-  control. **The one exception to the single-`Move()` rule** - the landing is
-  designer-placed and collision could only stop it landing there, so **every mantle must
-  land on top of what it climbs**.
-- **`MantleIndicator`** — runtime-built white arrow on a child of Main Camera (so head-locked
-  with no code). Uses an `OverlayMaterial` so it draws through walls (the face is against the
-  wall while climbing). `SetVisible()` only touches the renderer on change.
-- **`OverlayMaterial`** (in `Scripts/Core`, namespace `Core`; `using Core;`) — static factory
-  for in-world UI marker materials (reticles, mantle arrow, coins, throw arc) using the
-  project's own `TeaLeaf/Overlay` shader (`Assets/Art/Shaders/Resources/Overlay.shader`: flat
-  `_Color`, `ZTest Always`, `ZWrite Off`, `Cull Off`, alpha blend, Overlay queue 4000,
-  `SRPDefaultUnlit` pass, single-pass-instanced stereo macros; in `Resources` so
-  `Shader.Find()` works in builds). **Every UI marker must use it.** Built-in shaders can't
-  do this: `UI/Default` doesn't declare `unity_GUIZTestMode` as a property, so a material
-  override of it does nothing, and URP's Unlit has no depth-test property.
+- **`PlayerClimbing`** — grab-and-pull climbing. Grabs the `IClimbable` (ledge, ladder, rope) the hand ray is on (`PlayerHandInteraction.LeftTarget`/`RightTarget`) while grip held: reticle = what's grabbed, `rayLength` (short) = reach. Latest grab = primary hand, drives movement (hands off on release). Hand deltas in `playerTransform` local space (avoids feedback loop); unapplied movement retried via `ReportAppliedMovement()` so the grab point never drifts. On grab gets a `HandSnapPose` → that hand's `HandVisualSnap` (`PlayerHandVisuals.LeftVisualSnap`/`RightVisualSnap`). `ReleaseAll()` (mantling), `Release(climbable)` (rope bolt coming loose); force-released hand can't regrab until grip released. Sets `characterController.minMoveDistance = 0` (slow hand moves not swallowed). Exposes `IsClimbing`, `IsLeftHandGripping`/`IsRightHandGripping`, `FrameMovement`, `LeftGrabbed`/`RightGrabbed` (`IClimbable` or null), `LeftGrabPoint`/`RightGrabPoint` (ray hit at grab). Ladders/ropes unconstrained like ledges; bottom exit = let go and fall. **No climb release momentum** - don't add a launch (averaged = brake-then-kick stutter; last-frame velocity barely launches).
+  - **Zip lines:** grabbing an `IZipLine` with `IsZipLine` → `BeginZipGrip()` (from rest, direction from line; second hand joins at ride speed). `TickZip()` (after grabs, before `UpdateFrameMovement()`) accelerates to `ZipSpeed`, slides each hand (`HandVisualSnap.MoveSnapPose()`), primary's slide (`_zipMovement`) added to `FrameMovement` (normal climbing still works; single `Move()` holds). Hand at end → `ForceRelease()`; none left → drop from rest. Ride ends if primary grabs something else (other hand let go) or body > 0.5m behind grip (`ZipBlockedDistance`, checked in `ReportAppliedMovement()`).
+- **`PlayerMantling`** — quick, committed, uncancellable move onto what's gripped. `CanMantle`, `MantleTarget`, drives `MantleIndicator`: a hand grips an `IMantleable` whose `CanMantleFrom()` agrees (edge: head ≥ ledge top − `headBelowTopAllowance`; ladder: hand on top rung). No physics queries - landing and ends-crouched are per-target designer data (`GetMantleLanding()`). Either stick up (`stickUpThreshold`) → `PlayerClimbing.ReleaseAll()`, `PlayerLocomotion.BeginMantle(endsCrouched)`, CharacterController disabled, rig moved along an eased up-and-over arc (`duration`, `riseEndsAt`, `forwardStartsAt`) to land capsule bottom on the point (+`landingLift`). `IsMantling` makes `PlayerController` skip the rest. End: controller re-enabled, `EndMantle()`. **The one exception to single-`Move()`**; **every mantle must land on top of what it climbs**.
+- **`MantleIndicator`** — runtime white arrow, child of Main Camera (head-locked, no code), `OverlayMaterial` (face is against the wall). `SetVisible()` touches renderer only on change.
+- **`OverlayMaterial`** (`Scripts/Core`, namespace `Core`) — factory for in-world UI materials (reticles, mantle arrow, coins, throw arc) on `TeaLeaf/Overlay` (`Assets/Art/Shaders/Resources/Overlay.shader`: flat `_Color`, `ZTest Always`, `ZWrite Off`, `Cull Off`, alpha blend, queue 4000, `SRPDefaultUnlit` pass, SPI stereo macros; in `Resources` for `Shader.Find()` in builds). **Every UI marker uses it.** Built-ins can't: `UI/Default` doesn't declare `unity_GUIZTestMode` as a property (override does nothing); URP Unlit has no depth-test property.
 
 ## Hands
 
-- **`PlayerHandVisuals`** (on `Hands`) — the single owner of where each hand *visual* is placed,
-  so no two systems fight over a visual transform. Holds the `leftHandVisual`/`rightHandVisual`
-  references and `snapBlendDuration`, creates and ticks both `HandVisualSnap`s
-  (`LeftVisualSnap`/`RightVisualSnap`), which other systems snap/release and
-  `PlayerHandAnimation` reads, plus one `HandPhysicalFollow` and one `HandGhost` per hand.
-  Per hand, per tick: the snap first; only if it isn't using the visual (not snapped and
-  fully blended back) does the physical follow run - snapping always wins. Physical Hands
-  settings: `collisionLayers` (must be Environment + Interactable; never Player/Climbable;
-  empty = collision off), `handRadius` (0.035m), `skinWidth` (0.005m), `catchUpDuration`
-  (0.1s), `maxSeparation` (0.4m), and the wrist/fingertip bones per hand. `Reset()` / the
-  "Find Hand Bones" context menu find the visuals and bones by name (`J_Left_Hand`,
-  `J_Left_HandMiddle4` - the mirrored right hand shares the Left names). Exposes
-  `IsLeftHandInContact`/`IsRightHandInContact`, and raises `HandContactStarted(isLeftHand)`
-  on the tick a hand goes from free to in contact (not on snapping; for `PlayerHaptics`) -
-  **and when it starts pushing something**: `HandPhysicalFollow.IsPushing` is true on a
-  frame the sweep's push moved something, and a push counts as started when that hand has
-  pushed nothing for `pushRestTime` (0.5s), since a pushed door swings ahead of the hand and
-  is caught up with again. Debug capsules (`IDebugDrawable`): in Play Mode the target
-  capsule (faint) and the visual's (green, red in contact); in Edit Mode the bone capsule,
-  for checking `handRadius`. The hands' cost is profiled under the **`PhysicalHands.Follow`**
-  `ProfilerMarker` (one sample per hand per frame, in `TickHand()`).
-- **`HandPhysicalFollow`** — plain C# class, one per hand, the physical hands collision
-  response: **a kinematic sweep, no Rigidbody** (a velocity-driven Rigidbody hand is
-  physics-rate, jitter-prone and needs teleports for snap turn and mantle). Controllers are
-  assumed unscaled. `Suspend()` while snapped/untracked.
-  - **Sweep:** a capsule from wrist to middle fingertip (measured once from the bones at
-    Awake, in controller space so the mirrored hand needs nothing special; ends inset by the
-    radius) is `CapsuleCast` from last frame's visual position towards the controller's;
-    hits stop it `skinWidth` short and the way *to the goal* from there is projected onto
-    the surface and re-swept (collide-and-slide, max 3 sweeps, no allocations). **Re-aimed
-    at the goal each sweep, never the leftover of the last move** (carrying the leftover
-    slides the hand round a block's edge and out). **Creases:** if a slide would push back
-    into the surface the previous sweep slid along (a V, e.g. the mouth of a gap narrower
-    than the hand), the move is projected onto the line where the two surfaces meet instead
-    (their normals' cross product); parallel surfaces stop it. Triggers are ignored.
-  - **Pushing:** each collider a sweep is stopped by is looked up in
-    `Interaction.HandPushRegistry`; an `IHandPushable` (an open door's leaf) is told the hit
-    point and how far the hand was still trying to go straight into the surface, and moves
-    itself (`Push()` returns whether it moved). **If it moved, the sweep is tried again in
-    the same frame**, straight at the goal, without using up a slide - once per frame - so a
-    hand pushing a door stays on its controller and is never "in contact" (stopping the hand
-    at the surface instead makes it stutter). A door that can't keep up or can't move still
-    holds the hand at its surface. The push asks for `skinWidth` more than the hand needs.
-  - **Depenetration before the sweep:** `Depenetrate()` pushes the capsule - at last
-    frame's position, with this frame's rotation - out of anything it overlaps
-    (`OverlapCapsuleNonAlloc` into a shared static buffer, then `ComputePenetration` per
-    overlap, moved by distance + `skinWidth`, max 3 passes). Before rather than after: a
-    rotation-induced overlap is shallow at the start, while after a sweep the hand could be
-    past the middle of a thin wall and get pushed out of the far side. It reports `isClear`;
-    a sweep hit at distance 0 lets the hand move freely **only** on the first sweep when the
-    start couldn't be cleared (genuinely stuck inside) - any other distance-0 hit is
-    "touching" and stops the sweep. `ComputePenetration` needs an enabled collider for the
-    hand but takes the pose as arguments, so each hand builds a `Penetration Collider`
-    (trigger `CapsuleCollider` on Z, `PlayerHands` layer, parked at y -1000 at the scene
-    root, never moved, height = wrist to fingertip, radius synced from `handRadius` on
-    change, destroyed from `PlayerHandVisuals.OnDestroy()`).
-  - **Held and released:** blocked → visual detached and placed by code (`IsPlacedByCode`).
-    Attached state is read from the actual parent, since `HandVisualSnap` detaches the same
-    transform. **Position and rotation are held and released separately**
-    (`_isPositionHeld`/`_isRotationHeld`): a blocked sweep holds both; the position is free
-    as soon as the sweep reaches its goal, but the rotation (held at the controller's
-    rotation from the first blocked frame - with rotation always following, a tilting wrist
-    swings the fingers into the wall) only once a `CheckCapsule` at the hand's current
-    position, turned to the controller's rotation, is clear. `IsInContact` = either is held.
-  - **Elastic band:** each of position and rotation, from the moment it comes free, eases
-    its offset from the controller (stored in the controller's space so the hand keeps
-    following the real hand's motion) to zero over `catchUpDuration` (0.1s, SmoothStep via
-    `CatchUpWeight()`), still swept each frame, so it can land back in contact; re-attached
-    when both are fully back. Not an exponential chase of the controller (lags further the
-    faster the hand moves, may never settle). The eases share
-    `AdvanceEases()`/`StartPositionReturn()`/`StartRotationReturn()`, and placement is
-    `PlaceVisual()`.
-  - **Snap-back:** in contact, if the visual is more than `maxSeparation` (0.4m, 0 = never)
-    from the controller, contact is dropped and the hand enters "passing through"
-    (`TickPassingThrough()`): collision off, it eases back onto the controller - position
-    and rotation, over `catchUpDuration`, straight through the wall - then stays on it
-    (attached) until a `CheckCapsule` at the controller is clear (one query per frame, only
-    once the ease is done). Without the wait, the next push-out would move the hand to the
-    nearest face of whatever the controller is inside and it would snap back every frame.
-- **`HandGhost`** — plain C# class, one per hand, owned and ticked by `PlayerHandVisuals`
-  (after the physical follow; told it can't show while snapped). A faint copy of the hand at
-  the real controller while a surface holds the visual away (Alyx style). Made in `Awake()`
-  by `Instantiate`-ing the visual under the controller at its rest pose (so it follows
-  tracking with no code moving it) with its Animator destroyed; while shown, its bones copy
-  the visual's `localRotation`s. Shown when the visual is more than `ghostShowDistance`
-  (0.03m) from it, hidden again within half that; the renderer is only switched on changes,
-  bones only copied while shown. Settings on `PlayerHandVisuals` (Ghost Hands):
-  `showGhostHands`, `ghostShowDistance`, `ghostColor` (white, alpha 0.2, read once in
-  `Awake()`). Drawn with **`TeaLeaf/Ghost`** (`Art/Shaders/Resources/Ghost.shader`):
-  Overlay's no-depth-test flat colour (the real hand is usually inside the wall), queue
-  `Overlay-1` so UI markers stay on top, `Cull Back`, plus a stencil test on bit 128 so each
-  pixel is drawn once - without it the see-through hand darkens wherever its own triangles
-  overlap. **Anything put on a hand visual at load must be added in `Start()`**, after the
-  ghosts have copied the visuals in `Awake()`.
-- **`HandVisualSnap`** — plain C# class (one per hand, owned and ticked by `PlayerHandVisuals`;
-  other systems only call `Snap()`/`Release()`). Blends a hand *visual* (never the tracked
-  controller) between its rest local pose and a world-space `HandSnapPose` over
-  `snapBlendDuration` (SmoothStep), both ways, and doesn't touch the transform at rest. A grab
-  from rest blends **from where the visual actually is** (captured in `Snap()` in the
-  controller's space, so it still follows the real hand), not from the rest pose - a surface
-  may be holding it off the controller. `Release()` resets that to the rest pose, so a
-  release always blends back onto the controller. Exposes the eased blend as `Weight` (0 =
-  following the controller, 1 = snapped), which `PlayerHandAnimation` uses as the finger
-  pose layer weight so the two stay in step. While snapped the visual is **detached to the
-  scene root** and re-attached when the release blend ends: anything that must stay
-  world-fixed can't be a child of a tracked transform (and not a child of the ledge either -
-  ledges are non-uniformly scaled, which would shear a rotated child).
-  `Snap(pose, blendDuration)`/`Release(blendDuration)` overloads give one blend its own
-  time (prop pick-up's reach and return); the plain calls use `snapBlendDuration`.
-  `MoveSnapPose(movement)` shifts the snapped pose (a zip line grip) and
-  `SetSnapPose(position, rotation)` replaces it, keeping the finger pose (a door handle,
-  which moves and turns).
-- **`PlayerHandInteraction`** — casts one ray per hand **from the hand visual, not the
-  controller** (`PlayerHandVisuals.GetLeft/RightHandPose()` → `HandPhysicalFollow.GetHandPose()`:
-  the controller pose shifted to where a surface holds the visual, so a controller pushed
-  through a wall can't target/grab behind it; just the controller while the visual is on it;
-  last frame's placement, since rays run before the visuals tick) - configurable layer mask
-  and per-hand angle offset, pre-rotated into a cached local ray direction in `Awake()`/
-  `OnValidate()` - and records whatever `IHandTarget` it hits, if the target accepts a ray
-  from that hand (`CanBeTargetedFrom(origin)`). **Two reaches**: `rayLength` (0.5m) for
-  climbables and `pickUpRayLength` (1m) for targets with `IHandTarget.HasLongReach` (props).
-  One ray at the longer length; a hit beyond `rayLength` only counts for a long-reach
-  target. If that far hit is a trigger (an out-of-reach grab volume), the ray is cast once
-  more ignoring triggers, so a prop standing in or behind a ledge volume can still be picked
-  up. **Before the ray**, `FindTargetContaining()` checks whether the ray origin is already
-  *inside* a target's collider (a 1mm `OverlapSphereNonAlloc` into a shared buffer, triggers
-  included, registry lookup): if so that target wins, targeted at the hand itself, and the
-  ray is skipped - a ray never detects a collider it starts inside, and grab volumes are
-  bigger than what they belong to. Nothing is highlighted - the reticle alone shows what can
-  be interacted with. Exposes `LeftTarget`/`RightTarget` and the hit points
-  `LeftTargetPoint`/`RightTargetPoint`. Ticked before the grab systems, so they're always
-  this frame's. `TickReticles()` places the reticles later in the frame (step 8b).
-- **`HandRayReticle`** — runtime-built billboard disc shown where a hand ray hits a hand target,
-  hidden while that hand is holding something (its visual is snapped); ticked by
-  `PlayerHandInteraction.TickReticles()`. Only toggles its renderer when visibility changes.
-  Uses an `OverlayMaterial`.
-- **`PlayerHandAnimation`** — per-hand Animator. The base layers always follow input
-  (`TriggerCurl` index, `GripCurl` middle/ring/pinky). The `Snap Pose` override layer plays the
-  snap target's `HandPose` with its weight set from that hand's `HandVisualSnap.Weight` (or
-  the carrying pose weight, whichever is larger), so any snapped hand gets its target's
-  finger pose and fades back to input curl on release. `SetFloat()`/`Play()`/
-  `SetLayerWeight()` only run when the curl, pose or weight changes; both Animators set
-  `keepAnimatorStateOnDisable` in `Awake()` so those caches stay valid if a controller
-  object is ever deactivated. The layer index is looked up by name; state hashes are built
-  once from `HandPose`'s enum names. New poses: add a `HandPose` value plus a same-named
-  state and clip on the layer, no new code; `Awake()` warns once for any `HandPose` with no
-  matching state.
+- **`PlayerHandVisuals`** (on `Hands`) — sole placer of hand *visuals* (no fighting). Holds `leftHandVisual`/`rightHandVisual`, `snapBlendDuration`; owns/ticks `HandVisualSnap`s (`LeftVisualSnap`/`RightVisualSnap`), one `HandPhysicalFollow` and one `HandGhost` per hand. Per hand: snap first; physical follow only if the snap isn't using the visual (not snapped, fully blended back) - **snap always wins**. Physical Hands settings: `collisionLayers` (must be Environment + Interactable; never Player/Climbable; empty = off), `handRadius` 0.035m, `skinWidth` 0.005m, `catchUpDuration` 0.1s, `maxSeparation` 0.4m, wrist/fingertip bones. `Reset()`/"Find Hand Bones" find visuals and bones by name (`J_Left_Hand`, `J_Left_HandMiddle4`; mirrored right shares Left names). `IsLeftHandInContact`/`IsRightHandInContact`; `HandContactStarted(isLeftHand)` on free→contact (not snapping) **and on push start**: `HandPhysicalFollow.IsPushing` true when a sweep push moved something; counts as started after `pushRestTime` 0.5s of no pushing (a pushed door swings ahead and is caught again). Debug capsules (`IDebugDrawable`): Play = target (faint) + visual (green, red in contact); Edit = bone capsule for `handRadius`. Profiled under **`PhysicalHands.Follow`** `ProfilerMarker` (per hand per frame, `TickHand()`).
+- **`HandPhysicalFollow`** — plain class per hand: **kinematic sweep, no Rigidbody** (Rigidbody hand is physics-rate, jittery, needs teleports for snap turn/mantle). Controllers assumed unscaled. `Suspend()` while snapped/untracked.
+  - **Sweep:** capsule wrist→middle fingertip (measured once at Awake in controller space, mirroring needs nothing; ends inset by radius), `CapsuleCast` from last visual position toward controller; stop `skinWidth` short, project the way *to the goal* onto the surface and re-sweep (collide-and-slide, max 3, no allocs). **Re-aim at the goal each sweep, never the leftover** (leftover slides the hand round a block's edge and out). **Creases:** if a slide would push back into the previous sweep's surface (V, e.g. a gap narrower than the hand), project onto the surfaces' intersection line (normals' cross); parallel surfaces stop it. Triggers ignored.
+  - **Pushing:** each blocking collider looked up in `Interaction.HandPushRegistry`; an `IHandPushable` (open door leaf) gets hit point and remaining straight-in distance, `Push()` returns moved. **If moved, sweep again same frame straight at goal without using a slide** (once per frame) - hand stays on controller, never "in contact" (stopping at the surface stutters). A door that can't keep up/move still holds the hand. Push asks `skinWidth` more than needed.
+  - **Depenetrate before the sweep:** `Depenetrate()` at last position with this rotation: `OverlapCapsuleNonAlloc` (shared static buffer), `ComputePenetration` per overlap, moved distance + `skinWidth`, max 3 passes. Before, not after (after a sweep the hand could be past a thin wall's middle and pushed out the far side). Reports `isClear`; a distance-0 sweep hit moves freely **only** on the first sweep when the start couldn't be cleared (stuck inside); else distance 0 = touching, stops. `ComputePenetration` needs an enabled collider: per hand a `Penetration Collider` (trigger `CapsuleCollider` on Z, `PlayerHands` layer, parked at y -1000 at scene root, never moved, height wrist-fingertip, radius synced from `handRadius` on change, destroyed in `PlayerHandVisuals.OnDestroy()`).
+  - **Held/released:** blocked → visual detached, placed by code (`IsPlacedByCode`). Attached state read from actual parent (`HandVisualSnap` detaches the same transform). **Position and rotation held separately** (`_isPositionHeld`/`_isRotationHeld`): blocked holds both; position frees when the sweep reaches its goal; rotation (held at the first blocked frame's controller rotation - always-following rotation swings fingers into the wall) frees only when a `CheckCapsule` at the current position with controller rotation is clear. `IsInContact` = either held.
+  - **Elastic band:** each freed channel eases its offset (stored in controller space, keeps following real motion) to zero over `catchUpDuration` (SmoothStep, `CatchUpWeight()`), still swept (can re-contact); re-attached when both done. Not an exponential chase (lags with speed, may never settle). Shared `AdvanceEases()`/`StartPositionReturn()`/`StartRotationReturn()`, placement `PlaceVisual()`.
+  - **Snap-back:** in contact and > `maxSeparation` (0 = never) from controller → "passing through" (`TickPassingThrough()`): collision off, eases pos+rot back over `catchUpDuration` through the wall, then stays attached until a `CheckCapsule` at the controller is clear (one query/frame, after the ease). Without the wait, push-out moves it to the nearest face of what the controller is in and it snaps back every frame.
+- **`HandGhost`** — plain class per hand, ticked by `PlayerHandVisuals` after the follow (hidden while snapped). Faint copy at the real controller while a surface holds the visual off (Alyx). Made in `Awake()` by `Instantiate`-ing the visual under the controller at rest pose (follows tracking with no code), Animator destroyed; while shown, bones copy the visual's `localRotation`s. Shown when visual > `ghostShowDistance` 0.03m away, hidden within half; renderer toggled on change only, bones copied only while shown. Settings (Ghost Hands): `showGhostHands`, `ghostShowDistance`, `ghostColor` (white α 0.2, read once in `Awake()`). Shader **`TeaLeaf/Ghost`** (`Art/Shaders/Resources/Ghost.shader`): no depth test flat colour (real hand usually in the wall), queue `Overlay-1` (markers on top), `Cull Back`, stencil bit 128 so each pixel draws once (else self-overlap darkens). **Anything put on a hand visual at load must be added in `Start()`**, after ghosts copy in `Awake()`.
+- **`HandVisualSnap`** — plain class per hand, owned/ticked by `PlayerHandVisuals`; others only `Snap()`/`Release()`. Blends a *visual* (never the controller) between rest local pose and a world-space `HandSnapPose` over `snapBlendDuration` (SmoothStep) both ways; untouched at rest. Snap from rest blends **from where the visual actually is** (captured in controller space in `Snap()`), since a surface may hold it off; `Release()` resets to rest pose so release always blends back onto the controller. `Weight` (0 following, 1 snapped) = finger pose layer weight in `PlayerHandAnimation`. While snapped, visual **detached to scene root**, re-attached when release ends (world-fixed things can't be children of tracked transforms, nor of ledges - non-uniform scale shears rotated children). `Snap(pose, blendDuration)`/`Release(blendDuration)` overloads (pick-up reach/return); plain calls use `snapBlendDuration`. `MoveSnapPose(movement)` shifts (zip line); `SetSnapPose(position, rotation)` replaces keeping finger pose (door handle).
+- **`PlayerHandInteraction`** — one ray per hand **from the hand visual, not the controller** (`PlayerHandVisuals.GetLeft/RightHandPose()` → `HandPhysicalFollow.GetHandPose()`: controller pose shifted to where a surface holds the visual, so a controller through a wall can't target behind it; last frame's placement since rays run before visuals). Layer mask and per-hand angle offset, pre-rotated into a cached local direction in `Awake()`/`OnValidate()`. Records the `IHandTarget` hit if `CanBeTargetedFrom(origin)` accepts. **Two reaches:** `rayLength` 0.5m (climbables), `pickUpRayLength` 1m for `IHandTarget.HasLongReach` (props); one ray at the longer length, hits beyond `rayLength` count only for long-reach. Far hit on a trigger (out-of-reach grab volume) → recast ignoring triggers (props in/behind ledge volumes). **Before the ray**, `FindTargetContaining()`: 1mm `OverlapSphereNonAlloc` (shared buffer, triggers included, registry lookup); origin inside a target → that target wins, targeted at the hand, ray skipped (rays miss colliders they start in; grab volumes are bigger than their objects). No highlighting - reticle only. `LeftTarget`/`RightTarget`, `LeftTargetPoint`/`RightTargetPoint`. Ticked before grab systems; `TickReticles()` at 8b.
+- **`HandRayReticle`** — runtime billboard disc at a hand-target hit, hidden while the hand is snapped; ticked by `TickReticles()`; renderer toggled on change; `OverlayMaterial`.
+- **`PlayerHandAnimation`** — per-hand Animator. Base layers follow input (`TriggerCurl` index, `GripCurl` middle/ring/pinky). `Snap Pose` override layer plays the target's `HandPose`, weight = max(`HandVisualSnap.Weight`, carrying pose weight). `SetFloat()`/`Play()`/`SetLayerWeight()` only on change; both Animators set `keepAnimatorStateOnDisable` in `Awake()` (caches stay valid if deactivated). Layer index by name; state hashes from `HandPose` enum names. New pose: `HandPose` value + same-named state and clip, no code; `Awake()` warns once per `HandPose` without a state.
 
 ### Hand art/animation
 
-Real hand model (`Assets/Art/Models/hand.fbx`, Generic rig, bones like `J_Left_HandIndex1-3`).
-It is a left hand; the right hand is the same model mirrored with `LocalScale.x = -1`, so both
-hands share one Animator Controller (`Assets/Art/Animations/Hands/Left Hand Visual.controller`).
-It has one layer per finger group, each a 1D blend tree between single-keyframe Open/Closed
-pose clips: Base Layer (`TriggerCurl`, index) and Grip (`GripCurl`, middle+ring+pinky). No
-Avatar Masks are used — each clip only keys its own finger bones, and a Generic-rig layer only
-writes the properties its clips animate. New pose clips should likewise key only the bones they
-need. On top sits the `Snap Pose` layer (Override, default weight 0, driven from code): one
-state per `HandPose` value, **named exactly like the enum value** (`LedgeGrip`, `RungGrip`,
-`RopeGrip`, `BottleHold` - clip `Hand_L_BottleHold`), each holding a single-keyframe clip. A
-snap clip must key **every joint (1, 2 and 3) of every finger it poses**: it only writes the
-bones it keys (Write Defaults doesn't reset unkeyed bones here), so any unkeyed joint keeps
-the input layers' curl - and grip is held while climbing. The thumb (`J_Left_HandThumb1-4`)
-is only posed by the `RungGrip` and `RopeGrip` snap clips - the input layers and `LedgeGrip`
-leave it at rest. Keep the mirrored right hand in mind for colliders and anything
-handedness-dependent.
+`Assets/Art/Models/hand.fbx` (Generic rig, bones like `J_Left_HandIndex1-3`), a left hand; right = mirrored `LocalScale.x = -1`, sharing `Assets/Art/Animations/Hands/Left Hand Visual.controller`. One layer per finger group, 1D blend tree of single-keyframe Open/Closed clips: Base Layer (`TriggerCurl`, index), Grip (`GripCurl`, middle+ring+pinky). No Avatar Masks - each clip keys only its own bones (Generic layers write only animated properties); new clips likewise. `Snap Pose` layer (Override, default weight 0, code-driven): one state per `HandPose`, **named exactly as the enum** (`LedgeGrip`, `RungGrip`, `RopeGrip`, `BottleHold` - clip `Hand_L_BottleHold`), single-keyframe clips. A snap clip must key **every joint (1, 2, 3) of every finger it poses** (Write Defaults doesn't reset unkeyed bones; unkeyed joints keep input curl, and grip is held while climbing). Thumb (`J_Left_HandThumb1-4`) posed only by `RungGrip` and `RopeGrip`. Mind the mirrored right hand for colliders and handedness.
 
 ## Debug scripts and test area builders
 
-`Assets/Scripts/Player/Debug/` holds standalone debug/diagnostic MonoBehaviours (e.g.
-`VRDebugInput`, `InputTest`, `TrackingTest`, `TurnInputTest`, `TurnActionTest`,
-`LocomotionInputTest`, `HandRayDebug`, `MovementStateDebug`) used for manually verifying
-systems in Play Mode — not part of the runtime gameplay path. The in-headset gizmo view
-(`InHeadsetGizmos`) is shared by every system, so it lives in `Scripts/Core/Debug`.
+`Assets/Scripts/Player/Debug/`: Play Mode diagnostics, not gameplay (`VRDebugInput`, `InputTest`, `TrackingTest`, `TurnInputTest`, `TurnActionTest`, `LocomotionInputTest`, `HandRayDebug`, `MovementStateDebug`, ...). `InHeadsetGizmos` is in `Scripts/Core/Debug`.
 
-- **`PcPlay`** (on the Player root, in the Player prefab; global namespace, like the other
-  Debug scripts) — **PC Play**: walking the level in Play Mode with the mouse and keyboard,
-  no headset. Switched by `Core.LevelManager.IsPcPlay` (the `pcPlay` field on the Level
-  Manager, off by default): read in `Start()`, and the component disables itself when it
-  is off. On, at start it stops XR (`XRGeneralSettings.Instance.Manager`:
-  `StopSubsystems()`, `DeinitializeLoader()`, so the camera draws to the Game view),
-  disables the three Tracked Pose Drivers and `PlayerTracking` (before its `Start()` - the
-  component runs at `DefaultExecutionOrder(-100)` - so no tracking mode is set and the
-  level-start fade isn't held for a headset; `PlayerController` still calls its `Tick()`,
-  which then only smooths the hands' poses), puts the camera at Camera Offset's origin
-  looking level, and locks the cursor (Escape frees it, a click takes it back). Each
-  frame, before `PlayerController.Update()`: the mouse's x turns the Player root (so
-  walking forward follows the look - `PlayerLocomotion` already moves relative to the
-  root), its y pitches the camera (`mouseSensitivity` 0.1°/pixel, `maxPitch` 85°), and
-  both controller objects are put at `handOffset` ((0.2, -0.25, 0.35), x mirrored for the
-  left) from the camera, facing where it looks, so the hand visuals are in view. Nothing
-  else: movement only. The keyboard needs no code - the Player map's `Move` (WASD),
-  `Sprint` (Left Shift), `Jump` (Space) and `Crouch` (C) actions carry keyboard bindings,
-  read by `PlayerInputXR` as usual. Mouse delta is read straight from `Mouse.current`.
-- **`PhysicalHandsTrace`** (on the Debug object, enable *before* Play) turns on
-  `HandPhysicalFollow.TraceEnabled`: one log line per hand per frame whose sweep hits a
-  collider whose name contains `colliderNameFilter` (default "Gap") - contact state,
-  push-out, and each sweep's hit (collider, distance, normal), no stack trace. Read it from
-  `%LOCALAPPDATA%/Unity/Editor/Editor.log`. Allocates while on.
-- **`TestGeometry`** (`Debug/Editor`) — what every test-area builder makes its pieces
-  through. `Box()`/`Primitive()` give every piece the brown
-  `Assets/Art/Materials/TestGeometry.mat` (URP Lit, created by the first build if missing).
-  `Edge()` makes a `ClimbableEdge` on a solid lip facing any yaw - an unscaled trigger strip
-  on Climbable (0.2m tall, 0.3m deep, 5cm past the solid top and face), set up before the
-  component is added, with the landing `landingInset` in from the lip
-  (`TopCentreInset(thickness)` = the middle of a wall top); `bothSidesThickness` above 0
-  makes it two-sided (volume across the whole top, 5cm past both faces, "Grabbable From Both
-  Sides" on); `overhang` (default 5cm, `TightOverhang` 1cm - never zero: a volume flush with
-  the solid ties with it for hand rays and the reticle flickers) and `height` (default 0.2m)
-  size the volume against the solid. New test-area builders use it too, and build every
-  climbable as its setup checks expect: trigger volumes on Climbable, larger than the solid
-  part, colliders set up before the component is added, with its
-  `LedgeGrip`/`LadderRung`/`RopeGrip` profile.
-- **`PhysicalHandsTestArea`** (menu **TeaLeaf > Dev Room > Build Physical Hands Test Area**; not in the
-  scene) — a greybox row at (4.5, 0, -5.5), facing the spawn: an inside corner, a 2cm thin
-  panel (tunnelling, far-side push-out, snap-back), a table with a static 0.3m crate on
-  Interactable, a pillar, a 5cm gap between two blocks (narrower than the 7cm hand), a 45°
-  slope and a round post.
-- **`LocomotionTestCourse`** (menu **TeaLeaf > Dev Room > Build Locomotion Test Course**; not in the
-  scene) — a row 10m in front of the spawn (root at (12, 0, 10), turned 180°): a 1.3m chest
-  ledge, a 2.3m above-head ledge, a 1.1m low shelf under a ceiling (mantle ends crouched), a
-  4m tower with a ladder (mantles from its top rung) and a 3.7m rope sharing a top edge that
-  covers only the rope's half of the lip, a 20° ramp to three 1m platforms with 1.5m and
-  2.5m jump gaps, 0.45m and 0.6m crates, a ceiling slab at 2m, two 5m ropes strung between
-  posts 2.2m up (one sagging 0.3m via an `endPoint` child, one straight level zip line) and
-  an angled zip line from above the tower down 9m behind the row. Each rope has a visible
-  cylinder per piece of its curve (`AddVisibleRope()`). Sizes come from the player settings.
-- **`TownTestArea`** (menu **TeaLeaf > Dev Room > Build Town Test Area**; not in the scene) — a greybox
-  town square (root at (0, 0, -35), behind the spawn): six flat-roofed two-storey houses,
-  each from a `BuildingSpec` (size, optional tower, terrace, balcony, door position) in its
-  own frame (front outer face at z = 0 facing +Z, turned to face the square), four
-  free-standing 2.4m compound walls and a few crates. Doors and windows are empty openings;
-  steps are smooth ramps. Ledges about a metre apart so every face climbs hand over hand to
-  the roof: window sills (two-sided, mantled into crouched), window hoods and the band below
-  each roofline (grab only), and parapets, balcony balustrades, compound walls and terrace
-  walls (two-sided, mantleable, the long ones with "Move Horizontally To Point" off). Every
-  edge uses `TestGeometry.TightOverhang` and is no taller than a thin piece.
+- **`PcPlay`** (Player root, in the Player prefab; global namespace) — mouse/keyboard Play Mode without headset. On when `Core.LevelManager.IsPcPlay` (`pcPlay`, default off; read in `Start()`, else self-disables). On: stops XR (`XRGeneralSettings.Instance.Manager`: `StopSubsystems()`, `DeinitializeLoader()`), disables the three Tracked Pose Drivers and `PlayerTracking` before its `Start()` (`DefaultExecutionOrder(-100)`; no tracking mode, no fade hold; `PlayerController` still calls its `Tick()`, which only smooths hands), camera at Camera Offset origin level, cursor locked (Escape frees, click retakes). Each frame before `PlayerController.Update()`: mouse x yaws Player root (forward follows look), y pitches camera (`mouseSensitivity` 0.1°/px, `maxPitch` 85°), controllers at `handOffset` (0.2, -0.25, 0.35; x mirrored left) from camera facing its look. Movement only. Keyboard needs no code: `Move` (WASD), `Sprint` (Left Shift), `Jump` (Space), `Crouch` (C) bindings via `PlayerInputXR`. Mouse delta from `Mouse.current`.
+- **`PhysicalHandsTrace`** (Debug object, enable *before* Play) — sets `HandPhysicalFollow.TraceEnabled`: one log line per hand per frame whose sweep hits a collider named with `colliderNameFilter` (default "Gap"): contact state, push-out, each sweep hit (collider, distance, normal), no stack trace. Read `%LOCALAPPDATA%/Unity/Editor/Editor.log`. Allocates while on.
+- **`TestGeometry`** (`Debug/Editor`) — all test-area builders make pieces through it. `Box()`/`Primitive()` use brown `Assets/Art/Materials/TestGeometry.mat` (URP Lit, created if missing). `Edge()`: `ClimbableEdge` on a solid lip at any yaw - unscaled trigger strip on Climbable (0.2m tall, 0.3m deep, 5cm past solid top and face), set up before the component is added, landing `landingInset` in from the lip (`TopCentreInset(thickness)` = wall-top middle); `bothSidesThickness` > 0 = two-sided (across the top, 5cm past both faces, "Grabbable From Both Sides"); `overhang` (default 5cm, `TightOverhang` 1cm - **never zero**: flush volume ties with the solid for rays, reticle flickers), `height` (default 0.2m). New builders use it and build climbables to pass setup checks: trigger volumes on Climbable larger than the solid, colliders before component, `LedgeGrip`/`LadderRung`/`RopeGrip` profile.
+- **`PhysicalHandsTestArea`** (**TeaLeaf > Dev Room > Build Physical Hands Test Area**) — greybox row at (4.5, 0, -5.5) facing spawn: inside corner, 2cm thin panel (tunnelling, far-side push-out, snap-back), table with static 0.3m crate on Interactable, pillar, 5cm gap between blocks (hand is 7cm), 45° slope, round post.
+- **`LocomotionTestCourse`** (**TeaLeaf > Dev Room > Build Locomotion Test Course**) — root (12, 0, 10) turned 180°, 10m ahead of spawn: 1.3m chest ledge, 2.3m above-head ledge, 1.1m low shelf under a ceiling (mantle ends crouched), 4m tower with ladder (mantle from top rung) and 3.7m rope sharing a top edge covering only the rope's half, 20° ramp to three 1m platforms with 1.5m and 2.5m gaps, 0.45m and 0.6m crates, 2m ceiling slab, two 5m ropes between posts 2.2m up (one sagging 0.3m via `endPoint` child, one level zip line), angled zip line from above the tower down 9m behind. Visible cylinder per rope curve piece (`AddVisibleRope()`). Sizes from player settings.
+- **`TownTestArea`** (**TeaLeaf > Dev Room > Build Town Test Area**) — greybox square, root (0, 0, -35) behind spawn: six flat-roofed two-storey houses from `BuildingSpec` (size, optional tower, terrace, balcony, door position; own frame, front outer face z = 0 facing +Z, turned to the square), four 2.4m compound walls, crates. Openings empty; steps are ramps. Ledges ~1m apart so every face climbs to the roof: window sills (two-sided, mantle into crouch), window hoods and roofline bands (grab only), parapets, balustrades, compound and terrace walls (two-sided, mantleable; long ones "Move Horizontally To Point" off). All edges `TightOverhang`, no taller than a thin piece.
+
+None of the test areas is in the scene by default.
 
 ## Settings
 
-Smooth Turn/Snap Turn, turn speed, snap angle, movement speed, ghost hands and vibration
-on/off are expected to become user-configurable options (out of scope for the vertical
-slice); they are serialized fields for now. Vibration already has its public switch:
-`PlayerHaptics.HapticsEnabled`.
+Turn mode, turn speed, snap angle, move speed, ghost hands, vibration are to become user options (out of slice scope); serialized fields for now. Vibration's switch exists: `PlayerHaptics.HapticsEnabled`.
