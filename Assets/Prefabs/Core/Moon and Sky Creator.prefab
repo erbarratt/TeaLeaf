@@ -46,7 +46,7 @@ Light:
   serializedVersion: 12
   m_Type: 1
   m_Color: {r: 0.6839622, g: 0.8763523, b: 1, a: 1}
-  m_Intensity: 3.5
+  m_Intensity: 2
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -88,10 +88,10 @@ Light:
   m_Lightmapping: 2
   m_LightShadowCasterMode: 0
   m_AreaSize: {x: 1, y: 1}
-  m_BounceIntensity: 1
+  m_BounceIntensity: 8
   m_ColorTemperature: 8709
   m_UseColorTemperature: 1
-  m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_BoundingSphereOverride: {x: 13328.565, y: 1.5326451e+31, z: 61.09907, w: 1.1046268e+27}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
   m_ForceVisible: 0
@@ -142,8 +142,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Core.Moonlight
   level: 0.4
-  maxDistance: 200
-  shadowFloor: {r: 0.045, g: 0.05, b: 0.06, a: 1}
+  maxDistance: 100
+  shadowFloor: {r: 0.019624427, g: 0.02396316, b: 0.028301895, a: 1}
 --- !u!114 &5881444715855485916
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -159,7 +159,7 @@ MonoBehaviour:
   viewCamera: {fileID: 0}
   skyColor: {r: 0, g: 0, b: 0, a: 1}
   seed: 1
-  starCount: 4046
+  starCount: 3000
   starSize: {x: 0.01, y: 0.05}
   minStarPixels: 1.5
   starMinBrightness: 0.485
@@ -198,7 +198,7 @@ MonoBehaviour:
   starColorAmount: 0.6
   horizonFade: 6
   twinkleAmount: 0.004
-  twinkleSpeed: 0.15
+  twinkleSpeed: 0.05
   twinkleOverhead: 0.3
   showMoon: 1
   moonLight: {fileID: 1149683369641484150}

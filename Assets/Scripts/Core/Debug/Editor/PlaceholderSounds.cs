@@ -9,7 +9,7 @@ namespace Core
     /// Editor helper that makes placeholder sounds from maths, so the sound
     /// system can be built and heard before any real audio exists: a few
     /// short .wav files (Assets/Audio/Placeholder) and a SoundCue asset for
-    /// each kind (Assets/Data). They're ordinary assets - swap the clips in
+    /// each kind (Assets/Data/Sound, by area). They're ordinary assets - swap the clips in
     /// a cue for real recordings later and everything using the cue follows.
     ///
     /// Menu: TeaLeaf > Dev Room > Create Placeholder Sounds (also run by the sound test
@@ -21,17 +21,18 @@ namespace Core
     public static class PlaceholderSounds
     {
         private const string ClipFolder = "Assets/Audio/Placeholder";
-        private const string CueFolder = "Assets/Data";
+        private const string CueFolder = "Assets/Data/Sound";
+        private const string FootstepFolder = CueFolder + "/Shared/Footsteps";
         private const int SampleRate = 44100;
 
-        public const string FootstepCuePath = CueFolder + "/FootstepPlaceholder.asset";
-        public const string ImpactCuePath = CueFolder + "/ImpactPlaceholder.asset";
-        public const string SurfaceSoundsPath = CueFolder + "/SurfaceSoundsPlaceholder.asset";
-        public const string CreakCuePath = CueFolder + "/CreakPlaceholder.asset";
-        public const string BarkCuePath = CueFolder + "/BarkPlaceholder.asset";
-        public const string TorchLoopCuePath = CueFolder + "/TorchLoopPlaceholder.asset";
-        public const string OutsideAmbienceCuePath = CueFolder + "/AmbienceOutsidePlaceholder.asset";
-        public const string IndoorAmbienceCuePath = CueFolder + "/AmbienceIndoorPlaceholder.asset";
+        public const string FootstepCuePath = FootstepFolder + "/Footstep_Stone.asset";
+        public const string ImpactCuePath = CueFolder + "/Weapons/ImpactPlaceholder.asset";
+        public const string SurfaceSoundsPath = FootstepFolder + "/SurfaceFootstepSounds.asset";
+        public const string CreakCuePath = CueFolder + "/Interactive/CreakPlaceholder.asset";
+        public const string BarkCuePath = CueFolder + "/Actors/Guards/BarkPlaceholder.asset";
+        public const string TorchLoopCuePath = CueFolder + "/Environment/TorchLoopPlaceholder.asset";
+        public const string OutsideAmbienceCuePath = CueFolder + "/Ambience and Music/AmbienceOutside.asset";
+        public const string IndoorAmbienceCuePath = CueFolder + "/Ambience and Music/AmbienceIndoorPlaceholder.asset";
 
         /// <summary>
         /// Makes any placeholder clips and cues that don't exist yet.
@@ -98,16 +99,16 @@ namespace Core
             // (see SurfaceStep()), so each can be told apart by ear. The
             // noise radius is the surface's loudness to guards at a walk:
             // carpet barely carries, metal rings a long way.
-            SoundCue wood = EnsureCue(CueFolder + "/FootstepWoodPlaceholder.asset",
+            SoundCue wood = EnsureCue(FootstepFolder + "/FootstepWoodPlaceholder.asset",
                 SurfaceClips("FootstepWoodPlaceholder", 300, 0.15f, 160f, 40f, 0.7f, 0.3f, 60f, 0.4f, 0.1f),
                 0.8f, 25f, NoiseType.Footstep, 7f);
-            SoundCue carpet = EnsureCue(CueFolder + "/FootstepCarpetPlaceholder.asset",
+            SoundCue carpet = EnsureCue(FootstepFolder + "/FootstepCarpetPlaceholder.asset",
                 SurfaceClips("FootstepCarpetPlaceholder", 400, 0.15f, 60f, 45f, 0.35f, 0f, 40f, 0.6f, 0f),
                 0.5f, 15f, NoiseType.Footstep, 2.5f);
-            SoundCue metal = EnsureCue(CueFolder + "/FootstepMetalPlaceholder.asset",
+            SoundCue metal = EnsureCue(FootstepFolder + "/FootstepMetalPlaceholder.asset",
                 SurfaceClips("FootstepMetalPlaceholder", 500, 0.4f, 430f, 14f, 0.5f, 0.5f, 80f, 0.2f, 0.4f),
                 0.9f, 30f, NoiseType.Footstep, 10f);
-            SoundCue water = EnsureCue(CueFolder + "/FootstepWaterPlaceholder.asset",
+            SoundCue water = EnsureCue(FootstepFolder + "/FootstepWaterPlaceholder.asset",
                 SurfaceClips("FootstepWaterPlaceholder", 600, 0.4f, 90f, 30f, 0.2f, 0f, 12f, 0.5f, 0.45f),
                 0.8f, 25f, NoiseType.Footstep, 8f);
 
@@ -188,6 +189,7 @@ namespace Core
             }
 
             serialized.ApplyModifiedPropertiesWithoutUndo();
+            EnsureFolderOf(SurfaceSoundsPath);
             AssetDatabase.CreateAsset(sounds, SurfaceSoundsPath);
         }
 
@@ -486,8 +488,26 @@ namespace Core
             serialized.FindProperty("noiseRadius").floatValue = noiseRadius;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
+            EnsureFolderOf(path);
             AssetDatabase.CreateAsset(cue, path);
             return cue;
+        }
+
+        /// <summary>
+        /// Makes the folder an asset path sits in, and any missing folders
+        /// above it, through the AssetDatabase (CreateAsset needs the folder
+        /// to be known to Unity, not just on disk).
+        /// </summary>
+        private static void EnsureFolderOf(string assetPath)
+        {
+            string folder = Path.GetDirectoryName(assetPath).Replace('\\', '/');
+
+            if (AssetDatabase.IsValidFolder(folder)) {
+                return;
+            }
+
+            EnsureFolderOf(folder);
+            AssetDatabase.CreateFolder(Path.GetDirectoryName(folder).Replace('\\', '/'), Path.GetFileName(folder));
         }
 
         /// <summary>

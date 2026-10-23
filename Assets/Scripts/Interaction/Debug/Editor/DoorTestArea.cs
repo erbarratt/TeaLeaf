@@ -25,11 +25,11 @@ namespace Interaction
     /// For lockpicking it also adds PlayerLockpicking to the player's
     /// Hands object and makes the scene's Big Lock object (BigLock and
     /// its debug view), if they aren't there, and the pick's hand snap
-    /// profile (Assets/Data/LockpickHold.asset) as a copy of the rope's.
+    /// profile (Assets/Data/Hand Poses/LockpickHold.asset) as a copy of the rope's.
     ///
     /// Also adds PlayerHandDoors to the player's Hands object and
     /// PlayerKeyholes to the Player root if they aren't there, and makes the door handle's hand snap profile
-    /// (Assets/Data/DoorHandle.asset) as a copy of the bottle's the first
+    /// (Assets/Data/Hand Poses/DoorHandle.asset) as a copy of the bottle's the first
     /// time - a stand-in to be tuned in the headset.
     ///
     /// Built from code so it can be rebuilt identically, and undone with
@@ -43,8 +43,8 @@ namespace Interaction
         // gameplay objects; see Assets/Scenes/CLAUDE.md).
         private const string GameplayRootName = "Gameplay";
 
-        private const string HandleProfilePath = "Assets/Data/DoorHandle.asset";
-        private const string BottleProfilePath = "Assets/Data/BottleHold.asset";
+        private const string HandleProfilePath = "Assets/Data/Hand Poses/DoorHandle.asset";
+        private const string BottleProfilePath = "Assets/Data/Hand Poses/BottleHold.asset";
 
         // The wall, in metres.
         private const float WallHeight = 2.5f;
@@ -101,8 +101,8 @@ namespace Interaction
         // The hand snap profile for a hand on one of the big lock's picks,
         // made as a copy of the rope's (the nearest grip: a hand closed
         // round something thin).
-        private const string PickProfilePath = "Assets/Data/LockpickHold.asset";
-        private const string RopeProfilePath = "Assets/Data/RopeGrip.asset";
+        private const string PickProfilePath = "Assets/Data/Hand Poses/LockpickHold.asset";
+        private const string RopeProfilePath = "Assets/Data/Hand Poses/RopeGrip.asset";
 
         [MenuItem("TeaLeaf/Dev Room/Build Door Test Area")]
         private static void Build()

@@ -66,8 +66,8 @@ namespace Interaction
     {
         private const string RootName = "Smithy";
         private const string MeshFolder = "Assets/Art/Models/Smithy";
-        private const string LedgeProfilePath = "Assets/Data/LedgeGrip.asset";
-        private const string LadderProfilePath = "Assets/Data/LadderRung.asset";
+        private const string LedgeProfilePath = "Assets/Data/Hand Poses/LedgeGrip.asset";
+        private const string LadderProfilePath = "Assets/Data/Hand Poses/LadderRung.asset";
 
         // The paving the building stands on: its top, a little above the
         // scene's floor.

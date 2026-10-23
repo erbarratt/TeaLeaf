@@ -17,7 +17,7 @@ namespace Player
     public static class PlayerHandTools
     {
         // The hand snap profile every rope uses.
-        private const string RopeProfilePath = "Assets/Data/RopeGrip.asset";
+        private const string RopeProfilePath = "Assets/Data/Hand Poses/RopeGrip.asset";
 
         [MenuItem("TeaLeaf/Dev Room/Add Hand Tools To Player")]
         internal static void Add()

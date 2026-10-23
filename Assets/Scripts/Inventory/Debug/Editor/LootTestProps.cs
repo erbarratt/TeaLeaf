@@ -33,7 +33,7 @@ namespace Inventory
         private const float TableDepth = 0.7f;
 
         private const string GoldMaterialPath = "Assets/Art/Materials/LootGold.mat";
-        private const string BottleProfilePath = "Assets/Data/BottleHold.asset";
+        private const string BottleProfilePath = "Assets/Data/Hand Poses/BottleHold.asset";
 
         [MenuItem("TeaLeaf/Dev Room/Add Loot Test Props")]
         private static void Build()

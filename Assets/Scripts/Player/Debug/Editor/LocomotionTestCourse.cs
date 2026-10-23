@@ -35,9 +35,9 @@ namespace Player
         private const string EnvironmentLayerName = "Environment";
         private const string ClimbableLayerName = "Climbable";
 
-        private const string LedgeProfilePath = "Assets/Data/LedgeGrip.asset";
-        private const string LadderProfilePath = "Assets/Data/LadderRung.asset";
-        private const string RopeProfilePath = "Assets/Data/RopeGrip.asset";
+        private const string LedgeProfilePath = "Assets/Data/Hand Poses/LedgeGrip.asset";
+        private const string LadderProfilePath = "Assets/Data/Hand Poses/LadderRung.asset";
+        private const string RopeProfilePath = "Assets/Data/Hand Poses/RopeGrip.asset";
 
         // 10m in front of the spawn, turned round so the pieces' fronts face
         // back towards it. The original row runs from local x = -1 to 25, so

@@ -26,7 +26,7 @@ namespace Player
         private const float TableHeight = 0.9f;
 
         // The bottle's hold: per-hand offsets and the BottleHold finger pose.
-        private const string BottleProfilePath = "Assets/Data/BottleHold.asset";
+        private const string BottleProfilePath = "Assets/Data/Hand Poses/BottleHold.asset";
 
         // The bottle: a wide body with a narrow neck on top, in metres.
         private const float BottleBodyDiameter = 0.08f;

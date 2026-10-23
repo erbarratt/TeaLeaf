@@ -42,7 +42,7 @@ namespace Player
         private const string RootName = "Town Test Area";
         private const string EnvironmentLayerName = "Environment";
         private const string ClimbableLayerName = "Climbable";
-        private const string LedgeProfilePath = "Assets/Data/LedgeGrip.asset";
+        private const string LedgeProfilePath = "Assets/Data/Hand Poses/LedgeGrip.asset";
 
         // Behind the spawn, clear of the physical hands test area (z -5.5)
         // and the locomotion course (z 10). The square is centred on the

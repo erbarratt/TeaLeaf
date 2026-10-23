@@ -58,11 +58,12 @@ Newest updates are at the top.
 - Set Up Test Guard takes a -scene argument in batch mode and bakes the
   NavMesh beside the open scene. Code, comments and CLAUDE.md files no
   longer name a scene.
-- Assets/Data split into Hand Poses and Sound/<area> folders; a drone
-  ambience loop added (Assets/Audio/Ambience). The Tripo bridge package
-  is out of the manifest.
-- Open: the Dev Room builders and PlaceholderSounds still load hand
-  poses and cues from the old Assets/Data paths.
+- Assets/Data split into Hand Poses and Sound/<area> folders, and the
+  Dev Room builders and PlaceholderSounds load from there
+  (PlaceholderSounds makes a missing folder through the AssetDatabase:
+  CreateAsset fails on a folder Unity doesn't know). A drone ambience
+  loop (Assets/Audio/Ambience) is the outside ambience. The Tripo
+  bridge package is out of the manifest.
 
 
 2026-10-21 (level generator: street ground as blended meshes, generated
