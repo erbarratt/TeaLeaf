@@ -25,8 +25,8 @@ namespace Player
         private const string EnvironmentLayerName = "Environment";
         private const string InteractableLayerName = "Interactable";
 
-        // Where the row is built: behind the spawn, clear of the ledges,
-        // ladder and rope already in Main.unity.
+        // Where the row is built: behind the spawn, clear of the other
+        // test areas.
         private static readonly Vector3 _rootPosition = new(4.5f, 0f, -5.5f);
 
         /// <summary>

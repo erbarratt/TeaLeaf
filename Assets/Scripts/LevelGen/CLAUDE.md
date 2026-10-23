@@ -42,7 +42,7 @@ a closed post, may show, as a corner post.
   thresholds stay constants in `WallOrientation` / `PieceShape`: changing them = rescan.)
 - **After every generator change Claude runs it in the open Editor** (Unity CLI): wait for
   `recompile_status`; call `LevelGen.LevelGenerator.Generate(<spec path>)` by reflection via
-  `unity command eval`; save the scene; read the Console. Street test must pass; street
+  `unity command eval` in the scene the maintainer has named (none named: ask); save it; read the Console. Street test must pass; street
   clearance should refuse only stray corner foundations; **report lists no free wall end** (any
   listed is looked at - top-down or street-level render from a temporary camera, `Roofs`
   hidden for top-down - before calling it done). Check the scene (gaps along street edges,
@@ -126,8 +126,7 @@ a closed post, may show, as a corner post.
     leaves W at 80°, bends 6°, meets E at 80°: +4.86m by three one-flight 10m segments, +1.6m
     slope over 34m, +4.86m by three more. Two-/three-module facades all sides, four dead ends.
   - **Examples' sectors stand apart (all six fit one scene); place new examples clear.
-    `three-streets` is a level over `example-street`'s spot - never one scene together; it is
-    generated into `Assets/Scenes/Intro.unity`.**
+    `three-streets` is a level over `example-street`'s spot - never one scene together.**
   - **Specs Claude writes:** streets irregular, at least ~15° off world axes. Every branch
     within `branchSquareTolerance` of square (validator error), so sharp corners only from
     bends, `sharpCornerShare` of them where possible (validator warns beyond one corner off).
@@ -656,7 +655,7 @@ unless "asset". Meanings are in the sections that use them.
   Skipped if buried (3m upward Environment ray hits) or the roof under an end differs from under
   the middle by > `RailingLevel` 0.3m (hip, corner, past a gable); the cull removes a railing
   with no `TL_Roof*` within `RailingDrop` 0.5m below its root. Matched to the maintainer's
-  hand-placed set (`example` in `Level Gen Test.unity`: feet 0.05-0.29 under the cap, gaps
+  hand-placed set (round `example`: feet 0.05-0.29 under the cap, gaps
   0.6-1.4m, leans to 13°). Log `Roof railings: ...`.
 - **Roof edge colliders** (`RoofEdgeColliders.cs`, right after the cull): **a roof piece
   facing the void beyond the level loses all colliders** (override; renders stay). Facing: slope

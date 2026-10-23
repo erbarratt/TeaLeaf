@@ -37,9 +37,6 @@ namespace Core
         // The cue played most recently - the surface's, for a walker.
         private SoundCue _lastCue;
 
-        // A walker's own count of which steps get the toe sound.
-        private HeelAndToeCadence _heelAndToe;
-
         // Every enabled debug emitter, so SoundDebug can list them all in
         // its report.
         private static readonly List<SoundEmitterDebug> _all = new();
@@ -80,10 +77,9 @@ namespace Core
 
             float noiseScale = emitNoise ? 1f : 0f;
 
-            // A walker: a step on whatever floor is under it right now,
-            // heel and toe included.
+            // A walker: a step on whatever floor is under it right now.
             if (surfaceSounds != null && SurfaceTag.TryFindBelow(transform.position, groundProbeDistance, groundLayers, out SurfaceType surface)) {
-                if (surfaceSounds.PlayStep(surface, transform.position, transform, noiseScale, 1f, ref _heelAndToe)) {
+                if (surfaceSounds.PlayStep(surface, transform.position, transform, noiseScale, 1f)) {
                     _lastCue = surfaceSounds.GetFootstep(surface);
                     return;
                 }

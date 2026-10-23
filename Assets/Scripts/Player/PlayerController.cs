@@ -156,8 +156,8 @@ namespace Player
         /// <summary>
         /// Fills in playerTracking, playerFootsteps, playerVisibility and
         /// playerHandHolding if the scene hasn't got them wired: the fields
-        /// were added after this component was set up in Main.unity, and
-        /// Reset() only runs when a component is first added. One lookup
+        /// were added after some rigs were already set up, and Reset()
+        /// only runs when a component is first added. One lookup
         /// each at startup (the first three on this object, holding on the
         /// Hands object below it).
         /// </summary>

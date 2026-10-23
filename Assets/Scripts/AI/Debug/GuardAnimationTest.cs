@@ -34,23 +34,29 @@ namespace AI
     public class GuardAnimationTest : MonoBehaviour
     {
         // The clip to loop.
+        [Tooltip("The clip to loop.")]
         [SerializeField] private AnimationClip clip;
 
         // The model's Animator, a child of the root. Found in the
         // children if not assigned.
+        [Tooltip("The model's Animator, a child of the root. Found in the children if not assigned.")]
         [SerializeField] private Animator animator;
 
         // How fast the clip plays: 1 is as authored, 2 twice as fast.
+        [Tooltip("How fast the clip plays: 1 is as authored, 2 twice as fast.")]
         [SerializeField, Min(0f)] private float playbackSpeed = 1f;
 
         // How far the guard travels along its forward each second, in
         // metres. 0 plays the clip on the spot.
+        [Tooltip("How far the guard travels along its forward each second, in metres. 0 plays the clip on the spot. Tune with Playback Speed until the feet stay planted.")]
         [SerializeField, Min(0f)] private float moveSpeed = 0f;
 
         // How far it travels before it is put back at its start.
+        [Tooltip("How far it travels, in metres, before it is put back at its start.")]
         [SerializeField, Min(0.1f)] private float lapLength = 6f;
 
         // The label over the guard's head, if it has one.
+        [Tooltip("The label over the guard's head. Optional.")]
         [SerializeField] private TextMeshPro label;
 
         private PlayableGraph _graph;

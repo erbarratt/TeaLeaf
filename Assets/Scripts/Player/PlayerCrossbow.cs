@@ -298,11 +298,6 @@ namespace Player
         // in metres, to be sure of finding what it landed on.
         private const float LandingProbe = 0.05f;
 
-        // How far on from where a bolt hit a guard's body its line is
-        // followed to see whether it runs through the head, in metres: a
-        // little more than the body is wide.
-        private const float HeadProbe = 0.7f;
-
         // How many bolts exist. The player carries three of each of the
         // five kinds at most, so this many can never all be in the world
         // at once.
@@ -608,13 +603,15 @@ namespace Player
         }
 
         /// <summary>
-        /// What a bolt can hit: the world, props, guards, and anything
-        /// never given a layer. Not the player, the hands (or the props
-        /// they carry), or climbables' grab volumes.
+        /// What a bolt can hit: the world, props, guards' limbs (the
+        /// ragdoll hit boxes on the Ragdoll layer, not the body capsule
+        /// on Guard) and anything never given a layer. Not the player,
+        /// the hands (or the props they carry), or climbables' grab
+        /// volumes.
         /// </summary>
         private static LayerMask DefaultArcLayers()
         {
-            return LayerMask.GetMask("Default", "Environment", "Interactable", "Guard");
+            return LayerMask.GetMask("Default", "Environment", "Interactable", "Ragdoll");
         }
 
         /// <summary>
@@ -1459,7 +1456,7 @@ namespace Player
             // A guard's body: a dictionary lookup, no GetComponent.
             Guard guard = landedOn != null ? Guard.FindByBody(landedOn) : null;
 
-            if (guard != null && HitGuard(index, guard, point, heading)) {
+            if (guard != null && HitGuard(index, guard, landedOn)) {
                 return;
             }
 
@@ -1509,7 +1506,7 @@ namespace Player
         /// the bolt: only a sleep dart, which stays in the guard. The
         /// rest go on to be used up or to bounce off.
         /// </summary>
-        private bool HitGuard(int index, Guard guard, Vector3 point, Vector3 heading)
+        private bool HitGuard(int index, Guard guard, Collider hitbox)
         {
             BoltType kind = _boltTypes[index];
 
@@ -1519,10 +1516,8 @@ namespace Player
                 return true;
             }
 
-            // The head is inside the body, which is what the bolt's ray
-            // found: its line is followed on from just short of there to
-            // see whether it runs through the head.
-            if (kind == BoltType.Stun && guard.IsHeadOnLine(point - heading * LandingProbe, heading, HeadProbe)) {
+            // The ray found the hit box of the limb it really hit.
+            if (kind == BoltType.Stun && guard.IsHead(hitbox)) {
                 guard.Stun(stunTime);
             } else {
                 guard.HitByBolt(_boltStarts[index]);

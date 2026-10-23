@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 04ff625d5778d754bbf6d310c617c42a, type: 3}
-  m_Name: AmbienceOutsidePlaceholder
+  m_Name: AmbienceOutside
   m_EditorClassIdentifier: Assembly-CSharp::Core.SoundCue
   clips:
-  - {fileID: 8300000, guid: 948be0af438ac1a4aa5414698de09f7e, type: 3}
-  volume: 0.3
+  - {fileID: 8300000, guid: 29783feca6c228f43ba0348d03741c7e, type: 3}
+  volume: 0.109
   pitchVariation: 0
   audibleRange: 0
   noiseType: 2

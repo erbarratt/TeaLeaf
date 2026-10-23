@@ -33,13 +33,16 @@ namespace AI
     /// blackjack is what knocks a guard out), and gives the blackjack
     /// its thud.
     ///
+    /// Works on whichever scene is open; the batch versions open the scene
+    /// given on the command line (-scene Assets/Scenes/Name.unity).
+    ///
     /// Can be undone with Ctrl+Z, apart from the NavMesh asset. In an
     /// Editor folder, so it never ends up in a build.
     /// </summary>
     public static class GuardTestSetup
     {
-        private const string ScenePath = "Assets/Scenes/Main.unity";
-        private const string NavMeshPath = "Assets/Scenes/Main-NavMesh.asset";
+        // The command-line option naming the scene for the batch versions.
+        private const string SceneArgument = "-scene";
 
         private const string HouseName = "Sound Test House";
         private const string HousePathName = "Guard Path";
@@ -114,12 +117,16 @@ namespace AI
 
         /// <summary>
         /// The same, for running Unity from the command line with no
-        /// window (-batchmode -executeMethod AI.GuardTestSetup.BuildInBatch):
-        /// opens the main scene, sets the guard up, and saves.
+        /// window (-batchmode -executeMethod AI.GuardTestSetup.BuildInBatch
+        /// -scene Assets/Scenes/Name.unity): opens that scene, sets the
+        /// guard up, and saves.
         /// </summary>
         public static void BuildInBatch()
         {
-            Scene scene = EditorSceneManager.OpenScene(ScenePath);
+            if (!TryOpenSceneFromCommandLine(out Scene scene)) {
+                return;
+            }
+
             Build();
             EditorSceneManager.SaveScene(scene);
             AssetDatabase.SaveAssets();
@@ -167,12 +174,61 @@ namespace AI
         }
 
         /// <summary>
-        /// The same, from the command line: opens the main scene first.
+        /// The same, from the command line: opens the scene given with
+        /// -scene first.
         /// </summary>
         public static void CheckRouteInBatch()
         {
-            EditorSceneManager.OpenScene(ScenePath);
-            CheckRoute();
+            if (TryOpenSceneFromCommandLine(out _)) {
+                CheckRoute();
+            }
+        }
+
+        /// <summary>
+        /// Opens the scene named after -scene on the command line. Logs an
+        /// error and returns false if there's no -scene, or no scene at
+        /// that path.
+        /// </summary>
+        private static bool TryOpenSceneFromCommandLine(out Scene scene)
+        {
+            scene = default;
+            string[] args = System.Environment.GetCommandLineArgs();
+            string path = null;
+
+            for (int i = 0; i + 1 < args.Length; i++) {
+                if (args[i] == SceneArgument) {
+                    path = args[i + 1];
+                    break;
+                }
+            }
+
+            if (string.IsNullOrEmpty(path)) {
+                Debug.LogError($"GuardTestSetup: give the scene to open with {SceneArgument} Assets/Scenes/Name.unity.");
+                return false;
+            }
+
+            if (AssetDatabase.LoadAssetAtPath<SceneAsset>(path) == null) {
+                Debug.LogError($"GuardTestSetup: no scene at {path}.");
+                return false;
+            }
+
+            scene = EditorSceneManager.OpenScene(path);
+            return true;
+        }
+
+        /// <summary>
+        /// Where the scene's NavMesh is saved: beside it, as
+        /// "Name-NavMesh.asset". Null for a scene never saved, which has
+        /// nowhere to put it.
+        /// </summary>
+        private static string NavMeshPathFor(Scene scene)
+        {
+            if (string.IsNullOrEmpty(scene.path)) {
+                return null;
+            }
+
+            string folder = System.IO.Path.GetDirectoryName(scene.path).Replace('\\', '/');
+            return $"{folder}/{scene.name}-NavMesh.asset";
         }
 
         /// <summary>
@@ -274,13 +330,20 @@ namespace AI
         }
 
         /// <summary>
-        /// Bakes the scene's NavMesh from every collider on the
+        /// Bakes the active scene's NavMesh from every collider on the
         /// Environment layer, and saves it as an asset beside the scene
         /// (replacing the last one). The NavMeshSurface is on a NavMesh
         /// object at the scene root, made if there isn't one.
         /// </summary>
         private static void BakeNavMesh(int environmentLayer)
         {
+            string navMeshPath = NavMeshPathFor(SceneManager.GetActiveScene());
+
+            if (navMeshPath == null) {
+                Debug.LogError("GuardTestSetup: save the scene first - its NavMesh is saved beside it.");
+                return;
+            }
+
             NavMeshSurface surface = Object.FindFirstObjectByType<NavMeshSurface>();
 
             if (surface == null) {
@@ -306,12 +369,12 @@ namespace AI
                 return;
             }
 
-            AssetDatabase.DeleteAsset(NavMeshPath);
-            AssetDatabase.CreateAsset(data, NavMeshPath);
+            AssetDatabase.DeleteAsset(navMeshPath);
+            AssetDatabase.CreateAsset(data, navMeshPath);
             EditorUtility.SetDirty(surface);
 
             Bounds bounds = data.sourceBounds;
-            Debug.Log($"GuardTestSetup: NavMesh baked, {bounds.size.x:0} x {bounds.size.z:0}m, saved to {NavMeshPath}.");
+            Debug.Log($"GuardTestSetup: NavMesh baked, {bounds.size.x:0} x {bounds.size.z:0}m, saved to {navMeshPath}.");
         }
     }
 }

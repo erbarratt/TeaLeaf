@@ -26,7 +26,7 @@ namespace Player
         // Edge grab volumes: a strip along the lip, EdgeHeight tall and
         // EdgeDepth deep, sticking EdgeOverhang out past the solid top and
         // front face so hand rays reach it before the solid geometry - the
-        // same shape as the hand-placed edges in Main.unity.
+        // same shape as hand-placed edges in a level.
         private const float EdgeHeight = 0.2f;
         private const float EdgeDepth = 0.3f;
         private const float EdgeOverhang = 0.05f;

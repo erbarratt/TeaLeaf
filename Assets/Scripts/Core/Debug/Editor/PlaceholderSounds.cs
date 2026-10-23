@@ -185,15 +185,6 @@ namespace Core
                 SerializedProperty entry = entries.GetArrayElementAtIndex(i);
                 entry.FindPropertyRelative("surface").enumValueIndex = (int)surfaces[i];
                 entry.FindPropertyRelative("footstep").objectReferenceValue = footstepCues[i];
-
-                // Heel and toe on stone only of these five (hard floor);
-                // the other values are set anyway, so ticking the box on
-                // another surface starts from something sensible.
-                entry.FindPropertyRelative("heelAndToe").boolValue = surfaces[i] == SurfaceType.Stone;
-                entry.FindPropertyRelative("heelAndToeRatio").floatValue = 1f;
-                entry.FindPropertyRelative("toeVolume").floatValue = 0.6f;
-                entry.FindPropertyRelative("toeDelay").floatValue = 0.1f;
-                entry.FindPropertyRelative("toeMuffle").floatValue = 0.5f;
             }
 
             serialized.ApplyModifiedPropertiesWithoutUndo();

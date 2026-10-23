@@ -53,45 +53,88 @@ namespace AI
 
         // Where it sees and hears from: an object at head height whose
         // forward is the way the guard faces.
+        [Tooltip("Where the guard sees and hears from: an object at head height whose forward is the way the guard faces.")]
         [SerializeField] private Transform eye;
 
         // Optional: greybox shapes under one object, laid flat when the
         // guard is knocked out. Left empty on the animated guard, whose
         // Animator plays the fall instead (GuardAnimation).
+        [Tooltip("Optional: greybox shapes under one object, laid flat when the guard is knocked out. Leave empty on the animated guard, whose Animator plays the fall instead.")]
         [SerializeField] private Transform visual;
 
         // The body's collider (Guard layer) and the head's (GuardHead
         // layer, what the blackjack hits).
+        [Tooltip("The body's collider, on the Guard layer.")]
         [SerializeField] private Collider bodyCollider;
+        [Tooltip("The head's collider, on the GuardHead layer: what the blackjack and stun bolts hit.")]
         [SerializeField] private Collider headCollider;
 
         // Optional: a renderer tinted by state, so the state can be read
         // at a glance on a greybox guard. Left empty on the animated
         // guard: the tint would darken its texture.
+        [Tooltip("Optional: a renderer tinted by state, so a greybox guard's state can be read at a glance. Leave empty on the animated guard (the tint darkens its texture).")]
         [SerializeField] private Renderer stateRenderer;
+
+        [Header("Testing")]
+
+        // Play Mode only: ticking it knocks the guard out, clearing it
+        // wakes it as another guard would. Follows the guard's own
+        // state, so it shows whether it is down.
+        [Tooltip("Play Mode only: tick to knock the guard out, clear to wake it up. Shows whether it is down.")]
+        [SerializeField] private bool knockedOut;
+
+        // Off: the guard notices nothing of the player - not seen, not
+        // bumped, not heard, not shot at, a failed blackjack swing
+        // ignored - so it never suspects, chases or catches them. Bodies
+        // are still found. Can be switched during Play Mode.
+        [Tooltip("Off: the guard never sees, bumps, hears or notices the player (bolts, failed blackjack swings), so it never suspects, chases or catches them. Bodies are still found and woken.")]
+        [SerializeField] private bool detectsPlayer = true;
 
         [Header("Patrol")]
 
         // The route it walks. With none, it stands where it was placed.
+        [Tooltip("The route it walks. With none, it stands where it was placed, facing the way it was put.")]
         [SerializeField] private PatrolRoute patrolRoute;
 
         [Header("Speeds")]
 
         // Metres a second walking (patrolling and searching) and running
         // (chasing), and how fast it turns on the spot, in degrees a second.
+        [Tooltip("Metres a second while patrolling and searching.")]
         [SerializeField] private float patrolSpeed = 1.07f;
+        [Tooltip("Metres a second while chasing.")]
         [SerializeField] private float chaseSpeed = 3.6f;
+        [Tooltip("Top speed of a turn on the spot, in degrees a second.")]
         [SerializeField] private float turnSpeed = 240f;
+
+        // How quickly a turn on the spot speeds up and slows down, in
+        // degrees a second per second: it eases in from still and out to
+        // a stop on the way it faces. At four times turnSpeed a half
+        // turn just reaches turnSpeed at its middle.
+        [Tooltip("How quickly a turn on the spot speeds up and slows down, in degrees a second per second. At four times Turn Speed a half turn just reaches Turn Speed at its middle.")]
+        [SerializeField] private float turnAcceleration = 2880f;
+
+        // How hard it slows coming up to where it is going, in metres a
+        // second per second, so it eases to a stop instead of the agent
+        // braking hard at the last moment. From a run at 3.6 that takes
+        // about 1.2s over 2.2m; from a walk barely a third of a second.
+        // Never while chasing: it runs right up to the player.
+        [Tooltip("How hard it slows coming up to where it is going, in metres a second per second (lower = longer, gentler stop). From a run at 3.6 about 1.2s over 2.2m. Not while chasing.")]
+        [SerializeField] private float brakeDeceleration = 3f;
 
         [Header("Sight")]
 
         // How far it can see, and how wide, in degrees (the whole cone).
+        [Tooltip("How far it can see, in metres.")]
         [SerializeField] private float viewRange = 14f;
+        [Tooltip("How wide it can see, in degrees (the whole cone).")]
         [SerializeField] private float viewAngle = 110f;
 
         // Within this distance the player is seen even in full shadow -
         // as if lit this well (0-1).
+        [Tooltip("Within this distance, in metres, the player is seen even in full shadow.")]
         [SerializeField] private float closeRange = 2.5f;
+        [Tooltip("How lit (0-1) a player within Close Range counts as at the least.")]
         [SerializeField] private float closeVisibility = 0.5f;
 
         // A player whose body is within this of the guard's, level, has
@@ -99,49 +142,62 @@ namespace AI
         // facing. A little more than the two bodies' radii together.
         // Behind a guard and further off than this, only a noise gives
         // the player away.
+        [Tooltip("A player whose feet come within this of the guard's, in metres, level, has bumped into it and is noticed whichever way it faces. A little more than the two bodies' radii together.")]
         [SerializeField] private float bumpRange = 0.5f;
 
         // Beyond the close range, a player less visible than this (0-1)
         // isn't seen at all.
+        [Tooltip("Beyond Close Range, a player less visible than this (0-1) isn't seen at all.")]
         [SerializeField] private float minVisibility = 0.05f;
 
         // Seconds to go from unaware to chasing with the player close
         // and in plain sight, and how much slower (a fraction) at the
         // far end of the view range.
+        [Tooltip("Seconds to go from unaware to chasing with the player close and in plain sight.")]
         [SerializeField] private float detectionTime = 1f;
+        [Tooltip("How fast the meter fills at the far end of View Range, as a fraction of close up.")]
         [SerializeField] private float farDetectionScale = 0.25f;
 
         // Seconds a full meter takes to drain with nothing to notice.
+        [Tooltip("Seconds a full meter takes to drain with nothing to notice (not while chasing).")]
         [SerializeField] private float decayTime = 6f;
 
         // What blocks its sight. Filled in from the layer names if left
         // empty (Environment and Interactable: walls, props, doors).
+        [Tooltip("What blocks its sight. Left empty, Environment and Interactable (walls, props, doors).")]
         [SerializeField] private LayerMask sightLayers;
 
         [Header("Hearing")]
 
         // How much of a noise's loudness (0-1 at the ears) is added to
         // the meter, and how much more a noisemaker bolt counts.
+        [Tooltip("How much of a noise's loudness at the ears (0-1) is added to the meter.")]
         [SerializeField] private float hearingGain = 0.7f;
+        [Tooltip("How much a noisemaker bolt's noise is added to the meter, in place of Hearing Gain.")]
         [SerializeField] private float distractionGain = 1.5f;
 
         [Header("Thresholds (the meter, 0-1)")]
 
         // Becomes Suspicious at the first; a suspicion that reached the
         // second is worth going to look at.
+        [Tooltip("Meter level (0-1) at which a patrolling guard becomes Suspicious.")]
         [SerializeField] private float suspiciousThreshold = 0.3f;
+        [Tooltip("Meter level (0-1) a suspicion must reach for the guard to go and search.")]
         [SerializeField] private float investigateThreshold = 0.6f;
 
         [Header("Looking (how often)")]
 
         // Seconds between looks, and between looks while the player is
         // further away than it could see them anyway.
+        [Tooltip("Seconds between looks.")]
         [SerializeField] private float lookInterval = 0.15f;
+        [Tooltip("Seconds between looks while the player is further away than it could see them anyway.")]
         [SerializeField] private float farLookInterval = 0.5f;
 
         [Header("Suspicious")]
 
         // Seconds it stands looking before deciding.
+        [Tooltip("Seconds it stands looking before deciding to search or go back to its patrol.")]
         [SerializeField] private float suspiciousTime = 3f;
 
         [Header("Search")]
@@ -149,20 +205,27 @@ namespace AI
         // Seconds it looks about at each place, how many places round
         // the first it tries and how far from it, and the longest a
         // search lasts.
+        [Tooltip("Seconds it looks about at each place it searches.")]
         [SerializeField] private float searchLookTime = 2.5f;
+        [Tooltip("How many random places round the first it searches before giving up.")]
         [SerializeField] private int searchPointCount = 3;
+        [Tooltip("How far from the first place those random places can be, in metres.")]
         [SerializeField] private float searchRadius = 4f;
+        [Tooltip("The longest a search lasts, in seconds.")]
         [SerializeField] private float searchTimeout = 30f;
 
         // How much longer every guard searches once a body has been
         // found.
+        [Tooltip("How many times longer every guard searches once a body has been found.")]
         [SerializeField] private float alertedSearchScale = 2f;
 
         [Header("Chase")]
 
         // Seconds without seeing the player before a chase becomes a
         // search, and how close is caught, in metres.
+        [Tooltip("Seconds without seeing the player before a chase becomes a search.")]
         [SerializeField] private float chaseLostTime = 4f;
+        [Tooltip("How close, in metres, a seen player is caught.")]
         [SerializeField] private float catchRange = 1.1f;
 
         [Header("Knocking Out")]
@@ -170,32 +233,53 @@ namespace AI
         // How squarely behind the guard the attacker must be: the least
         // dot product of the guard's facing and the way from attacker to
         // guard (1 = dead behind, 0 = level with the shoulders).
+        [Tooltip("How squarely behind the guard a blackjack swing must come from to knock it out: least dot of its facing and the way from attacker to guard (1 = dead behind, 0 = level with the shoulders).")]
         [SerializeField] private float behindDot = 0.2f;
 
         // A body lying in at least this much light (0-1) can be seen by
         // another guard.
+        [Tooltip("A knocked-out body lying in at least this much light (0-1) can be seen by another guard.")]
         [SerializeField] private float bodyLightThreshold = 0.15f;
 
         // Seconds a guard spends over a knocked-out guard to wake it.
+        [Tooltip("Seconds a guard spends over a knocked-out guard to wake it.")]
         [SerializeField] private float wakeTime = 3f;
 
         [Header("Sounds")]
 
         // Its footsteps, by the floor it's on. Optional (empty = silent).
+        [Tooltip("Its footsteps, by the floor it's on. Optional (empty = silent).")]
         [SerializeField] private SurfaceSounds surfaceSounds;
 
-        // Metres between steps walking and running, and what counts as
-        // floor for finding the surface.
-        [SerializeField] private float walkStride = 1.4f;
-        [SerializeField] private float runStride = 1.8f;
+        // How loud a step taken standing (turning on the spot, or
+        // shuffling a foot back under it) is, against a walking step's 1.
+        // When steps fall is the animation's: walking and running steps
+        // come from GuardAnimation, standing ones from GuardFootLock.
+        [Tooltip("Volume of a step taken standing (turning on the spot), against a walking step's 1. Step timing comes from the animation (GuardAnimation, GuardFootLock).")]
+        [Range(0f, 1f)]
+        [SerializeField] private float standingStepVolume = 0.35f;
+
+        // How far a walking step's noise carries, as a share of the
+        // footstep cue's noise radius (as the player's walking step, 1).
+        // Guards ignore guards' noises: this is for the noise circles.
+        [Tooltip("How far a footstep's noise carries, as a share of the footstep cue's noise radius (standing steps scaled by Standing Step Volume). Guards ignore guards' noises; shows as noise circles.")]
+        [SerializeField] private float footstepNoiseScale = 1f;
+
+        // What counts as floor for finding the surface.
+        [Tooltip("What counts as floor when finding the surface underfoot for footstep sounds.")]
         [SerializeField] private LayerMask groundLayers;
 
         // What it says as it changes state - how the player reads what a
         // guard is thinking. All optional.
+        [Tooltip("Said on becoming Suspicious. Optional.")]
         [SerializeField] private SoundCue suspiciousBark;
+        [Tooltip("Said on starting a search. Optional.")]
         [SerializeField] private SoundCue searchBark;
+        [Tooltip("Said on giving up a search. Optional.")]
         [SerializeField] private SoundCue gaveUpBark;
+        [Tooltip("Said on spotting the player and starting a chase. Optional.")]
         [SerializeField] private SoundCue spottedBark;
+        [Tooltip("Said on finding a knocked-out guard. Optional.")]
         [SerializeField] private SoundCue foundBodyBark;
 
         // How close counts as having arrived, on top of the agent's own
@@ -208,11 +292,15 @@ namespace AI
         private const float WalkOffAngle = 15f;
 
         // Slower than this, in metres a second, counts as standing.
-        private const float StandingSpeed = 0.1f;
+        public const float StandingSpeed = 0.1f;
 
-        // How fast it turns while looking about during a search, in
-        // degrees a second.
-        private const float LookAboutSpeed = 70f;
+        // Looking about during a search: seconds it holds each way it
+        // looks, how far round each new look is, in degrees, and how
+        // close to it counts as there.
+        private const float LookAboutHold = 0.8f;
+        private const float LookAboutMinAngle = 60f;
+        private const float LookAboutMaxAngle = 120f;
+        private const float LookAboutSettledAngle = 0.5f;
 
         // How far a search point may be moved to land on the NavMesh.
         private const float SampleDistance = 2f;
@@ -240,9 +328,10 @@ namespace AI
 
         // Every guard in the scene, knocked out or not; each by its root
         // object (to tell a guard's own sounds from the player's), by
-        // its head collider (for the blackjack) and by its body collider
-        // (for bolts). They add and remove themselves, so nothing
-        // searches the scene.
+        // its head collider (for the blackjack) and by its body
+        // colliders - the capsule and the ragdoll's hit boxes (for
+        // bolts). They add and remove themselves, so nothing searches
+        // the scene.
         private static readonly List<Guard> _all = new();
         private static readonly Dictionary<Transform, Guard> _byRoot = new();
         private static readonly Dictionary<Collider, Guard> _byHead = new();
@@ -254,9 +343,23 @@ namespace AI
         private NavMeshAgent _agent;
         private MaterialPropertyBlock _tint;
 
+        // The ragdoll on the model's bones, if it has one: the hit boxes
+        // bolts find, and the body that falls when knocked out.
+        private GuardRagdoll _ragdoll;
+
+        // True while woken and rising (GuardRagdoll.StandUp): it does
+        // nothing else until it stands.
+        private bool _isGettingUp;
+
         // True while it stands turning to face the way it is about to
         // walk, the agent held still (TickTurningToWalk).
         private bool _isTurningToWalk;
+
+        // How fast it is turning on the spot now, in degrees a second,
+        // and the frame it last turned (TurnTowards): a turn not carried
+        // on from the frame before starts again from still.
+        private float _turnVelocity;
+        private int _lastTurnFrame = -1;
 
         // Where it stands if it has no route.
         private Vector3 _postPosition;
@@ -280,6 +383,10 @@ namespace AI
         private int _routeIndex;
         private int _routeStep = 1;
         private float _waitTimer;
+
+        // The speed of the current state (patrolSpeed or chaseSpeed); the
+        // agent is given this, or less while braking to arrive.
+        private float _cruiseSpeed;
         private bool _isWaiting;
 
         // Suspicious: seconds left, and the highest the meter got.
@@ -294,6 +401,12 @@ namespace AI
         private float _searchTimer;
         private bool _isLookingAbout;
 
+        // Looking about: the way it is turning to or holding, seconds
+        // left holding it, and which side it turned last (+1 / -1).
+        private Quaternion _lookAboutRotation;
+        private float _lookAboutHoldTimer;
+        private float _lookAboutSide;
+
         // Chase: seconds since the player was last seen.
         private float _lostTimer;
 
@@ -304,13 +417,8 @@ namespace AI
         // in it.
         private float _sleepTimer;
 
-        // Footsteps: where it was last frame, the distance walked since
-        // the last step, the last surface found, and its heel-and-toe
-        // pattern.
-        private Vector3 _lastPosition;
-        private float _stepDistance;
+        // Footsteps: the last surface found.
         private SurfaceType _lastSurface;
-        private HeelAndToeCadence _cadence;
 
         // True while another guard is on its way to wake this body, so
         // no second guard sets off for it.
@@ -339,14 +447,13 @@ namespace AI
         // GuardAnimation for the look-around clip.
         public bool IsLookingAbout => State == GuardState.Suspicious || (State == GuardState.Search && _isLookingAbout);
 
-        // Turning on the spot before setting off, and how far it has
-        // turned so far, in degrees. Read by GuardAnimation for the turn
-        // clip.
-        public bool IsTurningToWalk => _isTurningToWalk;
-        public float TurnedDegrees { get; private set; }
-
         /// Where its ears are (INoiseListener).
         public Vector3 EarPosition => eye.position;
+
+        // Where its body is, for another guard looking for it: the
+        // ragdoll's hips while it lies limp (they fall away from the
+        // root), else a little above the root.
+        public Vector3 BodyPosition => _ragdoll != null && _ragdoll.IsLimp ? _ragdoll.HipsPosition : transform.position + Vector3.up * 0.3f;
 
         /// <summary>
         /// The guard whose head a collider is, or null - for the
@@ -359,7 +466,8 @@ namespace AI
 
         /// <summary>
         /// The guard whose body a collider is, or null - for bolts, whose
-        /// rays find the body. A dictionary lookup, no GetComponent.
+        /// rays find the ragdoll's hit boxes. A dictionary lookup, no
+        /// GetComponent.
         /// </summary>
         public static Guard FindByBody(Collider collider)
         {
@@ -375,6 +483,33 @@ namespace AI
             sightLayers = LayerMask.GetMask("Environment", "Interactable");
             groundLayers = LayerMask.GetMask("Environment", "Interactable");
         }
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// Editor-only: the Testing toggle. Acted on just after the
+        /// Inspector change (delayCall), not inside OnValidate(), where
+        /// physics and the Animator mustn't be changed.
+        /// </summary>
+        private void OnValidate()
+        {
+            if (Application.isPlaying) {
+                UnityEditor.EditorApplication.delayCall += ApplyKnockedOutToggle;
+            }
+        }
+
+        private void ApplyKnockedOutToggle()
+        {
+            if (this == null || !Application.isPlaying || _agent == null) {
+                return;
+            }
+
+            if (knockedOut && !IsKnockedOut) {
+                KnockOut();
+            } else if (!knockedOut && IsKnockedOut) {
+                WakeUp();
+            }
+        }
+#endif
 
         private void Awake()
         {
@@ -398,7 +533,6 @@ namespace AI
             _viewCos = Mathf.Cos(viewAngle * 0.5f * Mathf.Deg2Rad);
             _postPosition = transform.position;
             _postRotation = transform.rotation;
-            _lastPosition = transform.position;
 
             if (visual != null) {
                 visual.GetLocalPositionAndRotation(out _visualPosition, out _visualRotation);
@@ -418,6 +552,14 @@ namespace AI
 
             if (bodyCollider != null) {
                 _byBody[bodyCollider] = this;
+            }
+
+            _ragdoll = GetComponent<GuardRagdoll>();
+
+            if (_ragdoll != null && _ragdoll.Hitboxes != null) {
+                foreach (Collider hitbox in _ragdoll.Hitboxes) {
+                    _byBody[hitbox] = this;
+                }
             }
         }
 
@@ -455,6 +597,12 @@ namespace AI
                 _byBody.Remove(bodyCollider);
             }
 
+            if (_ragdoll != null && _ragdoll.Hitboxes != null) {
+                foreach (Collider hitbox in _ragdoll.Hitboxes) {
+                    _byBody.Remove(hitbox);
+                }
+            }
+
             // The last guard of a scene going puts the alert back, so a
             // restarted level starts calm.
             if (_all.Count == 0) {
@@ -474,6 +622,16 @@ namespace AI
             }
 
             float deltaTime = Time.deltaTime;
+
+            // Woken and rising: nothing else until it stands.
+            if (_isGettingUp) {
+                if (_ragdoll.IsStandingUp) {
+                    return;
+                }
+
+                _isGettingUp = false;
+                GetUp();
+            }
 
             // A sleep dart works whatever the guard is doing, stunned
             // included.
@@ -515,7 +673,7 @@ namespace AI
                     break;
             }
 
-            TickFootsteps();
+            TickArrivalBraking();
         }
 
         // ---- Sight -------------------------------------------------------
@@ -540,6 +698,19 @@ namespace AI
             }
 
             Vector3 eyePosition = eye.position;
+
+            // Blind to the player: the meter only drains (a chase runs
+            // out by its own timer), and bodies are still noticed.
+            if (!detectsPlayer) {
+                Drain(elapsed);
+
+                if (State != GuardState.Chase) {
+                    LookForBodies(eyePosition);
+                }
+
+                return;
+            }
+
             Vector3 head = player.HeadPosition;
             float distance = Vector3.Distance(eyePosition, head);
 
@@ -677,7 +848,7 @@ namespace AI
                     continue;
                 }
 
-                Vector3 body = other.transform.position + Vector3.up * 0.3f;
+                Vector3 body = other.BodyPosition;
 
                 if (!CanSeePoint(eyePosition, body) || SceneLight.LevelAt(body) < bodyLightThreshold) {
                     continue;
@@ -685,7 +856,7 @@ namespace AI
 
                 other._isBodyFound = true;
                 _isAlerted = true;
-                _stimulus = other.transform.position;
+                _stimulus = other.BodyPosition;
                 Detection = Mathf.Max(Detection, investigateThreshold);
 
                 Bark(foundBodyBark);
@@ -709,7 +880,7 @@ namespace AI
         /// </summary>
         public void OnNoiseHeard(in Noise noise, float loudness, Vector3 heardFrom)
         {
-            if (State == GuardState.Chase || State == GuardState.Stunned || State == GuardState.KnockedOut) {
+            if (!detectsPlayer || State == GuardState.Chase || State == GuardState.Stunned || State == GuardState.KnockedOut) {
                 return;
             }
 
@@ -752,7 +923,7 @@ namespace AI
         private void EnterPatrol()
         {
             SetState(GuardState.Patrol);
-            _agent.speed = patrolSpeed;
+            _cruiseSpeed = patrolSpeed;
             _isWaiting = false;
 
             if (patrolRoute != null && patrolRoute.Count > 0) {
@@ -855,7 +1026,7 @@ namespace AI
         private void EnterSearch(bool withBark)
         {
             SetState(GuardState.Search);
-            _agent.speed = patrolSpeed;
+            _cruiseSpeed = patrolSpeed;
             _searchTimer = searchTimeout * (_isAlerted ? alertedSearchScale : 1f);
 
             if (withBark) {
@@ -896,16 +1067,21 @@ namespace AI
                 return;
             }
 
-            // At a place: looks about for a while, turning slowly.
+            // At a place: looks about for a while - stands looking one
+            // way, then turns to look another, alternating sides.
             if (!_isLookingAbout) {
                 _isLookingAbout = true;
                 _searchLookTimer = searchLookTime;
+                _lookAboutHoldTimer = LookAboutHold;
+                _lookAboutRotation = transform.rotation;
+                _lookAboutSide = Random.value < 0.5f ? -1f : 1f;
             }
 
-            transform.Rotate(0f, LookAboutSpeed * deltaTime, 0f);
             _searchLookTimer -= deltaTime;
+            bool isTurning = TickLookAbout(deltaTime);
 
-            if (_searchLookTimer > 0f) {
+            // Time up: moves on, but never in the middle of a turn.
+            if (_searchLookTimer > 0f || isTurning) {
                 return;
             }
 
@@ -930,6 +1106,33 @@ namespace AI
         }
 
         /// <summary>
+        /// One step of looking about at a search place: turns to the
+        /// heading it is looking for with the same eased turn as every
+        /// other turn on the spot (TurnTowards), holds it LookAboutHold
+        /// seconds, then picks the next heading LookAboutMinAngle to
+        /// LookAboutMaxAngle round, the other way from the last. Returns
+        /// whether it is still turning.
+        /// </summary>
+        private bool TickLookAbout(float deltaTime)
+        {
+            if (Quaternion.Angle(transform.rotation, _lookAboutRotation) > LookAboutSettledAngle) {
+                TurnTowards(_lookAboutRotation, deltaTime);
+                return true;
+            }
+
+            _lookAboutHoldTimer -= deltaTime;
+
+            if (_lookAboutHoldTimer <= 0f) {
+                _lookAboutSide = -_lookAboutSide;
+                float angle = _lookAboutSide * Random.Range(LookAboutMinAngle, LookAboutMaxAngle);
+                _lookAboutRotation = transform.rotation * Quaternion.Euler(0f, angle, 0f);
+                _lookAboutHoldTimer = LookAboutHold;
+            }
+
+            return false;
+        }
+
+        /// <summary>
         /// Standing over the knocked-out guard it came for: after the
         /// wake time, that guard gets up. Returns whether it is still
         /// busy with it.
@@ -937,7 +1140,7 @@ namespace AI
         private bool TickWaking(float deltaTime)
         {
             Guard body = _wakeTarget;
-            Vector3 toBody = body.transform.position - transform.position;
+            Vector3 toBody = body.BodyPosition - transform.position;
             toBody.y = 0f;
 
             // As near as it can get and still out of reach (the body is
@@ -949,7 +1152,7 @@ namespace AI
                 return false;
             }
 
-            FaceTowards(body.transform.position, deltaTime);
+            FaceTowards(body.BodyPosition, deltaTime);
             _wakeTimer -= deltaTime;
 
             if (_wakeTimer > 0f) {
@@ -987,7 +1190,7 @@ namespace AI
         {
             SetState(GuardState.Chase);
             Detection = 1f;
-            _agent.speed = chaseSpeed;
+            _cruiseSpeed = chaseSpeed;
             _lostTimer = 0f;
             Bark(spottedBark);
             GoTo(_stimulus);
@@ -1036,14 +1239,12 @@ namespace AI
         // ---- Bolts -------------------------------------------------------
 
         /// <summary>
-        /// Whether a line passes through this guard's head: one ray
-        /// tested against the head's collider alone. The head is inside
-        /// the body's capsule, so a bolt's own ray always finds the body
-        /// first; this asks whether it was on its way through the head.
+        /// Whether a hit box a bolt found is this guard's head: the
+        /// ragdoll's head bone collider, which moves with the animation.
         /// </summary>
-        public bool IsHeadOnLine(Vector3 from, Vector3 direction, float distance)
+        public bool IsHead(Collider hitbox)
         {
-            return headCollider != null && headCollider.Raycast(new Ray(from, direction), out _, distance);
+            return _ragdoll != null && hitbox == _ragdoll.HeadHitbox;
         }
 
         /// <summary>
@@ -1056,7 +1257,7 @@ namespace AI
         /// </summary>
         public void HitByBolt(Vector3 shotFrom)
         {
-            if (State == GuardState.Chase || State == GuardState.Stunned || State == GuardState.KnockedOut) {
+            if (!detectsPlayer || State == GuardState.Chase || State == GuardState.Stunned || State == GuardState.KnockedOut) {
                 return;
             }
 
@@ -1163,7 +1364,7 @@ namespace AI
                 return true;
             }
 
-            if (State != GuardState.Chase) {
+            if (State != GuardState.Chase && detectsPlayer) {
                 _stimulus = attackerPosition;
                 EnterChase();
             }
@@ -1173,14 +1374,21 @@ namespace AI
 
         /// <summary>
         /// Down: it stops, its colliders go (so it can be stepped over),
-        /// it lies down, and the component switches off - no more
-        /// looking, hearing or Update() until another guard wakes it.
+        /// the ragdoll falls carrying on at the speed it was moving (or
+        /// a greybox visual is laid flat), and the component switches
+        /// off - no more looking, hearing or Update() until another
+        /// guard wakes it.
         /// </summary>
         private void KnockOut()
         {
             SetState(GuardState.KnockedOut);
             Detection = 0f;
             _sleepTimer = 0f;
+
+            if (_ragdoll != null) {
+                _ragdoll.GoLimp(_agent.enabled ? _agent.velocity : Vector3.zero);
+            }
+
             _agent.enabled = false;
 
             if (bodyCollider != null) {
@@ -1196,17 +1404,41 @@ namespace AI
                 visual.SetLocalPositionAndRotation(new Vector3(0f, 0.3f, 0f), Quaternion.Euler(90f, 0f, 0f));
             }
 
+            knockedOut = true;
             enabled = false;
         }
 
         /// <summary>
-        /// Woken by another guard: everything KnockOut() switched off
-        /// comes back, it stands up, and it searches round where it lay.
+        /// Woken by another guard (or the Testing toggle). With a ragdoll
+        /// it first rises from where it lay (GuardRagdoll.StandUp, which
+        /// also moves the root there), still down until it stands; then
+        /// GetUp(). Nothing if it isn't down, or is already rising.
         /// </summary>
         private void WakeUp()
         {
-            _isBodyFound = false;
+            if (!IsKnockedOut || _isGettingUp) {
+                return;
+            }
+
             enabled = true;
+
+            if (_ragdoll != null) {
+                _ragdoll.StandUp();
+                _isGettingUp = true;
+                return;
+            }
+
+            GetUp();
+        }
+
+        /// <summary>
+        /// Standing again: everything KnockOut() switched off comes back,
+        /// and it searches round where it lay.
+        /// </summary>
+        private void GetUp()
+        {
+            knockedOut = false;
+            _isBodyFound = false;
             _agent.enabled = true;
 
             if (bodyCollider != null) {
@@ -1222,10 +1454,9 @@ namespace AI
             }
 
             // Its senses start afresh: the time it lay there isn't time
-            // spent looking, or walked.
+            // spent looking.
             _lastLookTime = Time.time;
             _lookTimer = lookInterval;
-            _lastPosition = transform.position;
             _isPlayerSeen = false;
 
             _stimulus = transform.position;
@@ -1250,7 +1481,6 @@ namespace AI
 
             if (!_isTurningToWalk && _agent.velocity.sqrMagnitude < StandingSpeed * StandingSpeed) {
                 _isTurningToWalk = true;
-                TurnedDegrees = 0f;
             }
 
             _agent.isStopped = _isTurningToWalk;
@@ -1298,9 +1528,31 @@ namespace AI
                 return;
             }
 
-            Quaternion before = transform.rotation;
             TurnTowards(Quaternion.LookRotation(toTarget), deltaTime);
-            TurnedDegrees += Quaternion.Angle(before, transform.rotation);
+        }
+
+        /// <summary>
+        /// Eases the guard to a stop at the end of its path: the agent's
+        /// speed is capped at sqrt(2 x brakeDeceleration x distance left),
+        /// the fastest it can go and still stop on the spot at that
+        /// deceleration, so it slows evenly over the last stretch (the
+        /// same profile as the end of a turn on the spot). Further out the
+        /// cap is above the cruise speed and changes nothing. The agent's
+        /// own braking (at its much higher acceleration) only covers the
+        /// last few centimetres. A chase is left at full speed.
+        /// </summary>
+        private void TickArrivalBraking()
+        {
+            float speed = _cruiseSpeed;
+
+            if (State != GuardState.Chase && _agent.isOnNavMesh && _agent.hasPath && !_agent.pathPending) {
+                float distanceLeft = Mathf.Max(0f, _agent.remainingDistance - _agent.stoppingDistance);
+                speed = Mathf.Min(speed, Mathf.Sqrt(2f * brakeDeceleration * distanceLeft));
+            }
+
+            if (_agent.speed != speed) {
+                _agent.speed = speed;
+            }
         }
 
         /// <summary>
@@ -1333,9 +1585,32 @@ namespace AI
             }
         }
 
+        /// <summary>
+        /// Turns on the spot towards a rotation, eased in and out: the
+        /// turn speeds up at turnAcceleration to at most turnSpeed, and
+        /// slows at the same rate to stop on the target, as a body
+        /// swinging round and settling does (a trapezoid speed profile,
+        /// or a triangle when the turn is too short to reach full speed).
+        /// Speed rather than time based, so a target that moves while
+        /// turning (a stimulus, the path's first corner) needs nothing
+        /// restarted.
+        /// </summary>
         private void TurnTowards(Quaternion rotation, float deltaTime)
         {
-            transform.rotation = Quaternion.RotateTowards(transform.rotation, rotation, turnSpeed * deltaTime);
+            // Not turned last frame: starting a new turn, from still.
+            if (_lastTurnFrame != Time.frameCount - 1) {
+                _turnVelocity = 0f;
+            }
+
+            _lastTurnFrame = Time.frameCount;
+
+            // The fastest it can be going and still stop in the angle left
+            // (v² = 2as), so it slows down in time to land on the target.
+            float remaining = Quaternion.Angle(transform.rotation, rotation);
+            float stoppingSpeed = Mathf.Sqrt(2f * turnAcceleration * remaining);
+
+            _turnVelocity = Mathf.Min(_turnVelocity + turnAcceleration * deltaTime, turnSpeed, stoppingSpeed);
+            transform.rotation = Quaternion.RotateTowards(transform.rotation, rotation, _turnVelocity * deltaTime);
         }
 
         // ---- State, sounds -----------------------------------------------
@@ -1380,29 +1655,22 @@ namespace AI
         }
 
         /// <summary>
-        /// A footstep each stride walked, on whatever floor is under it
-        /// (one ray down, only when a step sounds). Sound only: guards
-        /// ignore each other's steps anyway.
+        /// A footstep, on whatever floor is under it (one ray down, only
+        /// when a step sounds), called when a foot comes down in the
+        /// animation: GuardAnimation for walking and running steps,
+        /// GuardFootLock for steps taken standing, which play at
+        /// standingStepVolume. Also a noise (footstepNoiseScale of the
+        /// cue's radius, scaled with the volume): guards ignore each
+        /// other's noises, so it changes nothing they do, but it shows
+        /// as a noise circle like any other. Nothing while stunned or down.
         /// </summary>
-        private void TickFootsteps()
+        public void PlayFootstep(bool isStandingStep)
         {
+            if (surfaceSounds == null || State == GuardState.Stunned || State == GuardState.KnockedOut) {
+                return;
+            }
+
             Vector3 position = transform.position;
-            Vector3 moved = position - _lastPosition;
-            _lastPosition = position;
-            moved.y = 0f;
-            _stepDistance += moved.magnitude;
-
-            float stride = State == GuardState.Chase ? runStride : walkStride;
-
-            if (_stepDistance < stride) {
-                return;
-            }
-
-            _stepDistance -= stride;
-
-            if (surfaceSounds == null) {
-                return;
-            }
 
             if (SurfaceTag.TryFindBelow(position + Vector3.up * 0.3f, 1f, groundLayers, out SurfaceType surface)) {
                 _lastSurface = surface;
@@ -1410,7 +1678,8 @@ namespace AI
 
             // A little above the floor, so it's inside the sound room
             // being walked through.
-            surfaceSounds.PlayStep(_lastSurface, position + Vector3.up * 0.1f, transform, 0f, 1f, ref _cadence);
+            float volume = isStandingStep ? standingStepVolume : 1f;
+            surfaceSounds.PlayStep(_lastSurface, position + Vector3.up * 0.1f, transform, footstepNoiseScale * volume, volume);
         }
 
         // ---- Debug -------------------------------------------------------

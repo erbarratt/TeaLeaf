@@ -14,6 +14,7 @@ namespace AI
     {
         // Also log each time it starts and stops walking (a line or two
         // for every point of a patrol).
+        [Tooltip("Also log each time it starts and stops walking (a line or two for every point of a patrol).")]
         [SerializeField] private bool logMovement = true;
 
         // Faster than this, in metres a second, counts as walking.

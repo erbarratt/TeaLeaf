@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace Core
 {
@@ -10,10 +9,6 @@ namespace Core
     /// - the player now, guards later - so a surface sounds the same
     /// whoever treads on it. Create one with Assets > Create > TeaLeaf >
     /// Surface Sounds.
-    ///
-    /// Hard surfaces can have "heel and toe": a step is two sounds a moment
-    /// apart, the heel coming down and then the toe, on every step or only
-    /// on a share of them.
     ///
     /// There's no separate landing sound: a landing is the surface's step
     /// played loud, once per foot (see Player.PlayerFootsteps).
@@ -30,26 +25,6 @@ namespace Core
         {
             public SurfaceType surface;
             public SoundCue footstep;
-
-            // Steps on this surface can be two sounds, heel then toe.
-            public bool heelAndToe;
-
-            // The share of steps that get it: 1 = every step, 0.6 = six in
-            // ten on average, spread unevenly so no pattern is heard.
-            [Range(0f, 1f)] public float heelAndToeRatio;
-
-            // The toe's volume as a fraction of the heel's. (Briefly saved
-            // as "heelVolume" while the two were tried the other way round
-            // - the attribute keeps a value saved under that name.)
-            [FormerlySerializedAs("heelVolume")]
-            [Range(0f, 1f)] public float toeVolume;
-
-            // Seconds from the heel to the toe.
-            public float toeDelay;
-
-            // How dull the toe is: 0 = as bright as the heel, 1 = its high
-            // end fully rolled off (SoundPlayer's muffled cutoff).
-            [Range(0f, 1f)] public float toeMuffle;
         }
 
         // One entry per surface, in any order. A surface with no entry (or
@@ -105,38 +80,26 @@ namespace Core
 
         /// <summary>
         /// Plays one step on surface at position: the surface's cue, with
-        /// its noise (see SoundPlayer.Play() for source and the scales),
-        /// then on a heel-and-toe surface the quieter toe a moment later -
-        /// audio only, since it's the same step to a guard. cadence is the
-        /// walker's own, which decides the steps that get a toe. Returns
-        /// false if there was nothing to play with (no SoundPlayer in the
-        /// scene, or no cue).
+        /// its noise (see SoundPlayer.Play() for source and the scales).
+        /// Returns false if there was nothing to play with (no SoundPlayer
+        /// in the scene, or no cue).
         /// </summary>
-        public bool PlayStep(SurfaceType surface, Vector3 position, Transform source, float noiseScale, float volumeScale, ref HeelAndToeCadence cadence)
+        public bool PlayStep(SurfaceType surface, Vector3 position, Transform source, float noiseScale, float volumeScale)
         {
-            if (_bySurface == null) {
-                BuildLookup();
-            }
-
             SoundPlayer soundPlayer = SoundPlayer.Instance;
-            Entry entry = _bySurface[(int)surface];
+            SoundCue footstep = GetFootstep(surface);
 
-            if (soundPlayer == null || entry.footstep == null) {
+            if (soundPlayer == null || footstep == null) {
                 return false;
             }
 
-            soundPlayer.Play(entry.footstep, position, source, noiseScale, volumeScale);
-
-            if (entry.heelAndToe && cadence.Next(entry.heelAndToeRatio)) {
-                soundPlayer.Play(entry.footstep, position, source, 0f, volumeScale * entry.toeVolume, entry.toeDelay, entry.toeMuffle);
-            }
-
+            soundPlayer.Play(footstep, position, source, noiseScale, volumeScale);
             return true;
         }
 
         /// <summary>
         /// Fills the lookup array from the entries, then fills the gaps: a
-        /// surface with no cue gets the whole of Stone's entry.
+        /// surface with no cue gets Stone's.
         /// </summary>
         private void BuildLookup()
         {

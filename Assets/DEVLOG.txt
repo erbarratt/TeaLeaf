@@ -6,6 +6,65 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-23 (guards: ragdoll knock-out and bolt hit boxes, planted feet
+            and stepped turns, eased turns and stops; in-headset gizmo
+            toggles and noise circles; one sound per footstep; no scene
+            named in code or docs)
+---------------------------------------------------------------------------
+- Guard ragdoll (GuardRagdoll, built by TeaLeaf > Modify Prefab > Build
+  Guard Ragdoll). Eleven bones get a Rigidbody, a collider fitted to the
+  skinned mesh in bind pose (capsules at the 80th percentile of vertex
+  distances, boxes for hips and chest, a sphere head) and a
+  CharacterJoint. Kinematic and riding the animation while awake, so the
+  same colliders are the crossbow's hit boxes; GoLimp() on knock-out
+  (Animator off, guard's velocity, a forward push on chest and head so
+  it topples face down); StandUp() on waking blends the lying pose into
+  the animated one over 0.8s. New Ragdoll layer (15): hits Environment,
+  Interactable, Projectile and itself, never Player or Guard.
+  Lessons: hit boxes that overlap in the standing pose fight for ever
+  once dynamic - ignore those pairs in Awake(); a CharacterJoint angle
+  is positive the opposite way from a Unity rotation, so the joint axis
+  is the body's left; the Animator must be AlwaysAnimate while standing
+  up (culled, it never writes the pose to blend into).
+- Bolts hit limbs, not the capsule. Crossbow arcLayers include Ragdoll
+  and leave out Guard and GuardHead; Guard.FindByBody() knows every hit
+  box; a stun bolt stuns when it hits the head hit box (Guard.IsHead()),
+  replacing the head-on-line ray test.
+- Guard feet (GuardFootLock). Planted feet held by two-bone IK until
+  the animation lifts them. Standing turns have no clip: the guard plays
+  its look-around and the code steps each foot to where the animation
+  draws it once it is 0.12m or 25 degrees out, one foot at a time, with
+  a quiet footstep on each landing. The FBX turn take bent the chest
+  forward and stepped one way only (Generic rigs can't mirror).
+  Guard_LookAround keeps its hips minus the feet's midpoint travel, so
+  the body sways over still feet instead of sliding them.
+- Guard movement: turns on the spot ease in and out (trapezoid speed,
+  stops on the target), the guard brakes into its arrival point, leans
+  back while slowing, and footsteps follow the walk/run clips' heel
+  strikes, played through SurfaceSounds with a noise. Lesson: the walk
+  blend's Speed must be undamped - the agent reaches walk pace in 0.1s
+  and a damped blend slides the feet on every set-off.
+- Guard testing toggles in the Inspector: knockedOut (knock out / wake
+  in Play Mode) and detectsPlayer (off = ignores the player entirely).
+- Guard model guard_2 imported beside guard_1; Guard Tests area shows
+  each clip looping for matching feet to speeds. Guard prefab now in
+  Assets/Prefabs/Actors.
+- InHeadsetGizmos moved to Player/Debug (it names drawable types from
+  every system): a toggle per drawable type plus "all", and noise
+  circles - every noise as a fading level circle of its radius.
+- Footsteps are one sound per step: heel and toe (a second, quieter,
+  muffled copy of the step) taken out of SurfaceSounds with its
+  HeelAndToeCadence; PlayStep() just plays the cue with its noise.
+- Set Up Test Guard takes a -scene argument in batch mode and bakes the
+  NavMesh beside the open scene. Code, comments and CLAUDE.md files no
+  longer name a scene.
+- Assets/Data split into Hand Poses and Sound/<area> folders; a drone
+  ambience loop added (Assets/Audio/Ambience). The Tripo bridge package
+  is out of the manifest.
+- Open: the Dev Room builders and PlaceholderSounds still load hand
+  poses and cues from the old Assets/Data paths.
+
+
 2026-10-21 (level generator: street ground as blended meshes, generated
             sound rooms, the guards' NavMesh over the streets, lamp
             lights kept on; the guard model and its animation;

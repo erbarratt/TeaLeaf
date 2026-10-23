@@ -120,10 +120,6 @@ namespace Player
         // nothing (the lip of a stair, a gap between two floor pieces).
         private SurfaceType _lastSurface = SurfaceType.Stone;
 
-        // Which steps get the toe sound on a heel-and-toe surface - see
-        // HeelAndToeCadence.
-        private HeelAndToeCadence _heelAndToe;
-
         /// <summary>
         /// Editor-only: fills in the references when the component is added
         /// (it sits on the Player root with the others).
@@ -215,11 +211,10 @@ namespace Player
                 return;
             }
 
-            // PlayStep() plays the surface's audio, emits its noise, and
-            // adds the toe sound on a heel-and-toe surface.
+            // PlayStep() plays the surface's audio and emits its noise.
             if (surfaceSounds != null) {
                 Vector3 position = FindFloor();
-                surfaceSounds.PlayStep(_lastSurface, position, playerTransform, gait.noiseScale * speedScale, gait.volumeScale * speedScale, ref _heelAndToe);
+                surfaceSounds.PlayStep(_lastSurface, position, playerTransform, gait.noiseScale * speedScale, gait.volumeScale * speedScale);
             }
         }
 
