@@ -1,0 +1,268 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: df639cd8901da9e49a103fa826166756, type: 3}
+  m_Name: GuardSight
+  m_EditorClassIdentifier: Assembly-CSharp::AI.GuardSight
+  zones:
+  - name: Very Close
+    range: 3
+    halfAngle: 68
+    maxHalfWidth: 1.5
+    upAngle: 50
+    maxAbove: 0.95
+    downAngle: 74
+    maxBelow: 2.12
+    narrowFrom: 1.8
+    endHalfWidth: 0.5
+    endAbove: 0.95
+    endBelow: 1.8
+    bands:
+    - name: 0-1.5m
+      length: 1.5
+      lit:
+        suspicionTime: 0.01
+        suspicionStillMultiplier: 1
+        suspicionCrouchMultiplier: 1
+        detectionTime: 0.01
+        detectionStillMultiplier: 1
+        detectionCrouchMultiplier: 1
+        fastSpeed: 1.415
+        movingMultiplier: 1
+        fastMultiplier: 1
+      dark:
+        suspicionTime: 0.375
+        suspicionStillMultiplier: 1
+        suspicionCrouchMultiplier: 1
+        detectionTime: 0.2
+        detectionStillMultiplier: 1
+        detectionCrouchMultiplier: 1
+        fastSpeed: 1.5
+        movingMultiplier: 1
+        fastMultiplier: 0.02
+    - name: 1.5-3m
+      length: 1.5
+      lit:
+        suspicionTime: 0.01
+        suspicionStillMultiplier: 1
+        suspicionCrouchMultiplier: 1
+        detectionTime: 0.01
+        detectionStillMultiplier: 1
+        detectionCrouchMultiplier: 1
+        fastSpeed: 1.415
+        movingMultiplier: 1
+        fastMultiplier: 1
+      dark:
+        suspicionTime: 1
+        suspicionStillMultiplier: 5
+        suspicionCrouchMultiplier: 1
+        detectionTime: 0.5
+        detectionStillMultiplier: 2.5
+        detectionCrouchMultiplier: 1
+        fastSpeed: 3
+        movingMultiplier: 2.5
+        fastMultiplier: 0.02
+  - name: Close
+    range: 6
+    halfAngle: 71.5
+    maxHalfWidth: 4.75
+    upAngle: 45
+    maxAbove: 1.5
+    downAngle: 68.5
+    maxBelow: 3.8
+    narrowFrom: 3.7
+    endHalfWidth: 2.1
+    endAbove: 1.25
+    endBelow: 1.25
+    bands:
+    - name: 0-3.75m
+      length: 3.75
+      lit:
+        suspicionTime: 0.5
+        suspicionStillMultiplier: 1
+        suspicionCrouchMultiplier: 1
+        detectionTime: 1.5
+        detectionStillMultiplier: 1
+        detectionCrouchMultiplier: 1
+        fastSpeed: 3
+        movingMultiplier: 1
+        fastMultiplier: 0.5
+      dark:
+        suspicionTime: 3
+        suspicionStillMultiplier: 1.5
+        suspicionCrouchMultiplier: 2
+        detectionTime: 2
+        detectionStillMultiplier: 2.5
+        detectionCrouchMultiplier: 1
+        fastSpeed: 3
+        movingMultiplier: 1
+        fastMultiplier: 0.05
+    - name: 3.75-6m
+      length: 2.25
+      lit:
+        suspicionTime: 0.5
+        suspicionStillMultiplier: 1
+        suspicionCrouchMultiplier: 1
+        detectionTime: 1.5
+        detectionStillMultiplier: 1
+        detectionCrouchMultiplier: 1
+        fastSpeed: 3
+        movingMultiplier: 1
+        fastMultiplier: 0.5
+      dark:
+        suspicionTime: 6
+        suspicionStillMultiplier: 0
+        suspicionCrouchMultiplier: 0
+        detectionTime: 2
+        detectionStillMultiplier: 2.5
+        detectionCrouchMultiplier: 1
+        fastSpeed: 3
+        movingMultiplier: 1
+        fastMultiplier: 0.05
+  - name: Direct Line Of Sight
+    range: 30
+    halfAngle: 29
+    maxHalfWidth: 5
+    upAngle: 12.5
+    maxAbove: 2
+    downAngle: 24
+    maxBelow: 4
+    narrowFrom: 30
+    endHalfWidth: 5
+    endAbove: 2
+    endBelow: 4
+    bands:
+    - name: 0-9m
+      length: 9
+      lit:
+        suspicionTime: 0.4
+        suspicionStillMultiplier: 1
+        suspicionCrouchMultiplier: 1
+        detectionTime: 1.5
+        detectionStillMultiplier: 1
+        detectionCrouchMultiplier: 1
+        fastSpeed: 3
+        movingMultiplier: 1
+        fastMultiplier: 0.5
+      dark:
+        suspicionTime: -1
+        suspicionStillMultiplier: 1
+        suspicionCrouchMultiplier: 1
+        detectionTime: -1
+        detectionStillMultiplier: 1
+        detectionCrouchMultiplier: 1
+        fastSpeed: 1.415
+        movingMultiplier: 1
+        fastMultiplier: 0.5
+    - name: 9-20m (lit only)
+      length: 11
+      lit:
+        suspicionTime: 1
+        suspicionStillMultiplier: 1
+        suspicionCrouchMultiplier: 1
+        detectionTime: 2
+        detectionStillMultiplier: 1
+        detectionCrouchMultiplier: 1
+        fastSpeed: 3
+        movingMultiplier: 1
+        fastMultiplier: 0.5
+      dark:
+        suspicionTime: -1
+        suspicionStillMultiplier: 1
+        suspicionCrouchMultiplier: 1
+        detectionTime: -1
+        detectionStillMultiplier: 1
+        detectionCrouchMultiplier: 1
+        fastSpeed: 1.3
+        movingMultiplier: 1
+        fastMultiplier: 1
+    - name: 20-30m (lit only)
+      length: 10
+      lit:
+        suspicionTime: 1
+        suspicionStillMultiplier: 1
+        suspicionCrouchMultiplier: 1
+        detectionTime: 2.5
+        detectionStillMultiplier: 1
+        detectionCrouchMultiplier: 1
+        fastSpeed: 3
+        movingMultiplier: 1
+        fastMultiplier: 0.5
+      dark:
+        suspicionTime: -1
+        suspicionStillMultiplier: 1
+        suspicionCrouchMultiplier: 1
+        detectionTime: -1
+        detectionStillMultiplier: 1
+        detectionCrouchMultiplier: 1
+        fastSpeed: 1.3
+        movingMultiplier: 1
+        fastMultiplier: 1
+  - name: Peripheral
+    range: 30
+    halfAngle: 77
+    maxHalfWidth: 12.5
+    upAngle: 49.5
+    maxAbove: 2
+    downAngle: 76
+    maxBelow: 6.8
+    narrowFrom: 30
+    endHalfWidth: 12.5
+    endAbove: 2
+    endBelow: 6.8
+    bands:
+    - name: 0-20m (lit only)
+      length: 20
+      lit:
+        suspicionTime: 3
+        suspicionStillMultiplier: 1.5
+        suspicionCrouchMultiplier: 1
+        detectionTime: 3
+        detectionStillMultiplier: 1.5
+        detectionCrouchMultiplier: 1
+        fastSpeed: 3
+        movingMultiplier: 1
+        fastMultiplier: 0.25
+      dark:
+        suspicionTime: -1
+        suspicionStillMultiplier: 1
+        suspicionCrouchMultiplier: 1
+        detectionTime: -1
+        detectionStillMultiplier: 1
+        detectionCrouchMultiplier: 1
+        fastSpeed: 1.315
+        movingMultiplier: 1
+        fastMultiplier: 1
+    - name: 20-30m (lit only)
+      length: 10
+      lit:
+        suspicionTime: 4
+        suspicionStillMultiplier: 1.5
+        suspicionCrouchMultiplier: 1
+        detectionTime: 3.75
+        detectionStillMultiplier: 1.5
+        detectionCrouchMultiplier: 1
+        fastSpeed: 3
+        movingMultiplier: 1
+        fastMultiplier: 0.33
+      dark:
+        suspicionTime: -1
+        suspicionStillMultiplier: 1
+        suspicionCrouchMultiplier: 1
+        detectionTime: -1
+        detectionStillMultiplier: 1
+        detectionCrouchMultiplier: 1
+        fastSpeed: 1.315
+        movingMultiplier: 1
+        fastMultiplier: 1
+  litThreshold: 0.3
+  stillSpeed: 0.25
+  seenWeight: 0.5

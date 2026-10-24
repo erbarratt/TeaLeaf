@@ -22,7 +22,7 @@ namespace Interaction
     [RequireComponent(typeof(BoxCollider))]
     public class ClimbableEdge : MonoBehaviour, IHandTarget, IClimbable, IMantleable, IDebugDrawable
     {
-        [Tooltip("The hand offsets and finger pose for a hand on the lip, shared by every ledge. Empty, the hand sits exactly on the grip frame in the ledge grip pose.")]
+        [Tooltip("The hand offsets and finger pose for a hand on the lip, shared by every ledge. Empty, the hand sits exactly on the grip frame and the fingers keep their input curl.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
         // For edges on something free-standing that can be gripped from
@@ -382,7 +382,7 @@ namespace Interaction
             // unassigned serialized reference as a "fake null" object that
             // only its overloaded == operator treats as null.
             if (snapProfile == null) {
-                return new HandSnapPose(gripPosition, gripRotation, HandPose.LedgeGrip);
+                return new HandSnapPose(gripPosition, gripRotation, null);
             }
 
             return snapProfile.Apply(isLeftHand, gripPosition, gripRotation);

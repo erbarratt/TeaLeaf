@@ -25,12 +25,12 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3852469339526944879}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.65, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: -0.09563527, y: -0.85588634, z: -0.35305324, w: 0.36560345}
+  m_LocalPosition: {x: 0.010646109, y: 0.07354961, z: 0.034747083}
+  m_LocalScale: {x: 0.9999988, y: 0.99999964, z: 0.99999905}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 5665219715552235687}
+  m_Father: {fileID: 4168916672174369410}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!135 &7970386983979706407
 SphereCollider:
@@ -89,7 +89,6 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
-  - {fileID: 4934103266664978493}
   - {fileID: 7341972782321210497}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -183,28 +182,26 @@ MonoBehaviour:
   headCollider: {fileID: 7970386983979706407}
   stateRenderer: {fileID: 0}
   knockedOut: 0
+  detectsPlayer: 1
   patrolRoute: {fileID: 0}
   patrolSpeed: 1.07
   chaseSpeed: 3.6
   turnSpeed: 720
   turnAcceleration: 5000
   brakeDeceleration: 6
-  viewRange: 14
-  viewAngle: 110
-  closeRange: 2.5
-  closeVisibility: 0.5
+  sight: {fileID: 11400000, guid: 2ddf0f091a8359141a2437e51173f7a8, type: 2}
   bumpRange: 0.5
-  minVisibility: 0.05
-  detectionTime: 1
-  farDetectionScale: 0.25
-  decayTime: 6
   sightLayers:
     serializedVersion: 2
     m_Bits: 576
   hearingGain: 0.7
   distractionGain: 1.5
-  suspiciousThreshold: 0.3
-  investigateThreshold: 0.6
+  hearingSuspicionScale: 3.33
+  suspicionHoldTime: 1
+  suspicionDecayRate: 1
+  detectionHoldTime: 4
+  detectionDecayRate: 0.25
+  investigateThreshold: 0.5
   lookInterval: 0.15
   farLookInterval: 0.5
   suspiciousTime: 3
@@ -219,8 +216,8 @@ MonoBehaviour:
   bodyLightThreshold: 0.15
   wakeTime: 3
   surfaceSounds: {fileID: 11400000, guid: a8fea2e1a30a1b74bb32d021c0eb6be9, type: 2}
-  walkStride: 1.4
-  runStride: 1.8
+  standingStepVolume: 0.35
+  footstepNoiseScale: 1
   groundLayers:
     serializedVersion: 2
     m_Bits: 576
@@ -248,6 +245,16 @@ MonoBehaviour:
   maxLeanAngle: 16
   fullLeanDeceleration: 3
   leanSmoothing: 0.15
+  walkFootfalls:
+  - 0.045
+  - 0.3
+  - 0.555
+  - 0.8
+  runFootfalls:
+  - 0.175
+  - 0.445
+  - 0.685
+  - 0.95
 --- !u!114 &1092821135610948165
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -665,7 +672,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 6607804874090535400, guid: 67fa2a8bb7d4d5e409744f8cc5946fa4, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4934103266664978493}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 827075974287967996, guid: 67fa2a8bb7d4d5e409744f8cc5946fa4, type: 3}
       insertIndex: -1
@@ -1371,6 +1381,11 @@ CharacterJoint:
 --- !u!95 &3675994528401739515 stripped
 Animator:
   m_CorrespondingSourceObject: {fileID: 5866666021909216657, guid: 67fa2a8bb7d4d5e409744f8cc5946fa4, type: 3}
+  m_PrefabInstance: {fileID: 7091291610027848554}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &4168916672174369410 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 6607804874090535400, guid: 67fa2a8bb7d4d5e409744f8cc5946fa4, type: 3}
   m_PrefabInstance: {fileID: 7091291610027848554}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &4253645650039719209 stripped

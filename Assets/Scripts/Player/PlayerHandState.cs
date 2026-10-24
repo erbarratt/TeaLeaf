@@ -19,10 +19,10 @@ namespace Player
         Keys,
         // Holding the pack out (PlayerPack).
         Pack,
-        // The crossbow active on it, or on its wheel (PlayerCrossbow).
-        Crossbow,
         // Holding the blackjack (PlayerBlackjack).
-        Blackjack
+        Blackjack,
+        // Holding the bow, or an arrow for it (PlayerBow).
+        Bow
     }
 
     /// <summary>
@@ -55,8 +55,8 @@ namespace Player
         [SerializeField] private PlayerLockpicking playerLockpicking;
         [SerializeField] private PlayerKeys playerKeys;
         [SerializeField] private PlayerPack playerPack;
-        [SerializeField] private PlayerCrossbow playerCrossbow;
         [SerializeField] private PlayerBlackjack playerBlackjack;
+        [SerializeField] private PlayerBow playerBow;
 
         // Looked up once, so the per-frame code tests plain bools.
         private bool _hasClimbing;
@@ -65,8 +65,8 @@ namespace Player
         private bool _hasLockpicking;
         private bool _hasKeys;
         private bool _hasPack;
-        private bool _hasCrossbow;
         private bool _hasBlackjack;
+        private bool _hasBow;
 
         /// What the left hand is busy with right now.
         public HandUse LeftUse => GetUse(true);
@@ -110,8 +110,8 @@ namespace Player
             _hasLockpicking = playerLockpicking != null;
             _hasKeys = playerKeys != null;
             _hasPack = playerPack != null;
-            _hasCrossbow = playerCrossbow != null;
             _hasBlackjack = playerBlackjack != null;
+            _hasBow = playerBow != null;
         }
 
         /// <summary>
@@ -145,12 +145,12 @@ namespace Player
                 playerPack = GetComponent<PlayerPack>();
             }
 
-            if (playerCrossbow == null) {
-                playerCrossbow = GetComponent<PlayerCrossbow>();
-            }
-
             if (playerBlackjack == null) {
                 playerBlackjack = GetComponent<PlayerBlackjack>();
+            }
+
+            if (playerBow == null) {
+                playerBow = GetComponent<PlayerBow>();
             }
         }
 
@@ -185,12 +185,12 @@ namespace Player
                 return HandUse.Pack;
             }
 
-            if (IsOnCrossbow(isLeftHand)) {
-                return HandUse.Crossbow;
-            }
-
             if (IsOnBlackjack(isLeftHand)) {
                 return HandUse.Blackjack;
+            }
+
+            if (IsOnBow(isLeftHand)) {
+                return HandUse.Bow;
             }
 
             return HandUse.None;
@@ -210,8 +210,8 @@ namespace Player
                 || (asker != HandUse.Lockpicks && IsOnLockpicks(isLeftHand))
                 || (asker != HandUse.Keys && IsOnKeys(isLeftHand))
                 || (asker != HandUse.Pack && IsOnPack(isLeftHand))
-                || (asker != HandUse.Crossbow && IsOnCrossbow(isLeftHand))
-                || (asker != HandUse.Blackjack && IsOnBlackjack(isLeftHand));
+                || (asker != HandUse.Blackjack && IsOnBlackjack(isLeftHand))
+                || (asker != HandUse.Bow && IsOnBow(isLeftHand));
         }
 
         private bool IsClimbing(bool isLeftHand)
@@ -244,14 +244,14 @@ namespace Player
             return _hasPack && (isLeftHand ? playerPack.IsLeftBusy : playerPack.IsRightBusy);
         }
 
-        private bool IsOnCrossbow(bool isLeftHand)
-        {
-            return _hasCrossbow && (isLeftHand ? playerCrossbow.IsLeftBusy : playerCrossbow.IsRightBusy);
-        }
-
         private bool IsOnBlackjack(bool isLeftHand)
         {
             return _hasBlackjack && (isLeftHand ? playerBlackjack.IsLeftBusy : playerBlackjack.IsRightBusy);
+        }
+
+        private bool IsOnBow(bool isLeftHand)
+        {
+            return _hasBow && (isLeftHand ? playerBow.IsLeftBusy : playerBow.IsRightBusy);
         }
     }
 }

@@ -1,0 +1,220 @@
+THIEF VR - PLAYER NOISE AND HEARING DISTANCES
+=============================================
+
+Source: the extracted Thief VR prologue (E:\ThiefVR_Export\Prologue\ExportedProject).
+The game is IL2CPP, so the export has no code: every script is an empty stub.
+Everything here comes from serialized data - NoiseLevelData / NoiseLevelManager
+assets, AudioObjectProfile and SoundEventProfile assets, components on the
+player rig (MT_XRRig_Quest) and in the prologue gameplay scene. The numbers are
+real; how they combine at runtime is inferred and marked so where unsure.
+
+
+NOISE LEVELS
+------------
+
+NoiseLevelManager holds five NoiseLevelData assets, quietest first:
+
+  Level      Value  Radius   Path distance  Step particle
+  Silent     0      0m       0m             no
+  Low        1      2m       2.5m           no
+  Medium     2      5m       6.25m          no
+  High       3      10m      12.5m          yes
+  VeryHigh   4      15m      18.75m         yes
+
+- Path distance is always 1.25 x radius: a fixed allowance for sound
+  going round corners.
+- High and above shows a visible particle at each footstep, so the player
+  sees when they are loud.
+
+
+HOW A NOISE REACHES A GUARD
+---------------------------
+
+AISoundEventManager_RF (gameplay scene):
+  debugNoiseData            High
+  npcSelectionStrategy      0
+  lineOfSightMask           Default layer
+  rayCastDownCollisionMask  Default layer
+  pathEndToSoundDistance    0.5m
+
+NavMeshAudioSurface: positionTolerance 0.45m.
+
+Inferred:
+1. The noise is snapped down to the floor (ray down).
+2. Guards inside the noise's radius are candidates.
+3. A guard with clear line of sight to the noise hears it within the radius.
+4. Otherwise a NavMesh path is walked from guard to noise; the guard hears it
+   only if the path is under the path distance and ends within 0.5m of the
+   noise.
+
+So guard hearing follows walkable routes, never through walls. No rooms or
+portals in guard hearing: AudioRoom / AudioPortal exist in the scene but seem
+to serve the player's own audio (reverb, occlusion), not guards.
+
+
+FOOTSTEPS
+---------
+
+PlayerFootstepEmitter (on the rig):
+  maxStealthWalkVelocity  1.9 m/s
+  defaultAudioProfile     Floor Template (Medium)
+
+Step loudness comes from the floor's AudioObjectProfile. surfaceLoudness is an
+index into the five levels; absorption appears to shift it (inferred):
+
+  Floor                                         surfaceLoudness  absorption
+  Carpet                                        1 (Low)          -2
+  Dirt, softwood                                2 (Medium)       -1
+  Stone, brick, hardwood, tile, roof tile,
+    hard metal                                  2 (Medium)        0
+  Sheet metal, hollow metal                     2 (Medium)       +1
+  Glass, loose wood                             3 (High)          0
+
+Rig speeds:
+  Walk         2.4 m/s
+  Run          3.8 m/s (run from 2.4)
+  Crouch       1.4 m/s
+  Fast crouch  1.8 m/s (from 1.3)
+
+Every crouch speed is under the 1.9 m/s stealth limit; walking and running are
+over it. No crouch multiplier for noise was found (the only *_CrouchMultiplier
+fields are vision: suspicion and detection). Inferred: stance counts for noise
+only through speed - under 1.9 m/s a step is quieter, so crouching is quiet
+because it is slow, and a slow walk is quiet too.
+
+No floor reaches VeryHigh on its own; whether running or metal absorption
+pushes a step there can't be seen. VeryHigh is mostly used by loud props.
+
+
+OTHER NOISES FROM THE PLAYER
+----------------------------
+
+Thrown / dropped props: each has its own AudioObjectProfile with a loudness
+level, a size modifier and magnitudeThreshold (mostly 2.5) - an impact below
+that makes no guard noise.
+
+  Prop                                     Loudness
+  Armour, glass                            4 (VeryHigh, 15m)
+  Coins, mallet, ornate box, pouch         3 (High, 10m)
+  Books, goblets, flasks                   2 (Medium, 5m)
+  Paper, ball, dice                        1 (Low, 2m)
+
+Distraction: armour, glass, mallet and Object_Silent have useDistractionEvent,
+a separate guard event. Object_Silent has loudness 0 but still sends it, so a
+prop can distract a guard without making noise.
+
+Rattling held items: two "Shakee" objects on the rig (ShakeReciever) send the
+BottleRattle event, Low (2m) - shaking a held item is heard close by.
+(Vase, the other SoundEventProfile, is High.)
+
+
+NOT VISIBLE IN THE EXPORT
+-------------------------
+
+- The loudness logic itself (how absorption, speed, size modifier combine).
+- FMOD event audible ranges (in the FMOD banks, not the Unity data).
+
+
+COMPARED WITH TEALEAF
+=====================
+
+TeaLeaf side read from Core/NoiseSystem.cs, Core/SoundPropagation.cs,
+Core/SoundPortal.cs, Core/SoundCue.cs, Core/SurfaceSounds.cs,
+Player/PlayerFootsteps.cs, Interaction/ImpactNoise.cs, AI/Guard.cs, and values
+from Prefabs/Core/Player.prefab, Prefabs/Actors/Guard.prefab and
+Data/Sound/Shared/Footsteps.
+
+
+SIDE BY SIDE
+------------
+
+Loudness scale
+  Thief VR: five fixed levels (0, 2, 5, 10, 15m). Everything picks one.
+  TeaLeaf:  a free radius in metres on each SoundCue, multiplied by scales
+    (gait, speed, impact hardness, surface). Any value is possible.
+
+Route
+  Thief VR: line of sight within the radius, else a NavMesh walking path up
+    to 1.25 x radius, ending within 0.5m of the noise.
+  TeaLeaf:  straight line in the same room; between rooms the shortest route
+    through SoundPortals, which must fit inside the radius itself (no 1.25x
+    allowance). A closed door adds 4m to the route (closedExtraDistance).
+    A quick straight-line test rejects far listeners first.
+
+Where the guard turns
+  Thief VR: not visible in the data.
+  TeaLeaf:  the noise itself in the same room, else the last portal on the
+    route.
+
+What the guard gets
+  Thief VR: not visible (in or out of range at least; how strength is used
+    is in code).
+  TeaLeaf:  loudness = 1 - route length / radius (1 at the noise, 0 at the
+    edge). Detection += loudness x 0.7 (hearingGain); suspicion += that x 3.33
+    (hearingSuspicionScale), so suspicion fills from one noise heard within
+    the nearer ~57% of its radius. A Distraction noise uses gain 1.5 instead.
+    Search moves to a new noise once detection >= 0.5. Guards ignore guard
+    noises.
+
+Floor
+  Thief VR: per-surface level index plus an absorption shift. Most floors
+    (stone, wood, tile, brick, metal) Medium = 5m; carpet Low = 2m; glass and
+    loose wood High = 10m.
+  TeaLeaf:  per-surface footstep cue radius:
+      Carpet 2.5m   Grass 3m   Wood 7m   Water 8m   Tile 9m   Gravel 9m
+      Metal 10m     Stone 6m
+    Surface loudness for props = surface radius / stone radius.
+
+Stance and speed
+  Thief VR: one speed limit, 1.9 m/s ("stealth walk"); all crouching is
+    under it, walking (2.4) and running (3.8) over it. No crouch noise
+    multiplier found.
+  TeaLeaf:  gait scale walk 1, sprint 1.6, crouch 0.4; then speed scale
+    between 0.4 (slowest creep) and 1 (full stick); a crouched step slower
+    than 30% of full speed is silent. Walk 3 m/s, sprint 4.5 m/s, crouch at
+    walking speed.
+
+Landing
+  Thief VR: no separate landing noise found.
+  TeaLeaf:  surface step radius x 1.5 x fall strength (0.5-2, fall speed / 3).
+
+Props
+  Thief VR: a level per prop (armour/glass VeryHigh down to paper Low),
+    silent below an impact threshold (~2.5); distraction is a separate event.
+  TeaLeaf:  one cue radius per prop (ImpactPlaceholder 10m), scaled 0.3-1 by
+    impact speed (1-8 m/s, silent below 1) and by the surface hit.
+    Distraction is a NoiseType with its own gain.
+
+Other player noises
+  Thief VR: rattling held items (Low).
+  TeaLeaf:  doors, bolts, chests, locks, pack storing, blackjack hit,
+    putting out flames - each its cue's radius (creak 5m).
+
+
+WORKED DISTANCES (stone, straight line, same room)
+--------------------------------------------------
+
+                     Thief VR        TeaLeaf (stone 6m)
+  Walk, full speed   5m (6.25 path)  6m
+  Walk, creeping     5m*             2.4m
+  Sprint             5m+*            9.6m
+  Crouch, full       5m*             2.4m
+  Crouch, slowest    5m*             1.4m, then silent
+  * Thief VR's exact speed effect isn't visible; under 1.9 m/s is quieter
+    by some amount.
+
+
+WHAT STANDS OUT
+---------------
+
+- Stone, TeaLeaf's reference surface, is 6m against Thief VR's 5m: close.
+  Prop impact loudness is each surface's radius over stone's, so changing
+  stone's radius changes every surface's impact loudness too.
+- TeaLeaf's routes through rooms and portals are stricter than Thief VR's
+  NavMesh allowance: a noise round a corner reaches no further than its
+  radius. Thief VR's 1.25x could be matched with a radius a little larger.
+- TeaLeaf grades loudness by distance and Thief VR (as far as the data
+  shows) uses a handful of fixed steps; TeaLeaf's is finer, Thief VR's is
+  easier for a player to learn.
+- Thief VR's floors are mostly the same level (Medium); TeaLeaf's spread
+  wider (2.5-10m besides stone), so the floor matters more.

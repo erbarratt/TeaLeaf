@@ -26,14 +26,14 @@ Sound:        rooms and portals, so a sound is heard from where it really
               and room ambience; the project's own spatialiser.
 Guard AI:     patrol, suspicion, search, chase, catch (= fail + restart).
               Knockout state. Guards find KO'd bodies and wake them.
-Weapons:      blackjack takedown; a clockwork hand crossbow worn on the back
-              of one hand, with water, noisemaker, rope, stun and sleep
-              bolts.
+Weapons:      blackjack takedown, drawn over one shoulder; a bow, drawn
+              over the other, with water, noisemaker, rope, stun, sleep
+              and moss arrows.
 Tools:        two-handed lockpicking on a large copy of the lock (one pick
               turns in stages, the other searches for each pin by feel).
               The picks are worn on the back of the other hand.
-Inventory:    a pack that only holds so much, brought out by gripping over
-              a shoulder; loot put in by hand, one space each; gold, with
+Inventory:    a pack that only holds so much, brought out by gripping at
+              the chest; loot put in by hand, one space each; gold, with
               its number; the objective; coloured keys on a keyring.
 Controls:     left stick moves, its click toggles sprint; right stick
               turns, up mantles, down toggles crouch; A jumps; B cancels;
@@ -184,9 +184,12 @@ Phase 4 - Inventory: the pack, loot and keys (Inventory namespace)
 [x] Inventory data (PlayerInventory): loot worth, objective, tools
     owned, bolt counts.
 [x] The pack: 3 x 3 grid, gold space, objective and keyring spaces.
-[x] Bringing the pack out: either hand gripping over a shoulder; it
-    rides on that hand while the grip is held, and the other hand loads
-    it and takes from it.
+[x] Bringing the pack out: either hand at the chest, palm towards it,
+    gripping; it rides on that hand while the grip is held, and the
+    other hand loads it and takes from it.
+[x] The pack as an open chest (Tripo model) held by the handle on its
+    end, handle on the holding hand's side, the spaces on its inside
+    back wall, placed by the PackHold hand profile.
 [x] Loot: one space each, chosen by hovering; shrinks in, grows out.
     Worth is the coin level: one, two or three gold.
 [x] Worth coins over carried loot.
@@ -195,36 +198,36 @@ Phase 4 - Inventory: the pack, loot and keys (Inventory namespace)
     keyed door's lock.
 [x] PlayerHandState: one owner for what each hand is busy with.
 [x] Handedness: one setting swaps which hand wears the lockpicks and
-    which the crossbow. The lock puzzle is never mirrored.
-[x] The shoulder grab, working in the headset.
-[x] The pack in the right hand, working in the headset.
-[ ] Try in the headset: the gold number (needs the TextMeshPro
-    resources imported).
-[ ] Tune in the headset: the shoulder zone, where the pack rides on the
-    hand, the gold number's size and place, where the keyring sits in
+    which the bow; the other gets the compass and the blackjack. The
+    lock puzzle is never mirrored.
+[ ] Try in the headset: bringing the pack out at the chest, the chest
+    model in either hand, and the gold number.
+[ ] Tune in the headset: the chest zone, the PackHold profile (Pose
+    with Hand), the gold number's size and place, where the keyring sits in
     the hand, and the hand pose on the key (the door handle's, as a
     stand-in).
 [ ] Real sounds for putting things in the pack and for the keyed lock.
 [x] The compass (PlayerCompass), the player's readout, always worn on
-    the back of the wrist of the hand the lockpicks are on: a rim, a dial that keeps north
-    (world +Z) with a triangle at each of north, east, south and west,
-    a light gem showing visibility, and arrows for the last few
-    footsteps and voices heard, pointing where each is heard from.
-[x] The compass on the wrist, working in the headset.
-[ ] Tune in the headset: the compass - where it sits on the wrist, its
+    the back of the hand without the lockpicks, where the picks sit on
+    the other: a rim, a dial that keeps north (world +Z) with a triangle
+    at each of north, east, south and west, a light gem showing
+    visibility, and arrows for the last few footsteps and voices heard,
+    pointing where each is heard from.
+[ ] Tune in the headset: the compass - where it sits on the hand, its
     size, the gem's colours, the arrows' sizes and fade time.
-[ ] Showing the bolt counts and the loot's worth (on the compass or
+[ ] Showing the arrow counts and the loot's worth (on the compass or
     the pack).
 
 
 Phase 5 - Weapons and tools (Player / Interaction namespaces)
 -------------------------------------------------------------
 Blackjack:
-[x] Drawing it (PlayerBlackjack): a hand that is empty, in a box at the
-    chest and palm towards it draws it by pressing grip and holds it
-    while grip is held; letting go puts it away. Greybox model.
-[ ] Tune in the headset: the palm angle, where it sits in the hand; a
-    hold pose.
+[x] Drawing it (PlayerBlackjack): the hand without the lockpicks, empty
+    and reaching over its own shoulder (PlayerBodyZones), draws it by
+    pressing grip and holds it while grip is held; letting go puts it
+    away. Greybox model.
+[ ] Try in the headset: drawing it over the shoulder. Tune where it
+    sits in the hand; a hold pose.
 [x] Swing detection (PlayerBlackjack.TickSwing): the blackjack's head
     moving faster than a threshold (measured in the player's own space,
     so walking isn't a swing) while it touches a GuardHead collider.
@@ -237,48 +240,55 @@ Blackjack:
 [x] The takedown, working in the headset.
 [ ] Tune the takedown in the headset: the swing speed, the hit radius,
     how far round "behind" reaches.
-Hand crossbow:
-[x] First version (PlayerCrossbow): greybox model on the back of the
-    hand; active while grip is held after pressing it with the hand
-    empty, pointing at nothing grabbable and palm down; an arc whose
-    reach comes from a range setting; the trigger shoots on the press;
-    clockwork rewind; pooled bolts that fly the arc and stop where they
-    land.
-[ ] Tune in the headset: where it sits on the hand, the palm-down
-    angle, the range, the rewind time; and whether a red arc for "lands
-    on nothing" reads as "can't shoot".
-[x] The wheel at the back of the crossbow: the other hand's ray on it
-    and grip held takes it, the hand snaps on, and twisting the wrist
-    steps through the bolt kinds.
-[x] Five bolt kinds, each with its own model so the loaded one can be
-    told at a glance, at most three of each carried: water (blue tip)
-    puts out the Flames near where it lands; a noisemaker (amber tip)
-    makes noise where it lands for a while; a rope bolt (the shaft
-    wound with rope) hangs a pooled ClimbableRope to the ground or a
-    longest length; a stun bolt (black tip) to a guard's head stuns it
-    for 10s; a sleep dart (short, green flights) anywhere on a guard
-    knocks it out 10s later.
-[x] Where a bolt lands: water and noisemaker bolts are used up on
-    whatever they hit; the rest stick only into static geometry whose
-    SurfaceTag holds a bolt (Wood, Plaster, Carpet, Grass) and bounce
-    off everything else, a guard included, as a real physics object
-    (CrossbowBolt) until they settle.
-[x] Picking up: a stun bolt, or a sleep dart that hit no guard, goes
+Bow:
+[x] Model: the Tripo bow rigged in Blender (Blends/rig_bow.py): a
+    two-segment string, a Drawn blend shape (limbs and string), empties
+    String_Rest, Draw_Full, Arrow_Rest; handed copies so the arrow runs
+    alongside the handle (bow_rigged_right_handed / _left_handed).
+[x] Drawing the bow (PlayerBow): the lockpicks' hand reaching over its
+    own shoulder and gripping; held while grip is held, put away on
+    release.
+[x] Taking an arrow: while the bow is held, the other hand over its own
+    shoulder takes one of the chosen kind with the trigger (from
+    PlayerInventory's counts); letting go of an arrow not on the string,
+    or putting the bow away, returns it to the inventory.
+[x] Nocking and drawing: arrow and hand snap onto the string within a
+    sphere of its middle; the hand held to the line from String_Rest
+    towards Draw_Full in the string pose; draw sets the Drawn blend
+    shape and the speed (60 m/s at full draw); the arc fades in with
+    the draw. No cancel button: below a minimum draw letting go shoots
+    nothing; below half draw moving 15cm off the line takes the arrow
+    off the string, still in hand; from half draw the hand is locked on.
+[x] Arrow kind: the bow hand's upper button steps to the next kind the
+    player has (left Y right-handed, B left-handed).
+[x] Six arrow kinds, each its own Tripo model split in Blender, at most
+    three of each carried: water puts out the Flames near where it
+    lands; noisemaker makes noise where it lands for a while; rope hangs
+    a pooled ClimbableRope; stun to a guard's head stuns it for 10s;
+    sleep dart anywhere on a guard knocks it out 10s later; moss lays a
+    patch on the floor that makes the player's footsteps and landings on
+    it silent for the rest of the level.
+[x] Where an arrow lands (PlayerArrows): water, noisemaker and moss are
+    used up; the rest stick only into surfaces whose SurfaceTag holds a
+    bolt and bounce off everything else, a guard included, as a real
+    physics object (Arrow) until they settle. Pooled, flown along the
+    arc, not physics.
+[x] Picking up: a stun arrow, or a sleep dart that hit no guard, goes
     straight back into the inventory when a hand points at it and
     grips. Never carried.
 [x] What holds a rope: it bears weight only where the surface's
-    SurfaceTag has Supports Rope Bolt ticked; elsewhere the bolt still
+    SurfaceTag has Supports Rope Bolt ticked; elsewhere the arrow still
     sticks, but pulls out and the rope falls when the player takes
-    hold. A rope bolt is never recovered.
-[x] Ammunition: shots use PlayerInventory's bolt counts.
-[x] The wheel and all five bolt kinds, working in the headset.
-[ ] Check in the headset: a hand on a rope bolt's rope sits as it does
-    on a placed rope (both use the RopeGrip profile).
-[ ] Tune in the headset: the wheel (its grab ball, the step angle, the
-    hand's pose on it - a wheelProfile - and the one-frame lag of the
-    snapped hand), a bolt's bounce and the reach for picking one up.
-[ ] Bolt pickups in the level.
-[ ] Shot and impact sounds, a splash, and the noisemaker's sound.
+    hold. A rope arrow is never recovered.
+[ ] Try the bow in the headset: drawing, taking and nocking an arrow,
+    the draw line and lock, shooting, changing kind, each arrow kind
+    landing, moss silencing steps.
+[ ] Tune in the headset: the BowGrip, ArrowHold and BowString profiles
+    (Pose with Hand), the nock radius, the off-line distance, an arrow's
+    bounce and the reach for picking one up; a hand on a rope arrow's
+    rope sits as on a placed rope.
+[ ] Arrow pickups in the level.
+[ ] Draw, shot and impact sounds, a splash, and the noisemaker's sound.
 Lockpicking:
 [x] Two-pick lockpicking on the big lock: picks on the back of a hand,
     insert, the right pick's four stops, the left pick's pin search by
@@ -317,15 +327,17 @@ Setup:
 [ ] Doors on the NavMesh: a guard walks through a shut door. Guards
     opening doors.
 Perception:
-[x] Vision: a 110 degree cone out to 14m, checked every 0.15s on a
-    timer offset per guard, one line-of-sight ray to each of two points
-    on the player (head, body). The fill rate scales with how many are
-    seen, the player's Visibility (PlayerVisibility, which already
-    includes light and stance) and distance. Within 2.5m the player is
-    seen even in full shadow. Outside the cone the player is given away
-    only by a noise or by bumping into the guard (within 0.5m of it).
-[x] Detection meter per guard (0-1) that rises and decays; thresholds
-    drive the state changes.
+[x] Vision as Thief VR's (GuardSight asset): four vision zones in one
+    view frustum, each with distance bands holding lit and dark fill
+    times and still, crouched, moving and fast multipliers; checked
+    every 0.15s on a timer offset per guard, a line-of-sight ray to
+    each of five weighted points on the player (head sides and top,
+    under the head, waist). Lit or dark from PlayerVisibility. Outside
+    the zones the player is given away only by a noise or by bumping
+    into the guard (within 0.5m of it).
+[x] Two meters per guard (0-1), suspicion and detection, each held a
+    while after it was last raised and then draining; full suspicion
+    makes a patrolling guard suspicious, full detection chases.
 [x] Hearing: an INoiseListener on NoiseSystem, which delivers only the
     noises that reach the guard through rooms and portals, with a
     loudness and the point it was heard from; louder noise = more on
@@ -359,7 +371,8 @@ Behaviour (explicit state machine - keep it readable and debuggable):
     behind, a second guard finding a body.
 [ ] Tune in the headset: suspicion and search as they look, how easily
     footsteps are heard (one step of about 0.45 loudness makes a guard
-    suspicious), the sight numbers, the chase and catch range.
+    suspicious), the vision zones and fill times, the chase and catch
+    range.
 Body dragging:
 [ ] KO'd guard has a grab handle (collar/shoulder). The player grabs it and
     the body follows the hand along the ground (kinematic follow with
@@ -402,9 +415,10 @@ Audio feedback:
     [ ] Placeholder lines to prove the system; the large pools are a
         recording job - list the lines wanted per pool, and how many.
 Debug (Scripts/AI/Debug):
-[x] Gizmos (Scene view and headset): the view cone in the state's
-    colour, a line above the head as long as the meter is full, the
-    close range and a line to the stimulus when selected, patrol routes.
+[x] Gizmos (Scene view and headset): the four vision zones in the
+    state's colour, two lines above the head as long as suspicion and
+    detection are full, a line to the stimulus when selected, patrol
+    routes.
 [x] GuardDebug: Console lines for where a guard starts, each change of
     state and each time it sets off or stops.
 [x] TeaLeaf > Check Test Guard Route: asks the NavMesh for a path
@@ -444,15 +458,17 @@ Guard:
 [ ] Head look-at towards stimulus while suspicious (Animator IK or simple
     head bone rotation in LateUpdate).
 Player hands:
-[ ] Pose clips: object hold, door handle, blackjack hold, the hand on
-    the crossbow's wheel, lockpick hold.
-[ ] Add each as a HandPose value + same-named Snap Pose layer state (the
-    blend on transitions already comes from HandVisualSnap.Weight).
+[x] Finger poses as data on HandSnapProfile (16 finger bone rotations),
+    played over the Animator by HandFingerPoser; offsets and fingers
+    posed without Play Mode in TeaLeaf > Modify Prefab > Pose with Hand.
+[ ] Pose with Hand: finger poses of their own for the door handle,
+    lockpick hold, blackjack, bow grip, arrow, string and pack (stand-in
+    copies now).
 [ ] Thumb curl on the input layers - add if hold poses look wrong
     without it.
 Tools:
-[ ] Crossbow shot and rewind motion via simple transform animation
-    (the string snaps forward on a shot, the clockwork winds it back).
+[x] The bow's draw: the Drawn blend shape follows the draw; released,
+    the string goes back to rest.
 [x] Torch flame: one quad with the TeaLeaf/Flame shader on the lamp
     post, lantern, brazier and bracket torch variants, switched by
     Flame; not yet tuned in the headset (the lantern's light washes the
@@ -650,6 +666,18 @@ Greybox build:
         [ ] Shallow junctions: example-quarter's main-street right
             0-2 module 7 runs 2.2m past its corner; one step
             foundation on west-lane is refused.
+        [x] Backing: black boxes behind every facade, cut clear of the
+            placed pieces, so no gap shows the void and no light reaches
+            a facade from behind.
+        [x] Building proxies: one LODGroup per building (full detail,
+            the pieces' second levels, then one renderer merged from
+            their lowest levels); proxy meshes git-ignored, remade by
+            regenerating.
+        [x] Street ground runs on under the steps; side walls close the
+            step where a jettied storey stands beside an unjettied one;
+            the hole check finds an end open over its top or bottom.
+        [ ] Look at the building proxies' far range and the backing in
+            the headset.
     [x] Stage 6: placement report (TeaLeaf > Level Gen > Report
         Generated): free wall ends, refused pieces, markers.
     [ ] Facade dressing: walkways and lamp posts (built; the lamp posts
@@ -753,7 +781,7 @@ Lighting:
     and must stay thin enough to read lit and dark areas from afar.
 Audio:
 [ ] Ambient beds (water lapping, distant bells, warehouse hum), footsteps
-    per surface, door creaks, impacts, crossbow cock/fire, bolt effects,
+    per surface, door creaks, impacts, bow draw/shot, arrow effects,
     lockpick clicks, loot pickup, guard barks, alert/chase stinger.
 
 
@@ -764,7 +792,7 @@ Phase 9 - Game loop, feedback and slice polish
 [ ] Caught: guard catch -> stinger -> fade -> reload at start.
 [ ] Win: objective item in the exit zone -> fade -> simple "Mission
     complete - loot X / Y" world-space panel -> restart on button.
-[ ] Haptics pass: pulses for grabs, climbing grips, crossbow cock/fire,
+[ ] Haptics pass: pulses for grabs, climbing grips, bow draw/shot,
     blackjack hit, loot pickup (none for footsteps).
 [ ] Comfort pass: vignette while sprinting/jumping/falling (optional, and
     switchable), snap/smooth turn works everywhere including while

@@ -88,6 +88,10 @@ MonoBehaviour:
   sideWallTuck: 0.26
   gapBridgeMax: 3
   gapStoreyTolerance: 0.3
+  backingMaterial: {fileID: 2100000, guid: 78960c0f94809c54a8e920aef47ed989, type: 2}
+  backingDepth: 3
+  backingBelow: 1
+  backingClearance: 0.02
   maxStoreyWidthMismatch: 0.3
   overlapTolerance: 0.05
   minSegmentLength: 0.1

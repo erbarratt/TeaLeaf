@@ -12,12 +12,14 @@ GameObject:
   - component: {fileID: 1971785012918033872}
   - component: {fileID: 233502181886199753}
   - component: {fileID: 4554488769966625996}
-  m_Layer: 6
+  - component: {fileID: -4186370979960685612}
+  - component: {fileID: 3562848523500984847}
+  m_Layer: 9
   m_Name: Tankard
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
-  m_StaticEditorFlags: 2147483647
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &736262504305463086
 Transform:
@@ -106,6 +108,52 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.06042099, y: 0.12789845, z: 0.043871164}
   m_Center: {x: -0.09039116, y: 0.009548545, z: 0.0006364584}
+--- !u!54 &-4186370979960685612
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4891980458958909337}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+--- !u!114 &3562848523500984847
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4891980458958909337}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c6176271a7313cd4287a86e596dcc48a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Interaction.Grabbable
+  gripShape: 0
+  gripPoint: {fileID: 0}
+  cylinderRadius: 0.04
+  cylinderGripLength: 0.1
+  shoulderAngle: 20
+  snapProfile: {fileID: 11400000, guid: 3cfbe3a3efedfd04989503a7afecf990, type: 2}
+  holdRadius: 0
 --- !u!1001 &551976470345769786
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -180,11 +228,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: d57da498aee777042b1adac2738ca0a1, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 9
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: d57da498aee777042b1adac2738ca0a1, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -275,11 +323,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: d57da498aee777042b1adac2738ca0a1, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 9
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: d57da498aee777042b1adac2738ca0a1, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -370,11 +418,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: d57da498aee777042b1adac2738ca0a1, type: 3}
       propertyPath: m_Layer
-      value: 6
+      value: 9
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: d57da498aee777042b1adac2738ca0a1, type: 3}
       propertyPath: m_StaticEditorFlags
-      value: 2147483647
+      value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

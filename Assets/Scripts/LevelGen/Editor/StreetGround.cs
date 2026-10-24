@@ -25,9 +25,10 @@ namespace LevelGen
     /// region of their own, the rest are joined into one region per
     /// connected level, and a flight of steps (StreetSteps, LayFlight)
     /// parts two levels: no cell lies wholly under its steps, and the
-    /// vertices that would are moved onto the flight's front or top line
-    /// (PlaceVertex), so the lower level ends exactly at the lowest step's
-    /// front and the upper one starts at the top step's back edge. The
+    /// vertices that would are moved to just inside the flight's front or
+    /// top line (PlaceVertex), so the lower level runs on under the lowest
+    /// step and the upper one starts under the top step's tread, sunk out
+    /// of sight (HeightAt): no slit shows at either edge. The
     /// vertices are painted (Paint): cobbles down the middle of every
     /// street out to GroundCobbleShare of its half-width, a dirt gutter
     /// beyond, the edge between them wobbled by noise, and puddles of wet
@@ -384,7 +385,7 @@ namespace LevelGen
             GroundMesh.Result mesh = GroundMesh.Build(spec.sector, first.id, frame, settings.GroundCell,
                 (corners, centre) => RegionOf(corners, centre, area, rects, discs, lots, heights, flights, slopes, settings, margin),
                 (a, b) => CutsLevel(a, b, area, heights, settings),
-                point => PlaceVertex(point, flights),
+                point => PlaceVertex(point, flights, settings),
                 point => HeightAt(area, lots, heights, point, settings),
                 point => Paint(point, area, settings, paintSeed),
                 (region, point) => RegionName(region, point, area, lots, heights, slopes, settings),
@@ -842,7 +843,9 @@ namespace LevelGen
         /// The ground height under a point: a lot's street level inside its
         /// ground, else that of the nearest point on any of the area's middle
         /// lines - on a segment with a flight of steps, the level of the
-        /// flight's side that point is on; on a slope, the slope's surface.
+        /// flight's side that point is on, sunk GroundThickness under the
+        /// top step's tread (where PlaceVertex runs the upper ground's edge
+        /// on under it, out of sight); on a slope, the slope's surface.
         /// </summary>
         private static float HeightAt(List<StreetSpec> area, List<GroundLot> lots, StreetHeights heights, Vector2 point,
             GeneratorSettings settings)
@@ -857,7 +860,14 @@ namespace LevelGen
                 return area[0].points[0].y;
             }
 
-            return heights.GroundAt(nearest, segment, along);
+            float height = heights.GroundAt(nearest, segment, along);
+            StreetSteps.Flight flight = heights.FlightOf(nearest, segment);
+
+            if (flight != null && UnderSteps(flight, point) && (along - flight.Middle) * flight.Up >= 0f && (flight.Top - along) * flight.Up > 0.001f) {
+                height -= settings.GroundThickness;
+            }
+
+            return height;
         }
 
         /// <summary>
@@ -996,13 +1006,13 @@ namespace LevelGen
 
         /// <summary>
         /// Where a ground vertex stands: a vertex under a flight's steps is
-        /// moved along the segment onto the flight's front (on the low side
-        /// of its middle) or its top (on the high side), so the ground's
-        /// edge lies exactly along the lowest step's front and the top step's
-        /// back edge, meeting the steps with no gap, no dip and nothing
-        /// showing above them. Any other vertex stays put.
+        /// moved along the segment to GroundStepsOverlap inside the flight's
+        /// front (on the low side of its middle) or its top (on the high
+        /// side), so the ground's edge runs on under the lowest step and
+        /// under the top step's tread (where HeightAt sinks it), and no slit
+        /// shows under the steps' rounded edges. Any other vertex stays put.
         /// </summary>
-        private static Vector2 PlaceVertex(Vector2 point, List<StreetSteps.Flight> flights)
+        private static Vector2 PlaceVertex(Vector2 point, List<StreetSteps.Flight> flights, GeneratorSettings settings)
         {
             foreach (StreetSteps.Flight flight in flights) {
                 if (!UnderSteps(flight, point)) {
@@ -1010,7 +1020,8 @@ namespace LevelGen
                 }
 
                 AgainstFlight(flight, point, out float along, out float across);
-                float edge = (along - flight.Middle) * flight.Up < 0f ? flight.Front : flight.Top;
+                float overlap = settings.GroundStepsOverlap * flight.Up;
+                float edge = (along - flight.Middle) * flight.Up < 0f ? flight.Front + overlap : flight.Top - overlap;
                 return flight.Start + flight.Axis * edge + new Vector2(-flight.Axis.y, flight.Axis.x) * across;
             }
 

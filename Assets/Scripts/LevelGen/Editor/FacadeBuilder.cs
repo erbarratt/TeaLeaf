@@ -457,6 +457,9 @@ namespace LevelGen
             // colour per building (per set of corner-joined buildings),
             // walls and roof.
             ColourBuildings(frontages, joints, random, log);
+            // The black boxes behind the facades, worked out now while the
+            // runs and columns are known; placed once every piece stands.
+            CollectBackings(frontages, styles, settings, placer);
 
             if (_clearance.Refused.Count > 0) {
                 log.Add($"Street clearance: {_clearance.Refused.Count} piece(s) not placed because they would stand in a street:\n    "
@@ -1411,6 +1414,19 @@ namespace LevelGen
                 return false;
             }
 
+            // Nearly in line (a slight bend, the fronts within the branch
+            // angle of each other): the other side's back and face lines run
+            // almost along this side's, so where they cross it is no stop.
+            // The two walls are carried to the corner itself and meet there,
+            // end to end, as the modules of one run do.
+            Vector2 front = me.Frontage.Runs[me.Frontage.Spots[me.Spot].Run].Front;
+            Vector2 otherFront = other.Frontage.Runs[other.Frontage.Spots[other.Spot].Run].Front;
+
+            if (Vector2.Angle(front, otherFront) <= settings.BranchAngle) {
+                wallReach = reach;
+                return true;
+            }
+
             // The walls' fronts stand behind the frontages' lines where a
             // storey's walls are shallower than the deepest a frontage could
             // use (FaceLine).
@@ -1861,8 +1877,7 @@ namespace LevelGen
 
                 bool met = Meet(me, depth, other, otherDepth, out float reach, out float otherReach, out Vector2 point);
                 WallTarget(me, s, depth, other, otherStorey, otherDepth, cover, settings, placer, out _, out float wallReach);
-                EndLine(me, depth, out Vector2 mine, out Vector2 outward, out Run run, out float position);
-                StoreyLevel level = building.Levels[s];
+                EndLine(me, depth, out Vector2 mine, out Vector2 outward, out Run run, out float position);                StoreyLevel level = building.Levels[s];
 
                 if (!met || Mathf.Abs(reach) > settings.CornerMaxReach || Mathf.Abs(otherReach) > settings.CornerMaxReach) {
                     // Nearly in line (a slight bend between segments of
@@ -3063,7 +3078,8 @@ namespace LevelGen
         /// One column's side walls where it meets another (FillSides), storey
         /// by storey, each storey's depth being its column's plus its
         /// building's jetty above the ground (so a jettied storey beside one
-        /// that isn't is a step too). A step's walls are as long as a module
+        /// that isn't is a step too), against the other column's storeys
+        /// standing beside it at that height (OtherDepthBeside). A step's walls are as long as a module
         /// or, if the step is deeper, enough to reach back past the other's
         /// back line. Heights compare in metres above the street level each
         /// column stands on (height, otherHeight), so beside a flight of steps
@@ -3091,7 +3107,7 @@ namespace LevelGen
             for (int s = 0; s < spot.Storeys; s++) {
                 StoreyLevel level = building.Levels[s];
                 float depth = spot.Depth + StoreyJetty(building, s);
-                float otherDepth = other.Depth + StoreyJetty(otherBuilding, s);
+                float otherDepth = OtherDepthBeside(other, otherBuilding, height + level.Base, height + level.Base + level.Style.StoreySpacing, otherHeight, s);
                 bool forward = depth - otherDepth >= SameDepth;
                 bool above = level.Base + level.Style.StoreySpacing > otherTop + settings.SizeTolerance;
                 float length = above ? raised : forward ? Mathf.Max(level.Style.ModuleSpacing, depth - otherDepth + wallSetback) : 0f;
@@ -3149,6 +3165,33 @@ namespace LevelGen
             }
 
             return sideFace;
+        }
+
+        /// <summary>
+        /// How far forward the other column of a join stands beside a storey
+        /// (from bottom to top, world heights): the least depth (column plus
+        /// jetty) of its storeys standing beside it by more than a quarter of
+        /// the storey's height. Beside a flight of steps the columns stand on
+        /// different levels, so a jettied storey of the lower one stands
+        /// beside the higher one's unjettied ground storey, a step to close.
+        /// With none beside it, its storey of the same index.
+        /// </summary>
+        private static float OtherDepthBeside(ModuleSpot other, Building otherBuilding, float bottom, float top, float otherHeight, int storey)
+        {
+            float least = float.MaxValue;
+            float needed = (top - bottom) * 0.25f;
+
+            for (int t = 0; t < other.Storeys && t < otherBuilding.Levels.Count; t++) {
+                StoreyLevel level = otherBuilding.Levels[t];
+                float otherBottom = otherHeight + level.Base;
+                float otherTop = otherBottom + level.Style.StoreySpacing;
+
+                if (Mathf.Min(top, otherTop) - Mathf.Max(bottom, otherBottom) > needed) {
+                    least = Mathf.Min(least, other.Depth + StoreyJetty(otherBuilding, t));
+                }
+            }
+
+            return least < float.MaxValue ? least : other.Depth + StoreyJetty(otherBuilding, storey);
         }
 
         /// <summary>
@@ -4730,7 +4773,11 @@ namespace LevelGen
         /// the start of the first module wholly past the flight's top (the
         /// modules before it stand on the low level, the street rising against
         /// their fronts); falling along it, at the end of the last module
-        /// wholly before the flight's top. Run's end or start if there is none.
+        /// wholly before the flight's top. Where no module is, the one across
+        /// the flight's top stands on the high level (its foundations stack
+        /// down to the steps beside it, StackFoundations), so the run's high
+        /// end meets the street beyond on its level rather than the whole run
+        /// standing low and leaving the corner past the steps open.
         /// </summary>
         private static void StepFlights(List<ModuleSpot> spots, List<Run> runs, List<Building> buildings, GeneratorSettings settings)
         {
@@ -4743,6 +4790,11 @@ namespace LevelGen
 
                 bool climbing = run.EndHeight > run.StartHeight;
                 float step = climbing ? run.Length : 0f;
+                bool found = false;
+                // The module across the flight's top: the last one ending
+                // past it climbing, the first one starting before it falling.
+                float across = climbing ? float.MaxValue : 0f;
+                bool any = false;
 
                 foreach (ModuleSpot spot in spots) {
                     if (spot.Run != r) {
@@ -4753,9 +4805,23 @@ namespace LevelGen
 
                     if (climbing && spot.Position >= run.StepAt - settings.SizeTolerance) {
                         step = Mathf.Min(step, spot.Position);
+                        found = true;
                     } else if (!climbing && end <= run.StepAt + settings.SizeTolerance) {
                         step = Mathf.Max(step, end);
+                        found = true;
                     }
+
+                    if (climbing && end > run.StepAt) {
+                        across = Mathf.Min(across, spot.Position);
+                        any = true;
+                    } else if (!climbing && spot.Position < run.StepAt) {
+                        across = Mathf.Max(across, end);
+                        any = true;
+                    }
+                }
+
+                if (!found && any) {
+                    step = across;
                 }
 
                 run.StepAt = step;

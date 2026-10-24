@@ -377,7 +377,7 @@ namespace Player
             // The same rotation and finger pose the hand has now (the snap
             // still remembers the pose it picked the prop up with) - only
             // moved forward.
-            HandSnapPose launchPose = new(position + direction * launchReach, rotation, snap.SnapPose.Pose);
+            HandSnapPose launchPose = new(position + direction * launchReach, rotation, snap.SnapPose.Profile);
             snap.Snap(launchPose, launchDuration);
 
             playerHandHolding.BeginLaunch(hand.isLeftHand);

@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 818e631233dd2a64eb27938ec822a0d9, type: 3}
+  m_Name: PackHold
+  m_EditorClassIdentifier: Assembly-CSharp::Interaction.HandSnapProfile
+  leftPositionOffset: {x: -0.3078, y: -0.0699, z: -0.1688}
+  leftRotationOffset: {x: -64.42, y: -149.25, z: 180}
+  rightPositionOffset: {x: 0.3078, y: -0.0699, z: -0.1688}
+  rightRotationOffset: {x: -64.42, y: 149.25, z: 180}
+  fingerRotations:
+  - {x: 0.045692068, y: -0.7907774, z: -0.13126542, w: 0.5961147}
+  - {x: 0.08350884, y: -0.15862183, z: -0.017968304, w: 0.98363745}
+  - {x: 0.28888926, y: -0.00020570168, z: -0.0024135646, w: 0.9573595}
+  - {x: 0.094982654, y: 0.00048362132, z: -0.0027233262, w: 0.9954751}
+  - {x: 0.24350272, y: -0.09776965, z: -0.08759451, w: 0.96097594}
+  - {x: 0.7490057, y: 0, z: 0, w: 0.66256356}
+  - {x: 0.48245463, y: 0, z: 0, w: 0.875921}
+  - {x: 0.26432756, y: 0, z: 0, w: 0.964433}
+  - {x: 0.81302446, y: 0, z: 0, w: 0.5822296}
+  - {x: 0.4707116, y: 0, z: 0, w: 0.8822872}
+  - {x: 0.22273228, y: -0.0006229398, z: 0.025031567, w: 0.97455806}
+  - {x: 0.8152693, y: 0.000004157328, z: 0.000004157328, w: 0.5790821}
+  - {x: 0.3489251, y: 0.0013233877, z: 0.0075521506, w: 0.9371193}
+  - {x: 0.2737111, y: -0.0040812492, z: 0.08073721, w: 0.95840865}
+  - {x: 0.81939554, y: 0.05333151, z: 0.055571556, w: 0.5680304}
+  - {x: 0.4705253, y: -0.0041598086, z: -0.027129952, w: 0.88195956}

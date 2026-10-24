@@ -26,7 +26,7 @@ namespace Interaction
     [RequireComponent(typeof(BoxCollider))]
     public class Ladder : MonoBehaviour, IHandTarget, IClimbable, IMantleable, IDebugDrawable
     {
-        [Tooltip("The hand offsets and finger pose for a hand on a rung, shared by every ladder. Empty, the hand sits exactly on the grip frame in the rung grip pose.")]
+        [Tooltip("The hand offsets and finger pose for a hand on a rung, shared by every ladder. Empty, the hand sits exactly on the grip frame and the fingers keep their input curl.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
         [Tooltip("Whether the ladder can also be grabbed from behind (its -Z side), for an open ladder standing free in a room. Unticked, hand rays from behind find nothing to grab and show no reticle.")]
@@ -276,7 +276,7 @@ namespace Interaction
 
             // See ClimbableEdge.GetSnapPose() for why == null.
             if (snapProfile == null) {
-                return new HandSnapPose(gripPosition, gripRotation, HandPose.RungGrip);
+                return new HandSnapPose(gripPosition, gripRotation, null);
             }
 
             return snapProfile.Apply(isLeftHand, gripPosition, gripRotation);

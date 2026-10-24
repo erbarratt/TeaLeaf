@@ -23,7 +23,10 @@ namespace Inventory
     /// physically put into. It only holds so much, so the player keeps
     /// what's worth most and leaves the rest.
     ///
-    /// Laid out as a board facing the player. Along the top, side by side,
+    /// An open chest (a model, its open side towards the player, held by
+    /// the handle on one end), its spaces laid on the inside of its back
+    /// wall. The chest model is mirrored to put the handle on the side of
+    /// the hand holding it; the spaces never are. Along the top, side by side,
     /// a space for the level's objective and one for the keyring (keys
     /// aren't built yet: the space is there, empty). Under them a grid of
     /// spaces (columns by rows, 3 by 3 to start with). The grid's top left
@@ -40,8 +43,9 @@ namespace Inventory
     /// tells as things go in and out. Summoning it, and the hands putting
     /// things in and taking them out, are Player.PlayerPack's.
     ///
-    /// This object's own axes: X to the player's right, Y up the board, Z
-    /// away from the player. Its origin is the middle of the board.
+    /// This object's own axes: X to the player's right, Y up the spaces, Z
+    /// away from the player. Its origin is the middle of the spaces, on
+    /// the inside of the chest's back wall.
     /// Unscaled. It collides with nothing: the only colliders are trigger
     /// boxes over spaces that have something in them, for the hand rays.
     ///
@@ -84,11 +88,10 @@ namespace Inventory
         [SerializeField, Min(1)] private int columns = 3;
         [SerializeField, Min(1)] private int rows = 3;
 
-        // Each space's size, the gap between spaces, and how thick the
-        // board is, in metres.
-        [SerializeField] private float cellSize = 0.09f;
+        // Each space's size and the gap between spaces, in metres. All of
+        // them must fit inside the chest.
+        [SerializeField] private float cellSize = 0.07f;
         [SerializeField] private float cellGap = 0.012f;
-        [SerializeField] private float depth = 0.05f;
 
         // How much of its space a stored item fills, 0-1.
         [SerializeField] private float fit = 0.8f;
@@ -96,6 +99,23 @@ namespace Inventory
         // Seconds an item takes to shrink into its space, or to grow back
         // to full size when it's taken out.
         [SerializeField] private float shrinkDuration = 0.12f;
+
+        [Header("Chest")]
+
+        // The chest model (open on one side, a handle on one end), and
+        // where it sits in the pack's own space with its handle on the
+        // left (as the model is; on the right it's mirrored): turned so
+        // its open side faces the player (-Z), scaled to a hand-held size,
+        // the middle of the inside of its back wall on the origin. Made
+        // once at load; with no model the spaces float on their own.
+        [Tooltip("The chest model the spaces sit in (Assets/TripoModels/treasure_chest_3d_model). Open side towards the player, handle on one end.")]
+        [SerializeField] private GameObject chestModel;
+        [Tooltip("Where the chest model sits in the pack's space with its handle on the left (X right, Y up, Z away from the player): the middle of the inside of its back wall on the origin. With the handle on the right, mirrored across X.")]
+        [SerializeField] private Vector3 chestPosition = new(-0.011f, -0.22f, -0.063f);
+        [Tooltip("How the chest model is turned in the pack's space (degrees), its open side towards the player.")]
+        [SerializeField] private Vector3 chestRotation = new(0f, 180f, 0f);
+        [Tooltip("How much the chest model is scaled down from its file.")]
+        [SerializeField] private float chestScale = 0.5f;
 
         [Header("Putting Things In")]
 
@@ -115,7 +135,6 @@ namespace Inventory
         [SerializeField] private Color goldNumberColor = Color.white;
 
         [Header("Colours")]
-        [SerializeField] private Color boardColor = new(0.3f, 0.21f, 0.13f, 1f);
         [SerializeField] private Color spaceColor = new(0.17f, 0.12f, 0.08f, 1f);
         [SerializeField] private Color goldSpaceColor = new(0.45f, 0.36f, 0.12f, 1f);
         [SerializeField] private Color objectiveSpaceColor = new(0.15f, 0.25f, 0.4f, 1f);
@@ -131,11 +150,11 @@ namespace Inventory
         // them.
         private const string InteractableLayerName = "Interactable";
 
-        // How far out of the board's face the spaces' panels stand, in
-        // metres - enough not to flicker against it.
+        // How far out of the chest's back wall the spaces' panels stand,
+        // in metres - enough not to flicker against it.
         private const float Proud = 0.002f;
 
-        // How far the spaces' trigger boxes reach out of the board
+        // How far the spaces' trigger boxes reach out of the back wall
         // towards the player, in metres.
         private const float SlotReach = 0.1f;
 
@@ -150,11 +169,12 @@ namespace Inventory
         public const int KeyringSpace = -3;
 
         private static readonly int _baseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int _baseMapId = Shader.PropertyToID("_BaseMap");
 
         private int _cellCount;
 
         // Where each grid space's middle is, in the pack's own space, on
-        // the board's face.
+        // the chest's back wall.
         private Vector3[] _cellCentres;
 
         // One record per grid space, used while an item sits there, and
@@ -182,9 +202,15 @@ namespace Inventory
         private Transform _goldPile;
         private MeshRenderer _goldPileRenderer;
 
-        private Mesh _boardMesh;
+        private Mesh _spacesMesh;
         private Mesh _blockMesh;
         private Material _material;
+
+        // The chest model, mirrored to put its handle on the right, and
+        // its material: its own texture on the shader the spaces use, so
+        // it's never shown darker than minLight either.
+        private Transform _chest;
+        private Material _chestMaterial;
 
         // The loot that has just finished growing back to full size and
         // is ready for a hand - see TryPopTaken().
@@ -238,32 +264,37 @@ namespace Inventory
         {
             // Meshes and a material made from code aren't cleaned up with
             // their objects.
-            Destroy(_boardMesh);
+            Destroy(_spacesMesh);
             Destroy(_blockMesh);
             Destroy(_material);
+
+            if (_chestMaterial != null) {
+                Destroy(_chestMaterial);
+            }
         }
 
         /// <summary>
-        /// Makes the pack: the board, a panel for each space, a trigger
+        /// Makes the pack: the chest, a panel for each space, a trigger
         /// box over each grid space (but the gold one), the gold pile and
         /// the highlight. Works out where every space is as it goes.
         ///
-        /// The board is as wide as the grid. From the top: one row of two
-        /// wide spaces (objective on the left, keyring on the right), then
-        /// the grid's rows.
+        /// The spaces cover a block as wide as the grid, on the chest's
+        /// back wall. From the top: one row of two wide spaces (objective
+        /// on the left, keyring on the right), then the grid's rows.
         /// </summary>
         private void Build()
         {
+            BuildChest();
+
             float step = cellSize + cellGap;
             float width = columns * cellSize + (columns + 1) * cellGap;
             float height = (rows + 1) * cellSize + (rows + 2) * cellGap;
-            float faceZ = -depth * 0.5f;
+            const float faceZ = 0f;
             Vector3 panelSize = new(cellSize, cellSize, Proud * 2f);
 
             LockMeshBuilder builder = new();
-            builder.Box(Vector3.zero, new Vector3(width, height, depth), Quaternion.identity, boardColor);
 
-            // The top row: two spaces sharing the board's width.
+            // The top row: two spaces sharing the spaces' width.
             float topY = height * 0.5f - cellGap - cellSize * 0.5f;
             float wideWidth = (width - cellGap * 3f) * 0.5f;
             float wideX = (wideWidth + cellGap) * 0.5f;
@@ -288,8 +319,8 @@ namespace Inventory
                 builder.Box(_cellCentres[i], panelSize, Quaternion.identity, i == GoldCell ? goldSpaceColor : spaceColor);
             }
 
-            _boardMesh = builder.ToMesh("Pack Board");
-            AddPart("Board", _boardMesh, Vector3.zero);
+            _spacesMesh = builder.ToMesh("Pack Spaces");
+            AddPart("Spaces", _spacesMesh, Vector3.zero);
 
             // One small block mesh, shared by the gold pile and the
             // highlight: a cube one metre across, scaled to size by each.
@@ -336,8 +367,80 @@ namespace Inventory
         }
 
         /// <summary>
+        /// Makes the chest from its model, once: its own materials, no
+        /// shadows, no colliders (the pack collides with nothing). Under a
+        /// holder object placed by chestPosition/Rotation/Scale, so the
+        /// model keeps its own root turn from its file.
+        /// </summary>
+        private void BuildChest()
+        {
+            if (chestModel == null) {
+                return;
+            }
+
+            GameObject holder = new("Chest") { layer = gameObject.layer };
+            _chest = holder.transform;
+            _chest.SetParent(transform, false);
+
+            GameObject model = Instantiate(chestModel, _chest, false);
+            model.name = "Chest Model";
+
+            foreach (Transform part in model.GetComponentsInChildren<Transform>(true)) {
+                part.gameObject.layer = gameObject.layer;
+            }
+
+            foreach (Collider part in model.GetComponentsInChildren<Collider>(true)) {
+                Destroy(part);
+            }
+
+            foreach (Renderer part in model.GetComponentsInChildren<Renderer>(true)) {
+                part.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                part.receiveShadows = false;
+
+                // One material for the chest, made from its first one:
+                // its texture and colour, lit as the spaces are (ambient
+                // and moon, never below minLight).
+                if (_chestMaterial == null) {
+                    Material source = part.sharedMaterial;
+                    _chestMaterial = LockMeshBuilder.CreateMaterial(false, minLight);
+                    _chestMaterial.name = "Pack Chest";
+
+                    if (source != null && source.HasProperty(_baseMapId)) {
+                        _chestMaterial.SetTexture(_baseMapId, source.GetTexture(_baseMapId));
+                        _chestMaterial.SetTextureScale(_baseMapId, source.GetTextureScale(_baseMapId));
+                        _chestMaterial.SetTextureOffset(_baseMapId, source.GetTextureOffset(_baseMapId));
+                        _chestMaterial.SetColor(_baseColorId, source.GetColor(_baseColorId));
+                    }
+                }
+
+                part.sharedMaterial = _chestMaterial;
+            }
+
+            SetHandleOnLeft(false);
+        }
+
+        /// <summary>
+        /// Puts the chest's handle on the left (mirroring the model across
+        /// the pack's X) or the right, for the hand holding it. Only the
+        /// chest model: the spaces stay the right way round.
+        /// </summary>
+        public void SetHandleOnLeft(bool onLeft)
+        {
+            if (_chest == null) {
+                return;
+            }
+
+            // The model has its handle on the left. The holder's own X lies
+            // along the pack's X (turned about Y only), so a negative X
+            // scale mirrors the model across it, handle to the right.
+            float side = onLeft ? 1f : -1f;
+            _chest.SetLocalPositionAndRotation(new Vector3(chestPosition.x * side, chestPosition.y, chestPosition.z), Quaternion.Euler(chestRotation));
+            _chest.localScale = new Vector3(chestScale * side, chestScale, chestScale);
+        }
+
+        /// <summary>
         /// A space's trigger box: over the space, reaching out of the
-        /// board towards the player, where what's stored there is. It
+        /// back wall towards the player, where what's stored there is. It
         /// starts switched off (PackSlot.SetUp()).
         /// </summary>
         private PackSlot AddSlot(string slotName, int index, Vector3 centre, float width, int layer)
@@ -366,7 +469,7 @@ namespace Inventory
             Transform ring = Keyring.transform;
             ring.SetParent(transform, false);
 
-            // Standing a little out of the board, and a little above the
+            // Standing a little out of the back wall, and a little above the
             // middle of its space: its keys hang down from the ring.
             ring.SetLocalPositionAndRotation(_keyringCentre + new Vector3(0f, cellSize * 0.2f, -0.008f), Quaternion.identity);
             ring.localScale = Vector3.one;
@@ -428,10 +531,6 @@ namespace Inventory
         }
 
         /// <summary>
-        /// A child object drawing mesh at a place in the pack's own space,
-        /// with no shadows.
-        /// </summary>
-        /// <summary>
         /// Makes the gold number: a line of text (TextMeshPro, Unity's
         /// text drawing) in the top of the gold space, standing just
         /// proud of the gold pile and facing the player. TextMeshPro needs
@@ -472,6 +571,10 @@ namespace Inventory
             }
         }
 
+        /// <summary>
+        /// A child object drawing mesh at a place in the pack's own space,
+        /// with no shadows.
+        /// </summary>
         private MeshRenderer AddPart(string partName, Mesh mesh, Vector3 localPosition)
         {
             GameObject part = new(partName) { layer = gameObject.layer };
@@ -548,7 +651,7 @@ namespace Inventory
         /// worldPoint: the gold space for gold, the objective's space for
         /// the objective (if that's empty), and for anything else the
         /// grid space it's over - the one whose middle is nearest across
-        /// the board - if that space is free. NoSpace if it's out of the
+        /// the back wall - if that space is free. NoSpace if it's out of the
         /// pack's reach, or the space it's over is taken: loot never goes
         /// into a space other than the one it's held over.
         /// </summary>
@@ -575,8 +678,8 @@ namespace Inventory
                     continue;
                 }
 
-                // Across the board only (x and y): how far out in front
-                // of the board the loot is held doesn't matter.
+                // Across the back wall only (x and y): how far out in front
+                // of the back wall the loot is held doesn't matter.
                 float x = _cellCentres[i].x - local.x;
                 float y = _cellCentres[i].y - local.y;
                 float sqr = x * x + y * y;
@@ -646,7 +749,7 @@ namespace Inventory
                 centre = _cellCentres[space];
             }
 
-            // Standing a little further out of the board than the
+            // Standing a little further out of the back wall than the
             // spaces' own panels, so it covers them.
             Transform highlight = _highlight.transform;
             highlight.localPosition = centre + Vector3.back * (Proud * 2f);
@@ -740,7 +843,7 @@ namespace Inventory
         /// <summary>
         /// Sizes and places a stored item for how far shrunk it is. Its
         /// middle (not its origin) is kept on the middle of its space,
-        /// standing just out of the board towards the player.
+        /// standing just out of the back wall towards the player.
         /// </summary>
         private void ApplyShrink(Stored stored)
         {
@@ -748,7 +851,7 @@ namespace Inventory
             Grabbable grabbable = stored.loot.Grabbable;
             Transform prop = stored.loot.transform;
 
-            // Out of the board by the item's own (shrunk) radius, so it
+            // Out of the back wall by the item's own (shrunk) radius, so it
             // sits on the face rather than half inside it.
             Vector3 centre = stored.spaceCentre + Vector3.back * (grabbable.HoldRadius * factor);
 

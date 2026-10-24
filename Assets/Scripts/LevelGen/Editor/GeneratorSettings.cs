@@ -193,6 +193,16 @@ namespace LevelGen
         [Tooltip("How far two free ends' bottoms (and tops) may differ in height and still count as one storey, to be bridged.")]
         [SerializeField, Range(0f, 1f)] private float gapStoreyTolerance = 0.3f;
 
+        [Header("Backing (black boxes behind the facades)")]
+        [Tooltip("The material of the boxes behind every facade column, from its eaves down: plain black, so a gap in the walls shows black instead of the void, and lights behind a facade never reach its pieces from behind. None: no boxes.")]
+        [SerializeField] private Material backingMaterial;
+        [Tooltip("How far back from a column's walls its box reaches (less where a street or another piece is nearer).")]
+        [SerializeField, Range(0.5f, 10f)] private float backingDepth = 3f;
+        [Tooltip("How far below the lowest street in front of a column its box reaches, hidden under the ground.")]
+        [SerializeField, Range(0f, 3f)] private float backingBelow = 1f;
+        [Tooltip("How far a box keeps from every placed piece: it is cut back (front, ends, top or bottom, whichever loses least) until it touches none.")]
+        [SerializeField, Range(0f, 0.2f)] private float backingClearance = 0.02f;
+
         [Tooltip("How far a storey's module width may differ from the ground storey's below it. Every storey is laid at the ground storey's spacing, each wall centred in its place, so a wider wall overlaps its neighbours and a narrower one leaves a small gap.")]
         [SerializeField, Range(0f, 1f)] private float maxStoreyWidthMismatch = 0.3f;
 
@@ -230,11 +240,11 @@ namespace LevelGen
         [SerializeField, Range(0f, 45f)] private float groundGridMinAngle = 15f;
         [Tooltip("The ground is laid under each lot too, as part of the nearest street area's mesh: a ring from the lot's footprint out to this far round it, so it reaches under its walls and foundations (and any yard a lot with its own outline or modules leaves). Never under the building itself.")]
         [SerializeField, Range(0f, 20f)] private float lotGroundMargin = 1f;
-        [Tooltip("How thick the box under a flight of steps' top step is, its top on the upper level.")]
+        [Tooltip("How thick the box under a flight of steps' top step is, its top on the upper level; the upper ground's edge, run on under the top step's tread, sinks this far there, out of sight.")]
         [SerializeField, Range(0.05f, 1f)] private float groundThickness = 0.25f;
         [Tooltip("How much of a flight of steps' pieces overlap side by side across the street, so no crack shows between them.")]
         [SerializeField, Range(0f, 0.2f)] private float groundOverlap = 0.03f;
-        [Tooltip("The upper level's collider box runs this far back over the top step of a flight, under its flat tread, so the steps' ramp (which stops a little short of the top step's back edge) meets the ground with no gap for the NavMesh or the player's feet.")]
+        [Tooltip("The upper level's collider box runs this far back over the top step of a flight, under its flat tread, so the steps' ramp (which stops a little short of the top step's back edge) meets the ground with no gap for the NavMesh or the player's feet. The ground meshes run as far in under the lowest step and the top step, so no slit shows under their rounded edges.")]
         [SerializeField, Range(0f, 0.6f)] private float groundStepsOverlap = 0.3f;
 
         [Header("Ground paint (the vertex colours the shader blends)")]
@@ -359,6 +369,16 @@ namespace LevelGen
         [Tooltip("How far out the space beyond a roof piece's building must be empty (no Environment collider, from the piece's top down) for the piece to lose its colliders.")]
         [SerializeField, Range(2f, 100f)] private float roofEdgeReach = 20f;
 
+        [Header("Building proxies")]
+        [Tooltip("Each building drawn from afar by one renderer: every piece's lowest level of detail merged into one mesh (one sub-mesh per material), shown through one LODGroup per building in place of the pieces' own.")]
+        [SerializeField] private bool buildingProxies = true;
+        [Tooltip("The share of the view's height a building fills below which its pieces show their second level of detail instead of their full detail. The pack's pieces switch at 0.07 of their own size; a building is about four pieces tall and wide, so about 0.3 switches at the same distance.")]
+        [SerializeField, Range(0.02f, 1f)] private float lowerDetailShare = 0.3f;
+        [Tooltip("The share of the view's height a building fills below which its proxy (every piece's lowest level, merged) is drawn. The pack's pieces drop to their lowest level at 0.035 of their own size, half their first switch, so half Lower Detail Share. Kept below Lower Detail Share.")]
+        [SerializeField, Range(0.01f, 1f)] private float proxyShare = 0.15f;
+        [Tooltip("The share of the view's height a building fills below which nothing of it is drawn. The pack culls its pieces at 0.01 of their own size, a seventh of their first switch, so a seventh of Lower Detail Share (about 120m off for a building 12m across). Kept below Proxy Share.")]
+        [SerializeField, Range(0f, 0.5f)] private float proxyCullShare = 0.04f;
+
         [Header("Moon shafts")]
         [Tooltip("Every segment of a street no wider than this, with a building on both sides, gets a shaft of moonlight: a MoonShaft laid level across the strip of sky between the two sides' eaves, which cuts itself down to the part the moon reaches and draws nothing where it reaches none. 0 places none.")]
         [SerializeField, Range(0f, 10f)] private float moonShaftStreetMaxWidth = 4.5f;
@@ -444,6 +464,10 @@ namespace LevelGen
         internal float SideWallTuck => sideWallTuck;
         internal float GapBridgeMax => gapBridgeMax;
         internal float GapStoreyTolerance => gapStoreyTolerance;
+        internal Material BackingMaterial => backingMaterial;
+        internal float BackingDepth => backingDepth;
+        internal float BackingBelow => backingBelow;
+        internal float BackingClearance => backingClearance;
         internal float PipeBuildingShare => pipeBuildingShare;
         internal int PipeRunsMax => pipeRunsMax;
         internal float PipeExtraRunShare => pipeExtraRunShare;
@@ -473,6 +497,7 @@ namespace LevelGen
         // The branch test compares the leaving direction with the side's
         // normal, so the angle off the street is its sine.
         internal float BranchDot => Mathf.Sin(branchAngle * Mathf.Deg2Rad);
+        internal float BranchAngle => branchAngle;
         internal float BranchSquareTolerance => branchSquareTolerance;
         internal float StreetHeadroom => streetHeadroom;
         internal float StreetBallRadius => streetBallRadius;
@@ -542,6 +567,10 @@ namespace LevelGen
         internal float CullRange => cullRange;
         internal float RoofEdgeGap => roofEdgeGap;
         internal float RoofEdgeReach => roofEdgeReach;
+        internal bool BuildingProxies => buildingProxies;
+        internal float LowerDetailShare => lowerDetailShare;
+        internal float ProxyShare => proxyShare;
+        internal float ProxyCullShare => proxyCullShare;
         internal float MoonShaftStreetMaxWidth => moonShaftStreetMaxWidth;
         internal float MoonShaftMaxLength => moonShaftMaxLength;
         internal float EdgeWallProbe => edgeWallProbe;

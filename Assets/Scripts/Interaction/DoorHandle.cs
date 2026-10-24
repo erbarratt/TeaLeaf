@@ -183,7 +183,7 @@ namespace Interaction
             // The lever turns about the spindle, and the hand on it goes
             // round with it: turn the whole pose about the spindle's axis.
             Quaternion turn = Quaternion.AngleAxis(leverAngle, rotation * Vector3.forward);
-            return new HandSnapPose(spindle + turn * (pose.Position - spindle), turn * pose.Rotation, pose.Pose);
+            return new HandSnapPose(spindle + turn * (pose.Position - spindle), turn * pose.Rotation, pose.Profile);
         }
 
         /// <summary>

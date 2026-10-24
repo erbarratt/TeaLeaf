@@ -107,6 +107,8 @@ Ref: 86; 69 in one root group, named `InvisibleWall_Col`; a few in their prefab 
 
 Ref: 350 groups, ~1/3 each one/two/three levels (one = cull only). Usual: full to 25% screen height, culled <1%; three-level switch ~17%, 10%. Small props get them; kit walls/roofs mostly not.
 
+TeaLeaf: pack pieces carry their own (full to 7%, lowest from 3.5%, culled 1%). Generated buildings swap these for one `LODGroup` per building: full detail near, pieces' second levels further, one renderer merged from the pieces' lowest levels furthest, culled where the pack culls (`Assets/Scripts/LevelGen/CLAUDE.md`). Hand-built buildings keep the pieces' own.
+
 ## Lighting
 
 - Ref: baked, 1 runtime light; every visible lamp a baked light + model; mood from 208 model-less fills. Lamps 6-8 m range typical, 29 m max. 5 reflection probes (one per sector). Exponential fog 0.015 (TeaLeaf: haze is a reserve, only if profiling asks).

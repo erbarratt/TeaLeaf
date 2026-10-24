@@ -4,9 +4,9 @@ namespace Player
 {
     /// <summary>
     /// The path of something thrown or shot: where it is at each moment,
-    /// and where it comes down. Shared by aimed throwing
-    /// (PlayerHandThrowing) and the crossbow (PlayerCrossbow), which both
-    /// show the player the arc before anything leaves the hand.
+    /// and where it comes down. Used by aimed throwing
+    /// (PlayerHandThrowing), which shows the player the arc before
+    /// anything leaves the hand.
     ///
     /// Only arithmetic and a few physics rays. Nothing is kept between
     /// calls and nothing is created: the caller owns the array of points.
@@ -23,7 +23,7 @@ namespace Player
         /// second into the flight. Pass Time.fixedDeltaTime for a body
         /// that physics will move (a thrown prop), so the line is where it
         /// will actually go; pass 0 for one moved along this same formula
-        /// (a crossbow bolt).
+        /// (a projectile moved by code).
         /// </summary>
         public static Vector3 Point(Vector3 start, Vector3 velocity, Vector3 gravity, float t, float fixedStep)
         {

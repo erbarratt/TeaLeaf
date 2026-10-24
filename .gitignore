@@ -86,3 +86,8 @@ desktop.ini
 # re-imported from the Asset Store rather than tracked
 /Assets/ASTROFISH_GAMES/
 /Assets/ASTROFISH_GAMES.meta
+
+# Level generator building proxy meshes (tens of MB, rewritten every
+# generation) - remade by regenerating the level
+/Assets/Data/LevelGen/Proxies/
+/Assets/Data/LevelGen/Proxies.meta

@@ -11,19 +11,20 @@ namespace Player
     /// and whose bindings carry XRI-specific interactions (see turnAction).
     /// The Player map holds an action for every Quest controller input:
     /// function-named ones for inputs gameplay reads, and button-named
-    /// placeholders (ButtonX, ButtonY, Menu, RightStickClick) for unused
+    /// placeholders (ButtonX, Menu, RightStickClick) for unused
     /// buttons, to be renamed when they get a job.
     /// </summary>
     public class PlayerInputXR : MonoBehaviour
     {
         [Header("Handedness")]
-        // Which way round the things worn on the hands are. Off (a
-        // right-handed player): the lockpicks on the back of the left
-        // hand, the crossbow on the back of the right. On (left-handed):
-        // the other way round. Read once, at startup, by the systems that
-        // put things on the hands. A player setting, like
-        // PlayerLocomotion's useSmoothTurn.
-        [Tooltip("Off, a right-handed player: the lockpicks and compass on the left hand, the crossbow on the right. On, the other way round. Read once at startup.")]
+        // Which way round the things worn on and drawn by the hands are.
+        // Off (a right-handed player): the lockpicks on the back of the
+        // left hand and the bow drawn over the left shoulder, the compass
+        // on the back of the right hand and the blackjack drawn over the
+        // right shoulder. On (left-handed): the other way round. Read
+        // once, at startup, by the systems that put things on the hands.
+        // A player setting, like PlayerLocomotion's useSmoothTurn.
+        [Tooltip("Off, a right-handed player: the lockpicks and bow on the left hand, the compass and blackjack on the right. On, the other way round. Read once at startup.")]
         [SerializeField] private bool leftHanded;
 
         [Header("Left Hand")]
@@ -85,10 +86,13 @@ namespace Player
         [Tooltip("The Player map's Jump action: the right A button, a single press.")]
         [SerializeField] private InputActionReference jumpAction;
 
-        // An action found by name in the Player map (the map the actions
-        // above are in), so the scene needs no wiring for it: the
-        // universal cancel button (right B).
+        // Actions found by name in the Player map (the map the actions
+        // above are in), so the scene needs no wiring for them: the
+        // universal cancel button (right B), and the left upper button
+        // (left Y), which changes the kind of arrow while a right-handed
+        // player holds the bow.
         private const string CancelActionName = "Cancel";
+        private const string ChangeArrowActionName = "ChangeArrow";
 
         // The InputActions behind the references above, resolved once in
         // OnEnable(). InputActionReference.action is a property that does a
@@ -108,6 +112,7 @@ namespace Player
         // Null if the Player map has no action of that name: then its
         // property is simply never true.
         private InputAction _cancel;
+        private InputAction _changeArrow;
 
         // True from the right stick being pushed down far enough to toggle
         // crouch until it has come back up past crouchStickRearm.
@@ -163,6 +168,12 @@ namespace Player
         // (an aimed throw, for now).
         public bool CancelPressed { get; private set; }
 
+        // True for exactly one frame when the left upper button (left Y)
+        // is pressed. The bow hand's upper button changes the kind of
+        // arrow: this one for a right-handed player; a left-handed
+        // player's bow hand is the right, whose upper button is cancel's.
+        public bool ChangeArrowPressed { get; private set; }
+
         // Whether the player is left-handed: see leftHanded.
         public bool IsLeftHanded => leftHanded;
 
@@ -196,6 +207,7 @@ namespace Player
             _jump.Enable();
 
             _cancel = FindByName(CancelActionName);
+            _changeArrow = FindByName(ChangeArrowActionName);
         }
 
         /// <summary>
@@ -263,6 +275,7 @@ namespace Player
             JumpPressed = _jump.WasPressedThisFrame();
 
             CancelPressed = _cancel != null && _cancel.WasPressedThisFrame();
+            ChangeArrowPressed = _changeArrow != null && _changeArrow.WasPressedThisFrame();
         }
 
         /// <summary>

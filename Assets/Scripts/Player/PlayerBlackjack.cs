@@ -5,16 +5,16 @@ using UnityEngine;
 namespace Player
 {
     /// <summary>
-    /// The blackjack: a short club, drawn from the chest. A hand that is
-    /// empty, close to the chest and has its palm towards the chest draws
-    /// it by pressing grip, and holds it for as long as grip is held.
-    /// Letting go puts it away - it isn't dropped, it's simply gone until
-    /// it's drawn again. Either hand can draw it; one at a time.
+    /// The blackjack: a short club, drawn from over a shoulder. The hand
+    /// without the lockpicks (the right, for a right-handed player),
+    /// empty and reaching over its own shoulder, draws it by pressing
+    /// grip, and holds it for as long as grip is held. Letting go puts it
+    /// away - it isn't dropped, it's simply gone until it's drawn again.
+    /// Only that hand draws it; the other shoulder is the bow's.
     ///
-    /// The chest is a box a little below the head, placed and turned
-    /// with the head's tilt ignored (so looking down doesn't move it). The
-    /// blackjack is taken by reaching, not by the hand rays, so a hand
-    /// feels a light tap when it's in the right place.
+    /// Where the shoulder is, is PlayerBodyZones' business. The blackjack
+    /// is taken by reaching, not by the hand rays, so the hand feels a
+    /// light tap when it's in the right place.
     ///
     /// In hand, a swing that brings its head against a guard's head is a
     /// blow: the guard goes down if it was unaware and struck from
@@ -24,7 +24,7 @@ namespace Player
     /// Tick() before the grab systems, so a hand that draws the blackjack
     /// is already busy when they look at what its ray is on.
     /// </summary>
-    public class PlayerBlackjack : MonoBehaviour, IDebugDrawable
+    public class PlayerBlackjack : MonoBehaviour
     {
         [SerializeField] private PlayerInputXR playerInput;
         [SerializeField] private PlayerTracking playerTracking;
@@ -34,24 +34,12 @@ namespace Player
         // wired (it's on this same object).
         [SerializeField] private PlayerHandState playerHandState;
 
+        // Where the shoulders are. Found (or made) in Awake() if not
+        // wired (it's on this same object).
+        [SerializeField] private PlayerBodyZones bodyZones;
+
         // Optional: a rig with no haptics still draws it.
         [SerializeField] private PlayerHaptics playerHaptics;
-
-        [Header("Drawing It")]
-
-        // The middle of the chest from the head, in metres: to the
-        // player's right, up, and ahead - with the head's tilt ignored.
-        [SerializeField] private Vector3 chestOffset = new(0f, -0.3f, 0.05f);
-
-        // The box round that point a hand must be in, in metres: its
-        // width (side to side), height and depth (front to back). It
-        // turns with the head, tilt ignored, so it stays square to the
-        // body.
-        [SerializeField] private Vector3 chestSize = new(0.4f, 0.35f, 0.4f);
-
-        // How far the palm may be turned away from pointing straight at
-        // the chest, in degrees, and still count as facing it.
-        [SerializeField] private float palmAngle = 60f;
 
         [Header("In The Hand")]
 
@@ -120,17 +108,16 @@ namespace Player
         private Mesh _mesh;
         private Material _material;
 
-        // Whether it's drawn, and into which hand.
+        // Whether it's drawn, and which hand draws it (the one without
+        // the lockpicks, from handedness at startup).
         private bool _isOut;
         private bool _isInLeftHand;
 
-        // Per hand: grip last frame (it's drawn on the frame grip is
-        // pressed, not by a hand that arrives gripping), and whether the
-        // hand was in place last frame (for the tap).
-        private bool _wasLeftGrabbing;
-        private bool _wasRightGrabbing;
-        private bool _wasLeftInPlace;
-        private bool _wasRightInPlace;
+        // The drawing hand's grip last frame (it's drawn on the frame
+        // grip is pressed, not by a hand that arrives gripping), and
+        // whether the hand was in place last frame (for the tap).
+        private bool _wasGrabbing;
+        private bool _wasInPlace;
 
         // Hitting. The middle of the blackjack's head in its own space;
         // the player's root (speeds are measured in its space); where
@@ -149,7 +136,8 @@ namespace Player
         /// True while the blackjack is in a hand.
         public bool IsOut => _isOut;
 
-        /// Which hand it's in, while it's out.
+        /// Which hand it's in while it's out: always the hand without the
+        /// lockpicks.
         public bool IsInLeftHand => _isInLeftHand;
 
         /// True while that hand holds the blackjack. The other hand
@@ -188,6 +176,15 @@ namespace Player
                 playerHandState = PlayerHandState.GetOrAdd(playerHandVisuals);
             }
 
+            if (bodyZones == null) {
+                bodyZones = PlayerBodyZones.GetOrAdd(playerHandVisuals);
+            }
+
+            // A right-handed player wears the lockpicks on the left hand,
+            // so draws the blackjack with the right; a left-handed one the
+            // other way round.
+            _isInLeftHand = playerInput.IsLeftHanded;
+
             if (playerHaptics == null) {
                 playerHaptics = GetComponentInParent<PlayerHaptics>();
             }
@@ -203,15 +200,8 @@ namespace Player
             BuildBlackjack();
         }
 
-        private void OnEnable()
-        {
-            DebugDrawRegistry.Register(this);
-        }
-
         private void OnDisable()
         {
-            DebugDrawRegistry.Unregister(this);
-
             // Null if Awake() hasn't run. And if the scene is being
             // unloaded (a level restart), everything here is on its way
             // out and mustn't be touched.
@@ -274,48 +264,43 @@ namespace Player
         /// </summary>
         public void Tick()
         {
-            bool isLeftGrabbing = playerInput.IsLeftGrabbing;
-            bool isRightGrabbing = playerInput.IsRightGrabbing;
+            bool isGrabbing = _isInLeftHand ? playerInput.IsLeftGrabbing : playerInput.IsRightGrabbing;
 
             if (_isOut) {
                 // Held for as long as grip is.
-                if (!(_isInLeftHand ? isLeftGrabbing : isRightGrabbing)) {
+                if (!isGrabbing) {
                     PutAway();
                 } else {
                     TickSwing();
                 }
             } else {
-                TickReach(true, isLeftGrabbing, _wasLeftGrabbing, ref _wasLeftInPlace);
-
-                if (!_isOut) {
-                    TickReach(false, isRightGrabbing, _wasRightGrabbing, ref _wasRightInPlace);
-                }
+                TickReach(isGrabbing);
             }
 
-            _wasLeftGrabbing = isLeftGrabbing;
-            _wasRightGrabbing = isRightGrabbing;
+            _wasGrabbing = isGrabbing;
         }
 
         /// <summary>
-        /// One hand, while the blackjack is away: a tap as it comes into
-        /// place at the chest, and the draw on the frame its grip is
-        /// pressed there.
+        /// The drawing hand, while the blackjack is away: a tap as it
+        /// comes into place over its shoulder, free, and the draw on the
+        /// frame its grip is pressed there.
         /// </summary>
-        private void TickReach(bool isLeftHand, bool isGrabbing, bool wasGrabbing, ref bool wasInPlace)
+        private void TickReach(bool isGrabbing)
         {
-            bool isInPlace = IsInPlace(isLeftHand);
+            bool isInPlace = !playerHandState.IsBusyExcept(_isInLeftHand, HandUse.Blackjack)
+                && bodyZones.IsAtShoulder(_isInLeftHand);
 
-            if (isInPlace && !wasInPlace) {
-                Pulse(isLeftHand, reachAmplitude, reachDuration);
+            if (isInPlace && !_wasInPlace) {
+                Pulse(_isInLeftHand, reachAmplitude, reachDuration);
             }
 
-            wasInPlace = isInPlace;
+            _wasInPlace = isInPlace;
 
-            if (!isInPlace || !isGrabbing || wasGrabbing) {
+            if (!isInPlace || !isGrabbing || _wasGrabbing) {
                 return;
             }
 
-            Transform visual = isLeftHand ? playerHandVisuals.LeftHandVisual : playerHandVisuals.RightHandVisual;
+            Transform visual = _isInLeftHand ? playerHandVisuals.LeftHandVisual : playerHandVisuals.RightHandVisual;
 
             // A child of the hand visual, so nothing places it per frame.
             // Scale 1 under the mirrored right hand: it's the same shape
@@ -326,11 +311,10 @@ namespace Player
             _blackjack.gameObject.SetActive(true);
 
             _isOut = true;
-            _isInLeftHand = isLeftHand;
             _hasLastHeadPoint = false;
             _isTouching = false;
-            wasInPlace = false;
-            Pulse(isLeftHand, drawAmplitude, drawDuration);
+            _wasInPlace = false;
+            Pulse(_isInLeftHand, drawAmplitude, drawDuration);
         }
 
         /// <summary>
@@ -393,63 +377,6 @@ namespace Player
         }
 
         /// <summary>
-        /// Whether a hand could draw now: it's doing nothing else, it's
-        /// at the chest, and its palm faces the chest.
-        /// </summary>
-        private bool IsInPlace(bool isLeftHand)
-        {
-            if (playerHandState.IsBusyExcept(isLeftHand, HandUse.Blackjack)) {
-                return false;
-            }
-
-            Vector3 hand = isLeftHand ? playerTracking.LeftHandPosition : playerTracking.RightHandPosition;
-            Quaternion headYaw = HeadYaw();
-            Vector3 toChest = ChestPoint() - hand;
-
-            // The same offset seen from the box: turned back by the
-            // head's yaw, its x is side to side, y up and z front to
-            // back, so each can be compared with half the box's size.
-            Vector3 inBox = Quaternion.Inverse(headYaw) * toChest;
-
-            if (Mathf.Abs(inBox.x) > chestSize.x * 0.5f || Mathf.Abs(inBox.y) > chestSize.y * 0.5f || Mathf.Abs(inBox.z) > chestSize.z * 0.5f) {
-                return false;
-            }
-
-            Transform visual = isLeftHand ? playerHandVisuals.LeftHandVisual : playerHandVisuals.RightHandVisual;
-
-            // The palm faces along the hand visual's own +X.
-            // TransformVector(), not TransformDirection(): the right
-            // visual is the left one mirrored, and only TransformVector()
-            // takes the mirroring into account.
-            Vector3 palm = visual.TransformVector(Vector3.right).normalized;
-
-            // The chest is a point on the body's middle line, so a hand
-            // in front of it has it straight behind the palm. A hand
-            // right on the point has no direction to it: then it's the
-            // way the player's back is.
-            Vector3 direction = toChest.sqrMagnitude > 0.0001f ? toChest.normalized : headYaw * Vector3.back;
-
-            return Vector3.Dot(palm, direction) >= Mathf.Cos(palmAngle * Mathf.Deg2Rad);
-        }
-
-        /// <summary>
-        /// The middle of the chest, in the world.
-        /// </summary>
-        private Vector3 ChestPoint()
-        {
-            return playerTracking.HeadPosition + HeadYaw() * chestOffset;
-        }
-
-        /// <summary>
-        /// The head's rotation with its tilt taken out: only which way it
-        /// faces round the vertical.
-        /// </summary>
-        private Quaternion HeadYaw()
-        {
-            return Quaternion.Euler(0f, playerTracking.HeadRotation.eulerAngles.y, 0f);
-        }
-
-        /// <summary>
         /// Puts the blackjack away: back under this object, switched off.
         /// </summary>
         private void PutAway()
@@ -466,46 +393,6 @@ namespace Player
         {
             if (_hasHaptics) {
                 playerHaptics.Pulse(isLeftHand, amplitude, duration);
-            }
-        }
-
-        /// <summary>
-        /// Editor-only: the chest box while this object is selected.
-        /// </summary>
-        private void OnDrawGizmosSelected()
-        {
-            DebugLines.ForGizmos.Draw(this, true);
-        }
-
-        /// <summary>
-        /// In the detailed view (selected, or in the headset with detail
-        /// on) while playing: the box a hand must be in to draw - yellow,
-        /// green while the blackjack is out.
-        /// </summary>
-        public void DrawDebug(DebugLines lines, bool detailed)
-        {
-            if (!detailed || !Application.isPlaying || playerTracking == null) {
-                return;
-            }
-
-            lines.Color = _isOut ? Color.green : Color.yellow;
-
-            // The box's three half-edges in the world: with the centre,
-            // every corner is the centre plus or minus each of them.
-            Quaternion headYaw = HeadYaw();
-            Vector3 centre = ChestPoint();
-            Vector3 right = headYaw * Vector3.right * (chestSize.x * 0.5f);
-            Vector3 up = Vector3.up * (chestSize.y * 0.5f);
-            Vector3 ahead = headYaw * Vector3.forward * (chestSize.z * 0.5f);
-
-            // Twelve edges: for each pair of signs, one edge along each
-            // of the three directions.
-            for (int a = -1; a <= 1; a += 2) {
-                for (int b = -1; b <= 1; b += 2) {
-                    lines.Line(centre - right + up * a + ahead * b, centre + right + up * a + ahead * b);
-                    lines.Line(centre + right * a - up + ahead * b, centre + right * a + up + ahead * b);
-                    lines.Line(centre + right * a + up * b - ahead, centre + right * a + up * b + ahead);
-                }
             }
         }
     }

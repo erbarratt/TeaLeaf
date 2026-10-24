@@ -1,6 +1,7 @@
 using System;
 using Core;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Inventory
 {
@@ -21,7 +22,7 @@ namespace Inventory
     {
         [Header("Tools Owned At The Start")]
         [SerializeField] private bool ownsBlackjack;
-        [SerializeField] private bool ownsCrossbow;
+        [SerializeField, FormerlySerializedAs("ownsCrossbow")] private bool ownsBow;
 
         [Header("Bolts At The Start")]
         [SerializeField] private int waterBolts;
@@ -29,6 +30,7 @@ namespace Inventory
         [SerializeField] private int ropeBolts;
         [SerializeField] private int stunBolts;
         [SerializeField] private int sleepBolts;
+        [SerializeField] private int mossBolts;
 
         // The most bolts of any one kind the player can carry. The
         // starting counts above are cut down to it.
@@ -68,7 +70,7 @@ namespace Inventory
 
             _ownedTools = new bool[_toolTypeCount];
             _ownedTools[(int)ToolType.Blackjack] = ownsBlackjack;
-            _ownedTools[(int)ToolType.Crossbow] = ownsCrossbow;
+            _ownedTools[(int)ToolType.Bow] = ownsBow;
 
             _boltCounts = new int[_boltTypeCount];
             _boltCounts[(int)BoltType.Water] = waterBolts;
@@ -76,6 +78,7 @@ namespace Inventory
             _boltCounts[(int)BoltType.Rope] = ropeBolts;
             _boltCounts[(int)BoltType.Stun] = stunBolts;
             _boltCounts[(int)BoltType.Sleep] = sleepBolts;
+            _boltCounts[(int)BoltType.Moss] = mossBolts;
 
             for (int i = 0; i < _boltCounts.Length; i++) {
                 _boltCounts[i] = Mathf.Clamp(_boltCounts[i], 0, maxBoltsPerKind);
@@ -185,7 +188,7 @@ namespace Inventory
         }
 
         /// <summary>
-        /// Takes one bolt of a kind to load the crossbow with. False, and
+        /// Takes one bolt of a kind to shoot. False, and
         /// nothing taken, if there are none left.
         /// </summary>
         public bool TryUseBolt(BoltType bolt)

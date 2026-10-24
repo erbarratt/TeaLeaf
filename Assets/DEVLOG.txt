@@ -6,6 +6,74 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-24 (the bow and six arrow kinds; Thief VR guard sight and two
+            meters; finger poses as data and Pose with Hand; pack as a
+            chest at the chest; body reach zones; level generator
+            backing and building proxies)
+---------------------------------------------------------------------------
+- The bow (PlayerBow, PlayerArrows, Arrow) takes the hand crossbow's
+  place (PlayerCrossbow, CrossbowBolt, CrossbowWheel gone; ToolType.Bow).
+  Drawn over the lockpicks' hand's own shoulder with grip; the other
+  hand takes an arrow over its own shoulder with the trigger, nocks it
+  within a sphere of the string's middle and draws along the line from
+  String_Rest towards Draw_Full; draw drives the bow's Drawn blend shape
+  and the speed (60 m/s full), the arc fades in with the draw. No cancel
+  button: under a minimum draw nothing is shot, under half draw moving
+  15cm off the line unnocks, from half draw the hand is locked on.
+  Arrows not shot go back to the inventory, never dropped. Bow hand's
+  upper button (Y / B by handedness; new ChangeArrow action) changes
+  kind. Not yet tried in the headset.
+- Bow model: Blends/rig_bow.py builds bow_rigged.fbx from the Tripo bow
+  (two-segment string, Drawn shape key, three empties); handed copies
+  shift limbs and string 38mm to one side so the arrow runs beside the
+  handle, not through it. Arrows: the Tripo set split in Blender into
+  one FBX per kind.
+- Six arrow kinds: moss added (BoltType.Moss) - lays a pooled patch on
+  the floor where it lands that silences the player's footsteps and
+  landings on it (PlayerFootsteps asks PlayerArrows.IsOnMoss).
+- PlayerBodyZones: one place for where the chest and shoulders are.
+  The pack comes out at the chest (palm towards it); the blackjack is
+  drawn over the hand-without-lockpicks' own shoulder, the bow over the
+  other; reaching across counts for nothing.
+- Pack is now an open Tripo treasure chest held by its end handle
+  (handle on the holding hand's side), the spaces on its inside back
+  wall; LockFade takes an optional base map for it. Compass moved to
+  the back of the hand without the lockpicks.
+- Finger poses as data: HandSnapProfile holds 16 finger bone rotations,
+  HandFingerPoser lays them over the Animator in PlayerHandAnimation's
+  LateUpdate. HandPose enum, the Snap Pose layer and the Hand_L_* pose
+  clips are gone. New profiles BowGrip, ArrowHold, BowString, PackHold,
+  Tankard. TeaLeaf > Modify Prefab > Pose with Hand (HandPoseWindow)
+  poses offsets and fingers in edit mode, held things and Grabbables.
+- Guard sight as Thief VR (from its Guard_Data_Default / VT_* data,
+  notes in Assets/Research): GuardSight asset with four vision zones in
+  one frustum, distance bands of lit/dark fill times and stance and
+  movement multipliers; five weighted points on the player
+  (PlayerVisibility); two meters, suspicion and detection, each held
+  then drained. Gizmos draw the zones and both meters. Guard head is a
+  child of the head bone.
+- Level generator: black Backing boxes behind every facade, cut clear
+  of placed pieces (no colliders, probe-lit), so gaps never show the
+  void and a lamp in the next street can't light a facade from behind.
+  Building proxies: one LODGroup per building - full pieces, their
+  second levels, then one renderer merged from their lowest levels;
+  proxy meshes in Assets/Data/LevelGen/Proxies, git-ignored. Street
+  ground runs on under steps (no slit under rounded edges); side walls
+  close a jettied storey beside an unjettied one; the hole check sees
+  an end open over its top or bottom; nearly in-line runs meet end to
+  end.
+- Grabbable.BeginHold reads every collider's layer before setting any
+  (colliders can share an object).
+- Lessons: an FBX with Rig None imports a plain MeshRenderer, so the
+  blend shape needs the mesh moved onto a SkinnedMeshRenderer at load;
+  measure the nock from where the hand would be on its controller, not
+  from the visual, or the snap feeds back on itself; a real bow's arrow
+  runs beside the handle, so a symmetric model puts it through the
+  grip; when rendering the scene from a temporary camera, turn its
+  occlusion culling off (the bake predates a regeneration) and keep the
+  second frame.
+
+
 2026-10-23 (guards: ragdoll knock-out and bolt hit boxes, planted feet
             and stepped turns, eased turns and stops; in-headset gizmo
             toggles and noise circles; one sound per footstep; no scene

@@ -32,7 +32,8 @@ namespace AI
     /// out - so a long turn takes alternate steps. Each step sounds as
     /// the foot comes down (Guard.PlayFootstep, at the Guard's quieter
     /// standingStepVolume); while the feet aren't stepped (unseen, far)
-    /// a turn on the spot sounds a step each half stepAngle turned.
+    /// a turn on the spot sounds a step each half stepAngle turned, at
+    /// most one each stepTime.
     ///
     /// Runs in LateUpdate, after the Animator has posed the bones and
     /// the agent has moved the root, and only while the model is drawn
@@ -153,6 +154,9 @@ namespace AI
         // spot since the last step sounded.
         private float _unseenYaw;
         private float _unseenTurned;
+        // When the last standing step sounded, seen or unseen: no two
+        // come closer than stepTime, as a stepped foot can't.
+        private float _lastStandingStepTime = float.NegativeInfinity;
 
         private void Awake()
         {
@@ -236,8 +240,10 @@ namespace AI
         /// While the feet aren't stepped (model unseen or far), a guard
         /// turning on the spot still has to be heard: a step each half
         /// stepAngle turned, about as often as the two feet would step
-        /// (each steps when it is stepAngle out, alternately). Nothing
-        /// while stunned or down.
+        /// (each steps when it is stepAngle out, alternately), but never
+        /// more often than once each stepTime: a fast turn (720°/s goes
+        /// through half stepAngle in under two frames) would otherwise
+        /// sound a step nearly every frame. Nothing while stunned or down.
         /// </summary>
         private void TickUnseenStandingSteps()
         {
@@ -254,10 +260,21 @@ namespace AI
 
             _unseenTurned += turned;
 
-            if (_unseenTurned >= stepAngle * 0.5f) {
+            if (_unseenTurned >= stepAngle * 0.5f && Time.time - _lastStandingStepTime >= stepTime) {
+                // Turning built up while waiting is dropped, not owed.
                 _unseenTurned = 0f;
-                _guard.PlayFootstep(true);
+                PlayStandingStep();
             }
+        }
+
+        /// <summary>
+        /// A step taken standing sounds (quieter, Guard.standingStepVolume)
+        /// and its time is noted for the unseen steps' spacing.
+        /// </summary>
+        private void PlayStandingStep()
+        {
+            _lastStandingStepTime = Time.time;
+            _guard.PlayFootstep(true);
         }
 
         /// <summary>
@@ -376,7 +393,7 @@ namespace AI
 
                 if (leg.StepProgress >= 1f) {
                     // The foot is down: its (quieter) footstep.
-                    _guard.PlayFootstep(true);
+                    PlayStandingStep();
                     leg.IsStepping = false;
                     leg.IsPlanted = true;
                     leg.LockPosition = home;

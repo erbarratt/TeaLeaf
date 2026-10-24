@@ -11,8 +11,8 @@ namespace Player
     /// What the pack holds, and where things go in it, is the pack's own
     /// business.
     ///
-    /// - Reaching over the shoulder - a hand beside and behind the head -
-    ///   and gripping brings the pack out, with either hand. It rides on
+    /// - A hand at the chest, palm towards it (PlayerBodyZones), gripping
+    ///   brings the pack out, with either hand. It rides on
     ///   that hand's visual like something carried, at a set place
     ///   relative to the hand, for as long as the grip is held; letting
     ///   go puts it away. It collides with nothing.
@@ -37,7 +37,7 @@ namespace Player
     /// and TickHeld() (the pack's own movement, and the coins) after the
     /// hand visuals are placed.
     /// </summary>
-    public class PlayerPack : MonoBehaviour, IDebugDrawable
+    public class PlayerPack : MonoBehaviour
     {
         /// One hand's state. A class, made once per hand in Awake(), so
         /// the methods below can change it without ref parameters.
@@ -61,10 +61,10 @@ namespace Player
             public LootWorthMarker marker;
 
             // Whether grip was held last frame, and whether the hand was
-            // at a shoulder and free: the pack comes out on the frame grip
+            // at the chest and free: the pack comes out on the frame grip
             // is pressed there, and a tap is felt once on reaching it.
             public bool wasGrabbing;
-            public bool wasAtShoulder;
+            public bool wasAtChest;
         }
 
         [SerializeField] private PlayerInputXR playerInput;
@@ -78,6 +78,10 @@ namespace Player
         // wired (it's on this same object).
         [SerializeField] private PlayerHandState playerHandState;
 
+        // Where the chest is, which the pack is reached for. Found (or
+        // made) in Awake() if not wired (it's on this same object).
+        [SerializeField] private PlayerBodyZones bodyZones;
+
         // Optional: a rig with no haptics still uses the pack.
         [SerializeField] private PlayerHaptics playerHaptics;
 
@@ -85,27 +89,13 @@ namespace Player
         // and made with its default settings if there is none.
         [SerializeField] private Pack pack;
 
-        [Header("Bringing The Pack Out")]
-
-        // Where the pack is reached for: the middle of a ball beside and
-        // behind the head, over the right shoulder, measured from the
-        // head in metres - x to the right, y up, z ahead (so a negative z
-        // is behind), with the head's tilt ignored. The left shoulder's
-        // is the mirror image. Either hand may reach either one.
-        [SerializeField] private Vector3 shoulderOffset = new(0.2f, -0.05f, -0.12f);
-
-        // The ball's radius, in metres.
-        [SerializeField] private float shoulderRadius = 0.2f;
-
         [Header("Where The Pack Rides")]
 
-        // The middle of the pack's board in the left hand visual's own
-        // space (its fingers point along -Y, its palm faces +X, its thumb
-        // side is +Z), and which way it's turned. The defaults put the
-        // board in front of a left hand held thumb up, facing back at the
-        // player. In the right hand it sits at the mirror image of this.
-        [SerializeField] private Vector3 packPosition = new(0.14f, -0.2f, 0.08f);
-        [SerializeField] private Vector3 packRotation = new(90f, 0f, 0f);
+        // How a hand holds the pack by the chest's handle: each hand's
+        // offset from the pack's own origin and axes (the middle of the
+        // spaces, Z away from the player), and the fingers.
+        [Tooltip("How a hand holds the pack by its handle (Assets/Data/Hand Poses/PackHold.asset): each hand's offset from the pack's origin and axes (middle of the spaces, X right, Y up, Z away from the player), and the finger pose. Posed with TeaLeaf > Modify Prefab > Pose with Hand. Empty puts the pack's origin on the hand visual's.")]
+        [SerializeField] private HandSnapProfile packProfile;
 
         [Header("Loot Worth Coins")]
 
@@ -125,7 +115,7 @@ namespace Player
         [SerializeField] private float storeVolume = 0.5f;
         [SerializeField] private float storeNoiseScale = 0.2f;
 
-        // A free hand reaching a shoulder, and the pack coming out.
+        // A free hand reaching the chest, and the pack coming out.
         [SerializeField] private float reachAmplitude = 0.15f;
         [SerializeField] private float reachDuration = 0.03f;
         [SerializeField] private float summonAmplitude = 0.5f;
@@ -175,6 +165,16 @@ namespace Player
         public bool IsRightBusy => _isOut && !_isPackLeft;
 
         /// <summary>
+        /// Whose finger pose a hand plays: the pack profile's in the hand
+        /// holding the pack, else null. Read by PlayerHandAnimation each
+        /// frame.
+        /// </summary>
+        public HandSnapProfile GetHeldProfile(bool isLeftHand)
+        {
+            return _isOut && _isPackLeft == isLeftHand ? packProfile : null;
+        }
+
+        /// <summary>
         /// Editor-only: fills in the references when the component is
         /// added (on the Hands object; the body systems are on the Player
         /// root above it).
@@ -193,6 +193,10 @@ namespace Player
         {
             if (playerHandState == null) {
                 playerHandState = PlayerHandState.GetOrAdd(playerHandVisuals);
+            }
+
+            if (bodyZones == null) {
+                bodyZones = PlayerBodyZones.GetOrAdd(playerHandVisuals);
             }
 
             if (playerHaptics == null) {
@@ -241,16 +245,6 @@ namespace Player
             pack.Close();
         }
 
-        private void OnEnable()
-        {
-            DebugDrawRegistry.Register(this);
-        }
-
-        private void OnDisable()
-        {
-            DebugDrawRegistry.Unregister(this);
-        }
-
         private void OnDestroy()
         {
             // A mesh and a material made from code aren't cleaned up with
@@ -292,21 +286,17 @@ namespace Player
         }
 
         /// <summary>
-        /// Makes the pack a child of one hand's visual, at its set place.
-        /// The right hand visual is the left one mirrored (x scale -1), so
-        /// the same local place there is the mirror image of the left
-        /// hand's - which is where it should be. The pack's own x scale is
-        /// set to -1 under the right hand to cancel the mirroring, or the
-        /// pack itself would be drawn back to front.
+        /// Makes the pack a child of one hand's visual, where the pack
+        /// profile puts it, with the chest's handle on that hand's side.
+        /// The pack itself (its spaces) is never mirrored, so it shows the
+        /// right way round and up in either hand.
         /// </summary>
         private void PlaceOnHand(bool isLeftHand)
         {
-            Transform packTransform = pack.transform;
             Transform visual = isLeftHand ? playerHandVisuals.LeftHandVisual : playerHandVisuals.RightHandVisual;
 
-            packTransform.SetParent(visual, false);
-            packTransform.SetLocalPositionAndRotation(packPosition, Quaternion.Euler(packRotation));
-            packTransform.localScale = isLeftHand ? Vector3.one : new Vector3(-1f, 1f, 1f);
+            pack.SetHandleOnLeft(isLeftHand);
+            HandSnapProfile.PlaceInHand(packProfile, isLeftHand, pack.transform, visual, transform);
         }
 
         /// <summary>
@@ -329,10 +319,10 @@ namespace Player
                     ClosePack();
                 }
             } else {
-                TickReach(_left, isLeftGrabbing, playerTracking.LeftHandPosition);
+                TickReach(_left, isLeftGrabbing);
 
                 if (!_isOut) {
-                    TickReach(_right, isRightGrabbing, playerTracking.RightHandPosition);
+                    TickReach(_right, isRightGrabbing);
                 }
             }
 
@@ -342,59 +332,34 @@ namespace Player
 
         /// <summary>
         /// One hand, while the pack is away: a tap as the hand, free,
-        /// reaches a shoulder, and the pack out on that hand on the frame
-        /// its grip is pressed there. (Pressed, not held: a hand that
-        /// arrives already gripping doesn't bring it out.)
+        /// comes to the chest (PlayerBodyZones: in the chest box, palm
+        /// towards it), and the pack out on that hand on the frame its
+        /// grip is pressed there. (Pressed, not held: a hand that arrives
+        /// already gripping doesn't bring it out.)
         /// </summary>
-        private void TickReach(PackHand hand, bool isGrabbing, Vector3 handPosition)
+        private void TickReach(PackHand hand, bool isGrabbing)
         {
-            bool isAtShoulder = IsAtShoulder(handPosition)
-                && !playerHandState.IsBusyExcept(hand.isLeftHand, HandUse.Pack);
+            bool isAtChest = !playerHandState.IsBusyExcept(hand.isLeftHand, HandUse.Pack)
+                && bodyZones.IsAtChest(hand.isLeftHand);
 
-            if (isAtShoulder && !hand.wasAtShoulder) {
+            if (isAtChest && !hand.wasAtChest) {
                 Pulse(hand.isLeftHand, reachAmplitude, reachDuration);
             }
 
-            hand.wasAtShoulder = isAtShoulder;
+            hand.wasAtChest = isAtChest;
 
-            if (!isAtShoulder || !isGrabbing || hand.wasGrabbing) {
+            if (!isAtChest || !isGrabbing || hand.wasGrabbing) {
                 return;
             }
 
             _isOut = true;
             _isPackLeft = hand.isLeftHand;
-            _left.wasAtShoulder = false;
-            _right.wasAtShoulder = false;
+            _left.wasAtChest = false;
+            _right.wasAtChest = false;
 
             PlaceOnHand(hand.isLeftHand);
             pack.Open();
             Pulse(hand.isLeftHand, summonAmplitude, summonDuration);
-        }
-
-        /// <summary>
-        /// Whether a point is within reach of either shoulder: inside the
-        /// ball over the right one or its mirror image over the left.
-        /// Measured from the head with only its turn to left and right
-        /// taken into account, so looking down doesn't swing the shoulders
-        /// up behind the head.
-        /// </summary>
-        private bool IsAtShoulder(Vector3 worldPoint)
-        {
-            Vector3 local = Quaternion.Inverse(HeadYaw()) * (worldPoint - playerTracking.HeadPosition);
-
-            // Folding left onto right tests both shoulders at once.
-            local.x = Mathf.Abs(local.x);
-
-            return (local - shoulderOffset).sqrMagnitude <= shoulderRadius * shoulderRadius;
-        }
-
-        /// <summary>
-        /// The head's rotation with its tilt taken out: only which way it
-        /// faces round the vertical.
-        /// </summary>
-        private Quaternion HeadYaw()
-        {
-            return Quaternion.Euler(0f, playerTracking.HeadRotation.eulerAngles.y, 0f);
         }
 
         /// <summary>
@@ -686,36 +651,6 @@ namespace Player
             if (_hasHaptics) {
                 playerHaptics.Pulse(isLeftHand, amplitude, duration);
             }
-        }
-
-        /// <summary>
-        /// Editor-only: the two shoulder balls while this object is
-        /// selected.
-        /// </summary>
-        private void OnDrawGizmosSelected()
-        {
-            DebugLines.ForGizmos.Draw(this, true);
-        }
-
-        /// <summary>
-        /// The two shoulder balls, for tuning where the pack is reached
-        /// for: in the Scene view while selected and, with InHeadsetGizmos
-        /// showing detail, in the headset. Nothing to draw in Edit Mode -
-        /// they hang off the tracked head.
-        /// </summary>
-        public void DrawDebug(DebugLines lines, bool detailed)
-        {
-            if (!detailed || !Application.isPlaying || playerTracking == null) {
-                return;
-            }
-
-            Vector3 headPosition = playerTracking.HeadPosition;
-            Quaternion yaw = HeadYaw();
-            Vector3 mirrored = new(-shoulderOffset.x, shoulderOffset.y, shoulderOffset.z);
-
-            lines.Color = _isOut ? Color.green : Color.yellow;
-            lines.WireSphere(headPosition + yaw * shoulderOffset, shoulderRadius);
-            lines.WireSphere(headPosition + yaw * mirrored, shoulderRadius);
         }
     }
 }

@@ -57,11 +57,13 @@ namespace Player
         [SerializeField] private PlayerLockpicking playerLockpicking;
         [Tooltip("The keyring and keys, on the Hands object. Optional.")]
         [SerializeField] private PlayerKeys playerKeys;
-        [Tooltip("The hand crossbow, on the Hands object. Optional.")]
-        [SerializeField] private PlayerCrossbow playerCrossbow;
         [Tooltip("The blackjack, on the Hands object. Optional.")]
         [SerializeField] private PlayerBlackjack playerBlackjack;
-        [Tooltip("The compass worn on the wrist, on the Hands object. Optional.")]
+        [Tooltip("The bow, on the Hands object. Optional.")]
+        [SerializeField] private PlayerBow playerBow;
+        [Tooltip("The bow's arrows once shot, on the Hands object with the bow.")]
+        [SerializeField] private PlayerArrows playerArrows;
+        [Tooltip("The compass worn on the back of a hand, on the Hands object. Optional.")]
         [SerializeField] private PlayerCompass playerCompass;
         [Tooltip("Places the hand visuals, on the Hands object. Ticked after the body has moved and turned.")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
@@ -110,13 +112,14 @@ namespace Player
         // see Awake().
         private bool _hasPack;
 
-        // Whether the rig has a PlayerCrossbow - see Awake().
-        private bool _hasCrossbow;
-
         // Whether the rig has a PlayerBlackjack, and a PlayerCompass - see
         // Awake().
         private bool _hasBlackjack;
         private bool _hasCompass;
+
+        // Whether the rig has a PlayerBow (which brings its PlayerArrows) -
+        // see Awake().
+        private bool _hasBow;
 
         /// <summary>
         /// Editor-only convenience: Unity calls Reset() when the component is
@@ -146,8 +149,9 @@ namespace Player
             playerHandDoors = GetComponentInChildren<PlayerHandDoors>();
             playerLockpicking = GetComponentInChildren<PlayerLockpicking>();
             playerKeys = GetComponentInChildren<PlayerKeys>();
-            playerCrossbow = GetComponentInChildren<PlayerCrossbow>();
             playerBlackjack = GetComponentInChildren<PlayerBlackjack>();
+            playerBow = GetComponentInChildren<PlayerBow>();
+            playerArrows = GetComponentInChildren<PlayerArrows>();
             playerCompass = GetComponentInChildren<PlayerCompass>();
             playerHandVisuals = GetComponentInChildren<PlayerHandVisuals>();
             playerHandAnimation = GetComponentInChildren<PlayerHandAnimation>();
@@ -227,13 +231,6 @@ namespace Player
             // And the pack, which is nothing without props to put in it.
             _hasPack = _hasHandHolding && playerPack != null;
 
-            if (playerCrossbow == null) {
-                playerCrossbow = GetComponentInChildren<PlayerCrossbow>();
-            }
-
-            // And the crossbow.
-            _hasCrossbow = playerCrossbow != null;
-
             if (playerBlackjack == null) {
                 playerBlackjack = GetComponentInChildren<PlayerBlackjack>();
             }
@@ -247,6 +244,17 @@ namespace Player
 
             // And the compass.
             _hasCompass = playerCompass != null;
+
+            if (playerBow == null) {
+                playerBow = GetComponentInChildren<PlayerBow>();
+            }
+
+            if (playerArrows == null) {
+                playerArrows = GetComponentInChildren<PlayerArrows>();
+            }
+
+            // And the bow, which always comes with its arrows.
+            _hasBow = playerBow != null && playerArrows != null;
         }
 
         /// <summary>
@@ -301,7 +309,7 @@ namespace Player
             // to it, since nothing runs that could release it.
             if (_isLevelOver) {
                 playerHandInteraction.Tick();
-                TickHandVisuals();
+                TickHandVisuals(false);
                 TickHeldProps(false);
                 playerHandInteraction.TickReticles();
                 playerHandAnimation.Tick();
@@ -320,8 +328,8 @@ namespace Player
             // mantling, since the mantle has already let go of the ledge and
             // nothing may grab or climb until it finishes.
             if (!playerMantling.IsMantling) {
-                // 3b. The pack - brought out by reaching over a shoulder
-                // and gripping, put away by letting go. First of the grab
+                // 3b. The pack - brought out by a hand at the chest
+                // gripping, put away by letting go. First of the grab
                 // systems: it's taken by reaching, not by the hand rays,
                 // so a hand that takes it here must already be busy when
                 // climbing, carrying and doors look at what its ray is on.
@@ -343,19 +351,21 @@ namespace Player
                     playerKeys.Tick();
                 }
 
-                // 3b (continued). The crossbow's wheel - the other hand
-                // taking it (its ray on the wheel, grip held) to change the
-                // kind of bolt. Before the other grab systems, so the hand
-                // is already busy when they run.
-                if (_hasCrossbow) {
-                    playerCrossbow.TickWheel();
-                }
-
-                // 3b (continued). The blackjack - drawn by gripping at the
-                // chest, put away by letting go. Before the other grab
+                // 3b (continued). The blackjack - drawn by gripping over
+                // its shoulder, put away by letting go. Before the other grab
                 // systems for the same reason.
                 if (_hasBlackjack) {
                     playerBlackjack.Tick();
+                }
+
+                // 3b (continued). Arrows lying about picked up by pointing
+                // and gripping, then the bow - drawn by gripping over its
+                // shoulder, an arrow taken over the other shoulder with
+                // the trigger. Before the other grab systems for the same
+                // reason.
+                if (_hasBow) {
+                    playerArrows.TickPickup();
+                    playerBow.Tick();
                 }
 
                 playerClimbing.Tick();
@@ -379,13 +389,6 @@ namespace Player
                 // and carried props.
                 if (_hasHandDoors) {
                     playerHandDoors.Tick();
-                }
-
-                // 4a (continued). The crossbow becoming active - last of
-                // all, so a hand that grabbed anything this frame is
-                // already busy: a grab always wins over the crossbow.
-                if (_hasCrossbow) {
-                    playerCrossbow.Tick();
                 }
             }
 
@@ -413,7 +416,7 @@ namespace Player
                     playerKeyholes.Tick();
                 }
 
-                TickHandVisuals();
+                TickHandVisuals(false);
                 TickHeldProps(false);
                 playerHandInteraction.TickReticles();
                 playerHandAnimation.Tick();
@@ -484,7 +487,7 @@ namespace Player
             // 8. Hand visuals - after Move() and turning, since the visuals
             // are children of the rig: a snap pose placed any earlier would
             // be dragged along by this frame's movement until next frame.
-            TickHandVisuals();
+            TickHandVisuals(true);
 
             // 8a. Carried props - attached once the hand visual has reached
             // them, so straight after the visuals; then aiming a throw,
@@ -502,13 +505,15 @@ namespace Player
         }
 
         /// <summary>
-        /// Held door handles and lockpicks, then the hand visuals. Called
-        /// on every path through Update() - normal, mid-mantle and after
-        /// the level has ended. The doors and picks go first: a door
-        /// follows the hand on its handle (and a pick the hand on it), and
-        /// the hand visual is then snapped onto it where it has ended up.
+        /// Held door handles, lockpicks, keys and the bow's string, then
+        /// the hand visuals. Called on every path through Update() -
+        /// normal, mid-mantle and after the level has ended. The others go
+        /// first: a door follows the hand on its handle (and a pick the
+        /// hand on it, and the string the hand drawing it), and the hand
+        /// visual is then snapped onto it where it has ended up. canAim is
+        /// false on the last two paths: no arrow is shot then.
         /// </summary>
-        private void TickHandVisuals()
+        private void TickHandVisuals(bool canAim)
         {
             if (_hasHandDoors) {
                 playerHandDoors.TickHeld();
@@ -520,6 +525,10 @@ namespace Player
 
             if (_hasKeys) {
                 playerKeys.TickHeld();
+            }
+
+            if (_hasBow) {
+                playerBow.TickHeld(canAim);
             }
 
             playerHandVisuals.Tick();
@@ -549,16 +558,17 @@ namespace Player
                 playerPack.TickHeld();
             }
 
-            // The crossbow's arc and shot, from where the hand visual
-            // (which carries it) now is, and its bolts in flight.
-            if (_hasCrossbow) {
-                playerCrossbow.TickHeld(canAim);
-            }
-
-            // The compass, placed on the wrist of the hand visual that
+            // The compass, placed on the back of the hand visual that
             // wears it.
             if (_hasCompass) {
                 playerCompass.Tick();
+            }
+
+            // Arrows in flight, settling and sounding, and their ropes -
+            // on every path, so an arrow already shot keeps flying through
+            // a mantle.
+            if (_hasBow) {
+                playerArrows.TickFlight();
             }
         }
     }

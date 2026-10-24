@@ -33,7 +33,7 @@ namespace Interaction
     [RequireComponent(typeof(CapsuleCollider))]
     public class ClimbableRope : MonoBehaviour, IHandTarget, IClimbable, IZipLine, IDebugDrawable
     {
-        [Tooltip("The hand offsets and finger pose for a hand on the rope, shared by every rope. Empty, the hand sits exactly on the grip frame in the rope grip pose.")]
+        [Tooltip("The hand offsets and finger pose for a hand on the rope, shared by every rope. Empty, the hand sits exactly on the grip frame and the fingers keep their input curl.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
         // How far the rope runs from this object's position along its local
@@ -617,7 +617,7 @@ namespace Interaction
 
             // See ClimbableEdge.GetSnapPose() for why == null.
             if (snapProfile == null) {
-                return new HandSnapPose(gripPosition, gripRotation, HandPose.RopeGrip);
+                return new HandSnapPose(gripPosition, gripRotation, null);
             }
 
             return snapProfile.Apply(isLeftHand, gripPosition, gripRotation);

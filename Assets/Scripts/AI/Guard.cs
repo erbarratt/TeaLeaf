@@ -31,12 +31,14 @@ namespace AI
     /// carries on with whatever it was doing, and a timer knocks it out
     /// when it runs down.
     ///
-    /// What moves it between them is one number, the detection meter
-    /// (0-1). Seeing the player fills it - faster the better lit they
-    /// are (PlayerVisibility) and the nearer - and hearing a noise adds
-    /// to it at once. It drains when there's nothing to notice. At the
-    /// suspicious threshold the guard becomes Suspicious; full, it
-    /// chases.
+    /// What moves it between them is two meters (0-1), as in Thief VR:
+    /// suspicion ("was that something?") and detection ("that's a
+    /// person"). Seeing the player fills both, at rates set by Thief
+    /// VR's vision zones (GuardSight): which zone and how far, lit or
+    /// dark, and how the player moves. Hearing a noise adds to both at
+    /// once. Each holds a while after it was last raised, then drains -
+    /// suspicion soon, detection slowly. Suspicion full, the guard
+    /// becomes Suspicious; detection full, it chases.
     ///
     /// Looking is not done every frame: it costs physics rays, so it's
     /// done a few times a second, each guard on its own timer so they
@@ -51,9 +53,10 @@ namespace AI
     {
         [Header("Parts")]
 
-        // Where it sees and hears from: an object at head height whose
-        // forward is the way the guard faces.
-        [Tooltip("Where the guard sees and hears from: an object at head height whose forward is the way the guard faces.")]
+        // Where it sees and hears from: an object on the model's head
+        // bone whose forward is the way the head faces, so the view
+        // turns and dips with the head as it is animated.
+        [Tooltip("Where the guard sees and hears from: an object on the model's head bone whose forward is the way the head faces.")]
         [SerializeField] private Transform eye;
 
         // Optional: greybox shapes under one object, laid flat when the
@@ -124,18 +127,10 @@ namespace AI
 
         [Header("Sight")]
 
-        // How far it can see, and how wide, in degrees (the whole cone).
-        [Tooltip("How far it can see, in metres.")]
-        [SerializeField] private float viewRange = 14f;
-        [Tooltip("How wide it can see, in degrees (the whole cone).")]
-        [SerializeField] private float viewAngle = 110f;
-
-        // Within this distance the player is seen even in full shadow -
-        // as if lit this well (0-1).
-        [Tooltip("Within this distance, in metres, the player is seen even in full shadow.")]
-        [SerializeField] private float closeRange = 2.5f;
-        [Tooltip("How lit (0-1) a player within Close Range counts as at the least.")]
-        [SerializeField] private float closeVisibility = 0.5f;
+        // The vision zones and how fast each fills the meters, shared by
+        // every guard (Thief VR's, in Assets/Data/AI).
+        [Tooltip("The vision zones and their fill times, shared by every guard (Assets/Data/AI/GuardSight.asset). Changes made in Play Mode are kept.")]
+        [SerializeField] private GuardSight sight;
 
         // A player whose body is within this of the guard's, level, has
         // bumped into it: the guard turns on them whichever way it was
@@ -145,23 +140,6 @@ namespace AI
         [Tooltip("A player whose feet come within this of the guard's, in metres, level, has bumped into it and is noticed whichever way it faces. A little more than the two bodies' radii together.")]
         [SerializeField] private float bumpRange = 0.5f;
 
-        // Beyond the close range, a player less visible than this (0-1)
-        // isn't seen at all.
-        [Tooltip("Beyond Close Range, a player less visible than this (0-1) isn't seen at all.")]
-        [SerializeField] private float minVisibility = 0.05f;
-
-        // Seconds to go from unaware to chasing with the player close
-        // and in plain sight, and how much slower (a fraction) at the
-        // far end of the view range.
-        [Tooltip("Seconds to go from unaware to chasing with the player close and in plain sight.")]
-        [SerializeField] private float detectionTime = 1f;
-        [Tooltip("How fast the meter fills at the far end of View Range, as a fraction of close up.")]
-        [SerializeField] private float farDetectionScale = 0.25f;
-
-        // Seconds a full meter takes to drain with nothing to notice.
-        [Tooltip("Seconds a full meter takes to drain with nothing to notice (not while chasing).")]
-        [SerializeField] private float decayTime = 6f;
-
         // What blocks its sight. Filled in from the layer names if left
         // empty (Environment and Interactable: walls, props, doors).
         [Tooltip("What blocks its sight. Left empty, Environment and Interactable (walls, props, doors).")]
@@ -170,28 +148,45 @@ namespace AI
         [Header("Hearing")]
 
         // How much of a noise's loudness (0-1 at the ears) is added to
-        // the meter, and how much more a noisemaker bolt counts.
-        [Tooltip("How much of a noise's loudness at the ears (0-1) is added to the meter.")]
+        // the detection meter, and how much a noisemaker bolt's is.
+        [Tooltip("How much of a noise's loudness at the ears (0-1) is added to the detection meter.")]
         [SerializeField] private float hearingGain = 0.7f;
-        [Tooltip("How much a noisemaker bolt's noise is added to the meter, in place of Hearing Gain.")]
+        [Tooltip("How much a noisemaker bolt's noise is added to the detection meter, in place of Hearing Gain.")]
         [SerializeField] private float distractionGain = 1.5f;
 
-        [Header("Thresholds (the meter, 0-1)")]
+        // How many times more a noise adds to the suspicion meter than to
+        // the detection meter: at 3.33 a footstep of 0.45 at the ears
+        // (x 0.7) fills suspicion and the guard turns to look.
+        [Tooltip("How many times more a noise adds to the suspicion meter than to the detection meter. At 3.33 one ordinary footstep at the ears (0.45 x 0.7) fills suspicion.")]
+        [SerializeField] private float hearingSuspicionScale = 3.33f;
 
-        // Becomes Suspicious at the first; a suspicion that reached the
-        // second is worth going to look at.
-        [Tooltip("Meter level (0-1) at which a patrolling guard becomes Suspicious.")]
-        [SerializeField] private float suspiciousThreshold = 0.3f;
-        [Tooltip("Meter level (0-1) a suspicion must reach for the guard to go and search.")]
-        [SerializeField] private float investigateThreshold = 0.6f;
+        [Header("Meters (0-1)")]
+
+        // Two meters, as Thief VR's: suspicion ("was that something?";
+        // full = Suspicious) fades fast, detection ("that's a person";
+        // full = Chase) lingers. Each holds for a while after the last
+        // thing that raised it, then drains at its rate per second.
+        [Tooltip("Seconds the suspicion meter holds after the last thing that raised it, before draining.")]
+        [SerializeField] private float suspicionHoldTime = 1f;
+        [Tooltip("How much of the suspicion meter drains each second once it stops holding.")]
+        [SerializeField] private float suspicionDecayRate = 1f;
+        [Tooltip("Seconds the detection meter holds after the last thing that raised it, before draining (not while chasing).")]
+        [SerializeField] private float detectionHoldTime = 4f;
+        [Tooltip("How much of the detection meter drains each second once it stops holding.")]
+        [SerializeField] private float detectionDecayRate = 0.25f;
+
+        // A suspicion whose detection reached this is worth going to look
+        // at; the level a bump, a bolt or a body sets detection to.
+        [Tooltip("Detection level (0-1) a suspicion must reach for the guard to go and search; also what a bump, a bolt or a found body sets it to.")]
+        [SerializeField] private float investigateThreshold = 0.5f;
 
         [Header("Looking (how often)")]
 
         // Seconds between looks, and between looks while the player is
-        // further away than it could see them anyway.
+        // further away than any zone reaches.
         [Tooltip("Seconds between looks.")]
         [SerializeField] private float lookInterval = 0.15f;
-        [Tooltip("Seconds between looks while the player is further away than it could see them anyway.")]
+        [Tooltip("Seconds between looks while the player is further away than any vision zone reaches.")]
         [SerializeField] private float farLookInterval = 0.5f;
 
         [Header("Suspicious")]
@@ -365,9 +360,13 @@ namespace AI
         private Vector3 _postPosition;
         private Quaternion _postRotation;
 
-        // The cosine of half the view angle, worked out once: a point is
-        // inside the cone when the dot product is at least this.
-        private float _viewCos;
+        // How far the furthest vision zone reaches, worked out once.
+        private float _sightReach;
+
+        // When each meter was last raised: it holds until its hold time
+        // has passed since.
+        private float _suspicionRaisedTime;
+        private float _detectionRaisedTime;
 
         // Looking: seconds until the next look, when the last one was,
         // and whether the player was seen in it.
@@ -389,7 +388,8 @@ namespace AI
         private float _cruiseSpeed;
         private bool _isWaiting;
 
-        // Suspicious: seconds left, and the highest the meter got.
+        // Suspicious: seconds left, and the highest the detection meter
+        // got.
         private float _suspiciousTimer;
         private float _peakMeter;
 
@@ -437,7 +437,10 @@ namespace AI
         /// What it's doing.
         public GuardState State { get; private set; } = GuardState.Patrol;
 
-        /// How aware of the player it is: 0 = not at all, 1 = chasing.
+        /// How sure it is something is there: full = Suspicious.
+        public float Suspicion { get; private set; }
+
+        /// How sure it is that's a person: 0 = not at all, 1 = chasing.
         public float Detection { get; private set; }
 
         public bool IsKnockedOut => State == GuardState.KnockedOut;
@@ -530,7 +533,13 @@ namespace AI
                 return;
             }
 
-            _viewCos = Mathf.Cos(viewAngle * 0.5f * Mathf.Deg2Rad);
+            if (sight == null) {
+                Debug.LogError($"Guard '{name}': no Sight assigned (Assets/Data/AI/GuardSight.asset).", this);
+                enabled = false;
+                return;
+            }
+
+            _sightReach = sight.Reach;
             _postPosition = transform.position;
             _postRotation = transform.rotation;
 
@@ -711,47 +720,62 @@ namespace AI
                 return;
             }
 
-            Vector3 head = player.HeadPosition;
-            float distance = Vector3.Distance(eyePosition, head);
-
             // Too far to be seen whatever happens: no rays, and the next
             // look can wait longer.
-            if (distance > viewRange + 2f) {
+            if (Vector3.Distance(eyePosition, player.HeadPosition) > _sightReach + 2f) {
                 _lookTimer = farLookInterval;
                 Drain(elapsed);
                 return;
             }
 
-            // Two points on the player: the head and the middle of the
-            // body. Seeing one of the two is seeing half the player.
-            float seen = 0f;
+            // Five points on the player, each with a weight (head sides,
+            // top, under the head, waist). A point counts if a zone can
+            // see it lit or dark as the player is, and nothing is in the
+            // way - the zone test first, so a point no zone can see
+            // costs no ray. Enough weight showing is the player seen,
+            // and the fastest fill of any point showing is the rate.
+            Quaternion toEye = Quaternion.Inverse(eye.rotation);
+            bool isLit = player.Visibility >= sight.LitThreshold;
+            float speed = player.Speed;
+            bool isCrouched = player.IsCrouched;
+            float weight = 0f;
+            float suspicionTime = -1f;
+            float detectionTime = -1f;
 
-            if (CanSeePoint(eyePosition, head)) {
-                seen += 0.5f;
+            for (int i = 0; i < PlayerVisibility.SightPointCount; i++) {
+                Vector3 point = player.GetSightPoint(i);
+                Vector3 local = toEye * (point - eyePosition);
+
+                if (!sight.TryGetFillTimes(local, isLit, speed, isCrouched, out float pointSuspicion, out float pointDetection)) {
+                    continue;
+                }
+
+                if (Physics.Linecast(eyePosition, point, sightLayers, QueryTriggerInteraction.Ignore)) {
+                    continue;
+                }
+
+                weight += player.GetSightWeight(i);
+                suspicionTime = FastestTime(suspicionTime, pointSuspicion);
+                detectionTime = FastestTime(detectionTime, pointDetection);
             }
 
-            if (CanSeePoint(eyePosition, player.BodyPosition)) {
-                seen += 0.5f;
-            }
-
-            // How well lit they are - or, close up, at least as if lit
-            // a fair amount: nobody is invisible at arm's length.
-            float visibility = player.Visibility;
-
-            if (distance <= closeRange) {
-                visibility = Mathf.Max(visibility, closeVisibility);
-            }
-
-            if (seen > 0f && visibility >= minVisibility) {
+            if (weight >= sight.SeenWeight) {
                 _isPlayerSeen = true;
                 _stimulus = player.FeetPosition;
 
-                // Slower the further away: full speed close up, down to
-                // a fraction of it at the edge of the view range.
-                float far = Mathf.InverseLerp(closeRange, viewRange, distance);
-                float rate = seen * visibility * Mathf.Lerp(1f, farDetectionScale, far) / Mathf.Max(detectionTime, 0.01f);
+                // Each meter fills in its own time; a meter this view
+                // can't fill (never) drains as it would unseen.
+                if (suspicionTime >= 0f) {
+                    RaiseSuspicion(elapsed / Mathf.Max(suspicionTime, 0.001f));
+                } else {
+                    DrainSuspicion(elapsed);
+                }
 
-                Detection = Mathf.Min(Detection + rate * elapsed, 1f);
+                if (detectionTime >= 0f) {
+                    RaiseDetection(elapsed / Mathf.Max(detectionTime, 0.001f));
+                } else {
+                    DrainDetection(elapsed);
+                }
             } else {
                 Drain(elapsed);
             }
@@ -760,7 +784,7 @@ namespace AI
                 // Walked into: it knows something is there and where,
                 // and turns to look. Seeing them is then up to its eyes.
                 _stimulus = player.FeetPosition;
-                Detection = Mathf.Max(Detection, investigateThreshold);
+                RaiseToInvestigate();
 
                 if (State != GuardState.Suspicious) {
                     EnterSuspicious();
@@ -779,7 +803,7 @@ namespace AI
 
             if (Detection >= 1f) {
                 EnterChase();
-            } else if (State == GuardState.Patrol && Detection >= suspiciousThreshold) {
+            } else if (State == GuardState.Patrol && Suspicion >= 1f) {
                 EnterSuspicious();
             } else if (State != GuardState.Chase) {
                 LookForBodies(eyePosition);
@@ -801,33 +825,107 @@ namespace AI
         }
 
         /// <summary>
-        /// The meter draining with nothing to notice. Not while chasing:
-        /// a chase ends by its own timer.
+        /// The faster of two fill times, where below zero is never.
+        /// </summary>
+        private static float FastestTime(float a, float b)
+        {
+            if (a < 0f) {
+                return b;
+            }
+
+            return b < 0f ? a : Mathf.Min(a, b);
+        }
+
+        /// <summary>
+        /// Both meters draining with nothing to notice.
         /// </summary>
         private void Drain(float elapsed)
         {
-            if (State != GuardState.Chase) {
-                Detection = Mathf.Max(Detection - elapsed / Mathf.Max(decayTime, 0.01f), 0f);
+            DrainSuspicion(elapsed);
+            DrainDetection(elapsed);
+        }
+
+        /// <summary>
+        /// The suspicion meter draining: nothing until its hold time has
+        /// passed since it was last raised, then at its decay rate.
+        /// </summary>
+        private void DrainSuspicion(float elapsed)
+        {
+            float draining = Mathf.Min(elapsed, Time.time - _suspicionRaisedTime - suspicionHoldTime);
+
+            if (draining > 0f) {
+                Suspicion = Mathf.Max(Suspicion - draining * suspicionDecayRate, 0f);
             }
         }
 
         /// <summary>
-        /// Whether a point is in view: within range, inside the cone,
-        /// with nothing solid in the way - one physics ray.
+        /// The detection meter draining, as suspicion but on its own
+        /// hold and rate. Not while chasing: a chase ends by its own
+        /// timer.
+        /// </summary>
+        private void DrainDetection(float elapsed)
+        {
+            if (State == GuardState.Chase) {
+                return;
+            }
+
+            float draining = Mathf.Min(elapsed, Time.time - _detectionRaisedTime - detectionHoldTime);
+
+            if (draining > 0f) {
+                Detection = Mathf.Max(Detection - draining * detectionDecayRate, 0f);
+            }
+        }
+
+        /// <summary>
+        /// Adds to the suspicion meter (capped at full) and starts its
+        /// hold again.
+        /// </summary>
+        private void RaiseSuspicion(float amount)
+        {
+            Suspicion = Mathf.Min(Suspicion + amount, 1f);
+            _suspicionRaisedTime = Time.time;
+        }
+
+        /// <summary>
+        /// Adds to the detection meter (capped at full) and starts its
+        /// hold again.
+        /// </summary>
+        private void RaiseDetection(float amount)
+        {
+            Detection = Mathf.Min(Detection + amount, 1f);
+            _detectionRaisedTime = Time.time;
+        }
+
+        /// <summary>
+        /// Something it knows is there (a bump, a bolt, a body, coming
+        /// round): suspicion full, detection at least enough to go and
+        /// search.
+        /// </summary>
+        private void RaiseToInvestigate()
+        {
+            RaiseSuspicion(1f);
+            RaiseDetection(Mathf.Max(investigateThreshold - Detection, 0f));
+        }
+
+        /// <summary>
+        /// Both meters emptied: it has decided it was nothing.
+        /// </summary>
+        private void ClearMeters()
+        {
+            Suspicion = 0f;
+            Detection = 0f;
+        }
+
+        /// <summary>
+        /// Whether a point is in view whatever the light: inside a vision
+        /// zone, with nothing solid in the way - one physics ray. For
+        /// bodies, which bring their own light test.
         /// </summary>
         private bool CanSeePoint(Vector3 eyePosition, Vector3 point)
         {
-            Vector3 toPoint = point - eyePosition;
-            float distance = toPoint.magnitude;
+            Vector3 local = Quaternion.Inverse(eye.rotation) * (point - eyePosition);
 
-            if (distance > viewRange) {
-                return false;
-            }
-
-            // The dot product of two unit vectors is the cosine of the
-            // angle between them: at least the cosine of half the view
-            // angle means inside the cone.
-            if (distance > 0.001f && Vector3.Dot(toPoint / distance, eye.forward) < _viewCos) {
+            if (!sight.Contains(local)) {
                 return false;
             }
 
@@ -857,7 +955,7 @@ namespace AI
                 other._isBodyFound = true;
                 _isAlerted = true;
                 _stimulus = other.BodyPosition;
-                Detection = Mathf.Max(Detection, investigateThreshold);
+                RaiseToInvestigate();
 
                 Bark(foundBodyBark);
                 EnterSearch(false);
@@ -873,8 +971,8 @@ namespace AI
         // ---- Hearing -----------------------------------------------------
 
         /// <summary>
-        /// A noise has reached this guard (NoiseSystem): it adds to the
-        /// meter by how loud it was here, and is somewhere to look.
+        /// A noise has reached this guard (NoiseSystem): it adds to both
+        /// meters by how loud it was here, and is somewhere to look.
         /// Another guard's noises are ignored, and so is everything
         /// during a chase or while stunned.
         /// </summary>
@@ -890,12 +988,13 @@ namespace AI
 
             float gain = noise.Type == NoiseType.Distraction ? distractionGain : hearingGain;
 
-            Detection = Mathf.Min(Detection + loudness * gain, 1f);
+            RaiseDetection(loudness * gain);
+            RaiseSuspicion(loudness * gain * hearingSuspicionScale);
             _stimulus = heardFrom;
 
             switch (State) {
                 case GuardState.Patrol:
-                    if (Detection >= suspiciousThreshold) {
+                    if (Suspicion >= 1f) {
                         EnterSuspicious();
                     }
 
@@ -1010,13 +1109,13 @@ namespace AI
             }
 
             // Enough to go on: goes to look. Otherwise it was nothing,
-            // and the meter is emptied - left part full, the very next
-            // look would make it suspicious again, and it would stand
-            // there for as long as the meter took to drain.
+            // and the meters are emptied - left full, the very next look
+            // would make it suspicious again, and it would stand there
+            // for as long as the meters took to drain.
             if (_peakMeter >= investigateThreshold) {
                 EnterSearch(true);
             } else {
-                Detection = 0f;
+                ClearMeters();
                 EnterPatrol();
             }
         }
@@ -1179,7 +1278,7 @@ namespace AI
 
         private void GiveUp()
         {
-            Detection = 0f;
+            ClearMeters();
             Bark(gaveUpBark);
             EnterPatrol();
         }
@@ -1189,7 +1288,8 @@ namespace AI
         private void EnterChase()
         {
             SetState(GuardState.Chase);
-            Detection = 1f;
+            RaiseSuspicion(1f);
+            RaiseDetection(1f);
             _cruiseSpeed = chaseSpeed;
             _lostTimer = 0f;
             Bark(spottedBark);
@@ -1231,7 +1331,8 @@ namespace AI
             _lostTimer += deltaTime;
 
             if (_lostTimer >= chaseLostTime) {
-                Detection = investigateThreshold;
+                Detection = 0f;
+                RaiseToInvestigate();
                 EnterSearch(true);
             }
         }
@@ -1262,7 +1363,7 @@ namespace AI
             }
 
             _stimulus = shotFrom;
-            Detection = Mathf.Max(Detection, investigateThreshold);
+            RaiseToInvestigate();
 
             switch (State) {
                 case GuardState.Patrol:
@@ -1318,7 +1419,8 @@ namespace AI
             // afresh, or the first look would count the whole stun as
             // time spent seeing (or not seeing) the player.
             _stimulus = transform.position;
-            Detection = investigateThreshold;
+            Detection = 0f;
+            RaiseToInvestigate();
             _lastLookTime = Time.time;
             _lookTimer = lookInterval;
             EnterSearch(true);
@@ -1382,7 +1484,7 @@ namespace AI
         private void KnockOut()
         {
             SetState(GuardState.KnockedOut);
-            Detection = 0f;
+            ClearMeters();
             _sleepTimer = 0f;
 
             if (_ragdoll != null) {
@@ -1460,7 +1562,8 @@ namespace AI
             _isPlayerSeen = false;
 
             _stimulus = transform.position;
-            Detection = investigateThreshold;
+            ClearMeters();
+            RaiseToInvestigate();
             EnterSearch(true);
         }
 
@@ -1698,14 +1801,14 @@ namespace AI
         }
 
         /// <summary>
-        /// Draws the two edges of the view cone in the state's colour, a
-        /// bar above the head filled by the detection meter and, in the
-        /// detailed view, the view range and a line to what it last saw
-        /// or heard.
+        /// Draws the vision zones in the state's colour and two bars above
+        /// the head (suspicion yellow, detection red, each as long as its
+        /// meter is full); in the detailed view, a line to what it last
+        /// saw or heard.
         /// </summary>
         public void DrawDebug(DebugLines lines, bool detailed)
         {
-            if (eye == null) {
+            if (eye == null || sight == null) {
                 return;
             }
 
@@ -1718,25 +1821,20 @@ namespace AI
             };
 
             Vector3 eyePosition = eye.position;
-            Vector3 forward = eye.forward;
-            float half = viewAngle * 0.5f;
-            Vector3 left = Quaternion.AngleAxis(-half, Vector3.up) * forward * viewRange;
-            Vector3 right = Quaternion.AngleAxis(half, Vector3.up) * forward * viewRange;
+            sight.DrawZones(lines, eyePosition, eye.rotation);
 
-            lines.Line(eyePosition, eyePosition + left);
-            lines.Line(eyePosition, eyePosition + right);
-            lines.Line(eyePosition + left, eyePosition + forward * viewRange);
-            lines.Line(eyePosition + right, eyePosition + forward * viewRange);
-
-            // The meter: a line above the head, as long as it is full.
+            // The meters: a line each above the head, as long as it is
+            // full.
             Vector3 barStart = eyePosition + Vector3.up * 0.35f - eye.right * 0.25f;
+            lines.Color = _suspiciousColor;
+            lines.Line(barStart, barStart + eye.right * (0.5f * Suspicion));
+            barStart += Vector3.up * 0.05f;
+            lines.Color = _chaseColor;
             lines.Line(barStart, barStart + eye.right * (0.5f * Detection));
 
             if (!detailed) {
                 return;
             }
-
-            lines.Circle(transform.position, Vector3.right * closeRange, Vector3.forward * closeRange);
 
             if (Application.isPlaying && State != GuardState.Patrol) {
                 lines.Line(eyePosition, _stimulus);

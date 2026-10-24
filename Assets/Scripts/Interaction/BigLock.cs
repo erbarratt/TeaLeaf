@@ -126,7 +126,7 @@ namespace Interaction
         [Tooltip("A hand closer than this to the lock's middle line, in metres, has no clear clock angle, so the pick it holds stays where it is.")]
         [SerializeField] private float deadRadius = 0.03f;
 
-        [Tooltip("The hand offsets and finger pose for a hand on a pick. Optional: with none the hand sits exactly on the grip frame, in the rope grip pose.")]
+        [Tooltip("The hand offsets and finger pose for a hand on a pick. Optional: with none the hand sits exactly on the grip frame and the fingers keep their input curl.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
         [Header("Fade")]
@@ -826,7 +826,7 @@ namespace Interaction
                 return snapProfile.Apply(isLeftPick, point, rotation);
             }
 
-            return new HandSnapPose(point, rotation, HandPose.RopeGrip);
+            return new HandSnapPose(point, rotation, null);
         }
 
         /// <summary>

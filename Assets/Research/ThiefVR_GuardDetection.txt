@@ -1,0 +1,167 @@
+THIEF VR vs TEALEAF - GUARD DETECTION
+=====================================
+
+Source: the extracted Thief VR prologue (E:\ThiefVR_Export\Prologue\ExportedProject).
+The game is IL2CPP, so the export has no code: every script is an empty stub.
+Everything here comes from serialized data - the guard data asset
+(Guard_Data_Default), components on guards and the player rig, prefabs,
+and Behavior Designer task names. The structure and numbers are real; how
+the pieces combine at runtime is inferred and marked so where unsure.
+
+
+SIDE BY SIDE
+------------
+
+Meters
+  Thief VR: two per guard, SUSPICION and DETECTION. Suspicion starts draining
+    1s after the last stimulus, at 1/s. Detection holds 4s, then drains at
+    0.25/s.
+  TeaLeaf:  the same two meters, holds and rates; suspicion full = Suspicious,
+    detection full = chase, detection 0.5 = worth a search.
+
+Vision shape
+  Thief VR: four convex mesh trigger colliders 1.8m up on the body, facing
+    the body's way. Physics does the shape test, not code.
+  TeaLeaf:  one view frustum on the eye (Peripheral) split into the same
+    four zones by rules in code (GuardSight): each an angle and a cap
+    across, up and down, plus a narrowing towards its far end. Fitted to
+    the meshes; Very Close and Peripheral come out a little bigger.
+    Linecasts only for points a zone can see.
+
+Vision zones (Thief VR mesh vertices; x half width, y relative to origin)
+  Very close  - 3m deep, +/-1.5m wide, 2.1m below to 0.95m above.
+  Close       - +/-0.5m at the origin, +/-4.5m at 1.5m (about 144 deg),
+                +/-4.75m at 3.7m, narrowing to +/-2.1m at 6m.
+  Direct LOS  - +/-1m at 0.5m to +/-5m at 9m (about 58 deg), then a 10m-wide
+                corridor to 30m; 4m below to 2m above.
+  Peripheral  - +/-7.25m at 1.7m (about 154 deg), +/-12.5m at 20-30m,
+                reaching 6.8m below eye level.
+  TeaLeaf:  the same, fitted as angles and caps (above).
+
+How fast it fills
+  Thief VR: a table per zone and distance band. Each band has a fill time for
+    suspicion and one for detection, a lit set and a dark set, and multipliers
+    for standing still, crouching and moving fast (above a speed threshold of
+    1.4-3 m/s).
+  TeaLeaf:  the same table and numbers. Fastest zone wins, times blended
+    across a band, a multiplier of 0 = never (all three inferred).
+
+Seen in the dark
+  Thief VR: within 1.5m detected in 0.2s; 1.5-3m in 0.5s; 3-6m suspicion over
+    3-6s. Beyond 6m straight ahead, or in peripheral vision at any distance:
+    impossible (dark fill time -1). Moving fast in the dark close up cuts the
+    fill time to x0.02-0.05, so it is almost instant.
+  TeaLeaf:  the same; dark = Visibility below 0.3, which includes crouching
+    (crouched in moonlight counts as dark).
+
+Points tested on the player
+  Thief VR: four points round the head plus the waist (raised 0.15m when
+    crouched), weighted: head sides and top 0.17 each, below the head 0.5,
+    body 0.8. A guard needs a total weight of at least 0.5, so in practice the
+    body, or the head from below plus something else, must show.
+  TeaLeaf:  the same five points and weights (PlayerVisibility).
+
+Light
+  Thief VR: hand-placed light volumes - 67 in the prologue (25 spheres of
+    radius 2-6.6m, 42 cones mostly 40 deg). The player has two light points,
+    one at the head and one at the feet that only counts when grounded. Each
+    point is lit or dark, nothing between, and that picks the lit or dark
+    column of the table.
+  TeaLeaf:  from geometry - one ray to the moon plus LightSource rays;
+    continuous 0-1, brightest light wins; no volumes.
+
+Touch
+  Thief VR: touched by a hand - suspicion in 0.01s, detection in 0.001s,
+    effectively instant detection.
+  TeaLeaf:  a bump fills suspicion and takes detection to the investigate
+    level, guard becomes Suspicious, no chase.
+
+Hearing
+  Thief VR: five fixed noise levels - silent, low, medium, high, very high -
+    radii 0 / 2 / 5 / 10 / 15m. Range also checked as a NavMesh path distance
+    (1.25x the radius). Each floor has a loudness: carpet 1, most floors 2,
+    glass and loose wood 3. Footsteps count as stealthy up to 1.9 m/s.
+  TeaLeaf:  continuous loudness, routed through sound rooms and portals, added
+    to the meter x0.7 (x1.5 for the noisemaker); footsteps vary by surface and
+    stance.
+
+Player's real voice
+  Thief VR: microphone above a 0.12 threshold counts as a shout that alerts
+    guards (2.5s cooldown).
+  TeaLeaf:  no.
+
+Things guards notice ("anomalies")
+  Thief VR: torches put out (with an investigation priority; guards walk over
+    and relight torches and braziers), knocked-out, dead and injured guards.
+    The far sight bands see these only if lit.
+  TeaLeaf:  knocked-out guards in light >= 0.15 only. A fire going out is on
+    the not-built list.
+
+Guard to guard
+  Thief VR: barks carry 3m nearby, 15m shouted. Guards alert others within
+    10m (also a 10m path) without needing sound. A guard turns hostile on
+    seeing another die within 9m.
+  TeaLeaf:  none (not built).
+
+After losing the player
+  Thief VR: re-acquires instantly if it sees the player again within 1.5s and
+    20m. Alert lasts 9s, the hunt times out after 30s, an investigation lasts
+    5s.
+  TeaLeaf:  chaseLostTime 4s, then a search.
+
+Search
+  Thief VR: first search spot within 40m of the target, 20s / 3m cooldown per
+    spot. Later spots 8-15m from the target and at least 4.5m from the guard,
+    45s cooldown. Five 1.5m rays pick which look-around animation to play, so
+    a guard never searches into a wall.
+  TeaLeaf:  three random NavMesh points within 4m; look-about turns a random
+    60-120 deg.
+
+Logic
+  Thief VR: Behavior Designer trees (Patrol, Suspicious, ...).
+  TeaLeaf:  switch state machine.
+
+Speeds
+  Thief VR: patrol 2 m/s, alert 4 m/s.
+  TeaLeaf:  patrol 1.07, chase 3.6.
+
+Other
+  Thief VR: awareness meter shown above each guard's head; light gem with
+    haptics; volumes that stop the player peeking through walls.
+  TeaLeaf:  light gem on the compass; no meter shown in game.
+
+
+WHAT IT ADDS UP TO
+------------------
+
+- Sight is now theirs in TeaLeaf: their zones, bands, lit/dark fill times,
+  multipliers, five weighted points and two meters. It gives their sharp,
+  readable rules ("never seen in the dark past 6m, never in peripheral
+  vision unless lit") at the cost of a large tuning table (GuardSight).
+- Their light is designer volumes; ours comes from geometry. TeaLeaf rules
+  out volumes (no designer-placed shadow/light volumes). Our continuous 0-1
+  Visibility is cut at a lit threshold to pick their lit or dark column.
+- Movement matters much more than before: in the dark the moving-fast
+  multiplier (x0.02) is the main thing that gives the player away up close.
+
+
+IDEAS WORTH TAKING
+------------------
+
+None break the visibility-from-geometry rule. Each is a design choice; nothing
+built.
+
+1. Instant re-acquire after losing the player briefly (their 1.5s / 20m).
+   Stops the guard looking dim when the player ducks behind a pillar.
+2. Guards noticing a torch going out, then investigating and relighting it.
+   Already on the not-built list; Flame is the natural hook.
+3. Short rays before a look-about turn so a searching guard doesn't stare at
+   a wall. About five rays per search stop.
+4. Guard-to-guard alerts. On the roadmap as not built; theirs use a 10m path
+   range plus bark ranges.
+
+Leave out: the microphone (out of scope, hardware dependency), hand-placed
+light volumes (against the design rule).
+
+Not yet examined: the Suspicious behaviour tree in detail and the
+ChangeAnimatorAwarenessLevel animator states.

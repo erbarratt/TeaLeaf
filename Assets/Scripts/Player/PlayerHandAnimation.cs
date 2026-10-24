@@ -1,37 +1,31 @@
-using System;
 using Interaction;
 using UnityEngine;
 
 namespace Player
 {
     /// <summary>
-    /// Drives each hand model's Animator. Two things feed it:
+    /// Drives each hand model's fingers. Two things feed them:
     ///
-    /// - Input: the Base (index) and Grip (middle/ring/pinky) layers always
-    ///   follow live trigger/grip values.
-    /// - Snapping: the "Snap Pose" layer sits on top as an override. While a
-    ///   hand is snapped to something (a ledge now; rungs, ropes, held props
-    ///   and tools later), that layer plays the snap target's HandPose, and
-    ///   its weight follows the hand's HandVisualSnap.Weight - so the fingers
-    ///   close exactly as the hand lands and open exactly as it leaves. At
-    ///   weight 0 the layer contributes nothing and input curl shows as normal.
+    /// - Input: the hand Animator's Base (index) and Grip (middle/ring/pinky)
+    ///   layers always follow live trigger/grip values.
+    /// - Snapping: while a hand is snapped to something (a ledge, rung, rope,
+    ///   held prop or tool), the snap target's HandSnapProfile finger pose is
+    ///   laid on top by a HandFingerPoser per hand, its weight following the
+    ///   hand's HandVisualSnap.Weight - so the fingers close exactly as the
+    ///   hand lands and open exactly as it leaves. At weight 0 the input
+    ///   curl shows as normal.
+    /// - Holding: a hand holding the bow, an arrow or the pack (none of
+    ///   which snap the hand) plays that thing's profile at full weight
+    ///   while it holds it (PlayerBow/PlayerPack.GetHeldProfile()). A snap
+    ///   under way wins (the string).
     ///
-    /// This replaced an earlier HandState enum (Idle/Climbing): every
-    /// non-input pose is a snap pose, so the snap layer's weight already says
-    /// who owns the fingers.
-    ///
-    /// Ticked explicitly from PlayerController.Update(), after
-    /// PlayerHandVisuals.Tick(), so it reads this frame's snap weight
-    /// rather than last frame's. Animators evaluate after every Update() has
-    /// run, so ticking this last costs nothing.
+    /// Tick() is called explicitly from PlayerController.Update(), after
+    /// PlayerHandVisuals.Tick(), so it reads this frame's snap weight. The
+    /// finger pose itself is applied in LateUpdate(): the Animator writes
+    /// the bones after every Update(), and would overwrite it there.
     /// </summary>
     public class PlayerHandAnimation : MonoBehaviour
     {
-        // Name of the override layer in Left Hand Visual.controller. Its
-        // states must be named exactly like the HandPose enum values - see
-        // BuildPoseStateHashes().
-        private const string SnapPoseLayerName = "Snap Pose";
-
         [SerializeField] private PlayerInputXR playerInput;
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
@@ -39,6 +33,12 @@ namespace Player
         // hand. Optional: found in Awake() if not wired (it's on this same
         // object).
         [SerializeField] private PlayerHandHolding playerHandHolding;
+
+        // Read for the finger pose of the bow, an arrow or the pack in a
+        // hand. Optional: found in Awake() if not wired (on this same
+        // object).
+        [SerializeField] private PlayerBow playerBow;
+        [SerializeField] private PlayerPack playerPack;
 
         [Header("Left Hand")]
         [SerializeField] private Animator leftHandAnimator;
@@ -53,25 +53,14 @@ namespace Player
         private static readonly int _gripCurlParam = Animator.StringToHash("GripCurl");
         private static readonly int _triggerCurlParam = Animator.StringToHash("TriggerCurl");
 
-        // Snap Pose layer state hash for each HandPose, indexed by (int)pose.
-        private static readonly int[] _poseStateHashes = BuildPoseStateHashes();
-
-        // Index of the Snap Pose layer, looked up once by name rather than
-        // hard-coded, so reordering layers in the controller can't silently
-        // break it. Both hands share one controller, so one index serves both.
-        // -1 if the layer is missing.
-        private int _snapPoseLayer;
-
         // Whether the rig has a PlayerHandHolding, checked once in Awake().
         private bool _hasHandHolding;
+        private bool _hasBow;
+        private bool _hasPack;
 
-        // The layer weight and pose each hand's Animator was last given, so
-        // SetLayerWeight()/Play() only run when something actually changes -
-        // not every frame a hand sits fully snapped or fully at rest.
-        private float _leftAppliedWeight;
-        private float _rightAppliedWeight;
-        private int _leftPlayedPose = -1;
-        private int _rightPlayedPose = -1;
+        // Each hand's finger pose over the Animator's input curl.
+        private HandFingerPoser _leftFingers;
+        private HandFingerPoser _rightFingers;
 
         // The grip/trigger curl each hand's Animator was last given, so
         // SetFloat() only runs when the input actually moved - a resting
@@ -85,50 +74,36 @@ namespace Player
 
         private void Awake()
         {
-            _snapPoseLayer = leftHandAnimator.GetLayerIndex(SnapPoseLayerName);
-
             if (playerHandHolding == null) {
                 playerHandHolding = GetComponent<PlayerHandHolding>();
             }
 
             _hasHandHolding = playerHandHolding != null;
 
+            if (playerBow == null) {
+                playerBow = GetComponent<PlayerBow>();
+            }
+
+            if (playerPack == null) {
+                playerPack = GetComponent<PlayerPack>();
+            }
+
+            _hasBow = playerBow != null;
+            _hasPack = playerPack != null;
+
             // If a controller object (hand visual and Animator included) is
-            // ever deactivated - XRI's Input Modality Manager used to do this
-            // whenever it lost tracking; nothing does now, but it's a likely
-            // way to hide an untracked hand later - then by default the
-            // disabled Animator resets its parameters, layer
-            // weights and states - which would leave the "last applied"
-            // caches below describing values the Animator no longer has, so
-            // e.g. a curled finger would stay open after tracking returns
-            // until the input next changed. Keeping the state on disable
-            // means the caches always match the Animator.
+            // ever deactivated - a likely way to hide an untracked hand
+            // later - then by default the disabled Animator resets its
+            // parameters, which would leave the "last applied" caches below
+            // describing values the Animator no longer has, so e.g. a curled
+            // finger would stay open after tracking returns until the input
+            // next changed. Keeping the state on disable means the caches
+            // always match the Animator.
             leftHandAnimator.keepAnimatorStateOnDisable = true;
             rightHandAnimator.keepAnimatorStateOnDisable = true;
 
-            if (_snapPoseLayer < 0) {
-                Debug.LogWarning($"PlayerHandAnimation: no \"{SnapPoseLayerName}\" layer on the hand Animator Controller - snapped hands will keep their input pose.", this);
-                return;
-            }
-
-            WarnAboutMissingPoseStates();
-        }
-
-        /// <summary>
-        /// Checks once, at startup, that the Snap Pose layer has a state for
-        /// every HandPose value. A HandPose added in code without its
-        /// same-named state would otherwise only show up as a vague Animator
-        /// warning on every grab, with the hand keeping its input pose.
-        /// </summary>
-        private void WarnAboutMissingPoseStates()
-        {
-            string[] names = Enum.GetNames(typeof(HandPose));
-
-            for (int i = 0; i < _poseStateHashes.Length; i++) {
-                if (!leftHandAnimator.HasState(_snapPoseLayer, _poseStateHashes[i])) {
-                    Debug.LogWarning($"PlayerHandAnimation: no \"{names[i]}\" state on the \"{SnapPoseLayerName}\" layer - hands snapped with HandPose.{names[i]} will keep their input pose.", this);
-                }
-            }
+            _leftFingers = new HandFingerPoser(leftHandAnimator.transform);
+            _rightFingers = new HandFingerPoser(rightHandAnimator.transform);
         }
 
         /// <summary>
@@ -138,47 +113,72 @@ namespace Player
         {
             UpdateHand(
                 leftHandAnimator,
+                _leftFingers,
                 playerHandVisuals.LeftVisualSnap,
                 _hasHandHolding ? playerHandHolding.LeftPoseWeight : 0f,
+                HeldProfile(true),
                 playerInput.LeftGrip,
                 playerInput.LeftTrigger,
                 ref _leftAppliedGrip,
-                ref _leftAppliedTrigger,
-                ref _leftAppliedWeight,
-                ref _leftPlayedPose);
+                ref _leftAppliedTrigger);
 
             UpdateHand(
                 rightHandAnimator,
+                _rightFingers,
                 playerHandVisuals.RightVisualSnap,
                 _hasHandHolding ? playerHandHolding.RightPoseWeight : 0f,
+                HeldProfile(false),
                 playerInput.RightGrip,
                 playerInput.RightTrigger,
                 ref _rightAppliedGrip,
-                ref _rightAppliedTrigger,
-                ref _rightAppliedWeight,
-                ref _rightPlayedPose);
+                ref _rightAppliedTrigger);
         }
 
         /// <summary>
-        /// Applies one hand's input curl, then its snap pose and weight on
-        /// top. Input is always applied, even while snapped - it's hidden
-        /// under the override layer then, and already in place the moment
-        /// the layer fades out on release.
+        /// After the Animators have written this frame's input curl: lays
+        /// each hand's finger pose over it.
+        /// </summary>
+        private void LateUpdate()
+        {
+            _leftFingers.Apply();
+            _rightFingers.Apply();
+        }
+
+        /// <summary>
+        /// The profile of what a hand holds without being snapped (bow,
+        /// arrow, pack), or null. A hand holds one thing at a time.
+        /// </summary>
+        private HandSnapProfile HeldProfile(bool isLeftHand)
+        {
+            HandSnapProfile profile = _hasBow ? playerBow.GetHeldProfile(isLeftHand) : null;
+
+            if (profile == null && _hasPack) {
+                profile = playerPack.GetHeldProfile(isLeftHand);
+            }
+
+            return profile;
+        }
+
+        /// <summary>
+        /// Applies one hand's input curl, and readies its finger pose and
+        /// weight for LateUpdate(). Input is always applied, even while
+        /// snapped - it's hidden under the pose then, and already in place
+        /// the moment the pose fades out on release.
         /// </summary>
         private void UpdateHand(
             Animator handAnimator,
+            HandFingerPoser fingers,
             HandVisualSnap visualSnap,
             float holdPoseWeight,
+            HandSnapProfile heldProfile,
             float gripValue,
             float triggerValue,
             ref float appliedGrip,
-            ref float appliedTrigger,
-            ref float appliedWeight,
-            ref int playedPose)
+            ref float appliedTrigger)
         {
-            // Exact comparison, like the layer weight below: an unchanged
-            // input is bit-for-bit the same float, and any real movement
-            // (however small) still gets through.
+            // Exact comparison: an unchanged input is bit-for-bit the same
+            // float, and any real movement (however small) still gets
+            // through.
             if (gripValue != appliedGrip) {
                 handAnimator.SetFloat(_gripCurlParam, gripValue);
                 appliedGrip = gripValue;
@@ -189,55 +189,19 @@ namespace Player
                 appliedTrigger = triggerValue;
             }
 
-            if (_snapPoseLayer < 0) {
-                return;
-            }
-
             // A carried prop keeps its pose on after the snap that reached
             // for it has let go (the snap's weight falls as the hand comes
-            // back) - so whichever asks for more wins.
+            // back; the snap still remembers the pose) - so whichever asks
+            // for more wins.
             float weight = Mathf.Max(visualSnap.Weight, holdPoseWeight);
 
-            // Switch the layer to the target's pose when it changes - e.g. the
-            // first grab, or later a ledge followed by a ladder rung. Played
-            // instantly rather than cross-faded: the weight itself is the
-            // fade, since it rises from 0 as the hand moves in.
             if (weight > 0f) {
-                int pose = (int)visualSnap.SnapPose.Pose;
-
-                if (pose != playedPose) {
-                    handAnimator.Play(_poseStateHashes[pose], _snapPoseLayer, 0f);
-                    playedPose = pose;
-                }
+                // A held thing keeps the hand fully posed while a snap
+                // comes and goes (the arrow's fingers to the string's).
+                fingers.Prepare(visualSnap.SnapPose.Profile, heldProfile != null ? 1f : weight);
+            } else {
+                fingers.Prepare(heldProfile, heldProfile != null ? 1f : 0f);
             }
-
-            // Exact comparison on purpose: Weight only changes when
-            // HandVisualSnap changes it, and it lands on exactly 0 and 1 at
-            // the ends of a blend, which an approximate check could skip.
-            if (weight != appliedWeight) {
-                handAnimator.SetLayerWeight(_snapPoseLayer, weight);
-                appliedWeight = weight;
-            }
-        }
-
-        /// <summary>
-        /// Hashes every HandPose name once, at class load, so a pose maps to
-        /// its Snap Pose layer state with an array lookup. This is the
-        /// convention that ties code to the controller: a state named
-        /// "LedgeGrip" plays for HandPose.LedgeGrip, and so on. Relies on
-        /// HandPose values being the default 0, 1, 2, ... (no explicit
-        /// numbers), so each value is also its index here.
-        /// </summary>
-        private static int[] BuildPoseStateHashes()
-        {
-            string[] names = Enum.GetNames(typeof(HandPose));
-            int[] hashes = new int[names.Length];
-
-            for (int i = 0; i < names.Length; i++) {
-                hashes[i] = Animator.StringToHash(names[i]);
-            }
-
-            return hashes;
         }
     }
 }

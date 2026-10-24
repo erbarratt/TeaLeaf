@@ -27,7 +27,7 @@ namespace Core
         public bool SupportsRopeBolt => supportsRopeBolt;
 
         /// <summary>
-        /// Whether a crossbow bolt sticks into a surface of this kind.
+        /// Whether a bolt sticks into a surface of this kind.
         /// It bounces off anything else - including everything untagged,
         /// which is Stone.
         /// </summary>

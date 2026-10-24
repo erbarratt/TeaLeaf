@@ -43,7 +43,12 @@ namespace LevelGen
         private const float BareShare = 0.34f;
         // Samples across an end: thickness fractions by height fractions.
         private static readonly float[] _across = { 0.1f, 0.5f, 0.9f };
-        private static readonly float[] _up = { 0.15f, 0.5f, 0.85f };
+        private static readonly float[] _up = { 1f / 12f, 3f / 12f, 5f / 12f, 7f / 12f, 9f / 12f, 11f / 12f };
+        // An end another wall meets over only its lower or upper part (a
+        // column standing on a higher level beside a lower one, at a flight
+        // of steps) is free over the rest where at least this many rows of
+        // samples at its top or bottom touch nothing.
+        private const int PartRows = 2;
         // Where a sample may be seen from: street tiles within this distance,
         // at this height above them, up to this many spread round the sample
         // (at least this many degrees apart). A tile under or right beside a
@@ -378,8 +383,9 @@ namespace LevelGen
         /// The tiles one can stand on to look at the walls: those whose
         /// middle lies in a street (within a segment's rectangle at its
         /// width; the ground tiles overrun the edges under and behind the
-        /// facades) and at least StandClear from every wall's footprint.
-        /// With no spec, every tile clear of the walls.
+        /// facades) and at least StandClear from the footprint of every wall
+        /// standing below eye height there (a jettied storey overhead
+        /// doesn't count). With no spec, every tile clear of the walls.
         /// </summary>
         private static Grid StandingTiles(Grid tiles, Grid pieces, LayoutSpec spec)
         {
@@ -399,7 +405,9 @@ namespace LevelGen
                     foreach (int k in cell) {
                         Piece wall = pieces.Pieces[k];
 
-                        if (!IsWall(wall.Category)) {
+                        // A wall overhead (a jettied storey over the street)
+                        // stands nobody off: the street under it is walked.
+                        if (!IsWall(wall.Category) || wall.World.min.y > tile.World.max.y + EyeHeight) {
                             continue;
                         }
 
@@ -541,20 +549,30 @@ namespace LevelGen
                     int covered = 0;
                     int total = 0;
                     Vector3 middle = Vector3.zero;
+                    // Per row of samples up the end: how many are bare.
+                    int[] rowBare = new int[_up.Length];
+                    // Per row, whether its sample at the wall's back is
+                    // covered: the back sample is the first across where the
+                    // wall's front lies the other way.
+                    bool[] backCovered = new bool[_up.Length];
+                    int backSample = Vector3.Dot(wall.Front, AxisVector(across)) >= 0f ? 0 : _across.Length - 1;
                     views.Clear();
 
-                    foreach (float a in _across) {
-                        foreach (float u in _up) {
+                    for (int sampleAcross = 0; sampleAcross < _across.Length; sampleAcross++) {
+                        float a = _across[sampleAcross];
+
+                        for (int row = 0; row < _up.Length; row++) {
                             Vector3 local = Vector3.zero;
                             local[along] = face;
                             local[across] = Mathf.Lerp(wall.Min[across], wall.Max[across], a);
-                            local.y = Mathf.Lerp(wall.Min.y, wall.Max.y, u);
+                            local.y = Mathf.Lerp(wall.Min.y, wall.Max.y, _up[row]);
                             Vector3 sample = wall.Root.TransformPoint(local) + outward * SampleOut;
                             middle += sample;
                             total++;
 
                             if (Covered(sample, i, pieces)) {
                                 covered++;
+                                backCovered[row] |= sampleAcross == backSample;
                                 continue;
                             }
 
@@ -564,18 +582,30 @@ namespace LevelGen
 
                             if (Seen(sample, pieces, views)) {
                                 bare++;
+                                rowBare[row]++;
                             }
                         }
                     }
 
                     float share = (float)bare / total;
+                    bool partly = false;
 
                     // An end that another wall meets is a corner, not a
                     // hole: at a corner the two walls run into each other
                     // (CornerOverrun), each end inside the other wall's
                     // depth, and the strip of either end left between the
-                    // two posts is by design.
-                    if (share > BareShare && covered == 0) {
+                    // two posts is by design: open at the front, closed at
+                    // the back. Unless the end's back stands open over its
+                    // upper or lower part (a column on a higher level beside
+                    // a lower one, at a flight of steps, whose front only a
+                    // jettied storey or its supports touch): then those rows
+                    // are judged on their own.
+                    if (covered > 0) {
+                        share = Mathf.Max(PartShare(backCovered, rowBare, false), PartShare(backCovered, rowBare, true));
+                        partly = true;
+                    }
+
+                    if (share > BareShare) {
                         middle /= total;
                         Vector3 faceSize = wall.Root.TransformVector(new Vector3(along == 0 ? 0.1f : size.x, size.y, along == 2 ? 0.1f : size.z));
                         faceSize = new Vector3(Mathf.Abs(faceSize.x), Mathf.Abs(faceSize.y), Mathf.Abs(faceSize.z));
@@ -606,7 +636,7 @@ namespace LevelGen
                                 position = middle,
                                 size = faceSize,
                                 note = $"Free end: {wall.Path}, {(end == 0 ? "first" : "second")} end at ({middle.x:0.0}, {middle.y:0.0}, {middle.z:0.0}), "
-                                    + $"{share:P0} bare{seenFrom}."
+                                    + $"{share:P0} bare{(partly ? " where no wall meets it" : "")}{seenFrom}."
                             }
                         });
                     }
@@ -614,6 +644,41 @@ namespace LevelGen
             }
 
             return found;
+        }
+
+        /// <summary>
+        /// One of the three axes as a unit vector.
+        /// </summary>
+        private static Vector3 AxisVector(int axis)
+        {
+            Vector3 vector = Vector3.zero;
+            vector[axis] = 1f;
+            return vector;
+        }
+
+        /// <summary>
+        /// The bare share of the rows of an end's samples at its top (or
+        /// bottom) whose back sample touches nothing, counted in from that
+        /// edge until a row whose back is covered: 0 where fewer than
+        /// PartRows rows are left.
+        /// </summary>
+        private static float PartShare(bool[] backCovered, int[] rowBare, bool fromTop)
+        {
+            int rows = 0;
+            int bare = 0;
+
+            for (int k = 0; k < backCovered.Length; k++) {
+                int row = fromTop ? backCovered.Length - 1 - k : k;
+
+                if (backCovered[row]) {
+                    break;
+                }
+
+                rows++;
+                bare += rowBare[row];
+            }
+
+            return rows >= PartRows ? (float)bare / (rows * _across.Length) : 0f;
         }
 
         /// <summary>

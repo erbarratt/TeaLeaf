@@ -4,7 +4,9 @@
 //
 // The colour comes from the mesh, one colour per point (set when the mesh is
 // built in code), so the lock's body, its keyway, its marks and the picks
-// are all one material and never need a texture.
+// are all one material and never need a texture. A model with a texture
+// and no vertex colours (the pack's chest) sets _BaseMap instead: its
+// colours then read white, and the texture gives the colour.
 //
 // Cheap, for Quest: all the lighting is worked out per point of the mesh
 // (per vertex), not per pixel - the shapes are flat-sided, so it looks the
@@ -29,6 +31,10 @@ Shader "TeaLeaf/LockFade"
     {
         // Multiplies the mesh's own colours. White = leave them alone.
         _BaseColor ("Colour", Color) = (1, 1, 1, 1)
+
+        // Multiplies the colour too. White (none set) = leave it alone; the
+        // code-built meshes have no UVs and always read it so.
+        _BaseMap ("Texture", 2D) = "white" {}
 
         // How solid it is, 0-1. Only matters to the see-through material.
         _Alpha ("Alpha", Range(0, 1)) = 1
@@ -56,7 +62,11 @@ Shader "TeaLeaf/LockFade"
         HLSLINCLUDE
         #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
+        TEXTURE2D(_BaseMap);
+        SAMPLER(sampler_BaseMap);
+
         CBUFFER_START(UnityPerMaterial)
+            float4 _BaseMap_ST;
             half4 _BaseColor;
             half _Alpha;
             half _MinLight;
@@ -86,6 +96,7 @@ Shader "TeaLeaf/LockFade"
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
                 half4 color : COLOR;
+                float2 uv : TEXCOORD0;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -93,6 +104,7 @@ Shader "TeaLeaf/LockFade"
             {
                 float4 positionCS : SV_POSITION;
                 half3 color : TEXCOORD0;
+                float2 uv : TEXCOORD1;
                 UNITY_VERTEX_OUTPUT_STEREO
             };
 
@@ -114,13 +126,15 @@ Shader "TeaLeaf/LockFade"
 
                 output.positionCS = TransformObjectToHClip(input.positionOS.xyz);
                 output.color = input.color.rgb * _BaseColor.rgb * light;
+                output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
                 return output;
             }
 
             half4 Fragment(Varyings input) : SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-                return half4(input.color, _Alpha);
+                half3 albedo = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).rgb;
+                return half4(input.color * albedo, _Alpha);
             }
             ENDHLSL
         }

@@ -132,7 +132,7 @@ namespace Player
         /// </summary>
         public void MoveSnapPose(Vector3 movement)
         {
-            _snapPose = new HandSnapPose(_snapPose.Position + movement, _snapPose.Rotation, _snapPose.Pose);
+            _snapPose = new HandSnapPose(_snapPose.Position + movement, _snapPose.Rotation, _snapPose.Profile);
         }
 
         /// <summary>
@@ -142,7 +142,7 @@ namespace Player
         /// </summary>
         public void SetSnapPose(Vector3 position, Quaternion rotation)
         {
-            _snapPose = new HandSnapPose(position, rotation, _snapPose.Pose);
+            _snapPose = new HandSnapPose(position, rotation, _snapPose.Profile);
         }
 
         /// <summary>

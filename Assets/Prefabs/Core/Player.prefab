@@ -928,16 +928,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Inventory.Pack
   columns: 3
   rows: 3
-  cellSize: 0.09
+  cellSize: 0.07
   cellGap: 0.012
-  depth: 0.05
   fit: 0.8
   shrinkDuration: 0.12
+  chestModel: {fileID: 919132149155446097, guid: 70cd9244e369e524fa3ddc3fba658760, type: 3}
+  chestPosition: {x: -0.011, y: -0.22, z: -0.063}
+  chestRotation: {x: 0, y: 180, z: 0}
+  chestScale: 0.5
   storeRadius: 0.24
   goldForFullPile: 200
   goldNumberHeight: 0.03
   goldNumberColor: {r: 1, g: 1, b: 1, a: 1}
-  boardColor: {r: 0.3, g: 0.21, b: 0.13, a: 1}
   spaceColor: {r: 0.17, g: 0.12, b: 0.08, a: 1}
   goldSpaceColor: {r: 0.45, g: 0.36, b: 0.12, a: 1}
   objectiveSpaceColor: {r: 0.15, g: 0.25, b: 0.4, a: 1}
@@ -1383,10 +1385,12 @@ GameObject:
   - component: {fileID: 5401792640866052833}
   - component: {fileID: 4977557340134459539}
   - component: {fileID: 2445971835405161553}
-  - component: {fileID: 1195425074640342164}
   - component: {fileID: 4532216062709148718}
   - component: {fileID: 2819416233842016444}
   - component: {fileID: 7438374360660071047}
+  - component: {fileID: 6389147404194598813}
+  - component: {fileID: 870947414792556789}
+  - component: {fileID: 7275864942139279683}
   m_Layer: 0
   m_Name: Hands
   m_TagString: Untagged
@@ -1450,6 +1454,8 @@ MonoBehaviour:
   playerInput: {fileID: 5600711039981055178}
   playerHandVisuals: {fileID: 771281869691341920}
   playerHandHolding: {fileID: 0}
+  playerBow: {fileID: 0}
+  playerPack: {fileID: 0}
   leftHandAnimator: {fileID: 6983765409485458064}
   rightHandAnimator: {fileID: 8540864147850627736}
 --- !u!114 &771281869691341920
@@ -1634,12 +1640,10 @@ MonoBehaviour:
   playerHandInteraction: {fileID: 1451902670552793529}
   playerHandVisuals: {fileID: 771281869691341920}
   playerHandState: {fileID: 0}
+  bodyZones: {fileID: 6389147404194598813}
   playerHaptics: {fileID: 6949945007257655946}
   pack: {fileID: 4473485430308314726}
-  shoulderOffset: {x: 0.2, y: -0.05, z: -0.12}
-  shoulderRadius: 0.2
-  packPosition: {x: 0.14, y: -0.2, z: 0.08}
-  packRotation: {x: 90, y: 0, z: 0}
+  packProfile: {fileID: 11400000, guid: 578b81c984f20a147ae57896dcbacdfb, type: 2}
   coinRadius: 0.012
   coinSpacing: 0.03
   coinHeight: 0.05
@@ -1694,94 +1698,6 @@ MonoBehaviour:
   refuseDuration: 0.25
   unlockAmplitude: 1
   unlockDuration: 0.15
---- !u!114 &1195425074640342164
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5267463888959261575}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f41c9c2910d054e458012d0eeea7958f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Player.PlayerCrossbow
-  playerInput: {fileID: 5600711039981055178}
-  playerTracking: {fileID: 7776956195464204590}
-  playerHandInteraction: {fileID: 1451902670552793529}
-  playerHandVisuals: {fileID: 771281869691341920}
-  playerHandState: {fileID: 4532216062709148718}
-  playerHaptics: {fileID: 6949945007257655946}
-  playerClimbing: {fileID: 0}
-  onHandPosition: {x: -0.035, y: -0.05, z: 0}
-  onHandTilt: {x: 0, y: 0, z: 0}
-  stockSize: {x: 0.025, y: 0.018, z: 0.16}
-  bowWidth: 0.16
-  bowThickness: 0.012
-  wheelSize: 0.035
-  stockColor: {r: 0.35, g: 0.25, b: 0.16, a: 1}
-  metalColor: {r: 0.6, g: 0.62, b: 0.65, a: 1}
-  minLight: 0.35
-  palmDownAngle: 25
-  range: 40
-  fireTrigger: 0.6
-  rearmTrigger: 0.3
-  reloadTime: 1
-  muzzleDistance: 0.1
-  fireCue: {fileID: 0}
-  impactCue: {fileID: 0}
-  wheelGrabRadius: 0.06
-  wheelStepAngle: 40
-  wheelProfile: {fileID: 0}
-  wheelBreakDistance: 0.3
-  waterColor: {r: 0.2, g: 0.55, b: 1, a: 1}
-  noisemakerColor: {r: 1, g: 0.75, b: 0.15, a: 1}
-  ropeColor: {r: 0.75, g: 0.62, b: 0.4, a: 1}
-  stunColor: {r: 0.04, g: 0.04, b: 0.05, a: 1}
-  sleepColor: {r: 0.3, g: 0.8, b: 0.35, a: 1}
-  stunTime: 10
-  sleepDelay: 10
-  waterRadius: 0.6
-  noiseRadius: 12
-  noiseInterval: 1.5
-  noiseDuration: 12
-  noiseCue: {fileID: 0}
-  ropeMaxLength: 8
-  ropeGroundLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  ropeThickness: 0.025
-  ropeProfile: {fileID: 11400000, guid: 3b9c4b14e24c4c83aac6acf3855b9fe7, type: 2}
-  arcLayers:
-    serializedVersion: 2
-    m_Bits: 33345
-  arcCastTimeStep: 0.1
-  arcSegmentLength: 0.3
-  arcStyle: 0
-  arcWidth: 0.008
-  dotRadius: 0.005
-  dotSpacing: 0.4
-  landingMarkerRadius: 0.02
-  validColor: {r: 1, g: 1, b: 1, a: 0.15686275}
-  invalidColor: {r: 1, g: 0.2, b: 0.2, a: 0.16470589}
-  boltLength: 0.2
-  boltThickness: 0.008
-  boltLifetime: 30
-  reboundSpeed: 0.8
-  reboundSpin: 3
-  landedDamping: 6
-  landedAngularDamping: 8
-  pickupRadius: 0.08
-  activateAmplitude: 0.3
-  activateDuration: 0.04
-  fireAmplitude: 0.8
-  fireDuration: 0.08
-  emptyAmplitude: 0.2
-  emptyDuration: 0.03
-  wheelAmplitude: 0.5
-  wheelDuration: 0.04
-  pickupAmplitude: 0.4
-  pickupDuration: 0.04
 --- !u!114 &4532216062709148718
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1800,8 +1716,8 @@ MonoBehaviour:
   playerLockpicking: {fileID: 5401792640866052833}
   playerKeys: {fileID: 2445971835405161553}
   playerPack: {fileID: 4977557340134459539}
-  playerCrossbow: {fileID: 1195425074640342164}
   playerBlackjack: {fileID: 0}
+  playerBow: {fileID: 0}
 --- !u!114 &2819416233842016444
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1818,10 +1734,8 @@ MonoBehaviour:
   playerTracking: {fileID: 7776956195464204590}
   playerHandVisuals: {fileID: 771281869691341920}
   playerHandState: {fileID: 4532216062709148718}
+  bodyZones: {fileID: 6389147404194598813}
   playerHaptics: {fileID: 6949945007257655946}
-  chestOffset: {x: 0, y: -0.36, z: -0.12}
-  chestSize: {x: 0.4, y: 0.35, z: 0.4}
-  palmAngle: 60
   inHandPosition: {x: 0.03, y: -0.08, z: 0}
   inHandRotation: {x: 30, y: -15, z: 45}
   length: 0.35
@@ -1858,7 +1772,7 @@ MonoBehaviour:
   playerInput: {fileID: 5600711039981055178}
   playerHandVisuals: {fileID: 771281869691341920}
   playerVisibility: {fileID: 4833070662170678539}
-  onWristPosition: {x: -0.03, y: 0.06, z: 0}
+  onHandPosition: {x: -0.03, y: -0.045, z: 0}
   northAngle: 0
   radius: 0.05
   thickness: 0.01
@@ -1882,6 +1796,140 @@ MonoBehaviour:
   arrowGap: 0.006
   sameSourceDistance: 1.5
   arrowColor: {r: 1, g: 1, b: 1, a: 1}
+--- !u!114 &6389147404194598813
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5267463888959261575}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 96d183df33297d044a16c153eed19062, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Player.PlayerBodyZones
+  playerTracking: {fileID: 7776956195464204590}
+  playerHandVisuals: {fileID: 771281869691341920}
+  chestOffset: {x: 0, y: -0.36, z: -0.12}
+  chestSize: {x: 0.4, y: 0.35, z: 0.4}
+  palmAngle: 60
+  shoulderOffset: {x: 0.2, y: -0.05, z: -0.12}
+  shoulderRadius: 0.2
+--- !u!114 &870947414792556789
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5267463888959261575}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e575b784bdef6b441b6d17808a27b3e9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Player.PlayerArrows
+  playerInput: {fileID: 5600711039981055178}
+  playerHandInteraction: {fileID: 1451902670552793529}
+  playerHandVisuals: {fileID: 771281869691341920}
+  playerHandState: {fileID: 0}
+  playerHaptics: {fileID: 6949945007257655946}
+  playerClimbing: {fileID: 1367195297739265763}
+  fullDrawSpeed: 60
+  maxFlightTime: 4
+  shotCue: {fileID: 0}
+  impactCue: {fileID: 0}
+  waterArrow: {fileID: 8844081322624501457, guid: c607d9506766cd54f91ae0bd220f190f, type: 3}
+  noisemakerArrow: {fileID: 7632921481505051450, guid: 84a904ba8ff3e4c45b1a92228bab22f2, type: 3}
+  ropeArrow: {fileID: -9110033074748957610, guid: e47b39ec9c7926c41a3ed45b24544c1f, type: 3}
+  stunArrow: {fileID: -3023085122491063933, guid: 6b545a4a5efd88c4ca2cdaaf36647d57, type: 3}
+  sleepDart: {fileID: -1905579026448574875, guid: 2e945efa79fa9fe4380518438ee1fa5e, type: 3}
+  mossArrow: {fileID: -2992779048903754068, guid: 6d33b0c7d10c03b4385f7e687a766504, type: 3}
+  arrowMaterial: {fileID: 2100000, guid: eaaab3635701407498e2470d55d76892, type: 2}
+  stunTime: 10
+  sleepDelay: 10
+  waterRadius: 0.6
+  noiseRadius: 12
+  noiseInterval: 1.5
+  noiseDuration: 12
+  noiseCue: {fileID: 0}
+  ropeMaxLength: 8
+  ropeThickness: 0.025
+  ropeColor: {r: 0.75, g: 0.62, b: 0.4, a: 1}
+  ropeProfile: {fileID: 11400000, guid: 3b9c4b14e24c4c83aac6acf3855b9fe7, type: 2}
+  mossRadius: 0.75
+  mossMaxDrop: 4
+  mossColor: {r: 0.22, g: 0.32, b: 0.12, a: 1}
+  groundLayers:
+    serializedVersion: 2
+    m_Bits: 64
+  minLight: 0.35
+  arcLayers:
+    serializedVersion: 2
+    m_Bits: 33345
+  arcCastTimeStep: 0.1
+  arcSegmentLength: 0.3
+  arcStyle: 0
+  arcWidth: 0.008
+  dotRadius: 0.012
+  dotSpacing: 0.4
+  landingMarkerRadius: 0.08
+  arcColor: {r: 1, g: 1, b: 1, a: 1}
+  stickDepth: 0.03
+  arrowLifetime: 30
+  reboundSpeed: 0.8
+  reboundSpin: 3
+  landedDamping: 6
+  landedAngularDamping: 8
+  pickupRadius: 0.1
+  pickupAmplitude: 0.4
+  pickupDuration: 0.04
+  noRoomAmplitude: 0.2
+  noRoomDuration: 0.03
+--- !u!114 &7275864942139279683
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5267463888959261575}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1ab1f2fb6c857e24bb7a227a656d3c13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Player.PlayerBow
+  playerInput: {fileID: 5600711039981055178}
+  playerTracking: {fileID: 7776956195464204590}
+  playerHandVisuals: {fileID: 771281869691341920}
+  playerHandState: {fileID: 0}
+  bodyZones: {fileID: 0}
+  playerArrows: {fileID: 870947414792556789}
+  playerHaptics: {fileID: 6949945007257655946}
+  bowModel: {fileID: 919132149155446097, guid: 01bbfd04d1394c441980c626816288d4, type: 3}
+  leftHandedBowModel: {fileID: 919132149155446097, guid: 3f71b5cc313f7aa4ea0c0fb9e094063c, type: 3}
+  bowProfile: {fileID: 11400000, guid: 73e935cbf7cc3734fb1c86c559dbe8a8, type: 2}
+  arrowProfile: {fileID: 11400000, guid: 652420ac66f760a4d8d3484a161eec3b, type: 2}
+  stringProfile: {fileID: 11400000, guid: e1f96d38228bb9a498fd7a14974d9a7b, type: 2}
+  takeTrigger: 0.6
+  releaseTrigger: 0.3
+  nockRadius: 0.08
+  maxDrawDistance: 0.5
+  breakDistance: 0.15
+  lockDraw: 0.5
+  minShotDraw: 0.15
+  nockBlendDuration: 0.06
+  reachAmplitude: 0.15
+  reachDuration: 0.03
+  takeAmplitude: 0.4
+  takeDuration: 0.05
+  emptyAmplitude: 0.2
+  emptyDuration: 0.03
+  nockAmplitude: 0.5
+  nockDuration: 0.04
+  drawSteps: 8
+  drawStepMinAmplitude: 0.05
+  drawStepMaxAmplitude: 0.3
+  drawStepDuration: 0.02
+  shotAmplitude: 0.9
+  shotDuration: 0.08
 --- !u!1 &5301156699149777842
 GameObject:
   m_ObjectHideFlags: 0
@@ -2610,8 +2658,9 @@ MonoBehaviour:
   playerHandDoors: {fileID: 3284164750397976959}
   playerLockpicking: {fileID: 5401792640866052833}
   playerKeys: {fileID: 2445971835405161553}
-  playerCrossbow: {fileID: 1195425074640342164}
   playerBlackjack: {fileID: 0}
+  playerBow: {fileID: 7275864942139279683}
+  playerArrows: {fileID: 870947414792556789}
   playerCompass: {fileID: 0}
   playerHandVisuals: {fileID: 771281869691341920}
   playerHandAnimation: {fileID: 7405126303939682449}
@@ -2737,6 +2786,7 @@ MonoBehaviour:
   groundLayers:
     serializedVersion: 2
     m_Bits: 576
+  playerArrows: {fileID: 870947414792556789}
   walking:
     stride: 1.4
     noiseScale: 1
@@ -2777,6 +2827,13 @@ MonoBehaviour:
   crouchScale: 0.6
   sprintScale: 1.3
   changeSpeed: 4
+  headSideOffset: 0.1
+  headTopOffset: 0.12
+  underHeadOffset: 0.15
+  crouchWaistRaise: 0.15
+  headPointWeight: 0.17
+  underHeadWeight: 0.5
+  waistWeight: 0.8
 --- !u!114 &1400886796020398800
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2818,12 +2875,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Inventory.PlayerInventory
   ownsBlackjack: 1
-  ownsCrossbow: 1
+  ownsBow: 1
   waterBolts: 3
   noisemakerBolts: 3
   ropeBolts: 3
   stunBolts: 3
   sleepBolts: 3
+  mossBolts: 0
   maxBoltsPerKind: 3
 --- !u!114 &1271892463069212294
 MonoBehaviour:

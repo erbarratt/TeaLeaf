@@ -1,7 +1,7 @@
 namespace Inventory
 {
     /// <summary>
-    /// The kinds of crossbow bolt the player carries a count of. Stored as
+    /// The kinds of bolt (the bow's arrows) the player carries a count of. Stored as
     /// its number, and used as an index into the counts: add new values at
     /// the end, and never give them explicit numbers.
     /// </summary>
@@ -16,6 +16,9 @@ namespace Inventory
         // Stuns a guard it hits on the head, for a while.
         Stun,
         // A dart: knocks out a guard it hits anywhere, after a wait.
-        Sleep
+        Sleep,
+        // Lays a patch of moss on the floor where it lands: footsteps on it
+        // are silent.
+        Moss
     }
 }

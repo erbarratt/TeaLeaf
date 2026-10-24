@@ -26,7 +26,8 @@ namespace Player
     /// Each kind of gizmo has its own toggle (Gizmo Types), and All flips
     /// every one of them at once. Every noise made
     /// while this is enabled also shows as a flat circle of its radius that
-    /// fades out (Noise Circles), in the headset and the Scene view.
+    /// fades out (Noise Circles: the player's and everyone else's toggled
+    /// apart), in the headset and the Scene view.
     ///
     /// All the shapes go into one mesh (one draw call), rebuilt each frame
     /// just before rendering, without allocating once its lists have grown.
@@ -47,8 +48,8 @@ namespace Player
         // it's under Other.
         [Header("Gizmo Types")]
 
-        // Ticking or unticking this sets every toggle below (noise circles
-        // included) to match - see OnValidate(). Each can still be changed
+        // Ticking or unticking this sets every toggle below (both noise
+        // circle toggles included) to match - see OnValidate(). Each can still be changed
         // on its own afterwards.
         [SerializeField] private bool all = true;
 
@@ -76,16 +77,18 @@ namespace Player
         [SerializeField] private bool generatedRoots = true;
         [SerializeField] private bool visibilityDebug = true;
         [SerializeField] private bool playerHandVisuals = true;
-        [SerializeField] private bool playerBlackjack = true;
-        [SerializeField] private bool playerPack = true;
+        [SerializeField] private bool playerBodyZones = true;
 
         // Any IDebugDrawable type without its own toggle above.
         [SerializeField] private bool other = true;
 
         // A flat circle of each noise's radius where it was made (footsteps,
         // landings, impacts, doors, bolts - anything that reaches guards).
+        // Player: noises whose source is the player's rig (footsteps,
+        // landings). Other: everything else (guards, props, doors, bolts).
         [Header("Noise Circles")]
-        [SerializeField] private bool noiseCircles = true;
+        [SerializeField] private bool noiseCirclesPlayer = true;
+        [SerializeField] private bool noiseCirclesOther = true;
 
         // How long a circle takes to fade out, in seconds.
         [SerializeField] private float noiseFadeTime = 2f;
@@ -115,7 +118,12 @@ namespace Player
         private const int NoiseCapacity = 32;
         private readonly Noise[] _noises = new Noise[NoiseCapacity];
         private readonly float[] _noiseTimes = new float[NoiseCapacity];
+        private readonly bool[] _noiseFromPlayer = new bool[NoiseCapacity];
         private int _nextNoise;
+
+        // The player's root, so a noise can be told apart as the player's.
+        // Found once on enable; null when there's no player rig.
+        private Transform _playerRoot;
         private int _noiseCount;
 
         // The value of all when OnValidate() last ran, so it can tell the
@@ -131,6 +139,11 @@ namespace Player
             }
 
             _meshRenderer.enabled = true;
+
+            // A scene search, but once per enable in a debug tool only.
+            PlayerController player = FindAnyObjectByType<PlayerController>();
+            _playerRoot = player != null ? player.transform : null;
+
             RenderPipelineManager.beginContextRendering += OnBeginContextRendering;
             NoiseSystem.Emitted += OnNoiseEmitted;
         }
@@ -177,7 +190,7 @@ namespace Player
         }
 
         /// <summary>
-        /// Sets every gizmo type toggle, and the noise circles, to on.
+        /// Sets every gizmo type toggle, and both noise circle toggles, to on.
         /// </summary>
         private void SetAllTypes(bool on)
         {
@@ -205,10 +218,10 @@ namespace Player
             generatedRoots = on;
             visibilityDebug = on;
             playerHandVisuals = on;
-            playerBlackjack = on;
-            playerPack = on;
+            playerBodyZones = on;
             other = on;
-            noiseCircles = on;
+            noiseCirclesPlayer = on;
+            noiseCirclesOther = on;
         }
 
         /// <summary>
@@ -339,19 +352,20 @@ namespace Player
                 GeneratedRoot => generatedRoots,
                 VisibilityDebug => visibilityDebug,
                 PlayerHandVisuals => playerHandVisuals,
-                PlayerBlackjack => playerBlackjack,
-                PlayerPack => playerPack,
+                PlayerBodyZones => playerBodyZones,
                 _ => other
             };
         }
 
         /// <summary>
-        /// Stores each noise in the ring as it's made.
+        /// Stores each noise in the ring as it's made, noting whether the
+        /// player made it (source under the player's root).
         /// </summary>
         private void OnNoiseEmitted(Noise noise)
         {
             _noises[_nextNoise] = noise;
             _noiseTimes[_nextNoise] = Time.time;
+            _noiseFromPlayer[_nextNoise] = _playerRoot != null && noise.Source != null && noise.Source.IsChildOf(_playerRoot);
             _nextNoise = (_nextNoise + 1) % NoiseCapacity;
             _noiseCount = Mathf.Min(_noiseCount + 1, NoiseCapacity);
         }
@@ -370,12 +384,13 @@ namespace Player
         /// <summary>
         /// One flat (level) circle per recent noise, centred where it was
         /// made, its radius the noise's, with a line from the source out to
-        /// the ring, fading out over noiseFadeTime.
+        /// the ring, fading out over noiseFadeTime. The player's noises show
+        /// with noiseCirclesPlayer, all others with noiseCirclesOther.
         /// Shared by the headset mesh and the Scene view gizmos.
         /// </summary>
         public void DrawDebug(DebugLines lines, bool detailed)
         {
-            if (!noiseCircles || noiseFadeTime <= 0f) {
+            if ((!noiseCirclesPlayer && !noiseCirclesOther) || noiseFadeTime <= 0f) {
                 return;
             }
 
@@ -383,6 +398,12 @@ namespace Player
                 float age = Time.time - _noiseTimes[i];
 
                 if (age > noiseFadeTime) {
+                    continue;
+                }
+
+                // Checked when drawn, not when stored, so toggling either
+                // shows or hides circles already fading.
+                if (!(_noiseFromPlayer[i] ? noiseCirclesPlayer : noiseCirclesOther)) {
                     continue;
                 }
 

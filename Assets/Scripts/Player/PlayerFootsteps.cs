@@ -21,6 +21,9 @@ namespace Player
     /// A landing has no sound of its own: it's the surface's step sound
     /// played loud, twice, a moment apart - one foot, then the other.
     ///
+    /// On a moss patch (laid by a moss arrow, PlayerArrows.IsOnMoss())
+    /// steps and landings are silent: no sound, no noise.
+    ///
     /// Like every player system it has no Update(): PlayerController calls
     /// Tick() straight after PlayerLocomotion.TickState(), which is what
     /// sets this frame's MovementState.
@@ -53,6 +56,9 @@ namespace Player
 
         [Tooltip("What counts as floor for the ray down from the feet that finds the surface: Environment and Interactable.")]
         [SerializeField] private LayerMask groundLayers;
+
+        [Tooltip("The bow's arrows (on Hands), asked whether the feet are on a moss patch. Found by itself if empty; without it there is no moss.")]
+        [SerializeField] private PlayerArrows playerArrows;
 
         [Header("Steps")]
         [Tooltip("The step taken while Walking: its stride, and how its noise and volume scale.")]
@@ -120,6 +126,9 @@ namespace Player
         // nothing (the lip of a stair, a gap between two floor pieces).
         private SurfaceType _lastSurface = SurfaceType.Stone;
 
+        // Whether there are arrows to ask about moss, looked up once.
+        private bool _hasArrows;
+
         /// <summary>
         /// Editor-only: fills in the references when the component is added
         /// (it sits on the Player root with the others).
@@ -130,6 +139,16 @@ namespace Player
             characterController = GetComponent<CharacterController>();
             playerTransform = transform;
             groundLayers = LayerMask.GetMask("Environment", "Interactable");
+            playerArrows = GetComponentInChildren<PlayerArrows>(true);
+        }
+
+        private void Awake()
+        {
+            if (playerArrows == null) {
+                playerArrows = GetComponentInChildren<PlayerArrows>(true);
+            }
+
+            _hasArrows = playerArrows != null;
         }
 
         private void OnEnable()
@@ -212,8 +231,14 @@ namespace Player
             }
 
             // PlayStep() plays the surface's audio and emits its noise.
+            // Moss swallows the step whole.
             if (surfaceSounds != null) {
                 Vector3 position = FindFloor();
+
+                if (IsOnMoss(position)) {
+                    return;
+                }
+
                 surfaceSounds.PlayStep(_lastSurface, position, playerTransform, gait.noiseScale * speedScale, gait.volumeScale * speedScale);
             }
         }
@@ -241,7 +266,7 @@ namespace Player
             Vector3 position = FindFloor();
             SoundCue cue = surfaceSounds.GetFootstep(_lastSurface);
 
-            if (cue == null) {
+            if (cue == null || IsOnMoss(position)) {
                 return;
             }
 
@@ -276,6 +301,15 @@ namespace Player
             }
 
             return feet + Vector3.up * SoundHeight;
+        }
+
+        /// <summary>
+        /// Whether a sound made at position (from FindFloor(), just above
+        /// the feet) would be made on a moss patch.
+        /// </summary>
+        private bool IsOnMoss(Vector3 position)
+        {
+            return _hasArrows && playerArrows.IsOnMoss(position - Vector3.up * SoundHeight);
         }
     }
 }

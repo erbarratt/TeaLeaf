@@ -5,11 +5,11 @@ using UnityEngine;
 namespace Player
 {
     /// <summary>
-    /// The compass: a disc worn on the back of the wrist, always there to
-    /// be looked at, like a watch. It is on the hand that wears the
-    /// lockpicks (the left for a right-handed player), a little further
-    /// up the arm than they are. It takes no input and never makes its
-    /// hand busy.
+    /// The compass: a disc worn on the back of the hand, always there to
+    /// be looked at, like a watch. It is on the hand without the
+    /// lockpicks (the right for a right-handed player), in the same place
+    /// on that hand as the picks are on theirs. It takes no input and
+    /// never makes its hand busy.
     ///
     /// It shows three things:
     /// - North. The outer rim stays put on the hand; the dial inside it,
@@ -48,10 +48,11 @@ namespace Player
 
         // The middle of the compass in the hand visual's own space (its
         // fingers point along -Y, the back of the hand is -X): on the
-        // back of the wrist, past the handles of the lockpicks, which end
-        // at about y 0. The right hand visual is the left one mirrored,
-        // so the same numbers put it on either wrist.
-        [SerializeField] private Vector3 onWristPosition = new(-0.03f, 0.06f, 0f);
+        // back of the hand, over the middle of where the lockpicks lie on
+        // the other hand (their tips at about y -0.09, handles ending at
+        // about y 0). The right hand visual is the left one mirrored, so
+        // the same numbers put it on either hand.
+        [SerializeField] private Vector3 onHandPosition = new(-0.03f, -0.045f, 0f);
 
         [Header("North")]
 
@@ -132,7 +133,7 @@ namespace Player
 
         private bool _hasVisibility;
 
-        // The hand that wears it: the one the lockpicks are on.
+        // The hand that wears it: the one the lockpicks aren't on.
         private bool _isOnLeftHand;
 
         // The player's root: a sound made by anything under it is the
@@ -196,9 +197,10 @@ namespace Player
             _hasVisibility = playerVisibility != null;
             _playerRoot = playerInput.transform;
 
-            // A right-handed player wears the lockpicks, and so the
-            // compass, on the left hand; a left-handed one on the right.
-            _isOnLeftHand = !playerInput.IsLeftHanded;
+            // A right-handed player wears the lockpicks on the left hand,
+            // and so the compass on the right; a left-handed one the
+            // other way round.
+            _isOnLeftHand = playerInput.IsLeftHanded;
 
             BuildCompass();
             BuildArrows();
@@ -270,7 +272,7 @@ namespace Player
         /// <summary>
         /// Makes the compass, once, under this object. Its own axes: Z
         /// points away from whoever is looking at its face (into the
-        /// wrist), Y is up the face and X to the right -
+        /// hand), Y is up the face and X to the right -
         /// so on the dial, +Y is north and +X is east. Three stacked
         /// discs: the rim, the dial on top of it and the gem on top of
         /// that. No colliders: it's only to look at.
@@ -449,25 +451,25 @@ namespace Player
         }
 
         /// <summary>
-        /// Places the compass on the wrist, turns the dial to north,
-        /// colours the gem and places the sound arrows. Called by
+        /// Places the compass on the back of the hand, turns the dial to
+        /// north, colours the gem and places the sound arrows. Called by
         /// PlayerController after the hand visuals are placed, on every
         /// path through Update().
         /// </summary>
         public void Tick()
         {
             Transform visual = _isOnLeftHand ? playerHandVisuals.LeftHandVisual : playerHandVisuals.RightHandVisual;
-            Vector3 position = visual.TransformPoint(onWristPosition);
+            Vector3 position = visual.TransformPoint(onHandPosition);
 
             // Which way the palm faces, in the world: the hand visual's
-            // own +X - the way into the wrist, for someone looking at the
+            // own +X - the way into the hand, for someone looking at the
             // compass's face. TransformVector(), not TransformDirection():
             // the right visual is the left one mirrored, and only
             // TransformVector() takes the mirroring into account.
             Vector3 palm = visual.TransformVector(Vector3.right).normalized;
 
-            // The rim rides the wrist: its face out of the back of it
-            // (the compass's own Z points into the wrist), its top
+            // The rim rides the hand: its face out of the back of it
+            // (the compass's own Z points into the hand), its top
             // towards the fingers (the visual's -Y).
             Vector3 fingers = Vector3.ProjectOnPlane(visual.TransformVector(Vector3.down), palm);
 

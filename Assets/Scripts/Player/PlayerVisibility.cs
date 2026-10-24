@@ -51,9 +51,38 @@ namespace Player
         [Tooltip("How fast Visibility moves towards its new value, per second: at 4, hidden to plain sight takes a quarter of a second.")]
         [SerializeField] private float changeSpeed = 4f;
 
+        // The points guards test for a clear line to the player (Thief
+        // VR's five): either side of the head, its top, just below it,
+        // and the waist. Each counts for a weight; the guard needs enough
+        // of them showing (AI.GuardSight) - so a head peeking round a
+        // corner isn't the player seen, the body is.
+        [Header("Sight Points (what guards look for)")]
+        [Tooltip("How far either side of the head's middle the two side points are, in metres.")]
+        [SerializeField] private float headSideOffset = 0.1f;
+        [Tooltip("How far above the head's middle the top point is, in metres.")]
+        [SerializeField] private float headTopOffset = 0.12f;
+        [Tooltip("How far below the head's middle the point under the head is, in metres.")]
+        [SerializeField] private float underHeadOffset = 0.15f;
+        [Tooltip("How far the waist point (the capsule's middle) is raised while crouched, in metres.")]
+        [SerializeField] private float crouchWaistRaise = 0.15f;
+        [Tooltip("Weight of each head side point and the top point.")]
+        [SerializeField] private float headPointWeight = 0.17f;
+        [Tooltip("Weight of the point under the head.")]
+        [SerializeField] private float underHeadWeight = 0.5f;
+        [Tooltip("Weight of the waist point.")]
+        [SerializeField] private float waistWeight = 0.8f;
+
+        /// How many sight points there are (GetSightPoint()).
+        public const int SightPointCount = 5;
+
         // Counts down to the next light sample. Starts at zero, so the
         // first Tick() samples.
         private float _sampleTimer;
+
+        // Speed: where the feet were at the last measure, and seconds
+        // since it.
+        private Vector3 _lastFeetPosition;
+        private float _speedTimer;
 
         /// <summary>
         /// 0 = hidden, 1 = in plain sight.
@@ -79,9 +108,53 @@ namespace Player
         /// Where the feet are: the Player root, in world space.
         public Vector3 FeetPosition => playerTransform.position;
 
+        /// <summary>
+        /// How fast the body is moving, in metres a second: stick and
+        /// room-scale walking alike, measured each light sample.
+        /// </summary>
+        public float Speed { get; private set; }
+
+        /// Whether the player is crouched.
+        public bool IsCrouched => playerLocomotion.IsCrouching;
+
         private void Awake()
         {
             Instance = this;
+        }
+
+        /// <summary>
+        /// One of the points guards look for (index 0 to SightPointCount
+        /// - 1), in world space: head left, head right, head top, under
+        /// the head, waist.
+        /// </summary>
+        public Vector3 GetSightPoint(int index)
+        {
+            Vector3 headPosition = head.position;
+
+            switch (index) {
+                case 0:
+                    return headPosition - head.right * headSideOffset;
+                case 1:
+                    return headPosition + head.right * headSideOffset;
+                case 2:
+                    return headPosition + Vector3.up * headTopOffset;
+                case 3:
+                    return headPosition - Vector3.up * underHeadOffset;
+                default:
+                    return BodyPosition + (IsCrouched ? Vector3.up * crouchWaistRaise : Vector3.zero);
+            }
+        }
+
+        /// <summary>
+        /// How much a sight point counts for when a guard can see it.
+        /// </summary>
+        public float GetSightWeight(int index)
+        {
+            return index switch {
+                3 => underHeadWeight,
+                4 => waistWeight,
+                _ => headPointWeight
+            };
         }
 
         private void OnDestroy()
@@ -115,6 +188,17 @@ namespace Player
         /// </summary>
         public void Tick()
         {
+            // Speed over the last sample interval: steadier than one
+            // frame's movement.
+            _speedTimer += Time.deltaTime;
+
+            if (_speedTimer >= sampleInterval) {
+                Vector3 feet = playerTransform.position;
+                Speed = Vector3.Distance(feet, _lastFeetPosition) / _speedTimer;
+                _lastFeetPosition = feet;
+                _speedTimer = 0f;
+            }
+
             _sampleTimer -= Time.deltaTime;
 
             if (_sampleTimer <= 0f) {

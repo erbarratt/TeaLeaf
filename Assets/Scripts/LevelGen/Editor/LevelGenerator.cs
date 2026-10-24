@@ -39,7 +39,8 @@ namespace LevelGen
     /// their colliders (RoofEdgeColliders), and the walls' and the roof
     /// panels' colliders left are merged into as few boxes as possible too
     /// (MergedColliders), and the guards' NavMesh is baked over the streets
-    /// (StreetNavMesh).
+    /// (StreetNavMesh), and each building gets one merged proxy renderer
+    /// drawn from afar (BuildingProxies).
     /// </summary>
     internal static class LevelGenerator
     {
@@ -165,6 +166,10 @@ namespace LevelGen
             // pieces' colliders.
             MergedColliders.RunWalls(rootObject.transform, settings, log);
             MergedColliders.RunRoofs(rootObject.transform, annotations, settings, log);
+            // The black boxes behind the facades, cut clear of every piece
+            // left standing (gap fillers included); no colliders, so nothing
+            // after them sees them.
+            Backing.Build(rootObject.transform, FacadeBuilder.Backings, settings, log);
             // Shafts of moonlight across the narrow streets' mouths: once
             // every piece and collider stands, since each beam is cut by
             // rays against them, and after the cull, which never sees them.
@@ -178,6 +183,10 @@ namespace LevelGen
             // laid over each street segment; baked once every collider
             // stands.
             StreetNavMesh.Build(spec, heights, settings, rootObject, log);
+            // Each building drawn by one merged renderer from afar: last of
+            // the building, once every piece left stands, so nothing above
+            // (shafts, rooms) sees a proxy's renderer.
+            BuildingProxies.Build(spec, rootObject.transform, settings, log);
 
             // The report on the result: its markers go on the root, before
             // the fingerprint is taken.

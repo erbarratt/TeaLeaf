@@ -64,7 +64,7 @@ namespace Interaction
 
         [Header("Holding")]
 
-        [Tooltip("The per-hand offsets from the grip frame to the hand visual and the finger pose, shared by every prop held the same way. Left empty, the hand sits exactly on the grip frame with the default pose.")]
+        [Tooltip("The per-hand offsets from the grip frame to the hand visual and the finger pose, shared by every prop held the same way. Left empty, the hand sits exactly on the grip frame and the fingers keep their input curl. Posed with TeaLeaf > Modify Prefab > Pose with Hand.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
         [Tooltip("The prop's size for the hand's collision while it is carried, in metres: the hand stops when a ball this big round the prop's middle would touch a surface, so the prop never goes into walls. Guessed from the colliders when the component is added.")]
@@ -99,6 +99,9 @@ namespace Interaction
         public bool IsStowed { get; private set; }
 
         public float HoldRadius => holdRadius;
+
+        /// The profile the hand holds the prop with (null if none).
+        public HandSnapProfile SnapProfile => snapProfile;
 
         /// The middle of the prop's colliders in the world, right now.
         public Vector3 WorldCentre => transform.position + transform.rotation * LocalCentre;
@@ -192,17 +195,29 @@ namespace Interaction
         /// </summary>
         public HandSnapPose GetSnapPose(bool isLeftHand, Vector3 grabPoint, Vector3 headPosition, Vector3 headForward)
         {
-            GetGripFrame(out Vector3 gripPosition, out Quaternion gripRotation);
-
-            if (gripShape == GripShape.Cylinder) {
-                GetCylinderGripFrame(isLeftHand, grabPoint, headPosition, ref gripPosition, ref gripRotation);
-            }
+            GetGripFrame(isLeftHand, grabPoint, headPosition, out Vector3 gripPosition, out Quaternion gripRotation);
 
             if (snapProfile == null) {
-                return new HandSnapPose(gripPosition, gripRotation, default);
+                return new HandSnapPose(gripPosition, gripRotation, null);
             }
 
             return snapProfile.Apply(isLeftHand, gripPosition, gripRotation);
+        }
+
+        /// <summary>
+        /// The grip frame a hand takes hold of the prop by, as it lies right
+        /// now: the grip point's, or for a cylinder the frame on its surface
+        /// on the head's side, level with grabPoint. The profile's offsets
+        /// are measured from it - GetSnapPose(), and the Pose with Hand
+        /// window, which works the offsets out from a hand placed by hand.
+        /// </summary>
+        public void GetGripFrame(bool isLeftHand, Vector3 grabPoint, Vector3 headPosition, out Vector3 position, out Quaternion rotation)
+        {
+            GetGripFrame(out position, out rotation);
+
+            if (gripShape == GripShape.Cylinder) {
+                GetCylinderGripFrame(isLeftHand, grabPoint, headPosition, ref position, ref rotation);
+            }
         }
 
         /// <summary>
@@ -327,10 +342,16 @@ namespace Interaction
 
             _isOnHeldLayer = true;
 
+            // Every layer remembered before any is changed: several
+            // colliders can share one object, and the second would
+            // otherwise remember the held layer the first just set, so
+            // RestoreLayers() would leave the object on it for good.
             for (int i = 0; i < _colliders.Length; i++) {
-                GameObject colliderObject = _colliders[i].gameObject;
-                _originalLayers[i] = colliderObject.layer;
-                colliderObject.layer = heldLayer;
+                _originalLayers[i] = _colliders[i].gameObject.layer;
+            }
+
+            for (int i = 0; i < _colliders.Length; i++) {
+                _colliders[i].gameObject.layer = heldLayer;
             }
         }
 

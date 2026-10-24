@@ -1,0 +1,160 @@
+HOW THE GUARDS IN THIEF VR NOTICE YOU - EXPLAINER SCRIPT
+=========================================================
+
+Narration in plain text. Visual suggestions in [brackets].
+
+
+[Opening: a dark street at night, a guard walking a slow loop with a torch.]
+
+In a stealth game, the whole fun depends on one question: does the guard know
+I'm here? Too easy, and there's no tension. Too hard, and it feels unfair. So
+how does a game decide what a guard can see and hear? Let's look at how Thief
+VR does it.
+
+
+[Scene 1: two bars appear above the guard's head, one yellow, one red.]
+
+Every guard carries two invisible gauges, like the fuel gauge in a car.
+
+The first is SUSPICION. It's the guard thinking, "Hm, was that something?"
+When it fills, the guard stops, turns and looks.
+
+The second is DETECTION. That's the guard thinking, "That's definitely a
+person." When it fills, the guard raises the alarm and comes after you.
+
+The two gauges empty at different speeds. Suspicion fades quickly, about a
+second after the guard stops noticing anything. Detection sticks around: the
+guard stays wary for about four seconds, then slowly calms down. That's why a
+guard who nearly caught you doesn't instantly forget.
+
+
+[Scene 2: seen from above, four shapes fan out from the guard's head like
+searchlight beams.]
+
+So what fills the gauges? Mostly, what the guard sees.
+
+Human sight isn't one simple cone, and neither is this guard's. Its vision is
+split into four zones:
+
+- Right in front of it, about three metres. Anything here is spotted almost
+  at once.
+- Close by, about six metres, in a wide arc.
+- Straight ahead, far away: a beam about sixty degrees wide that becomes a
+  ten-metre-wide corridor, reaching about thirty metres. Like
+  staring down a corridor.
+- The corner of its eye: a very wide zone, also reaching thirty metres. It
+  can only pick out things that are well lit.
+
+Each zone has its own rulebook, and the rules change with distance. A
+designer has written out, zone by zone and step by step, exactly how fast the
+gauges fill.
+
+
+[Scene 3: the player steps from a pool of torchlight into shadow. The light
+around them switches between "lit" and "dark".]
+
+The biggest factor is LIGHT.
+
+The level designers have placed invisible bubbles and cones of "light" by
+hand around every torch and lamp. The prologue level alone has sixty-seven.
+If you're inside one, you count as lit. Outside, you count as dark. There's
+nothing in between.
+
+And the difference is huge:
+
+- Lit: a guard can spot you from thirty metres.
+- Dark: past about six metres, you're invisible. Out of the corner of its
+  eye, you're invisible at any distance. But come within one or two metres,
+  and even darkness won't save you. The guard spots you in a fraction of a
+  second.
+
+
+[Scene 4: the player creeps slowly past a guard, then breaks into a run and
+the red bar shoots up.]
+
+The second factor is HOW YOU MOVE.
+
+Standing still makes you harder to notice. Crouching helps too. But moving
+fast, especially in the dark near a guard, gives you away almost instantly.
+Sprinting past a guard makes the game up to fifty times quicker to spot you.
+
+The lesson to the player is simple: in the shadows, go slowly.
+
+
+[Scene 5: five little dots on the player's body, head and waist, light up as
+the guard looks at them.]
+
+The game doesn't treat you as a single point. It checks five spots: four
+around your head and one at your waist. Each counts for a different amount,
+and your body counts most. Poke just the top of your head round a corner, and
+the guard probably won't notice. Step out with your whole body, and it will.
+
+
+[Scene 6: footsteps on different floors, with rings rippling out of different
+sizes.]
+
+Then there's HEARING.
+
+Every sound in the game falls into one of five volume steps, from silent to
+very loud. Each step travels a set distance: two metres, five, ten, up to
+fifteen.
+
+The floor matters. Carpet is quiet. Most floors are average. Glass and loose
+wooden boards are loud.
+
+And sound has to travel the way a person would walk, round corners and
+through doorways. It never goes straight through a wall. A guard on the other
+side of a thick wall won't hear you, even if you're only a step away.
+
+One unusual touch: the game can listen to your real voice through the
+headset's microphone. Shout in real life, and the guards hear it.
+
+
+[Scene 7: a torch goes out. A guard turns, frowns, walks over and relights
+it.]
+
+Guards don't just watch for you. They notice when things are wrong:
+
+- a torch that's gone out,
+- a fellow guard lying unconscious,
+- a guard who's been hurt.
+
+When a guard spots one of these, it goes to look. With a torch, it relights
+it, undoing your hard work.
+
+
+[Scene 8: one guard shouts. A second guard nearby turns its head.]
+
+Guards also talk to each other. A muttered remark carries a few metres. A
+shout carries about fifteen. Guards within about ten metres of an alarm join
+in.
+
+
+[Scene 9: the player ducks behind a pillar. The guard searches, checking
+different spots.]
+
+Finally, what happens when you get away?
+
+If the guard catches sight of you again within a second and a half, it's
+straight back on your trail. Losing it properly takes longer: it stays on
+high alert for about nine seconds and keeps hunting for up to thirty.
+
+When it searches, it doesn't wander at random. It picks likely spots near
+where it last saw you. It also checks its surroundings before looking around,
+so it never ends up staring at a blank wall.
+
+
+[Closing: back to the quiet street. The guard resumes its loop.]
+
+So that's the whole system:
+
+- two gauges, suspicion and detection,
+- filled by what the guard sees, depending on light, distance and how you
+  move,
+- and by what it hears, travelling realistically through the building,
+- plus guards who notice things out of place and warn each other.
+
+None of it is magic. It's a big, carefully tuned set of rules, written so
+that the player always feels one thing: if I was caught, it was my own fault.
+
+[Fade to black.]

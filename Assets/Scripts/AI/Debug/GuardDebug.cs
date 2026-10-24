@@ -46,7 +46,7 @@ namespace AI
             GuardState state = _guard.State;
 
             if (state != _lastState) {
-                Debug.Log($"[Guard] {name}: {_lastState} -> {state} (meter {_guard.Detection:F2}) at {transform.position:F1}.", this);
+                Debug.Log($"[Guard] {name}: {_lastState} -> {state} (suspicion {_guard.Suspicion:F2}, detection {_guard.Detection:F2}) at {transform.position:F1}.", this);
                 _lastState = state;
             }
 

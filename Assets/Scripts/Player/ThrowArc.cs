@@ -79,6 +79,11 @@ namespace Player
         private bool _isMarkerVisible;
         private bool _isShownValid;
 
+        // How faded the arc and disc are drawn now (1 = not at all), in
+        // twentieths, so a fading arc touches its materials at most twenty
+        // times on the way.
+        private float _shownAlpha = 1f;
+
         /// <summary>
         /// Makes an arc as a child of parent, hidden. Called once per hand,
         /// from PlayerHandThrowing.Awake().
@@ -212,10 +217,13 @@ namespace Player
         /// with the disc at landingPoint, lying on a surface facing
         /// landingNormal; an invalid one in the invalid colour with no
         /// disc. viewerPosition (the player's head) is what the dots turn
-        /// to face.
+        /// to face. alpha (0-1) fades the whole arc and disc - the bow's arc
+        /// fades in with the draw.
         /// </summary>
-        public void Show(Vector3[] points, int count, Style style, bool isValid, Vector3 landingPoint, Vector3 landingNormal, Vector3 viewerPosition)
+        public void Show(Vector3[] points, int count, Style style, bool isValid, Vector3 landingPoint, Vector3 landingNormal, Vector3 viewerPosition, float alpha = 1f)
         {
+            alpha = Mathf.Round(Mathf.Clamp01(alpha) * 20f) / 20f;
+
             bool isLine = style == Style.Line;
 
             if (isLine) {
@@ -228,9 +236,18 @@ namespace Player
                 PlaceDots(points, count, viewerPosition);
             }
 
-            if (isValid != _isShownValid) {
+            if (isValid != _isShownValid || alpha != _shownAlpha) {
                 _isShownValid = isValid;
-                _material.color = isValid ? _validColor : _invalidColor;
+                _shownAlpha = alpha;
+
+                Color arcColor = isValid ? _validColor : _invalidColor;
+                arcColor.a *= alpha;
+                _material.color = arcColor;
+
+                // The disc only ever shows for a good arc.
+                Color markerColor = _validColor;
+                markerColor.a *= alpha;
+                _markerRenderer.sharedMaterial.color = markerColor;
             }
 
             // Written this way round so changing the style while aiming

@@ -25,7 +25,8 @@ a closed post, may show, as a corner post.
 - **Read-only towards assets**: nothing in `Assets/ASTROFISH_GAMES` / `Assets/Prefabs`
   modified, moved, renamed or saved; prefabs only loaded to measure and instantiate.
 - **Real prefab instances only** (`PrefabUtility.InstantiatePrefab`, keeps variant link); no
-  substitute geometry.
+  substitute geometry. Generated meshes only where derived: street ground, sheared walls,
+  building proxies (merged from the placed pieces' own meshes).
 - **Only verified pieces placed** (front, pivot, footprint, points confirmed by the maintainer,
   stage 2). Names never trusted for direction.
 - **Repeatable:** spec holds the seed; all randomness via one `System.Random` from it, fixed
@@ -50,7 +51,11 @@ a closed post, may show, as a corner post.
   way (spec widths are only the base). One log line per finishing pass: `Foundation
   colliders`, `Walkway colliders`, `Wall colliders`, `Roof colliders`, `Nettles`, `Gaps`,
   `Visibility cull`, `Roof edge`, `Roof features`, `Roof railings`, `Pipes`, `Vents`, `Lamp
-  posts`, `Building colours`, `Moon shafts`, `Sound rooms`, `NavMesh`.
+  posts`, `Building colours`, `Backing`, `Moon shafts`, `Sound rooms`, `NavMesh`, `Building
+  proxies`.
+- **Looking at the scene** (temporary camera rendering to PNG via `eval_file`): turn the camera's
+  occlusion culling off (the scene's bake predates a regeneration) and render each view twice,
+  keeping the second (the first frame after a change can come out wrong).
 - **Stale assembly:** an eval straight after an edit can run the old assembly, and a refresh
   can race several edits and compile only the first: `unity command recompile`, poll
   `recompile_status`, confirm the new code is in (new field/type via reflection, assembly write
@@ -87,6 +92,10 @@ a closed post, may show, as a corner post.
 - `Ground/*.asset` — street ground meshes (`GroundMesh`), one per region chunk, `<sector> -
   <area> <region> <x>_<z>`, the area's old ones deleted and rewritten each generation.
   Deletable; ground shows nothing until regenerated.
+- `Proxies/*.asset` — building proxy meshes (`BuildingProxies`), `<sector> - <owner> Building
+  <i>`, the sector's old ones deleted and rewritten each generation. **Git-ignored** (tens of
+  MB, rewritten every run): a fresh clone or a deleted folder draws buildings' far range as
+  nothing until the level is regenerated.
 - `GeneratorSettings.asset` — tunables (Settings).
 - `Layouts/*.json` — specs, one per area:
   - `example-street` (sector `Example Street`, origin): high street bending at a T with a
@@ -169,7 +178,9 @@ unless "asset". Meanings are in the sections that use them.
   inserts:** `windowInsertShare` 1; `windowInsertMaxMargin` 0.45m; `windowInsertDepth` 0;
   `litWindowShare` 0.3.
 - **Side walls:** `sideWallMultiplier` 0-5, 1; `sideWallTuck` 0.26m. **Gaps:** `gapBridgeMax`
-  3m; `gapStoreyTolerance` 0.3m.
+  3m; `gapStoreyTolerance` 0.3m. **Backing:** `backingMaterial` (asset:
+  `Assets/Art/Materials/Environment/Backing.mat`; none = no boxes); `backingDepth` 3m;
+  `backingBelow` 1m; `backingClearance` 2cm.
 - **Dressing:** `pipeBuildingShare` 0.4; `pipeRunsMax` 2; `pipeExtraRunShare` 0.35;
   `pipeMinRunShare` 0.5; `pipeLargeShare` 0.1 (inert: only the thin kit is verified);
   `pipePanelInset` 0.6m; `pipeWallGap` 5cm; `pipeOpeningMargin` 0.25m; `pipeEndSpread` 0.5;
@@ -204,6 +215,10 @@ unless "asset". Meanings are in the sections that use them.
   `roofRailingLean` 12°; `roofRailingInset` 0.4m; `roofRailingGap` 1m.
 - **Visibility cull:** `cullEyeHeight` 1.6m; `cullHeight` 9m; `cullStep` 2m; `cullRange` 80m;
   `roofEdgeGap` 1.5m; `roofEdgeReach` 20m.
+- **Building proxies:** `buildingProxies` on; `lowerDetailShare` 0.3 (building's share of
+  view height below which pieces show their second level); `proxyShare` 0.15 (below which
+  the proxy draws; kept below `lowerDetailShare`); `proxyCullShare` 0.04 (below which nothing
+  draws, ~120m for a 12m building; kept below `proxyShare`).
 - **Moon shafts:** `moonShaftStreetMaxWidth` 4.5m (**asset 0: off**); `moonShaftMaxLength`
   40m; `moonShaftInset` 0.3m; `moonShaftMinEaves` 2m.
 - **Sound rooms:** `soundAlleyMaxWidth` 4.5m; `soundStreetMuffle` 0.15; `soundSkyMuffle` 0.3;
@@ -264,8 +279,13 @@ unless "asset". Meanings are in the sections that use them.
   that wall's trim just reaches the edge.
 - **Beside a flight** (`Run.Stepped`, `StepAt`; `StepFlights`): **first module wholly past
   the flight's top on the high level, all before on the low** (never a module over steps);
-  **columns always split there** (`SplitColumns`); side walls between compare tops above each
-  one's own street level (`FillSide`). **A low module with the street rising in front**
+  **where no module is wholly past it (the run ends just beyond the top), the module across the
+  top stands high**, its foundations stacked down to the steps, so the run meets the street
+  beyond on its level. **Columns always split there** (`SplitColumns`); side walls between
+  compare tops above each one's own street level, and **depths against the other column's
+  storeys standing beside each storey at its real height** (`FillSide`, `OtherDepthBeside`: the
+  lower column's jettied first floor beside the higher one's unjettied ground storey is a step,
+  closed). **A low module with the street rising in front**
   (`RisesInFront`: `Flight`, `FlightOffset`, `StreetSteps.Flight.SurfaceAt`) **stacks extra
   foundations on its own** (`StackBesideSteps`; random, no repeat; top `foundationHeight`
   above the highest street in front; each overlapping the one above by `wallOverlap`): a stone
@@ -490,6 +510,9 @@ unless "asset". Meanings are in the sections that use them.
     frontage line stands out by its styles' deepest wall), the end carried by whichever end-face
     corner (back or face) reaches the target first (`EndReach`): both ends hide inside the other
     wall, end posts meet; the strip between posts is by design (report excuses met ends).
+    **Runs nearly in line** (fronts within `branchAngle`: a slight bend between segments of
+    different widths, whose edges cross metres short of the point) have no such target: both
+    sides' walls are carried to the corner itself and meet end to end.
   - **Covering side** (`FirstCovers`, `TrimmedEnd`: seen from the street a wall's left end is
     the trimmed post, the right hollow; first of the pair if both or neither) places a sharp
     corner's cover and an in-line joint's column.
@@ -754,16 +777,21 @@ unless "asset". Meanings are in the sections that use them.
 - **Free wall ends** (`FreeEnds`): front walls (storeys, corner fillers, dead ends); side walls
   only cover (their front end is a real end at its step, back end open by design: no back
   walls). Both vertical end faces (across the longer horizontal side of the LOD0 render box,
-  own space) sampled 2cm out, 3 depths x 3 heights. **Bare** = no covering box holds it (all
+  own space) sampled 2cm out, 3 depths x 6 heights. **Bare** = no covering box holds it (all
   but doors, inserts, roofs; grown 8cm) **and seen from a street**: line to one of up to six
   standing spots within 14m, >= 30° apart, at 1.6m, crossing no covering box (the wall's own
   included: end faces are seen only from in front). Spots: decking tiles or ground vertices
   under `Streets` (one per 3m world cell, `GroundSpots`), inside a segment rectangle at
-  resolved width, >= 0.75m from every wall footprint.
-  - Find = > 1/3 samples bare (bare share, seen from), **except ends another wall meets** (any
-    sample covered: corner posts, the by-design strip). Known non-holes: corner post proud of
-    its module (`PlasterWalls_B_PlanksCorner`), wall-tall against stone, a post met at an
-    angle beyond the samples (100% bare but closed).
+  resolved width, >= 0.75m from the footprint of every wall standing below eye height there
+  (a jettied storey overhead doesn't count: the street under it is walked).
+  - Find = > 1/3 samples bare (bare share, seen from). **An end another wall meets** (any
+    sample covered) is a corner, not a hole (corner posts; the by-design strip, open at the
+    front, closed at the back) **unless its back stands open over its top or bottom**: the rows
+    counted in from that edge whose back sample (behind the wall's front) is uncovered, at least
+    `PartRows` 2, judged alone by their bare share (a column on a higher level beside a lower
+    one at a flight of steps, only its front touched by a jettied storey or supports). Known
+    non-holes: corner post proud of its module (`PlasterWalls_B_PlanksCorner`), wall-tall
+    against stone, a post met at an angle beyond the samples (100% bare but closed).
 - **Build problems** (`GeneratedReport.Add`): piece refused by `StreetClearance.Allows`, side
   wall with no room or unplaceable, corner side carrying nothing, module with no fitting wall,
   style without foundation.
@@ -796,6 +824,60 @@ unless "asset". Meanings are in the sections that use them.
   (`FacadeBuilder.Clearance`, all streets alike); refused or no fitting wall -> report. Log
   `Gaps: n free wall end(s): a pair(s) bridged, b closed by a return wall, c left for the
   report`. Three-levels: 26 ends, 7 bridged, 12 returns, 0 left.
+
+## Backing (`Backing.cs`, `FacadeBacking.cs`)
+
+- **Black boxes behind every facade**: the buildings have nothing behind their walls, so a gap
+  anywhere shows the void and a light behind a facade (a lamp in the next street) reaches its
+  pieces from behind; a box closes both. Lots (built whole) get none; dead ends do.
+- **Worked out in `FacadeBuilder.Build`** (`CollectBackings`, last, after colours): one per
+  stretch of a frontage at one run, building, column, depth, storey count and level
+  (`SameBacking`; a column splits at a flight of steps): along the stretch, front on the walls'
+  back line (setback - column depth; a dead end's setback from its styles), `backingDepth` back
+  - less where a street is nearer behind (`StreetClearance.Reach` every metre, stopping the
+  walls' setback short of it) - ends cut short of streets beside it by the same margin
+  (`StreetClearance.Clear`); **top at the eaves** (`RoofTop` - `roofEaveDrop`), bottom
+  `backingBelow` under the lowest street in front.
+- **Placed by `Backing.Build`** after `RunWalls`/`RunRoofs` (gap fillers in, culled pieces
+  out): **cut clear of every placed piece** (`TL_*` under the root but `Streets`, LOD0 render
+  box in its own space, its reach in the box's frame grown `backingClearance`): per piece
+  touched, whichever single cut keeps the most volume - front back past it, back in front of
+  it, either end past it, top below it, bottom above it - repeated until clear (overlaps under
+  1mm ignored; a box with nothing left is dropped). So it never pokes through a wall, a side
+  wall running back, a foundation or a roof.
+- `Generated/Backing/Backing <n>`: Unity's built-in cube scaled to the box, `Environment`
+  layer, **no collider** (nobody reaches it; no physics query, NavMesh, street test or sound
+  probe sees it), static Contribute GI + occluder + occludee (blocks the bake, culls), **lit
+  from probes, never batching static**; casts shadows, receives none, no reflection probes.
+  Material `Backing.mat` (URP Simple Lit, black, no specular, no reflections): black whatever
+  lights it. The report ignores it (not `TL_`). Log `Backing: n box(es) behind the facades (a
+  cut back clear of pieces, b left out with nothing clear)`. Three-streets: 94, none left out.
+
+## Building proxies (`BuildingProxies.cs`)
+
+- **Each building drawn from afar by one renderer**, so distant streets cost one renderer per
+  building, not hundreds. Building = `Facades|Lots/<owner>/Building <i>` + its
+  `Roofs/<owner>/Building <i>` (dressing is under the building; lamp posts, backing, foliage,
+  colliders are not).
+- **One `LODGroup` per building on its facade group, keeping the pack's steps for the whole
+  building at once**: level 0 every piece's full detail down to `lowerDetailShare` of view
+  height; level 1 every piece's second level (full detail where it has one level), still
+  piece by piece, down to `proxyShare`; level 2 the `Proxy` child down to `proxyCullShare`,
+  then culled. Renderers in no `LODGroup` in all three. Fade copied from the pack's first
+  group. Shares from the pack's switches (7%, lowest at 3.5%, culled at 1% of a piece's size)
+  for a building ~4 pieces across. **Pieces'
+  own `LODGroup`s removed, renderers below their second level switched off** (a renderer
+  belongs to one `LODGroup`; instance overrides, prefabs untouched). Off or shadow-only
+  renderers left as they are, never merged. Particles (smoke, steam) untouched.
+- **Proxy mesh = every piece's lowest level** (full detail where it has one level), merged in
+  the building group's space (`CombineMeshes`, mirrored pieces turned right), **one sub-mesh
+  per material**, first-met order: same materials and colour variants, exact silhouette, no
+  new shader or textures. Lightmap UVs dropped.
+- Proxy renderer: `Environment`, static Contribute GI + occludee + reflection probes (never
+  occluder, never batching static), casts, receives, **lit from probes** like the pack's lower
+  levels. No collider (no query, NavMesh or sound probe sees it).
+- Log `Building proxies: n of m building(s), g piece LODGroup(s) folded in; vertices,
+  triangles, materials per proxy`.
 
 ## Facade dressing (being built)
 
@@ -1221,13 +1303,15 @@ unless "asset". Meanings are in the sections that use them.
 - Unlayable street (decked style without tiles, too few points): skipped, logged. One Console
   entry lists what was built. `Generated` holds `Streets`, `Facades`, `Lots`, `Roofs`,
   `Foliage`, `Foundation Colliders`, `Walkway Colliders`, `Wall Colliders`, `Roof Colliders`,
-  `Moon Shafts`, `Sound Rooms`, `NavMesh Volumes`, and the `NavMeshSurface`.
+  `Backing`, `Moon Shafts`, `Sound Rooms`, `NavMesh Volumes`, and the `NavMeshSurface`; each
+  building group holds its `LODGroup` and `Proxy`.
 - **Pipeline:** validate (widths, `ResolveLots`) -> `StoreyPlan` -> `StreetGround` ->
   `FacadeBuilder.Build` -> `MergedColliders` foundations, walkways -> nettles -> `GapFiller` ->
   `StreetTest` (own entry, error if invalid; checks merged boxes) -> `VisibilityCull` ->
   `RoofEdgeColliders` -> `RunWalls`, `RunRoofs` (after pieces/colliders are removed) ->
-  `MoonShafts` (rays need every collider; the cull never sees them) -> `SoundRooms` (tops from
-  walls left) -> `StreetNavMesh` (bakes from colliders) -> `GeneratedReport` -> fingerprint.
+  `Backing` (cut clear of the pieces left; no colliders) -> `MoonShafts` (rays need every collider; the cull never sees them) -> `SoundRooms` (tops from
+  walls left) -> `StreetNavMesh` (bakes from colliders) -> `BuildingProxies` (no pass after
+  it reads renderers) -> `GeneratedReport` -> fingerprint.
 - **`StoreyPlan`** (rolls next after widths; logged): **facade** = min + range x rand^(4^-
   `storeyBias`) (+1 high, -1 low). **Lot matches neighbours**: facades with an edge point
   (sampled per metre, length from ground modules) within `lotNeighbourDistance` of the
@@ -1256,9 +1340,10 @@ unless "asset". Meanings are in the sections that use them.
     `PlaceVertex`): cells sorted by nearest segment; sloping segments' cells = own region;
     level cells joined per connected level (`GroundMesh.JoinLevels`, 4-connected), never across
     a flight (neighbours on opposite sides of the flight's middle kept apart). **No cell wholly
-    under a flight** (dropped); vertices moved along the segment onto the flight's front (low
-    side) or top (high side): lower mesh ends at the lowest step's front, upper starts at the
-    top step's back edge. Levels < 6 cells join a neighbour. Regions `Ground slope <street>
+    under a flight** (dropped); vertices moved along the segment to `groundStepsOverlap` inside
+    the flight's front (low side) or top (high side): lower mesh runs on under the lowest step,
+    upper starts under the top step's tread sunk `groundThickness` (`HeightAt`, under the steps
+    only), so no slit shows under the steps' rounded edges. Levels < 6 cells join a neighbour. Regions `Ground slope <street>
     <from>-<to>` / `Ground level <height>m` hold `Chunk <x>_<z>` (32 cells, 24m): mesh asset in
     `Ground/`, `MeshFilter`/`MeshRenderer` on `Environment`, static (GI, occluder, occludee,
     batching, reflection probes), casts no shadow, receives, lightmapped once baked (probe-lit
