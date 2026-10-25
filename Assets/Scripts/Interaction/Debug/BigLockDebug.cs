@@ -102,19 +102,19 @@ namespace Interaction
 
             lines.Matrix = bigLock.transform.localToWorldMatrix;
 
-            // Each pick's angle, as a line from the middle.
+            // Each pick's angle, as a line from where it turns.
             lines.Color = _pickColor;
-            Spoke(lines, bigLock.LeftAngle, 0f, radius * 0.8f);
-            Spoke(lines, bigLock.RightAngle, 0f, radius * 0.8f);
+            Spoke(lines, bigLock.LeftPivot, bigLock.LeftAngle, 0f, radius * 0.8f);
+            Spoke(lines, bigLock.RightPivot, bigLock.RightAngle, 0f, radius * 0.8f);
 
             // The stop the right pick can turn to now.
             lines.Color = _stopColor;
-            Spoke(lines, bigLock.CurrentStop, radius * 0.7f, radius);
+            Spoke(lines, bigLock.RightPivot, bigLock.CurrentStop, radius * 0.7f, radius);
 
             // This stage's pin - where the left pick has to go.
             if (bigLock.PinsSet < BigLock.PinCount) {
                 lines.Color = _pinColor;
-                Spoke(lines, bigLock.PinAngle, radius * 0.5f, radius * 1.1f);
+                Spoke(lines, bigLock.LeftPivot, bigLock.PinAngle, radius * 0.5f, radius * 1.1f);
             }
 
             // One small square per pin above the lock, green once set.
@@ -143,14 +143,14 @@ namespace Interaction
 
         /// <summary>
         /// A line along a clock angle (degrees clockwise from 12 o'clock,
-        /// seen by the player), from one distance out from the middle to
-        /// another.
+        /// seen by the player), from one distance out from a pick's pivot
+        /// to another.
         /// </summary>
-        private void Spoke(DebugLines lines, float clockAngle, float from, float to)
+        private void Spoke(DebugLines lines, Vector3 pivot, float clockAngle, float from, float to)
         {
             float radians = clockAngle * Mathf.Deg2Rad;
             Vector3 direction = new(Mathf.Sin(radians), Mathf.Cos(radians), 0f);
-            Vector3 offset = new(0f, 0f, -standOff);
+            Vector3 offset = pivot + new Vector3(0f, 0f, -standOff);
 
             lines.Line(direction * from + offset, direction * to + offset);
         }

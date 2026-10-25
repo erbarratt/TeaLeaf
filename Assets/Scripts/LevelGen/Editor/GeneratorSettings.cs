@@ -370,14 +370,22 @@ namespace LevelGen
         [SerializeField, Range(2f, 100f)] private float roofEdgeReach = 20f;
 
         [Header("Building proxies")]
-        [Tooltip("Each building drawn from afar by one renderer: every piece's lowest level of detail merged into one mesh (one sub-mesh per material), shown through one LODGroup per building in place of the pieces' own.")]
+        [Tooltip("Each building drawn from further off by one renderer: every piece's second level of detail merged into one mesh (textured from the sector's atlas, lightmapped), shown through one LODGroup per building in place of the pieces' own.")]
         [SerializeField] private bool buildingProxies = true;
-        [Tooltip("The share of the view's height a building fills below which its pieces show their second level of detail instead of their full detail. The pack's pieces switch at 0.07 of their own size; a building is about four pieces tall and wide, so about 0.3 switches at the same distance.")]
-        [SerializeField, Range(0.02f, 1f)] private float lowerDetailShare = 0.3f;
-        [Tooltip("The share of the view's height a building fills below which its proxy (every piece's lowest level, merged) is drawn. The pack's pieces drop to their lowest level at 0.035 of their own size, half their first switch, so half Lower Detail Share. Kept below Lower Detail Share.")]
-        [SerializeField, Range(0.01f, 1f)] private float proxyShare = 0.15f;
-        [Tooltip("The share of the view's height a building fills below which nothing of it is drawn. The pack culls its pieces at 0.01 of their own size, a seventh of their first switch, so a seventh of Lower Detail Share (about 120m off for a building 12m across). Kept below Proxy Share.")]
+        [Tooltip("The share of the view's height a building fills below which its proxy (every piece's second level, merged) is drawn instead of its pieces' full detail. The pack's pieces switch at 0.07 of their own size; a building is about four pieces tall and wide, so 0.3 would switch at the same distance (about 17m for a 12m building). 0.2 (about 25m) switches further off, where the fine baked shadows the proxy's coarser lightmap can't hold (lamp cages on walls) are too small to see go.")]
+        [SerializeField, Range(0.02f, 1f)] private float lowerDetailShare = 0.2f;
+        [Tooltip("The share of the view's height a building fills below which nothing of it is drawn. The pack culls its pieces at 0.01 of their own size, a seventh of their first switch, so a seventh of Lower Detail Share (about 120m off for a building 12m across). Kept below Lower Detail Share.")]
         [SerializeField, Range(0f, 0.5f)] private float proxyCullShare = 0.04f;
+        [Tooltip("Scale In Lightmap of each building's proxy: its share of the level's lightmap resolution. A proxy has some two thousand lightmap charts (the pack's pieces are many small faces); each needs some 15-20 texels to bake clean (no invalid texels, no charts sharing texels), which 0.6 gives at 10 texels/m, about 30000 texels a building.")]
+        [SerializeField, Range(0.05f, 2f)] private float proxyLightmapScale = 0.6f;
+        [Tooltip("Pushoff (metres) of the proxies' own Lightmap Parameters: how far off its surface the bake starts each ray from a proxy's texels. The building's full detail stays in the bake as solid geometry a few millimetres from the proxy, and its relief (trims, frames, beams) blocks some of the proxy's bounce and occlusion rays, baking it darker; starting the rays beyond that relief lets the proxy see what the full detail sees. Too far and light leaks into corners.")]
+        [SerializeField, Range(0f, 0.2f)] private float proxyBakePushoff = 0.03f;
+        [Tooltip("Width and height in pixels of each of the sector's three proxy atlases (colour, normal map, metallic/occlusion/smoothness). Every plain opaque material the proxies use gets one tile in them, so a proxy draws in one go instead of once per material. Holds (size / tile)² materials; any beyond keep their own.")]
+        [SerializeField, Range(512, 8192)] private int proxyAtlasSize = 4096;
+        [Tooltip("Pixels across each material's tile in the proxy atlases, padding included. A proxy is seen from about 25m on, where some 40 pixels cover a metre: a 512 tile of a texture covering a few metres is plenty.")]
+        [SerializeField, Range(64, 2048)] private int proxyAtlasTile = 512;
+        [Tooltip("Pixels round each tile's picture filled with its edge pixels, so the atlas's smaller mip levels don't blend one tile into its neighbour. Each mip level halves it: 16 holds to the fourth.")]
+        [SerializeField, Range(0, 64)] private int proxyAtlasPadding = 16;
 
         [Header("Moon shafts")]
         [Tooltip("Every segment of a street no wider than this, with a building on both sides, gets a shaft of moonlight: a MoonShaft laid level across the strip of sky between the two sides' eaves, which cuts itself down to the part the moon reaches and draws nothing where it reaches none. 0 places none.")]
@@ -569,8 +577,12 @@ namespace LevelGen
         internal float RoofEdgeReach => roofEdgeReach;
         internal bool BuildingProxies => buildingProxies;
         internal float LowerDetailShare => lowerDetailShare;
-        internal float ProxyShare => proxyShare;
+        internal float ProxyLightmapScale => proxyLightmapScale;
+        internal float ProxyBakePushoff => proxyBakePushoff;
         internal float ProxyCullShare => proxyCullShare;
+        internal int ProxyAtlasSize => proxyAtlasSize;
+        internal int ProxyAtlasTile => proxyAtlasTile;
+        internal int ProxyAtlasPadding => proxyAtlasPadding;
         internal float MoonShaftStreetMaxWidth => moonShaftStreetMaxWidth;
         internal float MoonShaftMaxLength => moonShaftMaxLength;
         internal float EdgeWallProbe => edgeWallProbe;

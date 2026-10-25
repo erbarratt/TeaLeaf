@@ -6,13 +6,13 @@ namespace Player
 {
     /// <summary>
     /// Editor menu command (TeaLeaf > Dev Room > Add Hand Tools To Player) that adds
-    /// the body reach zones, the blackjack, the bow (with its arrows) and
-    /// the compass to the player's Hands object - each only if it's
+    /// the body reach zones, the blackjack, the bow (with its arrows and
+    /// their burn) and the compass to the player's Hands object - each only if it's
     /// missing. Each one's Reset() fills in its own references, and
     /// PlayerController and PlayerHandState find them by themselves when
     /// the game starts. Empty bow models (one per handedness), arrow model, arrow material,
-    /// arrow rope grip and bow, arrow and string hand profiles are filled
-    /// in from their assets.
+    /// arrow rope grip, blackjack model and bow, arrow, string and blackjack
+    /// hand profiles are filled in from their assets.
     ///
     /// Undone with Ctrl+Z. In an Editor folder, so it never ends up in a
     /// build.
@@ -31,6 +31,11 @@ namespace Player
         private const string BowProfilePath = "Assets/Data/Hand Poses/BowGrip.asset";
         private const string ArrowProfilePath = "Assets/Data/Hand Poses/ArrowHold.asset";
         private const string StringProfilePath = "Assets/Data/Hand Poses/BowString.asset";
+
+        // The blackjack's model (the leather-wrapped cudgel) and how the
+        // hand holds it (posed with Pose with Hand).
+        private const string BlackjackModelPath = "Assets/TripoModels/leather-wrapped_cudgel_3d_model/leather-wrapped_cudgel_3d_model.fbx";
+        private const string BlackjackProfilePath = "Assets/Data/Hand Poses/BlackjackGrip.asset";
 
         // The arrow models, one file per kind named after the kind
         // (arrows_3d_model_water.fbx...), and the material they share.
@@ -51,8 +56,12 @@ namespace Player
             added += Ensure<PlayerBodyZones>(hands.gameObject);
             added += Ensure<PlayerBlackjack>(hands.gameObject);
             added += Ensure<PlayerArrows>(hands.gameObject);
+            added += Ensure<ToolBurn>(hands.gameObject);
             added += Ensure<PlayerBow>(hands.gameObject);
             added += Ensure<PlayerCompass>(hands.gameObject);
+
+            FillEmpty<GameObject>(hands.GetComponent<PlayerBlackjack>(), "blackjackModel", BlackjackModelPath);
+            FillEmpty<HandSnapProfile>(hands.GetComponent<PlayerBlackjack>(), "blackjackProfile", BlackjackProfilePath);
 
             PlayerArrows arrows = hands.GetComponent<PlayerArrows>();
             FillEmpty<GameObject>(hands.GetComponent<PlayerBow>(), "bowModel", BowModelPath);

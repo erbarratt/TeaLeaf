@@ -24,8 +24,10 @@ namespace Interaction
     ///
     /// For lockpicking it also adds PlayerLockpicking to the player's
     /// Hands object and makes the scene's Big Lock object (BigLock and
-    /// its debug view), if they aren't there, and the pick's hand snap
-    /// profile (Assets/Data/Hand Poses/LockpickHold.asset) as a copy of the rope's.
+    /// its debug view), if they aren't there, and gives PlayerLockpicking
+    /// the lockpicks model and the pick's hand snap profile
+    /// (Assets/Data/Hand Poses/LockpickHold.asset, made as a copy of the
+    /// rope's) if it has none.
     ///
     /// Also adds PlayerHandDoors to the player's Hands object and
     /// PlayerKeyholes to the Player root if they aren't there, and makes the door handle's hand snap profile
@@ -102,6 +104,9 @@ namespace Interaction
         // made as a copy of the rope's (the nearest grip: a hand closed
         // round something thin).
         private const string PickProfilePath = "Assets/Data/Hand Poses/LockpickHold.asset";
+        private const string PicksModelPath = "Assets/TripoModels/lockpicks/lockpicks.fbx";
+        private const string LockModelPath = "Assets/Prefabs/Interactive/Lock Plate.prefab";
+        private const string BigLockPrefabPath = "Assets/Prefabs/Interactive/Big Lock.prefab";
         private const string RopeProfilePath = "Assets/Data/Hand Poses/RopeGrip.asset";
 
         [MenuItem("TeaLeaf/Dev Room/Build Door Test Area")]
@@ -751,22 +756,52 @@ namespace Interaction
                     Undo.RegisterCreatedObjectUndo(gameplayRoot, "Build Door Test Area");
                 }
 
-                GameObject lockObject = new("Big Lock");
-                lockObject.transform.SetParent(gameplayRoot.transform, false);
-                Undo.RegisterCreatedObjectUndo(lockObject, "Build Door Test Area");
-                bigLock = lockObject.AddComponent<BigLock>();
-                lockObject.AddComponent<BigLockDebug>();
+                // The Big Lock prefab if there is one; else one built here,
+                // with one placeholder sound for the picking and the
+                // unlock.
+                GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(BigLockPrefabPath);
+                GameObject lockObject;
 
-                // One placeholder sound for the picking and the unlock.
-                SerializedObject lockSettings = new(bigLock);
-                lockSettings.FindProperty("snapProfile").objectReferenceValue = EnsurePickProfile();
-                lockSettings.FindProperty("pickCue").objectReferenceValue = cue;
-                lockSettings.FindProperty("unlockCue").objectReferenceValue = cue;
-                lockSettings.ApplyModifiedPropertiesWithoutUndo();
+                if (prefab != null) {
+                    lockObject = (GameObject)PrefabUtility.InstantiatePrefab(prefab, gameplayRoot.transform);
+                } else {
+                    lockObject = new("Big Lock");
+                    lockObject.transform.SetParent(gameplayRoot.transform, false);
+                    lockObject.AddComponent<BigLock>();
+                    lockObject.AddComponent<BigLockDebug>();
+                }
+
+                Undo.RegisterCreatedObjectUndo(lockObject, "Build Door Test Area");
+                bigLock = lockObject.GetComponent<BigLock>();
+
+                if (prefab == null) {
+                    SerializedObject lockSettings = new(bigLock);
+                    lockSettings.FindProperty("pickCue").objectReferenceValue = cue;
+                    lockSettings.FindProperty("unlockCue").objectReferenceValue = cue;
+                    lockSettings.ApplyModifiedPropertiesWithoutUndo();
+                }
             }
 
+            // The picks' and lock's models and the hand on a pick, unless
+            // already set.
             SerializedObject settings = new(lockpicking);
             settings.FindProperty("bigLock").objectReferenceValue = bigLock;
+            SerializedProperty model = settings.FindProperty("picksModel");
+            SerializedProperty lockModel = settings.FindProperty("lockModel");
+            SerializedProperty pickProfile = settings.FindProperty("pickProfile");
+
+            if (model.objectReferenceValue == null) {
+                model.objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(PicksModelPath);
+            }
+
+            if (lockModel.objectReferenceValue == null) {
+                lockModel.objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(LockModelPath);
+            }
+
+            if (pickProfile.objectReferenceValue == null) {
+                pickProfile.objectReferenceValue = EnsurePickProfile();
+            }
+
             settings.ApplyModifiedPropertiesWithoutUndo();
         }
 

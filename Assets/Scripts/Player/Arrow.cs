@@ -35,7 +35,8 @@ namespace Player
         private const float FallingDamping = 0.05f;
 
         private Rigidbody _body;
-        private Collider _solidCollider;
+        private Collider _shaftCollider;
+        private Collider _headCollider;
         private Collider _grabCollider;
         private float _landedDamping;
         private float _landedAngularDamping;
@@ -59,16 +60,18 @@ namespace Player
         /// <summary>
         /// Called by PlayerArrows straight after it adds the component.
         /// </summary>
-        public void SetUp(int index, Rigidbody body, Collider solidCollider, Collider grabCollider, float landedDamping, float landedAngularDamping)
+        public void SetUp(int index, Rigidbody body, Collider shaftCollider, Collider headCollider, Collider grabCollider, float landedDamping, float landedAngularDamping)
         {
             Index = index;
             _body = body;
-            _solidCollider = solidCollider;
+            _shaftCollider = shaftCollider;
+            _headCollider = headCollider;
             _grabCollider = grabCollider;
             _landedDamping = landedDamping;
             _landedAngularDamping = landedAngularDamping;
 
-            _solidCollider.enabled = false;
+            _shaftCollider.enabled = false;
+            _headCollider.enabled = false;
             _grabCollider.enabled = false;
 
             // OnEnable() has already run (it runs as the component is
@@ -111,7 +114,8 @@ namespace Player
             _isTumbling = true;
             _hasLanded = false;
 
-            _solidCollider.enabled = true;
+            _shaftCollider.enabled = true;
+            _headCollider.enabled = true;
             _body.isKinematic = false;
             _body.useGravity = true;
             _body.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
@@ -146,7 +150,8 @@ namespace Player
             _body.collisionDetectionMode = CollisionDetectionMode.Discrete;
             _body.useGravity = false;
             _body.isKinematic = true;
-            _solidCollider.enabled = false;
+            _shaftCollider.enabled = false;
+            _headCollider.enabled = false;
         }
 
         /// <summary>

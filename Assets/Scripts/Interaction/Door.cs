@@ -11,8 +11,10 @@ namespace Interaction
     /// middle of the leaf. The door's solid part (the leaf) is this object
     /// or a child, and its DoorHandle, if it has one, is a child.
     ///
-    /// A door with no DoorHandle has no latch to turn: pushing it, with a
-    /// hand or the body, opens it from shut.
+    /// A door with no DoorHandle has no latch: pushing it, with a hand or
+    /// the body, opens it from shut, and it swings freely through closed
+    /// either way it opens. "Latched" for it only means resting shut, so a
+    /// lock, bolt or sound portal still works, and it makes no click.
     ///
     /// A door has two separate states. Locked or unlocked: whether the
     /// handle will turn far enough to free it. Latched (closed) or open: a
@@ -136,7 +138,8 @@ namespace Interaction
         private Vector3 _scaledHingeOffset;
 
         // True if the door has a DoorHandle. Without one, a push opens it
-        // from shut - see Push().
+        // from shut (see Push()) and it swings through closed (see
+        // TickSwing()).
         private bool _hasHandle;
 
         // The leaf's box, measured once from the hinge along the door's
@@ -380,8 +383,10 @@ namespace Interaction
         /// One frame of a door swinging by itself, after a hand let go of
         /// it moving or stopped pushing it: it turns by its speed, and the
         /// speed dies away. It stops dead at its limit or against the
-        /// player. Reaching closed, the latch catches it - a door only
-        /// swings through its frame while a hand is taking it through.
+        /// player. Reaching closed, the latch catches it - a door with a
+        /// handle only swings through its frame while a hand is taking it
+        /// through. A door with no handle has no latch and swings on
+        /// through (a one-way one stops at closed, its limit).
         /// </summary>
         private void TickSwing()
         {
@@ -390,7 +395,7 @@ namespace Interaction
 
             // Reaching or passing closed: the two angles have different
             // signs (or one is zero), so multiplying them isn't positive.
-            bool reachesClosed = target * Angle <= 0f;
+            bool reachesClosed = _hasHandle && target * Angle <= 0f;
 
             if (reachesClosed) {
                 target = 0f;
@@ -543,7 +548,11 @@ namespace Interaction
 
             IsLatched = false;
             SetPortalOpen(true);
-            PlayCue(latchCue, soundPosition);
+
+            // No handle, no latch to click.
+            if (_hasHandle) {
+                PlayCue(latchCue, soundPosition);
+            }
         }
 
         /// <summary>
@@ -713,7 +722,8 @@ namespace Interaction
         }
 
         /// <summary>
-        /// The door has reached closed: caught by the latch again.
+        /// The door has reached closed: caught by the latch again, or for a
+        /// door with no handle, resting shut (silently).
         /// </summary>
         private void Latch()
         {
@@ -721,7 +731,10 @@ namespace Interaction
             _angularVelocity = 0f;
             _creakTravel = 0f;
             SetPortalOpen(false);
-            PlayCue(latchCue, LeafCentre);
+
+            if (_hasHandle) {
+                PlayCue(latchCue, LeafCentre);
+            }
         }
 
         /// <summary>

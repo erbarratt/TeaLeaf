@@ -6,6 +6,59 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-25 (tools burn in and away; Tripo lockpicks, lock and cudgel;
+            gauntlet hands with six-piece collision; guard blob
+            shadows under a Baked moon; building proxies lightmapped
+            and atlased; LOD meshes from Unity's own generator)
+---------------------------------------------------------------------------
+- ToolBurn (on Hands): a held tool let go of burns away where it was
+  let go of (a copy under the scene-root Tool Burns, left in the
+  world), and burns into being when taken. One duration (0-2s, 0.8
+  default). Shader TeaLeaf/Burn: URP Lit's surface, so the swap shows
+  no change, clipped and charred along procedural noise in object
+  space. Used by the bow, arrows let go of or picked up, the blackjack,
+  the worn lockpicks and the big lock.
+- Blackjack is the Tripo leather-wrapped cudgel (0.4m), placed in the
+  hand by the BlackjackGrip profile; it hits with a capsule round its
+  head measured from the mesh, drawn as an in-headset gizmo (own
+  toggle).
+- Lockpicks are the Tripo hook and tension wrench, re-laid out in
+  Blender (origin at each tip). Lock Plate prefab (Tripo lock, real
+  size, blind keyhole pocket) is the lock on doors and the big lock's
+  body at 3.5x; the big lock's picks are the same model, each turning
+  about its tip in the keyhole. Big Lock prefab under Gameplay.
+  Profiles LockpicksCarry and LockpicksWorn. The door keyhole cut and
+  walls take the plate's keyhole shape (circle and widening slot,
+  centred on the circle); DoorLeaf takes base and normal maps, so the
+  pack's Rectangle Door has a keyhole and the lock on its face.
+  A door without a handle swings freely through closed.
+- Hands are an armoured gauntlet (Tripo, mirrored to a left in
+  Blender, the hand's skeleton fitted in; hand.fbx). Physical hands
+  collide as six pieces per hand (palm box, thumb and finger capsules,
+  HandShapeFitter / HandShapeSizes), fingers open or fisted by
+  trigger and grip; a carried prop adds its own colliders, so hand
+  and prop both stop at surfaces.
+- Moon is a Baked light; main light shadows off, shadow distance 50m
+  for the Mixed lamps' shadows from movers. Guards get GuardShadow
+  blobs (body and feet, TeaLeaf/BlobShadow multiplied onto the
+  ground), stretched away from the moon.
+- Building proxies: full detail, then one renderer merged from the
+  pieces' second levels (lowest level never drawn), its own lightmap
+  UVs (unwrapped on a copy welded by position) and Lightmap Parameters
+  with a larger pushoff; materials moved onto one atlas per sector
+  (ProxyAtlas: albedo, normal, MRAO, each material's settings baked
+  into the pixels). TeaLeaf > Level Gen > Rebuild Building Proxies.
+- LodMeshBuilder simplifies with Unity's Mesh LOD generator (UV seams
+  kept whole), previews each level, and sets up a prefab's LODGroup;
+  UnityMeshSimplifier package removed.
+- Lessons: lightmap texels per chart decide a proxy's bake (under ~15
+  texels go invalid and charts share texels); the pack's meshes are
+  split at every texture seam, so unwrap a welded copy; with the
+  default pushoff the full detail a few mm away blocked the proxy's
+  rays and it baked ~15% darker; a texture tile can't repeat, so a
+  triangle with UVs outside 0-1 keeps its own material.
+
+
 2026-10-24 (the bow and six arrow kinds; Thief VR guard sight and two
             meters; finger poses as data and Pose with Hand; pack as a
             chest at the chest; body reach zones; level generator

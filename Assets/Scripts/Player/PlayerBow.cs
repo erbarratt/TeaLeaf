@@ -69,6 +69,11 @@ namespace Player
         // Optional: a rig with no haptics still shoots.
         [SerializeField] private PlayerHaptics playerHaptics;
 
+        // Optional: the bow and an arrow let go of burn away, and the bow
+        // burns into being when drawn. Found in Awake() if not wired (it's
+        // on this same object); none = they vanish and appear at once.
+        [SerializeField] private ToolBurn toolBurn;
+
         [Header("The Bow")]
 
         // The bow model: a mesh with a "Drawn" blend shape, and the
@@ -221,6 +226,10 @@ namespace Player
         private Transform _arrow;
         private MeshFilter _arrowFilter;
 
+        // The bow and the arrow as ToolBurn knows them. Null without one.
+        private ToolBurn.Target _bowBurn;
+        private ToolBurn.Target _arrowBurn;
+
         // The drawing hand's controller, and its visual's resting pose
         // under it: where the visual would be if nothing held it - so
         // where the nock would be, and how the hand is turned, while the
@@ -292,6 +301,7 @@ namespace Player
             playerHaptics = GetComponentInParent<PlayerHaptics>();
             playerHandVisuals = GetComponent<PlayerHandVisuals>();
             playerArrows = GetComponent<PlayerArrows>();
+            toolBurn = GetComponent<ToolBurn>();
         }
 
         private void Awake()
@@ -327,6 +337,10 @@ namespace Player
             // Looked up once, so the per-frame code tests a plain bool.
             _hasHaptics = playerHaptics != null;
 
+            if (toolBurn == null) {
+                toolBurn = GetComponent<ToolBurn>();
+            }
+
             // A right-handed player wears the lockpicks on the left hand,
             // and holds the bow in it too; a left-handed one the other way
             // round.
@@ -351,6 +365,14 @@ namespace Player
 
             BuildBow();
             BuildArrow();
+
+            if (toolBurn != null) {
+                if (_hasBow) {
+                    _bowBurn = toolBurn.Register(_bowRenderer);
+                }
+
+                _arrowBurn = toolBurn.Register(_arrowFilter.GetComponent<MeshRenderer>());
+            }
         }
 
         private void OnDisable()
@@ -541,6 +563,7 @@ namespace Player
             HandSnapProfile.PlaceInHand(bowProfile, _isBowLeft, _bow, visual, transform);
             _bow.gameObject.SetActive(true);
             SetDraw(0f);
+            BurnIn(_bowBurn);
 
             _isOut = true;
             _wasBowHandInPlace = false;
@@ -750,7 +773,12 @@ namespace Player
         /// </summary>
         private void PutAway()
         {
+            // Burnt where they are, before anything moves: the bow first,
+            // still bent by the arrow drawn on it.
+            BurnAway(_bowBurn);
+
             if (_hold != ArrowHold.None) {
+                BurnAway(_arrowBurn);
                 ReturnArrowToInventory();
                 LetGoOfArrow();
             }
@@ -780,6 +808,7 @@ namespace Player
 
             if (_hold == ArrowHold.InHand) {
                 if (!_isTriggerHeld) {
+                    BurnAway(_arrowBurn);
                     ReturnArrowToInventory();
                     LetGoOfArrow();
                     return;
@@ -823,6 +852,7 @@ namespace Player
                     Pulse(isArrowLeft, shotAmplitude, shotDuration);
                     Pulse(_isBowLeft, shotAmplitude, shotDuration);
                 } else {
+                    BurnAway(_arrowBurn);
                     ReturnArrowToInventory();
                 }
 
@@ -830,10 +860,12 @@ namespace Player
                 return;
             }
 
-            // The arc fades in across the whole draw: half drawn, half
-            // shown.
-            if (canAim && _draw > 0f) {
-                playerArrows.ShowArc(tip, direction, _draw, _draw, playerTracking.HeadPosition);
+            // No arc until the draw is enough to shoot; from there it fades
+            // in up to full draw, where it shows at the arc colour's own
+            // alpha (ThrowArc scales that colour's alpha by this).
+            if (canAim && _draw > minShotDraw) {
+                float arcAlpha = Mathf.InverseLerp(minShotDraw, 1f, _draw);
+                playerArrows.ShowArc(tip, direction, _draw, arcAlpha, playerTracking.HeadPosition);
             } else {
                 playerArrows.HideArc();
             }
@@ -972,6 +1004,27 @@ namespace Player
         {
             if (_hasHaptics) {
                 playerHaptics.Pulse(isLeftHand, amplitude, duration);
+            }
+        }
+
+        /// <summary>
+        /// Leaves a copy of the bow or the arrow burning away where it is,
+        /// if the rig has a ToolBurn.
+        /// </summary>
+        private void BurnAway(ToolBurn.Target target)
+        {
+            if (toolBurn != null) {
+                toolBurn.BurnAway(target);
+            }
+        }
+
+        /// <summary>
+        /// Burns the bow into being in the hand, if the rig has a ToolBurn.
+        /// </summary>
+        private void BurnIn(ToolBurn.Target target)
+        {
+            if (toolBurn != null) {
+                toolBurn.BurnIn(target);
             }
         }
     }

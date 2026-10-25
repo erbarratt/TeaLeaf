@@ -14,10 +14,11 @@ namespace Player
     ///   hand's HandVisualSnap.Weight - so the fingers close exactly as the
     ///   hand lands and open exactly as it leaves. At weight 0 the input
     ///   curl shows as normal.
-    /// - Holding: a hand holding the bow, an arrow or the pack (none of
-    ///   which snap the hand) plays that thing's profile at full weight
-    ///   while it holds it (PlayerBow/PlayerPack.GetHeldProfile()). A snap
-    ///   under way wins (the string).
+    /// - Holding: a hand holding the bow, an arrow, the pack, the
+    ///   blackjack or the carried lockpicks (none of which snap the hand)
+    ///   plays that thing's profile at full weight while it holds it
+    ///   (PlayerBow/PlayerPack/PlayerBlackjack/PlayerLockpicking
+    ///   .GetHeldProfile()). A snap under way wins (the string).
     ///
     /// Tick() is called explicitly from PlayerController.Update(), after
     /// PlayerHandVisuals.Tick(), so it reads this frame's snap weight. The
@@ -34,11 +35,13 @@ namespace Player
         // object).
         [SerializeField] private PlayerHandHolding playerHandHolding;
 
-        // Read for the finger pose of the bow, an arrow or the pack in a
-        // hand. Optional: found in Awake() if not wired (on this same
-        // object).
+        // Read for the finger pose of the bow, an arrow, the pack, the
+        // blackjack or the lockpicks in a hand. Optional: found in Awake()
+        // if not wired (on this same object).
         [SerializeField] private PlayerBow playerBow;
         [SerializeField] private PlayerPack playerPack;
+        [SerializeField] private PlayerBlackjack playerBlackjack;
+        [SerializeField] private PlayerLockpicking playerLockpicking;
 
         [Header("Left Hand")]
         [SerializeField] private Animator leftHandAnimator;
@@ -57,6 +60,8 @@ namespace Player
         private bool _hasHandHolding;
         private bool _hasBow;
         private bool _hasPack;
+        private bool _hasBlackjack;
+        private bool _hasLockpicking;
 
         // Each hand's finger pose over the Animator's input curl.
         private HandFingerPoser _leftFingers;
@@ -88,8 +93,18 @@ namespace Player
                 playerPack = GetComponent<PlayerPack>();
             }
 
+            if (playerBlackjack == null) {
+                playerBlackjack = GetComponent<PlayerBlackjack>();
+            }
+
+            if (playerLockpicking == null) {
+                playerLockpicking = GetComponent<PlayerLockpicking>();
+            }
+
             _hasBow = playerBow != null;
             _hasPack = playerPack != null;
+            _hasBlackjack = playerBlackjack != null;
+            _hasLockpicking = playerLockpicking != null;
 
             // If a controller object (hand visual and Animator included) is
             // ever deactivated - a likely way to hide an untracked hand
@@ -146,7 +161,8 @@ namespace Player
 
         /// <summary>
         /// The profile of what a hand holds without being snapped (bow,
-        /// arrow, pack), or null. A hand holds one thing at a time.
+        /// arrow, pack, blackjack, carried lockpicks), or null. A hand
+        /// holds one thing at a time.
         /// </summary>
         private HandSnapProfile HeldProfile(bool isLeftHand)
         {
@@ -154,6 +170,14 @@ namespace Player
 
             if (profile == null && _hasPack) {
                 profile = playerPack.GetHeldProfile(isLeftHand);
+            }
+
+            if (profile == null && _hasBlackjack) {
+                profile = playerBlackjack.GetHeldProfile(isLeftHand);
+            }
+
+            if (profile == null && _hasLockpicking) {
+                profile = playerLockpicking.GetHeldProfile(isLeftHand);
             }
 
             return profile;

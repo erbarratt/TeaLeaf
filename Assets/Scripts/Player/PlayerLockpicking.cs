@@ -13,18 +13,19 @@ namespace Player
     ///   for a left-handed player (PlayerInputXR.IsLeftHanded).
     /// - In the other hand: gripped while that hand was at them, and
     ///   carried for as long as grip is held. Let go of away from a lock,
-    ///   they go back to the hand that wears them.
+    ///   they burn away in that hand and back into being on the hand that
+    ///   wears them (ToolBurn).
     /// - In a lock: brought close to a locked simple lock
-    ///   (Interaction.PickableLock), they snap into its keyhole and the
-    ///   carrying hand is freed. The big lock then fades in in front of
-    ///   the door.
+    ///   (Interaction.PickableLock), they burn away and the
+    ///   carrying hand is freed. The big lock then burns into being in
+    ///   front of the door (ToolBurn), its picks standing in for them.
     ///
     /// While the picks are in a lock, each hand can grip its own pick on
     /// the big lock (left hand the left pick, right hand the right) and
     /// turn it by carrying the hand round the lock's middle. The hand
     /// visual snaps onto the pick, as it does onto a door handle. Walking
-    /// away, or the lock opening, fades the big lock out and puts the
-    /// picks back on the hand that wears them. The lock itself is never
+    /// away, or the lock opening, burns the big lock away where it is and
+    /// the picks back into being on the hand that wears them. The lock itself is never
     /// mirrored: whichever hand wears the picks, the left hand works the
     /// left pick and the right hand the right one.
     ///
@@ -88,31 +89,41 @@ namespace Player
         // wired, and made with its default settings if there is none.
         [SerializeField] private BigLock bigLock;
 
+        // Optional: the big lock burns into being when the picks go in,
+        // and away when the picking ends. Found in Awake() if not wired
+        // (it's on this same object); none = it appears and goes at once.
+        [SerializeField] private ToolBurn toolBurn;
+
         [Header("The Picks")]
 
-        // Each pick: a long thin box, in metres, and how far apart the two
-        // lie.
-        [SerializeField] private float pickLength = 0.09f;
-        [SerializeField] private float pickThickness = 0.004f;
-        [SerializeField] private float pickSpacing = 0.012f;
-        [SerializeField] private Color pickColor = new(0.75f, 0.77f, 0.8f, 1f);
+        // The lockpicks model (Assets/TripoModels/lockpicks/lockpicks.fbx):
+        // the hook and the tension wrench side by side, their tips at its
+        // origin and their handles along its Z, 1 long. The big lock's
+        // picks are large copies of the same two.
+        [SerializeField] private GameObject picksModel;
 
-        // The least light the picks are ever shown in, 0-1.
-        [SerializeField] private float minLight = 0.35f;
+        // How long the picks are, tip to handle end, in metres: the model
+        // is scaled to it.
+        [SerializeField] private float pickLength = 0.16875f;
 
-        // Where the picks sit on the back of the hand that wears them, in
-        // that hand visual's own space (its fingers point along -Y, the
-        // back of the hand is -X, the thumb side +Z). The right hand
-        // visual is the left one mirrored, so the same numbers put them
-        // on the back of either hand. The picks' own Z runs from their
-        // tips to their handles.
-        [SerializeField] private Vector3 onHandPosition = new(-0.022f, -0.09f, 0f);
-        [SerializeField] private Vector3 onHandRotation = new(-90f, 0f, 90f);
+        // Where the picks sit on the back of the hand that wears them: the
+        // hand's offset from their origin (the tips, Z to the handles),
+        // per hand (posed with TeaLeaf > Modify Prefab > Pose with Hand).
+        // Its finger pose isn't played: the wearing hand keeps its input
+        // curl. Empty: the picks' origin on the hand's.
+        [SerializeField] private HandSnapProfile wornProfile;
 
-        // Where they sit in the other hand while it carries them, in that
-        // hand visual's own space (the same axes).
-        [SerializeField] private Vector3 inHandPosition = new(0.02f, -0.17f, 0.02f);
-        [SerializeField] private Vector3 inHandRotation = new(-90f, 0f, 90f);
+        // Where the other hand holds the picks while it carries them, from
+        // their origin (the tips), and how its fingers close round them
+        // (posed with TeaLeaf > Modify Prefab > Pose with Hand). Empty:
+        // the picks' origin on the hand's.
+        [SerializeField] private HandSnapProfile carryProfile;
+
+        // Where a hand sits on its pick on the big lock, from the pick's
+        // grip frame (BigLock.GetGripFrame()), and its fingers (also
+        // posed with Pose with Hand). Empty: the hand on the grip frame,
+        // fingers keeping their input curl.
+        [SerializeField] private HandSnapProfile pickProfile;
 
         // The other hand takes the picks from within this many metres of
         // them.
@@ -120,10 +131,14 @@ namespace Player
 
         [Header("Locks")]
 
+        // The lock plate (Assets/Prefabs/Interactive/Lock Plate.prefab):
+        // the big lock is a large copy of it. Empty: the big lock shows
+        // only its picks.
+        [SerializeField] private GameObject lockModel;
+
         // The carried picks go into a lock from within this many metres
-        // of it, and sit this deep in its keyhole.
+        // of it.
         [SerializeField] private float insertDistance = 0.15f;
-        [SerializeField] private float insertDepth = 0.02f;
 
         // Where the big lock appears: this far out from the real lock's
         // face, and this far below the head (never lower than the real
@@ -177,10 +192,9 @@ namespace Player
 
         private bool _hasHaptics;
 
-        // The picks: one object with a mesh of two thin boxes.
+        // The picks: an object whose origin and axes are the model's (the
+        // carry profile's grip frame), the model scaled under it.
         private Transform _picks;
-        private Mesh _picksMesh;
-        private Material _picksMaterial;
 
         private PicksPlace _place = PicksPlace.OnHand;
 
@@ -203,6 +217,17 @@ namespace Player
         // Counts down to the next pulse while the left hand feels the pin.
         private float _pinPulseTimer;
 
+        // The big lock's body and two picks as ToolBurn knows them. Null
+        // without a ToolBurn.
+        private ToolBurn.Target _bodyBurn;
+        private ToolBurn.Target _leftPickBurn;
+        private ToolBurn.Target _rightPickBurn;
+
+        // The worn picks' renderers (one per pick in the model) as
+        // ToolBurn knows them: let go of in the hand, they burn away there
+        // and back in on the wearing hand. Empty without a ToolBurn.
+        private ToolBurn.Target[] _picksBurns = System.Array.Empty<ToolBurn.Target>();
+
         /// True while the left hand carries the picks or is on a pick -
         /// and, after being let go by force, until its grip is released.
         /// The other hand systems leave the hand alone meanwhile.
@@ -210,6 +235,17 @@ namespace Player
 
         /// The same for the right hand.
         public bool IsRightBusy => IsCarrying(_right) || _right.isOnPick || _right.needsRegrip;
+
+        /// <summary>
+        /// Whose finger pose a hand plays for the picks in it: the carry
+        /// profile's while that hand carries them, else null. Read by
+        /// PlayerHandAnimation each frame. (A hand on a big lock pick is
+        /// snapped, and plays the pick profile through its snap.)
+        /// </summary>
+        public HandSnapProfile GetHeldProfile(bool isLeftHand)
+        {
+            return IsCarrying(isLeftHand ? _left : _right) ? carryProfile : null;
+        }
 
         /// <summary>
         /// Whether that hand is the one carrying the picks.
@@ -242,6 +278,10 @@ namespace Player
                 playerHaptics = GetComponentInParent<PlayerHaptics>();
             }
 
+            if (toolBurn == null) {
+                toolBurn = GetComponent<ToolBurn>();
+            }
+
             // Looked up once, so the per-frame code tests a plain bool.
             _hasHaptics = playerHaptics != null;
 
@@ -269,15 +309,40 @@ namespace Player
         }
 
         /// <summary>
-        /// Makes the picks. Start() rather than Awake(): they go on the
-        /// left hand visual, and PlayerHandVisuals copies each hand visual
-        /// in its own Awake() to make the ghost hands - picks already on
-        /// the hand by then would be copied onto the ghost too. Every
-        /// Awake() has run before the first Start().
+        /// Makes the picks, gives the big lock its copies of them and of
+        /// the lock plate, then registers its three renderers and the worn
+        /// picks' with ToolBurn (after the models, so the burn materials copy their
+        /// textures; ToolBurn finds its shader in its own Awake()).
+        /// Start() rather than Awake(): they go on the left hand visual,
+        /// and PlayerHandVisuals copies each hand visual in its own
+        /// Awake() to make the ghost hands - picks already on the hand by
+        /// then would be copied onto the ghost too. Every Awake() has run
+        /// before the first Start(), the big lock's included.
         /// </summary>
         private void Start()
         {
             BuildPicks();
+
+            if (picksModel != null) {
+                bigLock.SetPickModel(picksModel);
+            }
+
+            if (lockModel != null) {
+                bigLock.SetLockModel(lockModel);
+            }
+
+            if (toolBurn != null) {
+                _bodyBurn = toolBurn.Register(bigLock.BodyRenderer);
+                _leftPickBurn = toolBurn.Register(bigLock.LeftPickRenderer);
+                _rightPickBurn = toolBurn.Register(bigLock.RightPickRenderer);
+
+                Renderer[] picksRenderers = _picks.GetComponentsInChildren<Renderer>(true);
+                _picksBurns = new ToolBurn.Target[picksRenderers.Length];
+
+                for (int i = 0; i < picksRenderers.Length; i++) {
+                    _picksBurns[i] = toolBurn.Register(picksRenderers[i]);
+                }
+            }
         }
 
         private void OnDestroy()
@@ -286,16 +351,6 @@ namespace Player
                 bigLock.StopReached -= OnStopReached;
                 bigLock.PinSet -= OnPinSet;
                 bigLock.Unlocked -= OnUnlocked;
-            }
-
-            // A mesh and a material made from code aren't cleaned up with
-            // their object.
-            if (_picksMesh != null) {
-                Destroy(_picksMesh);
-            }
-
-            if (_picksMaterial != null) {
-                Destroy(_picksMaterial);
             }
         }
 
@@ -316,30 +371,28 @@ namespace Player
         }
 
         /// <summary>
-        /// Makes the picks, once: two long thin boxes side by side in one
-        /// mesh, running from the object's origin (their tips) along its Z
-        /// (to their handles), on the back of the hand that wears them. No collider:
-        /// they're only to look at.
+        /// Makes the picks, once: the model scaled to pickLength under an
+        /// object of its own, which is what's placed - its origin is the
+        /// picks' tips, its Z runs to their handles - on the back of the
+        /// hand that wears them. No collider: they're only to look at.
+        /// With no model set there's still an object (nothing to see), so
+        /// the picking works.
         /// </summary>
         private void BuildPicks()
         {
-            LockMeshBuilder builder = new();
-            Vector3 size = new(pickThickness, pickThickness, pickLength);
-            float aside = pickSpacing * 0.5f;
-
-            builder.Box(new Vector3(-aside, 0f, pickLength * 0.5f), size, Quaternion.identity, pickColor);
-            builder.Box(new Vector3(aside, 0f, pickLength * 0.5f), size, Quaternion.identity, pickColor);
-
-            _picksMesh = builder.ToMesh("Lockpicks");
-            _picksMaterial = LockMeshBuilder.CreateMaterial(false, minLight);
-
             GameObject picks = new("Lockpicks");
-            picks.AddComponent<MeshFilter>().sharedMesh = _picksMesh;
 
-            MeshRenderer picksRenderer = picks.AddComponent<MeshRenderer>();
-            picksRenderer.sharedMaterial = _picksMaterial;
-            picksRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            picksRenderer.receiveShadows = false;
+            if (picksModel != null) {
+                Transform model = Instantiate(picksModel, picks.transform, false).transform;
+                model.localScale = Vector3.one * pickLength;
+
+                foreach (Renderer modelRenderer in model.GetComponentsInChildren<Renderer>()) {
+                    modelRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                    modelRenderer.receiveShadows = false;
+                }
+            } else {
+                Debug.LogWarning("PlayerLockpicking: no lockpicks model set, so the picks can't be seen.", this);
+            }
 
             _picks = picks.transform;
             ReturnPicks();
@@ -351,21 +404,18 @@ namespace Player
         /// (which is mirrored) and anything else would otherwise leave
         /// them mirrored.
         /// </summary>
-        private void PlacePicks(Transform parent, Vector3 localPosition, Quaternion localRotation)
-        {
-            _picks.SetParent(parent, false);
-            _picks.SetLocalPositionAndRotation(localPosition, localRotation);
-            _picks.localScale = Vector3.one;
-        }
-
         /// <summary>
         /// Puts the picks back on the back of the hand that wears them -
-        /// the one that isn't the taker.
+        /// the one that isn't the taker - where the worn profile puts them
+        /// (never drawn mirrored), and in sight again if they were in a
+        /// lock.
         /// </summary>
         private void ReturnPicks()
         {
             _place = PicksPlace.OnHand;
-            PlacePicks(VisualFor(_taker.isLeftHand ? _right : _left), onHandPosition, Quaternion.Euler(onHandRotation));
+            _picks.gameObject.SetActive(true);
+            PickHand wearer = _taker.isLeftHand ? _right : _left;
+            HandSnapProfile.PlaceInHand(wornProfile, wearer.isLeftHand, _picks, VisualFor(wearer), transform);
         }
 
         /// <summary>
@@ -422,20 +472,25 @@ namespace Player
 
             if (isInReach && isTakerGrabbing && !_wasTakerGrabbing) {
                 _place = PicksPlace.InHand;
-                PlacePicks(VisualFor(_taker), inHandPosition, Quaternion.Euler(inHandRotation));
+
+                // A child of the hand visual where the profile puts them,
+                // never drawn mirrored.
+                HandSnapProfile.PlaceInHand(carryProfile, _taker.isLeftHand, _picks, VisualFor(_taker), transform);
             }
         }
 
         /// <summary>
-        /// A hand is carrying the picks: they go back to the hand that
-        /// wears them if grip is let go, or into a lock they're brought close
-        /// to. A distance check per lock in the level, and only while the
-        /// picks are in hand.
+        /// A hand is carrying the picks: let go of, they burn away in that
+        /// hand and back into being on the hand that wears them; brought
+        /// close to a lock, they go into it. A distance check per lock in
+        /// the level, and only while the picks are in hand.
         /// </summary>
         private void TickPicksCarried(bool isTakerGrabbing)
         {
             if (!isTakerGrabbing) {
+                BurnPicks(false);
                 ReturnPicks();
+                BurnPicks(true);
                 return;
             }
 
@@ -447,10 +502,11 @@ namespace Player
         }
 
         /// <summary>
-        /// Puts the picks into found: they snap into its keyhole on the
-        /// player's side, sticking straight out, the carrying hand is freed
-        /// (and has to let go of grip before it can take a pick), and the
-        /// big lock appears in front of the door.
+        /// Puts the picks into found: they burn away where they are (the big lock's
+        /// picks are the ones worked; none are drawn in the real lock), the
+        /// carrying hand is freed (and has to let go of grip before it can
+        /// take a pick), and the big lock burns into being in front of the
+        /// door.
         /// </summary>
         private void Insert(PickableLock found)
         {
@@ -464,19 +520,73 @@ namespace Player
             _right.wasInReach = false;
             found.BeginPicking();
 
-            // A child of the lock (unscaled), placed in the world: tips
-            // just inside the keyhole, handles straight out.
-            Transform lockTransform = found.transform;
-            PlacePicks(lockTransform, Vector3.zero, Quaternion.identity);
-            _picks.SetPositionAndRotation(facePoint - outward * insertDepth, Quaternion.LookRotation(outward, lockTransform.up));
+            // Burnt away where they are (on the carrying hand, at the lock),
+            // and hidden there until ReturnPicks() puts them back on the
+            // wearing hand.
+            BurnPicks(false);
+            _picks.gameObject.SetActive(false);
 
             // The big lock: out from the real one, facing the same way,
             // lifted to a height that's comfortable to work at.
             Vector3 position = facePoint + outward * bigLockDistance;
             position.y = Mathf.Max(facePoint.y, headPosition.y - bigLockBelowHead);
 
-            bigLock.Show(found, position, Quaternion.LookRotation(-outward, lockTransform.up));
+            bigLock.Show(found, position, Quaternion.LookRotation(-outward, found.transform.up));
+            BurnBigLock(true);
             Pulse(_taker.isLeftHand, insertAmplitude, insertDuration);
+        }
+
+        /// <summary>
+        /// Burns the big lock's body and picks into being (just shown) or
+        /// away (call just before it's hidden, while it's still showing),
+        /// if the rig has a ToolBurn.
+        /// </summary>
+        private void BurnBigLock(bool isIn)
+        {
+            if (toolBurn == null) {
+                return;
+            }
+
+            if (isIn) {
+                toolBurn.BurnIn(_bodyBurn);
+                toolBurn.BurnIn(_leftPickBurn);
+                toolBurn.BurnIn(_rightPickBurn);
+            } else {
+                toolBurn.BurnAway(_bodyBurn);
+                toolBurn.BurnAway(_leftPickBurn);
+                toolBurn.BurnAway(_rightPickBurn);
+            }
+        }
+
+        /// <summary>
+        /// Burns the worn picks away where they are (call before they're
+        /// moved) or into being where they now are (call after), if the
+        /// rig has a ToolBurn. Burning in leaves the copy burning away in
+        /// the hand that let go of them.
+        /// </summary>
+        private void BurnPicks(bool isIn)
+        {
+            for (int i = 0; i < _picksBurns.Length; i++) {
+                if (isIn) {
+                    toolBurn.BurnIn(_picksBurns[i], true);
+                } else {
+                    toolBurn.BurnAway(_picksBurns[i]);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Where a hand on its own pick on the big lock goes, as the pick
+        /// is now: the pick profile's offsets from the pick's grip frame,
+        /// with its finger pose (none: the bare grip frame).
+        /// </summary>
+        private HandSnapPose PickSnapPose(PickHand hand)
+        {
+            bigLock.GetGripFrame(hand.isLeftHand, out Vector3 position, out Quaternion rotation);
+
+            return pickProfile != null
+                ? pickProfile.Apply(hand.isLeftHand, position, rotation)
+                : new HandSnapPose(position, rotation, null);
         }
 
         /// <summary>
@@ -515,7 +625,7 @@ namespace Player
             if (isInReach && isGrabbing) {
                 hand.isOnPick = true;
                 bigLock.HoldPick(hand.isLeftHand);
-                SnapFor(hand).Snap(bigLock.GetSnapPose(hand.isLeftHand));
+                SnapFor(hand).Snap(PickSnapPose(hand));
             }
         }
 
@@ -540,12 +650,14 @@ namespace Player
 
         /// <summary>
         /// Ends the picking, opened or not: both hands come off, the big
-        /// lock fades out and the picks go back to the hand that wears them.
+        /// lock burns away where it is and the picks burn back into being
+        /// on the hand that wears them.
         /// </summary>
         private void StopPicking()
         {
             LetGo(_left, true);
             LetGo(_right, true);
+            BurnBigLock(false);
             bigLock.Hide();
 
             // Unity's == null is true for a lock destroyed while picked.
@@ -556,6 +668,7 @@ namespace Player
             _lock = null;
             _pinPulseTimer = 0f;
             ReturnPicks();
+            BurnPicks(true);
         }
 
         /// <summary>
@@ -579,7 +692,6 @@ namespace Player
                 }
             }
 
-            // Also while it fades out after the picking has ended.
             if (bigLock.IsActive) {
                 bigLock.Tick(deltaTime);
             }
@@ -629,7 +741,7 @@ namespace Player
 
             bigLock.TurnPick(hand.isLeftHand, controllerPosition);
 
-            HandSnapPose pose = bigLock.GetSnapPose(hand.isLeftHand);
+            HandSnapPose pose = PickSnapPose(hand);
             SnapFor(hand).SetSnapPose(pose.Position, pose.Rotation);
 
             if (!IsWithin(controllerPosition, bigLock.GetGripPoint(hand.isLeftHand), breakDistance)) {

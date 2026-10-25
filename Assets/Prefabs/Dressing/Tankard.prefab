@@ -47,8 +47,8 @@ LODGroup:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 4891980458958909337}
   serializedVersion: 2
-  m_LocalReferencePoint: {x: 0, y: 0, z: 0}
-  m_Size: 1
+  m_LocalReferencePoint: {x: -0.009445183, y: 0.00029195845, z: -0.00032217428}
+  m_Size: 0.21659477
   m_FadeMode: 1
   m_AnimateCrossFading: 1
   m_LastLODIsBillboard: 0
@@ -222,6 +222,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: b81c66b4e5dda86418e66354b1828875, type: 2}
+    - target: {fileID: -5754084199372789682, guid: d57da498aee777042b1adac2738ca0a1, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 4300000, guid: d91df52ee37332945832e17ae6b5e53d, type: 2}
     - target: {fileID: 919132149155446097, guid: d57da498aee777042b1adac2738ca0a1, type: 3}
       propertyPath: m_Name
       value: tankard_LOD1
@@ -317,6 +321,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: b81c66b4e5dda86418e66354b1828875, type: 2}
+    - target: {fileID: -5754084199372789682, guid: d57da498aee777042b1adac2738ca0a1, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 4300000, guid: 52aabba75cdb4b34985f941b457ddde0, type: 2}
     - target: {fileID: 919132149155446097, guid: d57da498aee777042b1adac2738ca0a1, type: 3}
       propertyPath: m_Name
       value: tankard_LOD2

@@ -92,10 +92,11 @@ a closed post, may show, as a corner post.
 - `Ground/*.asset` — street ground meshes (`GroundMesh`), one per region chunk, `<sector> -
   <area> <region> <x>_<z>`, the area's old ones deleted and rewritten each generation.
   Deletable; ground shows nothing until regenerated.
-- `Proxies/*.asset` — building proxy meshes (`BuildingProxies`), `<sector> - <owner> Building
-  <i>`, the sector's old ones deleted and rewritten each generation. **Git-ignored** (tens of
-  MB, rewritten every run): a fresh clone or a deleted folder draws buildings' far range as
-  nothing until the level is regenerated.
+- `Proxies/*.asset` — buildings' merged meshes (`BuildingProxies`), `<sector> - <owner> Building
+  <i>` (proxy), with the sector's atlases and atlas material (`<sector> - Proxy Atlas*`,
+  `ProxyAtlas`); the sector's old ones deleted and rewritten each generation. (`ProxyLightmapParameters.asset` beside the folder is kept.) **Git-ignored** (tens of MB, rewritten every run): a fresh clone
+  or a deleted folder draws buildings beyond full-detail range as nothing until the level is
+  regenerated.
 - `GeneratorSettings.asset` — tunables (Settings).
 - `Layouts/*.json` — specs, one per area:
   - `example-street` (sector `Example Street`, origin): high street bending at a T with a
@@ -215,10 +216,12 @@ unless "asset". Meanings are in the sections that use them.
   `roofRailingLean` 12°; `roofRailingInset` 0.4m; `roofRailingGap` 1m.
 - **Visibility cull:** `cullEyeHeight` 1.6m; `cullHeight` 9m; `cullStep` 2m; `cullRange` 80m;
   `roofEdgeGap` 1.5m; `roofEdgeReach` 20m.
-- **Building proxies:** `buildingProxies` on; `lowerDetailShare` 0.3 (building's share of
-  view height below which pieces show their second level); `proxyShare` 0.15 (below which
-  the proxy draws; kept below `lowerDetailShare`); `proxyCullShare` 0.04 (below which nothing
-  draws, ~120m for a 12m building; kept below `proxyShare`).
+- **Building proxies:** `buildingProxies` on; `lowerDetailShare` 0.2 (building's share of
+  view height below which the proxy draws, ~25m for a 12m building); `proxyCullShare` 0.04
+  (below which nothing draws, ~120m; kept below `lowerDetailShare`); `proxyLightmapScale` 0.6
+  (Scale In Lightmap of the proxy: ~18 texels per lightmap chart, what a clean bake needs);
+  `proxyBakePushoff` 0.03m (pushoff of the proxies' Lightmap Parameters); `proxyAtlasSize`
+  4096, `proxyAtlasTile` 512, `proxyAtlasPadding` 16px (proxy atlas).
 - **Moon shafts:** `moonShaftStreetMaxWidth` 4.5m (**asset 0: off**); `moonShaftMaxLength`
   40m; `moonShaftInset` 0.3m; `moonShaftMinEaves` 2m.
 - **Sound rooms:** `soundAlleyMaxWidth` 4.5m; `soundStreetMuffle` 0.15; `soundSkyMuffle` 0.3;
@@ -855,29 +858,85 @@ unless "asset". Meanings are in the sections that use them.
 
 ## Building proxies (`BuildingProxies.cs`)
 
-- **Each building drawn from afar by one renderer**, so distant streets cost one renderer per
-  building, not hundreds. Building = `Facades|Lots/<owner>/Building <i>` + its
-  `Roofs/<owner>/Building <i>` (dressing is under the building; lamp posts, backing, foliage,
-  colliders are not).
-- **One `LODGroup` per building on its facade group, keeping the pack's steps for the whole
-  building at once**: level 0 every piece's full detail down to `lowerDetailShare` of view
-  height; level 1 every piece's second level (full detail where it has one level), still
-  piece by piece, down to `proxyShare`; level 2 the `Proxy` child down to `proxyCullShare`,
-  then culled. Renderers in no `LODGroup` in all three. Fade copied from the pack's first
-  group. Shares from the pack's switches (7%, lowest at 3.5%, culled at 1% of a piece's size)
-  for a building ~4 pieces across. **Pieces'
-  own `LODGroup`s removed, renderers below their second level switched off** (a renderer
-  belongs to one `LODGroup`; instance overrides, prefabs untouched). Off or shadow-only
-  renderers left as they are, never merged. Particles (smoke, steam) untouched.
-- **Proxy mesh = every piece's lowest level** (full detail where it has one level), merged in
-  the building group's space (`CombineMeshes`, mirrored pieces turned right), **one sub-mesh
-  per material**, first-met order: same materials and colour variants, exact silhouette, no
-  new shader or textures. Lightmap UVs dropped.
+- **Beyond full-detail range each building is one renderer**, not hundreds. Building =
+  `Facades|Lots/<owner>/Building <i>` + its `Roofs/<owner>/Building <i>` (dressing is under
+  the building; lamp posts, backing, foliage, colliders are not).
+- **One `LODGroup` per building on its facade group, switching the whole building at once**:
+  level 0 every piece's full detail (and renderers in no `LODGroup`), piece by piece, down to
+  `lowerDetailShare` of view height (~25m for a 12m building); level 1 the `Proxy` child down
+  to `proxyCullShare`, then culled. Fade copied from the pack's first group. Cull share from
+  the pack's (1% of a piece's size) for a building ~4 pieces across; **the switch is further
+  off than the pack's own (7%, would be 0.3, ~17m)** so fine baked shadows the proxy's
+  coarser shadowmask can't hold (a lamp cage's on a wall: lamps are Mixed, Shadowmask, so a
+  static caster's lamp shadow lives only in the receiver's texels) are too small to see go.
+  **Pieces' own `LODGroup`s removed, every renderer of theirs but the full detail switched
+  off** (a renderer belongs to one `LODGroup`; instance overrides, prefabs untouched). Off or
+  shadow-only renderers left as they are, never merged. Particles (smoke, steam) untouched.
+- **The pack's lowest level is never drawn**: it has only ~10% fewer triangles than the
+  second, not worth a second merged mesh and lightmap.
+- **Full detail is never merged**: up close per-piece culling, the pack's own lightmap UVs and
+  shared (instanced) meshes matter most, and only a few buildings are in range.
+- **Merged mesh**: `Proxy` = every piece's second level (full detail where a piece has one
+  level; renderers in no `LODGroup` too), merged in the building group's space
+  (`CombineMeshes`, mirrored pieces turned right), one sub-mesh per material, first-met
+  order, then **moved onto the sector's atlas** (below): one sub-mesh for everything atlased
+  (first), one per material kept apart; exact silhouette, no new shader.
+  Pieces' lightmap UVs dropped; **own lightmap UVs unwrapped** (`Unwrapping.
+  GenerateSecondaryUVSet`), chart margin 1.5 texels at the mesh's own resolution (UV margin =
+  1.5 / (root of surface area x scene's lightmap resolution x scale), uncapped).
+- **Unwrapped on a copy welded by position** (vertices within 1mm one): the pack's meshes are
+  split at every texture seam, so unwrapped as they are nearly every face is its own chart.
+  The copy's triangles come back in the same order; each corner's lightmap UV is carried
+  back, a vertex copied where a chart edge runs through it. Still ~1500 charts a building
+  (box-like pieces: hard angle and error settings don't lower it). **Lightmap texels per
+  chart decide the bake**: below ~15 texels per chart texels go invalid (backface hits) and
+  charts share texels (Texel Validity and UV Overlap views red, building dark); hence
+  `proxyLightmapScale` 0.6 (~18 per chart, ~30000 texels a building).
 - Proxy renderer: `Environment`, static Contribute GI + occludee + reflection probes (never
-  occluder, never batching static), casts, receives, **lit from probes** like the pack's lower
-  levels. No collider (no query, NavMesh or sound probe sees it).
-- Log `Building proxies: n of m building(s), g piece LODGroup(s) folded in; vertices,
-  triangles, materials per proxy`.
+  occluder, not batching static: one renderer already), casts, receives, **lightmapped**
+  (`proxyLightmapScale`; probes off) so far streets show the baked shadows the full detail
+  casts in the bake (a lower level receives, doesn't cast into it). No collider (no query,
+  NavMesh or sound probe sees it). **Each generation needs a rebake.**
+- **Own Lightmap Parameters** (`Assets/Data/LevelGen/ProxyLightmapParameters.asset`, made by
+  the build when missing, defaults but pushoff = `proxyBakePushoff`; set on the renderer's
+  serialized `m_LightmapParameters`): the bake keeps the full detail as solid geometry a few
+  mm from the proxy (only the most detailed level is scene geometry), and its relief blocks
+  some of the proxy's bounce and occlusion rays - with Unity's default pushoff the proxy
+  baked ~15% darker than its full detail (area-weighted lightmap mean, every building).
+  Rays starting beyond that relief let the proxy see what the full detail sees.
+- **Proxy atlas** (`ProxyAtlas.cs`; fewer draw calls, shadow pass too): every building split
+  first, then from the materials the proxies use (first-met order) **one atlas per sector**,
+  three `proxyAtlasSize` PNGs (`<sector> - Proxy Atlas Albedo` sRGB, `Normal` normal map,
+  `MRAO` linear: R metallic, G occlusion, A smoothness), the same `proxyAtlasTile` cell per
+  material in all three (colour variants get their own), and `<sector> - Proxy Atlas.mat`
+  (URP Lit, white, strengths 1, `_NORMALMAP`/`_METALLICSPECGLOSSMAP`/`_OCCLUSIONMAP` on).
+  Built before `StartAssetEditing` (imported before the material takes them).
+  - **Atlased**: URP Lit, metallic, opaque, no alpha clip, no emission, back culled,
+    smoothness from metallic alpha, highlights and reflections on, no detail/height map, base
+    map tiling 1 offset 0 (all the pack's opaque materials). Else **kept apart** on its own
+    material (foliage, `WindowLit`, `TeaLeaf/*`), as are materials past the atlas's cells.
+  - **Tile**: each map shrunk on the GPU to the tile less `proxyAtlasPadding` each side
+    (`Graphics.Blit` to a float linear target: sRGB decoded, mip chosen by the GPU), read back;
+    **each material's settings baked into the pixels** as URP Lit applies them (colour x
+    `_BaseColor`; normal unpacked RG or AG, x `_BumpScale`, packed RGB; metallic map R, its A x
+    `_Smoothness`, else the scalars; occlusion G eased to white by `_OcclusionStrength`); edge
+    pixels repeated over the padding (holds to mip 4 at 16px). Missing map: white / flat /
+    scalars.
+  - **A triangle whose texture coordinates leave 0-1** (beyond 0.005, which is clamped)
+    stays on its own material: a tile can't repeat (`RoofWall_LargeB` ~7%,
+    `PlatformsFoundationsPorch` a few). A vertex serving both kinds is copied.
+  - 4096 atlases of 512 tiles: 64 cells, about 50 MB compressed per sector (normal BC5, MRAO
+    with alpha).
+- Log `Building proxies: n of m building(s), g piece LODGroup(s) folded in; triangles,
+  materials per proxy, atlas (materials in it, kept apart, triangles off it), lightmap scale,
+  texels, texels per chart, bake pushoff`.
+- **TeaLeaf > Level Gen > Rebuild Building Proxies** (selected `Generated` root, else every
+  one in the open scene; sector from its `Sectors/<sector>/Geometry` parent): proxies again
+  after facades were changed by hand, without regenerating. Each building put back as placed
+  first: its `LODGroup` and `Proxy` removed, pieces' removed `LODGroup`s reverted from
+  their prefabs, renderer on/off overrides on those groups' renderers reverted (only the
+  proxy pass switches piece renderers off); pieces added by hand keep their own groups. Then
+  the same build. Not undoable (old meshes deleted); rebake lighting and occlusion after.
 
 ## Facade dressing (being built)
 

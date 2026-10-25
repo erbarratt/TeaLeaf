@@ -7,8 +7,12 @@ namespace Interaction
     /// <summary>
     /// The big lock: a large copy of a lock that floats in front of it
     /// while it's being picked, with the two picks sticking out of its
-    /// keyway for the hands to work. One in the scene, built once at load
-    /// and reused for every lock.
+    /// keyhole for the hands to work. One in the scene, built once at load
+    /// and reused for every lock. The lock is a large copy of the lock
+    /// plate model (given by SetLockModel()), and the picks large copies
+    /// of the player's own (the lockpicks model, given by SetPickModel()):
+    /// the hook on the left, searching for pins, and the bent tension
+    /// wrench on the right, turning.
     ///
     /// It also IS the puzzle - which stage the lock is at, where the pins
     /// are, how long a pin has been held. The player's half
@@ -26,13 +30,19 @@ namespace Interaction
     /// go of the right pick before that swings it back to its start and
     /// starts the lock again, with new pins.
     ///
-    /// A pick is turned by carrying the hand round the lock's middle, like
-    /// a clock hand: the pick's angle is the hand's, not the wrist's
-    /// twist.
+    /// Each pick turns about its tip, deep in the keyhole: the right
+    /// pick's behind the middle of the keyhole's round top, the left's
+    /// behind the middle of the slot below it. A pick is turned by carrying the hand round its
+    /// pivot, like a clock hand: the pick's angle is the hand's, not the
+    /// wrist's twist.
     ///
     /// This object's own axes: X to the player's right, Y up the face, Z
     /// away from the player (into the door). Its origin is the middle of
-    /// the lock's body. Unscaled.
+    /// the round top of the keyhole, on the plate's face. Unscaled.
+    ///
+    /// It appears and goes at once (Show()/Hide()); the burn into being
+    /// and away is the player's (PlayerLockpicking, through its ToolBurn,
+    /// with the three renderers this exposes).
     ///
     /// No Update(): PlayerLockpicking calls Tick() while it's in use.
     /// </summary>
@@ -44,45 +54,25 @@ namespace Interaction
 
         [Header("Shape")]
 
-        // The lock's round body, in metres.
-        [Tooltip("The radius of the lock's round face, in metres. The marks on the rim and the gizmo are sized from it.")]
-        [SerializeField] private float faceRadius = 0.11f;
-        [Tooltip("How thick the lock's round body is, from its face to its back, in metres.")]
-        [SerializeField] private float bodyDepth = 0.05f;
+        // How many times bigger than the real lock plate the big lock is.
+        // The plate model is real size (12.7cm tall), so 3.5 makes the
+        // big lock about 45cm tall.
+        [Tooltip("How many times bigger than the real lock plate the big lock is. The Lock Plate prefab is real size, 12.7cm tall, so 3.5 makes the big lock about 45cm tall.")]
+        [SerializeField] private float modelScale = 3.5f;
 
-        // The keyway: the dark rectangle in the middle of the face.
-        [Tooltip("The width of the keyway, the dark rectangle in the middle of the face, in metres. The two picks stand side by side within it.")]
-        [SerializeField] private float keywayWidth = 0.03f;
-        [Tooltip("The height of the keyway, in metres.")]
-        [SerializeField] private float keywayHeight = 0.07f;
-
-        // The picks: how long and thick each is, and how far they lean
-        // out of the face towards the player, in degrees (0 = flat
-        // against the face, 90 = straight out).
-        [Tooltip("How long each pick is from the keyway to its tip, in metres.")]
+        // The picks: how long each is, how far each goes into the
+        // keyhole, and how far they lean out of the face towards the
+        // player, in degrees (0 = flat against the face, 90 = straight
+        // out).
+        [Tooltip("How long each pick is from its tip in the keyhole to the end of its handle, in metres. The lockpicks model is scaled to it.")]
         [SerializeField] private float pickLength = 0.2f;
-        [Tooltip("How thick each pick is, in metres.")]
-        [SerializeField] private float pickThickness = 0.012f;
+        [Tooltip("How deep into the keyhole each pick's tip sits, past the face, in metres: each pick turns about its tip there. The keyhole is about 2cm deep at the big lock's size.")]
+        [SerializeField] private float pickDepth = 0.015f;
         [Tooltip("How far the picks lean out of the face towards the player, in degrees: 0 is flat against the face, 90 straight out.")]
         [SerializeField] private float pickLift = 35f;
 
-        [Tooltip("How far along a pick from the keyway a hand grips it, in metres.")]
-        [SerializeField] private float gripAlong = 0.14f;
-
-        [Header("Colours")]
-        [Tooltip("The colour of the lock's body: its back and the wall round it.")]
-        [SerializeField] private Color bodyColor = new(0.32f, 0.3f, 0.28f, 1f);
-        [Tooltip("The colour of the lock's face, the side the picks come out of.")]
-        [SerializeField] private Color faceColor = new(0.5f, 0.46f, 0.38f, 1f);
-        [Tooltip("The colour of the keyway in the middle of the face.")]
-        [SerializeField] private Color keywayColor = new(0.03f, 0.03f, 0.03f, 1f);
-        [Tooltip("The colour of the marks on the face's rim at the right pick's stops and at each end of the left pick's sweep.")]
-        [SerializeField] private Color markColor = new(0.9f, 0.85f, 0.7f, 1f);
-        [Tooltip("The colour of the two picks.")]
-        [SerializeField] private Color pickColor = new(0.75f, 0.77f, 0.8f, 1f);
-
-        [Tooltip("The least light the lock is ever shown in, 0 to 1. Levels are dark, and the lock has to be seen to be worked.")]
-        [SerializeField] private float minLight = 0.35f;
+        [Tooltip("How far along a pick from its tip in the keyhole a hand grips it, in metres: on the handle, which is the outer half.")]
+        [SerializeField] private float gripAlong = 0.15f;
 
         [Header("Right Pick (turning)")]
 
@@ -123,16 +113,8 @@ namespace Interaction
 
         [Header("Hands")]
 
-        [Tooltip("A hand closer than this to the lock's middle line, in metres, has no clear clock angle, so the pick it holds stays where it is.")]
+        [Tooltip("A hand closer than this to the line through its pick's pivot, square to the face, in metres, has no clear clock angle, so the pick it holds stays where it is.")]
         [SerializeField] private float deadRadius = 0.03f;
-
-        [Tooltip("The hand offsets and finger pose for a hand on a pick. Optional: with none the hand sits exactly on the grip frame and the fingers keep their input curl.")]
-        [SerializeField] private HandSnapProfile snapProfile;
-
-        [Header("Fade")]
-
-        [Tooltip("How long the lock takes to fade in when shown or out when hidden, in seconds. 0 switches it at once.")]
-        [SerializeField] private float fadeDuration = 0.25f;
 
         [Header("Sound")]
 
@@ -153,40 +135,38 @@ namespace Interaction
         [Tooltip("The left pick scrapes (plays the Pick Cue) once every this many degrees it is swept.")]
         [SerializeField] private float scrapeAngle = 25f;
 
-        // How many flat pieces the round body is made of.
-        private const int BodySegments = 32;
+        // The lockpicks model's two picks, by name: the hook works the
+        // left of the lock, the tension wrench the right. Each lies along
+        // its own Z from its tip (the origin) to its handle, 1 long, its
+        // bent tip pointing down its -Y.
+        public const string LeftPickName = "Lockpick_Hook";
+        public const string RightPickName = "Lockpick_Wrench";
 
-        // How far the keyway and the marks stand out of the face, in
-        // metres - enough not to flicker against it.
-        private const float Proud = 0.002f;
+        /// The grip frame on a pick, in the pick's own space, turned from
+        /// it: up along the pick, away from the keyhole, and facing its -Y
+        /// (into the lock, square to the pick), so the hand closes round
+        /// the pick from the player's side, as on a rope.
+        public static readonly Quaternion GripTurn = Quaternion.LookRotation(Vector3.down, Vector3.forward);
 
-        private static readonly int _alphaId = Shader.PropertyToID("_Alpha");
-
-        // How the lock is being drawn. Renderers and materials are only
-        // touched when this changes.
-        private enum Look
-        {
-            Hidden,
-            Fading,
-            Solid
-        }
+        // The Lock Plate model's keyhole radius at real size, in metres.
+        private const float PlateKeyholeRadius = 0.008f;
 
         private Transform _leftPick;
         private Transform _rightPick;
 
-        // The body and the two picks.
-        private readonly MeshRenderer[] _renderers = new MeshRenderer[3];
-        private Mesh _bodyMesh;
-        private Mesh _pickMesh;
+        // Where each pick's tip sits and the pick turns about, pickDepth
+        // into the keyhole, in this object's space: the right pick behind
+        // the middle of the keyhole's round top (this object's origin),
+        // the left behind the middle of the slot below it.
+        private Vector3 _leftPivot;
+        private Vector3 _rightPivot;
 
-        // Two materials, shared by all three renderers: the solid one worn
-        // while fully in, and the see-through one worn only while fading.
-        private Material _solidMaterial;
-        private Material _fadeMaterial;
+        // The body (the lock plate) and the two picks.
+        private MeshRenderer _bodyRenderer;
+        private MeshRenderer _leftPickRenderer;
+        private MeshRenderer _rightPickRenderer;
 
-        private Look _look = Look.Hidden;
         private bool _isShown;
-        private float _fade;
 
         private bool _isRightHeld;
         private bool _isLeftHeld;
@@ -211,12 +191,17 @@ namespace Interaction
         /// The lock being picked. Null until the first Show().
         public PickableLock Target { get; private set; }
 
-        /// True while the lock is in view, or still fading out.
-        public bool IsActive => _isShown || _fade > 0f;
+        /// True while the lock is in view.
+        public bool IsActive => _isShown;
 
-        /// True once the lock has faded in enough for a hand to take a
-        /// pick.
-        public bool CanBeWorked => _isShown && !_isUnlocked && _fade >= 0.5f;
+        /// True while a hand can take a pick: in view and not yet open.
+        public bool CanBeWorked => _isShown && !_isUnlocked;
+
+        /// The lock's three renderers (body, left pick, right pick), for
+        /// the player's side to burn in and away. Made in Awake().
+        public MeshRenderer BodyRenderer => _bodyRenderer;
+        public MeshRenderer LeftPickRenderer => _leftPickRenderer;
+        public MeshRenderer RightPickRenderer => _rightPickRenderer;
 
         /// How many pins have been set so far, 0 to PinCount.
         public int PinsSet { get; private set; }
@@ -228,8 +213,16 @@ namespace Interaction
         /// degrees (0 to the arc).
         public float LeftSweep { get; private set; }
 
-        /// The left pick's clock angle, in degrees.
+        /// The left pick's clock angle, in degrees, about LeftPivot.
         public float LeftAngle => leftStartAngle - LeftSweep;
+
+        /// Where the left pick's tip is and it turns, in this object's
+        /// space: in the keyhole behind the middle of its slot.
+        public Vector3 LeftPivot => _leftPivot;
+
+        /// Where the right pick's tip is and it turns, in this object's
+        /// space: in the keyhole behind the middle of its round top.
+        public Vector3 RightPivot => _rightPivot;
 
         /// Where this stage's pin is, as a sweep of the left pick.
         public float PinSweep { get; private set; }
@@ -268,10 +261,6 @@ namespace Interaction
 
         private void Awake()
         {
-            // Solid things only ever switch between these two.
-            _solidMaterial = LockMeshBuilder.CreateMaterial(false, minLight);
-            _fadeMaterial = LockMeshBuilder.CreateMaterial(true, minLight);
-
             BuildBody();
             BuildPicks();
 
@@ -280,106 +269,123 @@ namespace Interaction
             SetRenderersEnabled(false);
         }
 
-        private void OnDestroy()
-        {
-            // Meshes and materials made from code aren't cleaned up with
-            // their objects.
-            Destroy(_bodyMesh);
-            Destroy(_pickMesh);
-            Destroy(_solidMaterial);
-            Destroy(_fadeMaterial);
-        }
-
         /// <summary>
-        /// Makes the lock's body: a round slab facing the player, the
-        /// dark keyway in the middle of its face, and a mark on the face's
-        /// rim at each of the right pick's four stops and at each end of
-        /// the left pick's sweep.
+        /// Makes the lock's body object. It draws nothing until
+        /// SetLockModel() gives it the lock plate's mesh and materials.
         /// </summary>
         private void BuildBody()
         {
-            LockMeshBuilder builder = new();
-            builder.Cylinder(faceRadius, bodyDepth, BodySegments, faceColor, bodyColor);
-
-            float faceZ = -bodyDepth * 0.5f;
-
-            builder.Box(
-                new Vector3(0f, 0f, faceZ),
-                new Vector3(keywayWidth, keywayHeight, Proud * 2f),
-                Quaternion.identity,
-                keywayColor);
-
-            for (int stop = 1; stop <= PinCount + 1; stop++) {
-                AddMark(builder, rightStartAngle + stopSpacing * stop, faceZ);
-            }
-
-            AddMark(builder, leftStartAngle, faceZ);
-            AddMark(builder, leftStartAngle - leftArc, faceZ);
-
-            _bodyMesh = builder.ToMesh("Big Lock Body");
-            _renderers[0] = AddPart("Body", _bodyMesh).GetComponent<MeshRenderer>();
+            _bodyRenderer = AddPart("Body");
         }
 
         /// <summary>
-        /// Adds a short mark on the face's rim at a clock angle, pointing
-        /// at the middle.
-        /// </summary>
-        private void AddMark(LockMeshBuilder builder, float clockAngle, float faceZ)
-        {
-            Vector3 direction = ClockDirection(clockAngle);
-            Vector3 centre = direction * (faceRadius * 0.86f) + new Vector3(0f, 0f, faceZ);
-
-            // A turn about Z of minus the clock angle takes "up" to that
-            // clock position, so the mark's long side lies along it.
-            Quaternion rotation = Quaternion.AngleAxis(-clockAngle, Vector3.forward);
-            builder.Box(centre, new Vector3(faceRadius * 0.05f, faceRadius * 0.2f, Proud * 2f), rotation, markColor);
-        }
-
-        /// <summary>
-        /// Makes the two picks: one long thin box each, sharing a mesh,
-        /// on a child object that turns about the keyway. The box runs
-        /// from the object's origin along its Z.
+        /// Makes the two picks' objects, scaled so the model (1 long) is
+        /// pickLength long, each with its tip (the model's origin) at its
+        /// pivot pickDepth into the keyhole: the right pick behind the
+        /// keyhole's round top, the left behind the middle of the slot
+        /// below it (the slot's shape is DoorKeyhole's, in keyhole radii,
+        /// made modelScale times bigger like the plate). Each turns about
+        /// its tip (ApplyLeftSweep()/ApplyRightAngle()), and draws nothing
+        /// until SetPickModel() gives it its mesh and materials.
         /// </summary>
         private void BuildPicks()
         {
-            LockMeshBuilder builder = new();
+            float radius = PlateKeyholeRadius * modelScale;
+            _rightPivot = new Vector3(0f, 0f, pickDepth);
+            _leftPivot = new Vector3(0f, (DoorKeyhole.SlotTop + DoorKeyhole.SlotBottom) * 0.5f * radius, pickDepth);
 
-            builder.Box(
-                new Vector3(0f, 0f, pickLength * 0.5f),
-                new Vector3(pickThickness, pickThickness, pickLength),
-                Quaternion.identity,
-                pickColor);
+            _leftPickRenderer = AddPart("Left Pick");
+            _leftPick = _leftPickRenderer.transform;
+            _leftPick.localPosition = _leftPivot;
+            _leftPick.localScale = Vector3.one * pickLength;
 
-            _pickMesh = builder.ToMesh("Big Lock Pick");
-
-            // Side by side in the keyway, on the face.
-            float aside = keywayWidth * 0.25f;
-            float faceZ = -bodyDepth * 0.5f;
-
-            _leftPick = AddPart("Left Pick", _pickMesh).transform;
-            _leftPick.localPosition = new Vector3(-aside, 0f, faceZ);
-            _renderers[1] = _leftPick.GetComponent<MeshRenderer>();
-
-            _rightPick = AddPart("Right Pick", _pickMesh).transform;
-            _rightPick.localPosition = new Vector3(aside, 0f, faceZ);
-            _renderers[2] = _rightPick.GetComponent<MeshRenderer>();
+            _rightPickRenderer = AddPart("Right Pick");
+            _rightPick = _rightPickRenderer.transform;
+            _rightPick.localPosition = _rightPivot;
+            _rightPick.localScale = Vector3.one * pickLength;
         }
 
         /// <summary>
-        /// A child object drawing mesh, with no shadows: it's a floating
+        /// Gives the body its looks from the lock plate model (the Lock
+        /// Plate prefab: unscaled root at the middle of the keyhole's round
+        /// top on the plate's face, X across, Y up, Z into the door, the
+        /// model under it at real size): the model's mesh, placed as it is
+        /// in the prefab but modelScale times bigger, drawn with the model's
+        /// own materials (URP Lit, shared, never changed here, so the big
+        /// lock looks just like a door's). Called once at load by
+        /// PlayerLockpicking. A model with no mesh leaves the body unseen,
+        /// with a warning.
+        /// </summary>
+        public void SetLockModel(GameObject model)
+        {
+            MeshFilter filter = model.GetComponentInChildren<MeshFilter>();
+
+            if (filter == null) {
+                Debug.LogWarning($"BigLock: the lock model {model.name} has no mesh, so the lock isn't shown.", this);
+                return;
+            }
+
+            _bodyRenderer.GetComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
+
+            // Where the mesh sits in the prefab, from its root, and how
+            // big it is there - all made modelScale times bigger.
+            Transform root = model.transform;
+            Transform part = filter.transform;
+            Transform body = _bodyRenderer.transform;
+
+            body.localPosition = root.InverseTransformPoint(part.position) * modelScale;
+            body.localRotation = Quaternion.Inverse(root.rotation) * part.rotation;
+            body.localScale = part.lossyScale * modelScale;
+
+            _bodyRenderer.sharedMaterials = filter.GetComponent<MeshRenderer>().sharedMaterials;
+        }
+
+        /// <summary>
+        /// Gives the picks their looks from the lockpicks model (see
+        /// LeftPickName/RightPickName): each pick's mesh, drawn with the
+        /// model's own materials. Called once at load by
+        /// PlayerLockpicking, which owns the model. A pick the model lacks
+        /// stays unseen, with a warning.
+        /// </summary>
+        public void SetPickModel(GameObject model)
+        {
+            SetPickMesh(_leftPickRenderer, model, LeftPickName);
+            SetPickMesh(_rightPickRenderer, model, RightPickName);
+        }
+
+        /// <summary>
+        /// One pick: the mesh and materials of the model's child named
+        /// pickName.
+        /// </summary>
+        private void SetPickMesh(MeshRenderer pick, GameObject model, string pickName)
+        {
+            Transform part = model.transform.Find(pickName);
+            MeshFilter filter = part != null ? part.GetComponent<MeshFilter>() : null;
+
+            if (filter == null) {
+                Debug.LogWarning($"BigLock: the lockpicks model {model.name} has no {pickName} mesh, so that pick isn't shown.", this);
+                return;
+            }
+
+            pick.GetComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
+            pick.sharedMaterials = part.GetComponent<MeshRenderer>().sharedMaterials;
+        }
+
+        /// <summary>
+        /// A child object with no mesh or material yet (given by
+        /// SetLockModel()/SetPickModel()), and no shadows: it's a floating
         /// aid, not part of the room.
         /// </summary>
-        private GameObject AddPart(string partName, Mesh mesh)
+        private MeshRenderer AddPart(string partName)
         {
             GameObject part = new(partName) { layer = gameObject.layer };
             part.transform.SetParent(transform, false);
-            part.AddComponent<MeshFilter>().sharedMesh = mesh;
+            part.AddComponent<MeshFilter>();
 
             MeshRenderer partRenderer = part.AddComponent<MeshRenderer>();
-            partRenderer.sharedMaterial = _solidMaterial;
             partRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             partRenderer.receiveShadows = false;
-            return part;
+            return partRenderer;
         }
 
         /// <summary>
@@ -410,15 +416,17 @@ namespace Interaction
             ApplyLeftSweep(0f);
             ApplyRightAngle(rightStartAngle);
             StartAgain();
+            SetRenderersEnabled(true);
         }
 
         /// <summary>
-        /// Starts the lock fading out. Any hand on a pick must already
-        /// have been taken off it.
+        /// Takes the lock out of view at once. Any hand on a pick must
+        /// already have been taken off it.
         /// </summary>
         public void Hide()
         {
             _isShown = false;
+            SetRenderersEnabled(false);
             _isRightHeld = false;
             _isLeftHeld = false;
             PinNearness = 0f;
@@ -505,8 +513,9 @@ namespace Interaction
 
         /// <summary>
         /// Turns a pick to where the hand holding it is: the pick's clock
-        /// angle is the hand's, round the lock's middle, kept within what
-        /// that pick can do. Called every frame a hand is on a pick.
+        /// angle is the hand's, round the point that pick turns about,
+        /// kept within what that pick can do. Called every frame a hand is
+        /// on a pick.
         /// </summary>
         public void TurnPick(bool isLeftPick, Vector3 handPosition)
         {
@@ -514,9 +523,10 @@ namespace Interaction
                 return;
             }
 
-            // The hand in the lock's own space: x to the right, y up.
-            // (The object is unscaled, so this is in metres.)
-            Vector3 local = transform.InverseTransformPoint(handPosition);
+            // The hand in the lock's own space from the pick's pivot: x to
+            // the right, y up. (The object is unscaled, so this is in
+            // metres.)
+            Vector3 local = transform.InverseTransformPoint(handPosition) - (isLeftPick ? _leftPivot : _rightPivot);
 
             if (local.x * local.x + local.y * local.y < deadRadius * deadRadius) {
                 return;
@@ -612,13 +622,11 @@ namespace Interaction
         }
 
         /// <summary>
-        /// One frame of the lock: its fade, the right pick swinging back
-        /// when nobody holds it, and the search for the pin.
+        /// One frame of the lock: the right pick swinging back when nobody
+        /// holds it, and the search for the pin.
         /// </summary>
         public void Tick(float deltaTime)
         {
-            TickFade(deltaTime);
-
             if (!_isShown || _isUnlocked) {
                 return;
             }
@@ -683,69 +691,14 @@ namespace Interaction
         }
 
         /// <summary>
-        /// Moves the fade towards in or out, and swaps how the lock is
-        /// drawn when it gets there.
+        /// Switches the body and both picks on or off together. Called only
+        /// on Show()/Hide() (and once in Awake()).
         /// </summary>
-        private void TickFade(float deltaTime)
-        {
-            float target = _isShown ? 1f : 0f;
-
-            // Fully in or out already - the usual case. (SetLook() does
-            // nothing when the look hasn't changed.)
-            if (_fade == target) {
-                SetLook(_isShown ? Look.Solid : Look.Hidden);
-                return;
-            }
-
-            _fade = fadeDuration > 0f ? Mathf.MoveTowards(_fade, target, deltaTime / fadeDuration) : target;
-
-            if (_fade <= 0f) {
-                SetLook(Look.Hidden);
-            } else if (_fade >= 1f) {
-                SetLook(Look.Solid);
-            } else {
-                SetLook(Look.Fading);
-
-                // A material this class made and owns, shared by the
-                // three renderers, so writing to it is one cheap call and
-                // changes no asset.
-                _fadeMaterial.SetFloat(_alphaId, _fade);
-            }
-        }
-
-        /// <summary>
-        /// Changes how the lock is drawn: not at all, see-through (while
-        /// fading), or solid. Nothing is touched unless it's a change.
-        /// </summary>
-        private void SetLook(Look look)
-        {
-            if (look == _look) {
-                return;
-            }
-
-            if (_look == Look.Hidden) {
-                SetRenderersEnabled(true);
-            }
-
-            _look = look;
-
-            if (look == Look.Hidden) {
-                SetRenderersEnabled(false);
-                return;
-            }
-
-            Material material = look == Look.Solid ? _solidMaterial : _fadeMaterial;
-
-            for (int i = 0; i < _renderers.Length; i++) {
-                _renderers[i].sharedMaterial = material;
-            }
-        }
-
         private void SetRenderersEnabled(bool isEnabled)
         {
-            for (int i = 0; i < _renderers.Length; i++) {
-                _renderers[i].enabled = isEnabled;
-            }
+            _bodyRenderer.enabled = isEnabled;
+            _leftPickRenderer.enabled = isEnabled;
+            _rightPickRenderer.enabled = isEnabled;
         }
 
         /// <summary>
@@ -780,8 +733,8 @@ namespace Interaction
 
         /// <summary>
         /// The rotation, in this object's space, that points a pick (its
-        /// own Z) along a clock angle and leaning out of the face towards
-        /// the player by pickLift.
+        /// own Z) from its tip along a clock angle and leaning out of the
+        /// face towards the player by pickLift.
         /// </summary>
         private Quaternion PickRotation(float clockAngle)
         {
@@ -803,30 +756,18 @@ namespace Interaction
         }
 
         /// <summary>
-        /// The hand snap pose for a hand on a pick as it is now: the left
-        /// hand on the left pick, the right on the right. The grip frame
-        /// is a rope's - up along the pick, away from the keyway, and
-        /// facing away from the player - so the hand closes round the
-        /// pick from the player's side. Called every frame a pick is held,
-        /// since the pick turns.
+        /// The grip frame on a pick as it is now, in the world: at the
+        /// grip point, turned by GripTurn from the pick. The pick's own Y
+        /// leans towards the player (see PickRotation()), so the frame
+        /// faces into the lock, square to the pick. The hand's offsets
+        /// from it are the player's (PlayerLockpicking's pick profile).
+        /// Asked every frame a pick is held, since the pick turns.
         /// </summary>
-        public HandSnapPose GetSnapPose(bool isLeftPick)
+        public void GetGripFrame(bool isLeftPick, out Vector3 position, out Quaternion rotation)
         {
             Transform pick = isLeftPick ? _leftPick : _rightPick;
-            Vector3 along = pick.forward;
-            Vector3 point = pick.position + along * gripAlong;
-
-            // The way into the lock, straightened to be square to the
-            // pick (the pick leans, so the two aren't quite at right
-            // angles).
-            Vector3 right = Vector3.Cross(along, transform.forward).normalized;
-            Quaternion rotation = Quaternion.LookRotation(Vector3.Cross(right, along), along);
-
-            if (snapProfile != null) {
-                return snapProfile.Apply(isLeftPick, point, rotation);
-            }
-
-            return new HandSnapPose(point, rotation, null);
+            position = pick.position + pick.forward * gripAlong;
+            rotation = pick.rotation * GripTurn;
         }
 
         /// <summary>

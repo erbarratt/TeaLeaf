@@ -10,6 +10,8 @@ namespace Player
     /// empty and reaching over its own shoulder, draws it by pressing
     /// grip, and holds it for as long as grip is held. Letting go puts it
     /// away - it isn't dropped, it's simply gone until it's drawn again.
+    /// Like the bow, it burns into being when drawn and burns away where
+    /// it was let go of (ToolBurn).
     /// Only that hand draws it; the other shoulder is the bow's.
     ///
     /// Where the shoulder is, is PlayerBodyZones' business. The blackjack
@@ -24,7 +26,7 @@ namespace Player
     /// Tick() before the grab systems, so a hand that draws the blackjack
     /// is already busy when they look at what its ray is on.
     /// </summary>
-    public class PlayerBlackjack : MonoBehaviour
+    public class PlayerBlackjack : MonoBehaviour, IDebugDrawable
     {
         [SerializeField] private PlayerInputXR playerInput;
         [SerializeField] private PlayerTracking playerTracking;
@@ -41,30 +43,21 @@ namespace Player
         // Optional: a rig with no haptics still draws it.
         [SerializeField] private PlayerHaptics playerHaptics;
 
+        // Burns the blackjack into being when drawn and away when put
+        // away. Optional: found in Awake() if not wired (it's on this same
+        // object); none = it appears and vanishes at once.
+        [SerializeField] private ToolBurn toolBurn;
+
         [Header("In The Hand")]
 
-        // Where the blackjack's grip sits in the hand visual's own space
-        // (its fingers point along -Y, the palm faces +X, the thumb side
-        // is +Z), and how it's turned from lying along the thumb side, in
-        // degrees. The right hand visual is the left one mirrored, so the
-        // same numbers serve both.
-        [SerializeField] private Vector3 inHandPosition = new(0.03f, -0.08f, 0f);
-        [SerializeField] private Vector3 inHandRotation = Vector3.zero;
+        // The blackjack's model (the leather-wrapped cudgel): lying along
+        // its own X with the head at +X, at its real size.
+        [SerializeField] private GameObject blackjackModel;
 
-        [Header("Its Shape (greybox)")]
-
-        // The whole length, the handle's thickness, and the head: how
-        // long it is and how thick. Metres.
-        [SerializeField] private float length = 0.35f;
-        [SerializeField] private float handleThickness = 0.025f;
-        [SerializeField] private float headLength = 0.12f;
-        [SerializeField] private float headThickness = 0.045f;
-
-        [SerializeField] private Color handleColor = new(0.3f, 0.2f, 0.12f, 1f);
-        [SerializeField] private Color headColor = new(0.12f, 0.12f, 0.13f, 1f);
-
-        // The least light it's ever shown in, 0-1.
-        [SerializeField] private float minLight = 0.35f;
+        // Where the hand holds it, from the model's origin, and how the
+        // fingers close round it (posed with TeaLeaf > Modify Prefab >
+        // Pose with Hand). Empty: the model's origin on the hand's.
+        [SerializeField] private HandSnapProfile blackjackProfile;
 
         [Header("Hitting")]
 
@@ -73,9 +66,15 @@ namespace Player
         // swing), for a touch on a guard's head to count as a blow.
         [SerializeField] private float swingSpeed = 1.5f;
 
-        // How near the middle of the blackjack's head a guard's head must
-        // come, in metres.
-        [SerializeField] private float hitRadius = 0.07f;
+        // The blackjack's head as a capsule, in the blackjack's own space
+        // (the model's, with its import turn): the middles of its two
+        // ends, and its radius, in metres. Measured from the cudgel's
+        // mesh: the head runs from x 0.08 to 0.2 along a line a little
+        // off the shaft's, 4cm round at its widest. Re-measure if the
+        // model changes.
+        [SerializeField] private Vector3 headStart = new(0.12f, 0.038f, -0.015f);
+        [SerializeField] private Vector3 headEnd = new(0.16f, 0.038f, -0.015f);
+        [SerializeField] private float hitRadius = 0.04f;
 
         // The layer guards' heads are on. Filled in from the layer name
         // if left empty.
@@ -97,16 +96,16 @@ namespace Player
         [SerializeField] private float drawAmplitude = 0.4f;
         [SerializeField] private float drawDuration = 0.05f;
 
-        // How much of the handle is behind the grip: the hand holds it a
-        // little way up from its end.
-        private const float GripFraction = 0.2f;
-
         private bool _hasHaptics;
 
-        // The blackjack, its mesh and its material.
+        // The blackjack: the model under an object of its own, whose
+        // origin and axes are the model's (the profile's grip frame).
         private Transform _blackjack;
-        private Mesh _mesh;
-        private Material _material;
+
+        // The model's renderer, and the blackjack as ToolBurn knows it
+        // (null without one).
+        private Renderer _renderer;
+        private ToolBurn.Target _burn;
 
         // Whether it's drawn, and which hand draws it (the one without
         // the lockpicks, from handedness at startup).
@@ -119,12 +118,10 @@ namespace Player
         private bool _wasGrabbing;
         private bool _wasInPlace;
 
-        // Hitting. The middle of the blackjack's head in its own space;
-        // the player's root (speeds are measured in its space); where
-        // the head was last frame, in that space, and whether that is
-        // known yet; and whether the head is still against the guard it
-        // last hit - one touch is one blow.
-        private Vector3 _headLocal;
+        // Hitting. The player's root (speeds are measured in its space);
+        // where the middle of the head was last frame, in that space, and
+        // whether that is known yet; and whether the head is still
+        // against the guard it last hit - one touch is one blow.
         private Transform _playerRoot;
         private Vector3 _lastHeadPoint;
         private bool _hasLastHeadPoint;
@@ -146,6 +143,16 @@ namespace Player
         public bool IsRightBusy => _isOut && !_isInLeftHand;
 
         /// <summary>
+        /// Whose finger pose a hand plays for the blackjack in it: its
+        /// profile's while that hand holds it, else null. Read by
+        /// PlayerHandAnimation each frame.
+        /// </summary>
+        public HandSnapProfile GetHeldProfile(bool isLeftHand)
+        {
+            return _isOut && isLeftHand == _isInLeftHand ? blackjackProfile : null;
+        }
+
+        /// <summary>
         /// Editor-only: fills in the references when the component is
         /// added (on the Hands object; the body systems are on the Player
         /// root above it).
@@ -156,6 +163,7 @@ namespace Player
             playerTracking = GetComponentInParent<PlayerTracking>();
             playerHaptics = GetComponentInParent<PlayerHaptics>();
             playerHandVisuals = GetComponent<PlayerHandVisuals>();
+            toolBurn = GetComponent<ToolBurn>();
         }
 
         private void Awake()
@@ -197,11 +205,34 @@ namespace Player
                 guardHeadLayers = LayerMask.GetMask("GuardHead");
             }
 
+            if (toolBurn == null) {
+                toolBurn = GetComponent<ToolBurn>();
+            }
+
             BuildBlackjack();
+        }
+
+        /// <summary>
+        /// Registers the blackjack with ToolBurn. Start() rather than
+        /// Awake(): ToolBurn finds its shader in its own Awake(), and every
+        /// Awake() has run before the first Start().
+        /// </summary>
+        private void Start()
+        {
+            if (toolBurn != null && _renderer != null) {
+                _burn = toolBurn.Register(_renderer);
+            }
+        }
+
+        private void OnEnable()
+        {
+            DebugDrawRegistry.Register(this);
         }
 
         private void OnDisable()
         {
+            DebugDrawRegistry.Unregister(this);
+
             // Null if Awake() hasn't run. And if the scene is being
             // unloaded (a level restart), everything here is on its way
             // out and mustn't be touched.
@@ -212,48 +243,37 @@ namespace Player
             PutAway();
         }
 
-        private void OnDestroy()
-        {
-            // A mesh and a material made from code aren't cleaned up with
-            // their objects.
-            if (_mesh != null) {
-                Destroy(_mesh);
-            }
-
-            if (_material != null) {
-                Destroy(_material);
-            }
-        }
-
         /// <summary>
-        /// Makes the blackjack, once: a handle and a thicker head as two
-        /// boxes in one mesh, lying along its own Z with the grip at its
-        /// origin. Kept under this object, switched off, until it's
-        /// drawn - not on a hand visual, so the ghost hands (which copy
-        /// the visuals as the game starts) never get one. No collider:
-        /// it's only to look at, for now.
+        /// Makes the blackjack, once: the model under an object of its
+        /// own, so the model keeps its import turn while that object is
+        /// placed in the hand. Kept under this object, switched off, until
+        /// it's drawn - not on a hand visual, so the ghost hands (which
+        /// copy the visuals as the game starts) never get one. No
+        /// Collider: a blow is an overlap check of the head's capsule
+        /// (headStart, headEnd, hitRadius).
         /// </summary>
         private void BuildBlackjack()
         {
-            float handleLength = Mathf.Max(length - headLength, 0.01f);
-            float back = -length * GripFraction;
-
-            LockMeshBuilder builder = new();
-            builder.Box(new Vector3(0f, 0f, back + handleLength * 0.5f), new Vector3(handleThickness, handleThickness, handleLength), Quaternion.identity, handleColor);
-            builder.Box(new Vector3(0f, 0f, back + handleLength + headLength * 0.5f), new Vector3(headThickness, headThickness, headLength), Quaternion.identity, headColor);
-            _mesh = builder.ToMesh("Blackjack");
-            _headLocal = new Vector3(0f, 0f, back + handleLength + headLength * 0.5f);
-            _material = LockMeshBuilder.CreateMaterial(false, minLight);
+            if (blackjackModel == null) {
+                Debug.LogWarning("PlayerBlackjack: no blackjack model set, so there is no blackjack.", this);
+                return;
+            }
 
             GameObject blackjack = new("Blackjack");
+            GameObject model = Instantiate(blackjackModel, blackjack.transform, false);
+
+            foreach (Renderer modelRenderer in model.GetComponentsInChildren<Renderer>()) {
+                modelRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                modelRenderer.receiveShadows = false;
+
+                // The first is the one that burns (the cudgel has only
+                // the one).
+                if (_renderer == null) {
+                    _renderer = modelRenderer;
+                }
+            }
+
             blackjack.transform.SetParent(transform, false);
-            blackjack.AddComponent<MeshFilter>().sharedMesh = _mesh;
-
-            MeshRenderer blackjackRenderer = blackjack.AddComponent<MeshRenderer>();
-            blackjackRenderer.sharedMaterial = _material;
-            blackjackRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            blackjackRenderer.receiveShadows = false;
-
             blackjack.SetActive(false);
             _blackjack = blackjack.transform;
         }
@@ -264,6 +284,10 @@ namespace Player
         /// </summary>
         public void Tick()
         {
+            if (_blackjack == null) {
+                return;
+            }
+
             bool isGrabbing = _isInLeftHand ? playerInput.IsLeftGrabbing : playerInput.IsRightGrabbing;
 
             if (_isOut) {
@@ -302,13 +326,14 @@ namespace Player
 
             Transform visual = _isInLeftHand ? playerHandVisuals.LeftHandVisual : playerHandVisuals.RightHandVisual;
 
-            // A child of the hand visual, so nothing places it per frame.
-            // Scale 1 under the mirrored right hand: it's the same shape
-            // mirrored.
-            _blackjack.SetParent(visual, false);
-            _blackjack.SetLocalPositionAndRotation(inHandPosition, Quaternion.Euler(inHandRotation));
-            _blackjack.localScale = Vector3.one;
+            // A child of the hand visual where the profile puts it, so
+            // nothing places it per frame; never drawn mirrored.
+            HandSnapProfile.PlaceInHand(blackjackProfile, _isInLeftHand, _blackjack, visual, transform);
             _blackjack.gameObject.SetActive(true);
+
+            if (toolBurn != null) {
+                toolBurn.BurnIn(_burn);
+            }
 
             _isOut = true;
             _hasLastHeadPoint = false;
@@ -322,12 +347,14 @@ namespace Player
         /// against a guard's head? Then it's a blow, and the guard says
         /// what comes of it (AI.Guard.TryKnockOut(): down if it was
         /// unaware and struck from behind, otherwise it turns on the
-        /// player). One small overlap check a frame, on the guards' head
-        /// layer only.
+        /// player). One small capsule overlap check a frame, round the
+        /// head, on the guards' head layer only.
         /// </summary>
         private void TickSwing()
         {
-            Vector3 head = _blackjack.TransformPoint(_headLocal);
+            Vector3 start = _blackjack.TransformPoint(headStart);
+            Vector3 end = _blackjack.TransformPoint(headEnd);
+            Vector3 head = (start + end) * 0.5f;
 
             // Measured in the player root's space, so walking, turning
             // and climbing aren't a swing: only the arm's movement is.
@@ -341,7 +368,7 @@ namespace Player
             _lastHeadPoint = headPoint;
             _hasLastHeadPoint = true;
 
-            int count = Physics.OverlapSphereNonAlloc(head, hitRadius, _hits, guardHeadLayers, QueryTriggerInteraction.Collide);
+            int count = Physics.OverlapCapsuleNonAlloc(start, end, hitRadius, _hits, guardHeadLayers, QueryTriggerInteraction.Collide);
 
             if (count == 0) {
                 _isTouching = false;
@@ -377,13 +404,42 @@ namespace Player
         }
 
         /// <summary>
-        /// Puts the blackjack away: back under this object, switched off.
+        /// Puts the blackjack away: back under this object, switched off,
+        /// leaving a copy burning away where it was let go of (ToolBurn
+        /// does nothing if it wasn't showing).
         /// </summary>
         private void PutAway()
         {
+            if (toolBurn != null) {
+                toolBurn.BurnAway(_burn);
+            }
+
             _isOut = false;
             _blackjack.gameObject.SetActive(false);
             _blackjack.SetParent(transform, false);
+        }
+
+        /// <summary>
+        /// Editor-only: the hit capsule in the Scene view while playing.
+        /// </summary>
+        private void OnDrawGizmos()
+        {
+            DebugLines.ForGizmos.Draw(this, false);
+        }
+
+        /// <summary>
+        /// While the blackjack is in hand: the capsule a blow is checked
+        /// with, round its head - orange, red while it's against the head
+        /// it last hit.
+        /// </summary>
+        public void DrawDebug(DebugLines lines, bool detailed)
+        {
+            if (!_isOut || _blackjack == null) {
+                return;
+            }
+
+            lines.Color = _isTouching ? Color.red : new Color(1f, 0.5f, 0f);
+            lines.WireCapsule(_blackjack.TransformPoint(headStart), _blackjack.TransformPoint(headEnd), hitRadius);
         }
 
         /// <summary>

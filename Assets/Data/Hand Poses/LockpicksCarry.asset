@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 818e631233dd2a64eb27938ec822a0d9, type: 3}
+  m_Name: LockpicksCarry
+  m_EditorClassIdentifier: Assembly-CSharp::Interaction.HandSnapProfile
+  leftPositionOffset: {x: -0.0052, y: 0.0789, z: 0.2838}
+  leftRotationOffset: {x: 15.73, y: -108.78, z: -42}
+  rightPositionOffset: {x: 0.0052, y: 0.0789, z: 0.2838}
+  rightRotationOffset: {x: 15.73, y: 108.78, z: 42}
+  fingerRotations:
+  - {x: -0.12750788, y: -0.6936787, z: -0.242286, w: 0.66622007}
+  - {x: 0.040077243, y: 0, z: 0, w: 0.99919665}
+  - {x: -0.007568153, y: 0, z: 0, w: 0.9999714}
+  - {x: -0.007568153, y: 0, z: 0, w: 0.9999714}
+  - {x: -0.116806045, y: -0.19157226, z: -0.106895134, w: 0.9686227}
+  - {x: 0.35904813, y: 0.05079489, z: 0.00087317836, w: 0.9319354}
+  - {x: 0.47481832, y: -0.00639925, z: 0.008439521, w: 0.88002014}
+  - {x: 0.23143262, y: 0.010034626, z: -0.0043737153, w: 0.9727894}
+  - {x: 0.50684035, y: 0.0044066845, z: -0.006523584, w: 0.86200404}
+  - {x: 0.19957028, y: 0, z: 0, w: 0.97988355}
+  - {x: 0.20704915, y: 0.07091609, z: 0.00828802, w: 0.9757218}
+  - {x: 0.49379256, y: -0.009629406, z: 0.028878622, w: 0.86904675}
+  - {x: 0.25003073, y: 0, z: 0, w: 0.968238}
+  - {x: 0.3032202, y: 0.1443249, z: 0.07803288, w: 0.93868995}
+  - {x: 0.35388944, y: 0.010950695, z: 0.02240068, w: 0.9349549}
+  - {x: 0.10072055, y: 0, z: 0, w: 0.99491477}

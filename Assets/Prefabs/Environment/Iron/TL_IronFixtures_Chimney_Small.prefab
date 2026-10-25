@@ -26,7 +26,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6559692766829576148, guid: aae58721b08678944bc2478251bc0b05, type: 3}
       propertyPath: m_ReceiveGI
-      value: 2
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 6559692766829576148, guid: aae58721b08678944bc2478251bc0b05, type: 3}
+      propertyPath: m_ScaleInLightmap
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 7877796509880849999, guid: aae58721b08678944bc2478251bc0b05, type: 3}
       propertyPath: m_LocalPosition.x

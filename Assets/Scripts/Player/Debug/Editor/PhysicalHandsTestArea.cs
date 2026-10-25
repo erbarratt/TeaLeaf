@@ -96,8 +96,9 @@ namespace Player
             //    face onto the next.
             TestGeometry.Box("Pillar", parent, new Vector3(0.5f, 1.25f, 0f), new Vector3(0.4f, 2.5f, 0.4f), environment);
 
-            // 6. Narrow gap, 5cm - narrower than the hand capsule (2 x 0.035m
-            //    radius = 7cm). The hand can't fit, so it shouldn't jitter or
+            // 6. Narrow gap, 5cm - wide enough for a finger's capsule (about
+            //    3.5cm) but not the palm's box (8cm thick, 12cm wide). The
+            //    fingers go in until the palm stops; it shouldn't jitter or
             //    get stuck pushing into it (a sweep that starts inside is let
             //    through rather than pinned).
             const float gap = 0.05f;

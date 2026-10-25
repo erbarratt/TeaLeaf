@@ -11,10 +11,12 @@ namespace Interaction
     /// the head moves away. Only while the door is shut: an open door's
     /// keyhole stays small.
     ///
-    /// The shape is the classic keyhole: a circle with a slot running down
-    /// from it. One number sizes all of it - the circle's radius. The slot
-    /// is as wide as the radius and reaches a diameter below the circle,
-    /// so the whole shape is two radii wide and four tall.
+    /// The shape is the lock plate's keyhole (the Lock Plate prefab): a
+    /// circle with a slot running down from it, widening towards its
+    /// bottom. One number sizes all of it - the circle's radius. The slot
+    /// is a radius wide where it leaves the circle, 1.46 radii at its
+    /// bottom, which is 3.4 radii below the circle's centre, so the whole
+    /// shape is two radii wide and 4.4 tall.
     ///
     /// The opening is really cut out of the door when it's drawn (the
     /// TeaLeaf/DoorLeaf shader, which the leaf's material must use), so
@@ -25,10 +27,11 @@ namespace Interaction
     /// has no depth, so this component also makes the opening's walls: a
     /// short tube through the door's thickness (see BuildWalls()).
     ///
-    /// This object marks where the keyhole is: its position is the middle
-    /// of the whole shape (which is the bottom of the circle), its X runs
-    /// across the door's face and its Y up it. A child of the door, so it
-    /// swings with it.
+    /// This object marks where the keyhole is: its position is the
+    /// circle's centre (which stays put as the opening grows, so the cut
+    /// grows evenly round a lock plate's own keyhole), its X runs across
+    /// the door's face and its Y up it. A child of the door, so it swings
+    /// with it.
     ///
     /// No Update(): Player.PlayerKeyholes finds the keyhole the head is
     /// near and calls Tick() on that one only, so a keyhole nobody is at
@@ -48,10 +51,10 @@ namespace Interaction
         [Header("Size")]
 
         // The circle's radius in metres: at rest, and with the head right
-        // up to it. The whole keyhole is two of these wide and four tall.
-        [Tooltip("The circle's radius at rest, with the head away from the door, in metres. The whole keyhole is two radii wide and four tall, so 0.005 is a real 1 by 2cm hole.")]
-        [SerializeField] private float restRadius = 0.005f;
-        [Tooltip("The circle's radius with the head right up to the keyhole, in metres: big enough to see the room behind with both eyes. The whole keyhole is two radii wide and four tall.")]
+        // up to it. The whole keyhole is two of these wide and 4.4 tall.
+        [Tooltip("The circle's radius at rest, with the head away from the door, in metres. The whole keyhole is two radii wide and 4.4 tall. 0.008 is the Lock Plate prefab's own keyhole (1.6 by 3.5cm).")]
+        [SerializeField] private float restRadius = 0.008f;
+        [Tooltip("The circle's radius with the head right up to the keyhole, in metres: big enough to see the room behind with both eyes. The whole keyhole is two radii wide and 4.4 tall.")]
         [SerializeField] private float openRadius = 0.05f;
 
         [Header("Depth")]
@@ -59,8 +62,8 @@ namespace Interaction
         [Tooltip("How thick the door is at the keyhole, in metres: how deep the opening's walls run. 0 measures it from the leaf renderer's bounds, which is right for a plain slab; with lock plates, set it to the plates' whole depth so the walls reach their faces.")]
         [SerializeField] private float thickness;
 
-        [Tooltip("The colour of the opening's walls, the cut wood inside the door. Lit like the door itself.")]
-        [SerializeField] private Color wallColor = new(0.2f, 0.13f, 0.08f, 1f);
+        [Tooltip("The colour of the opening's walls, inside the door. Lit like the door itself, so black stays black.")]
+        [SerializeField] private Color wallColor = Color.black;
 
         [Header("Opening")]
 
@@ -91,6 +94,7 @@ namespace Interaction
         private static readonly int _keyholeUpId = Shader.PropertyToID("_KeyholeUp");
         private static readonly int _keyholeSizeId = Shader.PropertyToID("_KeyholeSize");
         private static readonly int _baseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int _baseMapId = Shader.PropertyToID("_BaseMap");
 
         // The outline, as the walls' mesh and the gizmo draw it, is four
         // runs of points: the circle's arc (ArcSegments straight pieces),
@@ -103,6 +107,16 @@ namespace Interaction
 
         // One wall piece between each point and the next within a run.
         private const int OutlinePieces = ArcSegments + 3;
+
+        // The slot, in radii from the circle's centre: where its top
+        // (inside the circle) and bottom are, and how far either side of
+        // the middle line each reaches. Must match DoorLeaf.shader's
+        // values of the same names. The big lock's left pick turns about
+        // the slot's middle (BigLock).
+        public const float SlotTop = -0.5f;
+        public const float SlotBottom = -3.4f;
+        private const float SlotTopHalfWidth = 0.5f;
+        private const float SlotBottomHalfWidth = 0.73f;
 
         // The outline for a circle of radius 1, and which way out of the
         // opening each point faces. The same for every keyhole and every
@@ -237,17 +251,15 @@ namespace Interaction
         /// <summary>
         /// Works out, once for all keyholes, the outline for a circle of
         /// radius 1 - the same shape the shader cuts (see KeyholeDistance()
-        /// in DoorLeaf.shader). Measured from the keyhole's middle: the
-        /// circle's centre is 1 up, the slot is half a unit either side and
-        /// reaches 2 down.
+        /// in DoorLeaf.shader). Measured from the circle's centre; the
+        /// slot as SlotTop, SlotBottom and its half widths say.
         ///
         /// The points go round anticlockwise as seen from the front. The
-        /// slot's sides meet the circle 60 degrees either side of straight
-        /// down from its centre (the slot is half a radius out, and the
-        /// sine of 30 degrees is a half). So the arc starts at the right
-        /// hand meeting point, 60 degrees below level, and runs 300
-        /// degrees over the top to the left hand one; then down the
-        /// slot's left side, along its bottom and up its right side.
+        /// arc starts where the slot's right side leaves the circle, a
+        /// little under 60 degrees below level, and runs over the top to
+        /// where the left side leaves it (the same place mirrored); then
+        /// down the slot's left side, along its bottom and up its right
+        /// side.
         /// </summary>
         private static void BuildOutline()
         {
@@ -258,34 +270,63 @@ namespace Interaction
             _outlinePoints = new Vector2[OutlinePoints];
             _outlineNormals = new Vector2[OutlinePoints];
 
-            Vector2 circleCentre = new(0f, 1f);
+            Vector2 bottomRight = new(SlotBottomHalfWidth, SlotBottom);
+            Vector2 bottomLeft = new(-SlotBottomHalfWidth, SlotBottom);
+            Vector2 rightMeeting = CircleExit(new Vector2(SlotTopHalfWidth, SlotTop), bottomRight);
+            Vector2 leftMeeting = new(-rightMeeting.x, rightMeeting.y);
+
+            // The arc runs from the right meeting point's angle round to
+            // its mirror, which is 180 degrees less it.
+            float startAngle = Mathf.Atan2(rightMeeting.y, rightMeeting.x);
+            float arcAngle = Mathf.PI - 2f * startAngle;
 
             for (int i = 0; i < ArcPoints; i++) {
-                float angle = Mathf.Deg2Rad * (-60f + 300f * i / ArcSegments);
+                float angle = startAngle + arcAngle * i / ArcSegments;
                 Vector2 direction = new(Mathf.Cos(angle), Mathf.Sin(angle));
 
                 // On a circle, a point faces straight out from the centre.
-                _outlinePoints[i] = circleCentre + direction;
+                _outlinePoints[i] = direction;
                 _outlineNormals[i] = direction;
             }
 
-            Vector2 leftMeeting = _outlinePoints[ArcSegments];
-            Vector2 rightMeeting = _outlinePoints[0];
-            Vector2 bottomLeft = new(-0.5f, -2f);
-            Vector2 bottomRight = new(0.5f, -2f);
+            // The last arc point is worked out by angle: put it exactly on
+            // the left meeting point so the walls join without a crack.
+            _outlinePoints[ArcSegments] = leftMeeting;
 
             int index = ArcPoints;
-            AddRun(ref index, leftMeeting, bottomLeft, Vector2.left);
-            AddRun(ref index, bottomLeft, bottomRight, Vector2.down);
-            AddRun(ref index, bottomRight, rightMeeting, Vector2.right);
+            AddRun(ref index, leftMeeting, bottomLeft);
+            AddRun(ref index, bottomLeft, bottomRight);
+            AddRun(ref index, bottomRight, rightMeeting);
+        }
+
+        /// <summary>
+        /// Where a straight line from a point inside the radius-1 circle
+        /// to a point outside it crosses the circle. The point at a share
+        /// t of the way along is inside + t × (outside - inside); it's on
+        /// the circle when its length is 1, which is a quadratic in t
+        /// (a t² + 2b t + c = 0) with one answer between 0 and 1.
+        /// </summary>
+        private static Vector2 CircleExit(Vector2 inside, Vector2 outside)
+        {
+            Vector2 along = outside - inside;
+            float a = Vector2.Dot(along, along);
+            float b = Vector2.Dot(inside, along);
+            float c = Vector2.Dot(inside, inside) - 1f;
+
+            float t = (-b + Mathf.Sqrt(b * b - a * c)) / a;
+            return inside + along * t;
         }
 
         /// <summary>
         /// Adds one straight side of the slot to the outline: its two ends,
-        /// both facing the same way.
+        /// both facing out of the opening. The runs go anticlockwise, so
+        /// "out" is the run's direction turned a quarter clockwise.
         /// </summary>
-        private static void AddRun(ref int index, Vector2 from, Vector2 to, Vector2 normal)
+        private static void AddRun(ref int index, Vector2 from, Vector2 to)
         {
+            Vector2 direction = (to - from).normalized;
+            Vector2 normal = new(direction.y, -direction.x);
+
             _outlinePoints[index] = from;
             _outlineNormals[index] = normal;
             _outlinePoints[index + 1] = to;
@@ -366,10 +407,11 @@ namespace Interaction
             _wallMesh.triangles = triangles;
 
             // The space the walls can ever fill, given once, so it never
-            // needs working out again as they move: two radii wide, four
-            // tall, centred on this object.
+            // needs working out again as they move: two radii wide, from
+            // the circle's top to the slot's bottom.
             float largest = Mathf.Max(restRadius, openRadius);
-            _wallMesh.bounds = new Bounds(Vector3.zero, new Vector3(largest * 2f, largest * 4f, _halfThickness * 2f));
+            Vector3 centre = new(0f, (1f + SlotBottom) * 0.5f * largest, 0f);
+            _wallMesh.bounds = new Bounds(centre, new Vector3(largest * 2f, (1f - SlotBottom) * largest, _halfThickness * 2f));
 
             GameObject walls = new("Keyhole Walls") { layer = gameObject.layer };
             walls.transform.SetParent(transform, false);
@@ -380,8 +422,11 @@ namespace Interaction
             wallRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             wallRenderer.receiveShadows = false;
 
+            // The walls have no texture coordinates, so the leaf's texture
+            // is swapped for plain white: they're just wallColor.
             MaterialPropertyBlock wallBlock = new();
             wallBlock.SetColor(_baseColorId, wallColor);
+            wallBlock.SetTexture(_baseMapId, Texture2D.whiteTexture);
             wallRenderer.SetPropertyBlock(wallBlock);
         }
 

@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using Core;
 using Interaction;
 using UnityEngine;
 
@@ -6,11 +8,20 @@ namespace Player
     /// <summary>
     /// Makes one hand visual stop at surfaces instead of passing through
     /// them - the "physical hands" collision response. A kinematic sweep, no
-    /// Rigidbody: each frame, a capsule the shape of the hand (wrist to
-    /// middle fingertip) is swept from where the visual was last frame
-    /// towards where the controller wants it. On a hit the hand stops just
-    /// short of the surface and slides along it ("collide and slide", the
-    /// same idea CharacterController uses), so it never goes into the wall.
+    /// Rigidbody: each frame, the hand's collision shape is swept from where
+    /// the visual was last frame towards where the controller wants it. On a
+    /// hit the hand stops just short of the surface and slides along it
+    /// ("collide and slide", the same idea CharacterController uses), so it
+    /// never goes into the wall.
+    ///
+    /// The shape is several pieces (HandCollisionShape) moved together: a box
+    /// for the palm and a capsule each for the thumb and fingers, measured
+    /// from the model's bones by HandShapeFitter in two poses - open and
+    /// fist. The index finger switches pose with the trigger and the other
+    /// three with the grip (SetFingerCurl()), as the hand Animator curls
+    /// them; the palm and thumb never change. A carried prop adds a piece per
+    /// collider (SetHeldShape()), so both the hand and the prop stop at
+    /// surfaces. Each sweep casts every piece and keeps the nearest hit.
     ///
     /// While nothing is in the way the visual stays a child of its controller
     /// and this class doesn't touch it at all. The hands' Tracked Pose
@@ -51,24 +62,28 @@ namespace Player
         // than looping forever.
         private const int MaxDepenetrationPasses = 3;
 
-        // Colliders the hand can overlap at once. Shared by both hands (they're
-        // ticked one after the other, never at the same time) and allocated
-        // once, so the overlap check never allocates. Anything past this many
-        // is caught by the next pass.
+        // Colliders one piece of the hand can overlap at once. Shared by both
+        // hands (they're ticked one after the other, never at the same time)
+        // and allocated once, so the overlap check never allocates. Anything
+        // past this many is caught by the next pass.
         private static readonly Collider[] _overlapBuffer = new Collider[8];
 
-        // Where each hand's penetration collider sits, well below the level,
-        // for its whole life - see CreatePenetrationCollider().
+        // Where each hand's pieces' colliders sit, well below the level, for
+        // their whole life - see HandCollisionShape.
         private static readonly Vector3 _parkedColliderPosition = new(0f, -1000f, 0f);
 
-        private const string PlayerHandsLayerName = "PlayerHands";
+        // Most colliders of a carried prop that get a piece each. A prop with
+        // more is carried as one box round all of them (see SetHeldShape()).
+        private const int MaxPropShapes = 4;
+
+        // Trigger or grip past this curls the fingers it drives into the
+        // fist pose; back under ReleaseCurl opens them. The gap stops a
+        // half-pressed trigger flicking the pose (and resizing colliders)
+        // every frame.
+        private const float CloseCurl = 0.6f;
+        private const float ReleaseCurl = 0.4f;
 
         private readonly Transform _visual;
-
-        // A real collider shaped like the hand capsule, only ever used as the
-        // "this is the hand" half of Physics.ComputePenetration (the push-out
-        // step). Never moved: each query passes in where the hand actually is.
-        private readonly CapsuleCollider _penetrationCollider;
 
         // The controller the visual normally lives under, and returns to.
         private readonly Transform _restParent;
@@ -78,31 +93,23 @@ namespace Player
         private readonly Vector3 _restLocalPosition;
         private readonly Quaternion _restLocalRotation;
 
-        // The wrist and middle fingertip relative to the visual's rest
-        // position, in the CONTROLLER's local space, measured once from the
-        // model's bones at rest. Kept in controller space (not the visual's)
-        // so the right hand's mirrored -1 scale needs no special handling -
-        // it's already baked into the positions. Stored relative to the
-        // visual's root so a single rotation turns each into its world-space
-        // offset - see GetCapsuleOffsets().
-        private readonly Vector3 _wristFromRoot;
-        private readonly Vector3 _fingertipFromRoot;
+        // Every piece: the hand's own first (HandShapeFitter.ShapeCount),
+        // then MaxPropShapes slots for a carried prop's colliders, empty
+        // while nothing is carried. The parent their colliders are parked
+        // under, destroyed with them.
+        private readonly HandCollisionShape[] _shapes;
+        private readonly GameObject _shapesParent;
 
-        // Turns the penetration collider (a capsule along its own Z) to lie
-        // along the wrist-to-fingertip line, relative to the controller.
-        // Measured once, like the offsets above.
-        private readonly Quaternion _handCapsuleRotation;
-        private readonly float _handLength;
+        // The hand's own pieces in each pose, measured once at load (see
+        // HandShapeFitter). Empty-handed if the bones weren't found.
+        private readonly HandShapeGeometry[] _openShapes = new HandShapeGeometry[HandShapeFitter.ShapeCount];
+        private readonly HandShapeGeometry[] _closedShapes = new HandShapeGeometry[HandShapeFitter.ShapeCount];
+        private readonly bool _hasHandShapes;
 
-        // The capsule actually being swept: normally the hand's (the three
-        // values above), but while the hand carries a prop it runs from the
-        // wrist to the middle of the prop, with the prop's radius - see
-        // SetHeldShape(). Same space as _wristFromRoot.
-        private Vector3 _capsuleStart;
-        private Vector3 _capsuleEnd;
-        private Quaternion _capsuleLocalRotation;
-        private bool _hasHeldShape;
-        private float _heldRadius;
+        // Whether the index finger (trigger) and the other three (grip) are
+        // in the fist pose - see SetFingerCurl().
+        private bool _isIndexClosed;
+        private bool _isGripClosed;
 
         // Where the visual was placed last frame, in world space - the start
         // of this frame's sweep. Invalid until the first follow tick, and
@@ -174,110 +181,149 @@ namespace Player
         /// following its controller: held by a surface, or easing back.
         private bool IsPlacedByCode => _isPositionHeld || _isRotationHeld || _isReturning || _isRotationReturning;
 
-        public HandPhysicalFollow(Transform visual, Transform wristBone, Transform fingertipBone)
+        /// <summary>
+        /// Captures the visual's rest pose and measures the hand's pieces
+        /// (HandShapeFitter, with sizes) - at construction (Awake), while the
+        /// visual still sits at its rest pose under the controller and the
+        /// fingers are at their rest pose.
+        /// </summary>
+        public HandPhysicalFollow(Transform visual, HandShapeSizes sizes)
         {
             _visual = visual;
             _restParent = visual.parent;
             _restLocalPosition = visual.localPosition;
             _restLocalRotation = visual.localRotation;
 
-            // Measured at construction (Awake), while the visual still sits at
-            // its rest pose under the controller and the fingers are at their
-            // bind pose - so finger curl animation never changes the capsule.
-            _wristFromRoot = _restParent.InverseTransformPoint(wristBone.position) - _restLocalPosition;
-            _fingertipFromRoot = _restParent.InverseTransformPoint(fingertipBone.position) - _restLocalPosition;
+            _shapes = HandCollisionShape.Create(
+                $"{visual.name} Collision Shapes",
+                HandShapeFitter.ShapeCount + MaxPropShapes,
+                _parkedColliderPosition,
+                out _shapesParent);
 
-            // A Unity capsule's height is measured end to end, round caps
-            // included - so it's simply the wrist-to-fingertip length, and it
-            // matches the swept capsule (whose ends are inset by the radius).
-            Vector3 handAxis = _fingertipFromRoot - _wristFromRoot;
-            _handCapsuleRotation = Quaternion.LookRotation(handAxis);
-            _handLength = handAxis.magnitude;
-            _penetrationCollider = CreatePenetrationCollider(visual.name, _handLength);
-
-            _capsuleStart = _wristFromRoot;
-            _capsuleEnd = _fingertipFromRoot;
-            _capsuleLocalRotation = _handCapsuleRotation;
+            _hasHandShapes = HandShapeFitter.FitHand(visual, sizes, _openShapes, _closedShapes);
+            ApplyHandShapes();
         }
 
         /// <summary>
-        /// Makes the swept shape cover a prop the hand is carrying: a
-        /// capsule from the wrist to the middle of the prop, radius thick,
-        /// in place of the hand's own. One shape for hand and prop together
-        /// is rough - it's round, the prop may not be - but it means the
-        /// whole collide-and-slide below works unchanged, and the prop
-        /// stops at a wall with the hand instead of going into it.
-        /// centreFromVisual is the prop's middle relative to the visual's
-        /// root, in the visual's own axes.
-        ///
-        /// Only called on pick-up, so resizing the penetration collider
-        /// (which makes PhysX rebuild its shape) isn't a per-frame cost.
+        /// Switches the fingers' pieces between open and fist as the hand
+        /// Animator curls them: the index finger by trigger, the other three
+        /// by grip (each 0-1). Called every frame before Tick(); colliders are
+        /// only resized on the frame a pose switches. Opening against a wall
+        /// pushes the hand back out next Tick(), as turning into it does.
         /// </summary>
-        public void SetHeldShape(Vector3 centreFromVisual, float radius)
+        public void SetFingerCurl(float trigger, float grip)
         {
-            // Into the controller's space, like the wrist and fingertip:
-            // the visual sits at _restLocalRotation from the controller.
-            _capsuleStart = _wristFromRoot;
-            _capsuleEnd = _restLocalRotation * centreFromVisual;
+            bool isIndexClosed = _isIndexClosed ? trigger > ReleaseCurl : trigger > CloseCurl;
+            bool isGripClosed = _isGripClosed ? grip > ReleaseCurl : grip > CloseCurl;
 
-            Vector3 axis = _capsuleEnd - _capsuleStart;
-
-            // A prop centred on the wrist leaves no line to lie along -
-            // nudge the end so the capsule is (as near as matters) a ball.
-            if (axis.sqrMagnitude < 0.0001f) {
-                axis = Vector3.forward * 0.01f;
-                _capsuleEnd = _capsuleStart + axis;
+            if (isIndexClosed == _isIndexClosed && isGripClosed == _isGripClosed) {
+                return;
             }
 
-            _capsuleLocalRotation = Quaternion.LookRotation(axis);
-            _heldRadius = radius;
-            _hasHeldShape = true;
-
-            // Unlike the hand's capsule, the ends aren't pulled in by the
-            // radius (the prop sticks out that far past its middle), so the
-            // collider's end-to-end height is the line plus a cap each end.
-            _penetrationCollider.radius = radius;
-            _penetrationCollider.height = axis.magnitude + radius * 2f;
+            _isIndexClosed = isIndexClosed;
+            _isGripClosed = isGripClosed;
+            ApplyHandShapes();
         }
 
         /// <summary>
-        /// Back to the hand's own shape, when the prop is dropped. The
-        /// collider's radius is put back by the next Tick().
+        /// Puts the hand's own pieces in the pose each finger is in. The
+        /// palm and thumb are the same in both poses.
+        /// </summary>
+        private void ApplyHandShapes()
+        {
+            if (!_hasHandShapes) {
+                return;
+            }
+
+            for (int i = 0; i < HandShapeFitter.ShapeCount; i++) {
+                bool isClosed = i == HandShapeFitter.IndexShape ? _isIndexClosed : i > HandShapeFitter.IndexShape && _isGripClosed;
+                _shapes[i].Set(isClosed ? _closedShapes[i] : _openShapes[i]);
+            }
+        }
+
+        /// <summary>
+        /// Adds a carried prop to the swept shape: a piece the same shape as
+        /// each of its solid colliders, alongside the hand's own, so the
+        /// prop stops at a wall with the hand instead of going into it.
+        /// handPosition and handRotation are where the visual holds the prop
+        /// from (the pose it's snapping to); the colliders are measured where
+        /// they lie now, which is where they'll be relative to the hand. A
+        /// prop with more than MaxPropShapes solid colliders is carried as
+        /// one box round them all.
+        ///
+        /// Only called on pick-up, so resizing the pieces' colliders (which
+        /// makes PhysX rebuild them) isn't a per-frame cost.
+        /// </summary>
+        public void SetHeldShape(IReadOnlyList<Collider> colliders, Vector3 handPosition, Quaternion handRotation)
+        {
+            ClearHeldShape();
+            int slot = HandShapeFitter.ShapeCount;
+
+            for (int i = 0; i < colliders.Count; i++) {
+                if (!HandShapeFitter.FitCollider(colliders[i], handPosition, handRotation, _restLocalRotation, out HandShapeGeometry geometry)) {
+                    continue;
+                }
+
+                if (slot == _shapes.Length) {
+                    SetHeldBox(colliders, handPosition, handRotation);
+                    return;
+                }
+
+                _shapes[slot++].Set(geometry);
+            }
+        }
+
+        /// <summary>
+        /// The many-collider fallback for SetHeldShape(): one level box round
+        /// every solid collider's world bounds, as they lie now.
+        /// </summary>
+        private void SetHeldBox(IReadOnlyList<Collider> colliders, Vector3 handPosition, Quaternion handRotation)
+        {
+            ClearHeldShape();
+            Bounds bounds = default;
+            bool hasBounds = false;
+
+            for (int i = 0; i < colliders.Count; i++) {
+                Collider collider = colliders[i];
+
+                if (collider.isTrigger || !collider.enabled) {
+                    continue;
+                }
+
+                if (hasBounds) {
+                    bounds.Encapsulate(collider.bounds);
+                } else {
+                    bounds = collider.bounds;
+                    hasBounds = true;
+                }
+            }
+
+            Quaternion fromWorld = _restLocalRotation * Quaternion.Inverse(handRotation);
+            _shapes[HandShapeFitter.ShapeCount].Set(HandShapeGeometry.Box(
+                fromWorld * (bounds.center - handPosition), fromWorld, bounds.extents));
+        }
+
+        /// <summary>
+        /// Back to just the hand's own pieces, when the prop is dropped.
         /// </summary>
         public void ClearHeldShape()
         {
-            _hasHeldShape = false;
-            _capsuleStart = _wristFromRoot;
-            _capsuleEnd = _fingertipFromRoot;
-            _capsuleLocalRotation = _handCapsuleRotation;
-
-            // Already destroyed if the scene is unloading.
-            if (_penetrationCollider != null) {
-                _penetrationCollider.height = _handLength;
+            for (int i = HandShapeFitter.ShapeCount; i < _shapes.Length; i++) {
+                _shapes[i].Clear();
             }
-        }
-
-        /// <summary>
-        /// The radius of the shape being swept: the hand's (passed in, as
-        /// it's tuned on PlayerHandVisuals), or the carried prop's.
-        /// </summary>
-        public float ShapeRadius(float handRadius)
-        {
-            return _hasHeldShape ? _heldRadius : handRadius;
         }
 
         /// <summary>
         /// Moves the visual towards the controller, stopping and sliding at
         /// anything on collisionLayers, and easing back over catchUpDuration
         /// seconds once free - or easing back through the surface if it holds
-        /// the hand more than maxSeparation from the controller. radius is the hand
-        /// capsule's radius, skinWidth the gap kept from surfaces and
-        /// maxSeparation the snap-back distance, all in metres - all passed in
-        /// every frame so Inspector changes apply live.
+        /// the hand more than maxSeparation from the controller. skinWidth is
+        /// the gap kept from surfaces and maxSeparation the snap-back
+        /// distance, both in metres - all passed in every frame so Inspector
+        /// changes apply live.
         /// </summary>
         public void Tick(
             LayerMask collisionLayers,
-            float radius,
             float skinWidth,
             float catchUpDuration,
             float maxSeparation,
@@ -289,16 +335,6 @@ namespace Player
             if (!_restParent.gameObject.activeInHierarchy) {
                 Suspend();
                 return;
-            }
-
-            // Carrying a prop: everything below uses its radius instead.
-            radius = ShapeRadius(radius);
-
-            // Only written when handRadius changes in the Inspector (or a
-            // prop was just dropped) - resizing a collider makes PhysX
-            // rebuild its shape, so not every frame.
-            if (!Mathf.Approximately(_penetrationCollider.radius, radius)) {
-                _penetrationCollider.radius = radius;
             }
 
             // Where the visual would be if it were simply following the
@@ -314,7 +350,7 @@ namespace Player
             // it (attached) while the controller is still inside something. Once
             // both are done, normal following resumes next frame.
             if (_isPassingThrough) {
-                TickPassingThrough(targetPosition, controllerRotation, collisionLayers, radius, catchUpDuration, deltaTime);
+                TickPassingThrough(targetPosition, controllerRotation, collisionLayers, catchUpDuration, deltaTime);
                 return;
             }
 
@@ -332,7 +368,7 @@ namespace Player
 
             AdvanceEases(targetPosition, controllerRotation, catchUpDuration, deltaTime, out Vector3 goalPosition, out Quaternion handRotation);
 
-            GetCapsuleOffsets(handRotation, radius, out Vector3 wristOffset, out Vector3 fingertipOffset);
+            OrientShapes(handRotation);
 
             if (!_hasLastPosition) {
                 _lastPosition = _visual.position;
@@ -347,9 +383,7 @@ namespace Player
             // clear of everything, so the sweep can see the surface. Pushing
             // out after the sweep instead could find the hand past the middle
             // of a thin wall, and push it out the far side.
-            Vector3 start = Depenetrate(
-                _lastPosition, wristOffset, fingertipOffset, handRotation * _capsuleLocalRotation,
-                collisionLayers, radius, skinWidth, out bool startsClear);
+            Vector3 start = Depenetrate(_lastPosition, collisionLayers, skinWidth, out bool startsClear);
 
             if (TraceEnabled) {
                 _trace ??= new System.Text.StringBuilder(512);
@@ -365,10 +399,7 @@ namespace Player
 
             _pushedThisSweep = false;
 
-            Vector3 position = SweepAndSlide(
-                start, goalPosition,
-                wristOffset, fingertipOffset,
-                collisionLayers, radius, skinWidth, startsClear);
+            Vector3 position = SweepAndSlide(start, goalPosition, collisionLayers, skinWidth, startsClear);
 
             IsPushing = _pushedThisSweep;
 
@@ -411,7 +442,7 @@ namespace Player
                     // would turn with its fingers going into the wall, be pushed
                     // out, and flicker between the two. Costs one extra query,
                     // and only while the rotation is held.
-                    if (!OverlapsAt(position, controllerRotation, collisionLayers, radius)) {
+                    if (!OverlapsAt(position, controllerRotation, collisionLayers)) {
                         StartRotationReturn(controllerRotation);
                         _isRotationHeld = false;
                     }
@@ -509,7 +540,6 @@ namespace Player
             Vector3 targetPosition,
             Quaternion controllerRotation,
             LayerMask collisionLayers,
-            float radius,
             float catchUpDuration,
             float deltaTime)
         {
@@ -525,7 +555,7 @@ namespace Player
 
             PlaceVisual(position, handRotation);
 
-            if (_isReturning || _isRotationReturning || OverlapsAt(targetPosition, controllerRotation, collisionLayers, radius)) {
+            if (_isReturning || _isRotationReturning || OverlapsAt(targetPosition, controllerRotation, collisionLayers)) {
                 return;
             }
 
@@ -641,220 +671,134 @@ namespace Player
         }
 
         /// <summary>
-        /// True if the hand capsule, with its root at position and turned to a
-        /// controller rotation, is inside anything on collisionLayers.
+        /// True if the hand's pieces, with its root at position and turned to
+        /// a controller rotation, are inside anything on collisionLayers.
         /// </summary>
-        private bool OverlapsAt(Vector3 position, Quaternion rotation, LayerMask collisionLayers, float radius)
+        private bool OverlapsAt(Vector3 position, Quaternion rotation, LayerMask collisionLayers)
         {
-            GetCapsuleOffsets(rotation, radius, out Vector3 wristOffset, out Vector3 fingertipOffset);
+            OrientShapes(rotation);
 
-            return Physics.CheckCapsule(
-                position + wristOffset,
-                position + fingertipOffset,
-                radius,
-                collisionLayers,
-                QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < _shapes.Length; i++) {
+                if (_shapes[i].IsActive && _shapes[i].Check(position, collisionLayers)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
-        /// Destroys the penetration collider. It lives at the scene root rather
-        /// than under the player, so it isn't cleaned up with its owner -
+        /// Turns every piece to a hand whose controller is turned to
+        /// rotation, as an offset from the visual's root. The sweep only moves
+        /// the hand, never turns it, so this holds all along it. A rotation
+        /// alone is enough (no matrix) because the controllers are unscaled -
+        /// the parked colliders rely on that too.
+        /// </summary>
+        private void OrientShapes(Quaternion rotation)
+        {
+            for (int i = 0; i < _shapes.Length; i++) {
+                if (_shapes[i].IsActive) {
+                    _shapes[i].Orient(rotation);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Destroys the pieces' colliders. They live at the scene root rather
+        /// than under the player, so they aren't cleaned up with their owner -
         /// PlayerHandVisuals calls this from OnDestroy().
         /// </summary>
         public void Destroy()
         {
-            // Unity's == null is also true for an already-destroyed object,
-            // e.g. when the whole scene is unloading.
-            if (_penetrationCollider != null) {
-                Object.Destroy(_penetrationCollider.gameObject);
-            }
+            HandCollisionShape.Destroy(_shapesParent);
         }
 
         /// <summary>
-        /// Builds the collider Physics.ComputePenetration needs for the hand:
-        /// a capsule along its local Z (direction 2), on its own GameObject.
-        ///
-        /// ComputePenetration only works on enabled colliders, but it takes the
-        /// hand's position and rotation as arguments rather than reading the
-        /// transform. So the collider is parked far below the level and never
-        /// moved (moving a collider isn't free in PhysX), and it's a trigger
-        /// on the PlayerHands layer so it can't push, block or be hit by
-        /// anything: hand rays and the hand sweep don't include that layer,
-        /// and Player-PlayerHands is off in the collision matrix.
-        ///
-        /// At the scene root, not under the player: a child would be dragged
-        /// around by the rig every frame. Unscaled for the same reason the
-        /// capsule is measured in controller space - the right hand visual's
-        /// mirrored -1 scale never reaches it.
+        /// Draws every piece twice - where the controller wants the hand
+        /// (targetColor) and where the visual actually is (visualColor) - for
+        /// debug gizmos. The visual's uses the rotation it was given (held or
+        /// easing back) while it's detached, as the sweep does, so it's
+        /// exactly the shape being swept.
         /// </summary>
-        private static CapsuleCollider CreatePenetrationCollider(string handName, float length)
-        {
-            GameObject colliderObject = new($"{handName} Penetration Collider");
-            int layer = LayerMask.NameToLayer(PlayerHandsLayerName);
-
-            if (layer >= 0) {
-                colliderObject.layer = layer;
-            } else {
-                Debug.LogWarning($"HandPhysicalFollow: no '{PlayerHandsLayerName}' layer - {colliderObject.name} left on Default.");
-            }
-
-            colliderObject.transform.position = _parkedColliderPosition;
-
-            CapsuleCollider capsule = colliderObject.AddComponent<CapsuleCollider>();
-            capsule.isTrigger = true;
-            capsule.direction = 2;
-            capsule.height = length;
-
-            return capsule;
-        }
-
-        /// <summary>
-        /// Gets the world-space ends of the hand capsule twice - where the
-        /// controller wants it (target) and where the visual actually is - for
-        /// debug gizmos. Uses the same inset as the sweep, so it's exactly the
-        /// shape being swept; the visual's uses the rotation it was given
-        /// (held or easing back) while it's detached, as the sweep does.
-        /// </summary>
-        public void GetDebugCapsules(
-            float radius,
-            out Vector3 targetWrist,
-            out Vector3 targetFingertip,
-            out Vector3 visualWrist,
-            out Vector3 visualFingertip)
+        public void DrawDebug(DebugLines lines, Color targetColor, Color visualColor)
         {
             _restParent.GetPositionAndRotation(out Vector3 controllerPosition, out Quaternion controllerRotation);
             Vector3 targetPosition = controllerPosition + controllerRotation * _restLocalPosition;
-
-            GetCapsuleOffsets(controllerRotation, radius, out Vector3 wristOffset, out Vector3 fingertipOffset);
-            targetWrist = targetPosition + wristOffset;
-            targetFingertip = targetPosition + fingertipOffset;
-
             Quaternion handRotation = IsPlacedByCode ? _handRotation : controllerRotation;
-            GetCapsuleOffsets(handRotation, radius, out wristOffset, out fingertipOffset);
-            visualWrist = _visual.position + wristOffset;
-            visualFingertip = _visual.position + fingertipOffset;
-        }
 
-        /// <summary>
-        /// The hand capsule's two ends relative to the visual's root, in world
-        /// space, for a hand whose controller is turned to rotation - already
-        /// inset by radius. The sweep only translates the capsule, so these
-        /// offsets hold wherever along the sweep it is. A rotation alone is
-        /// enough (no matrix) because the controllers are unscaled - the
-        /// penetration collider relies on that too.
-        /// </summary>
-        private void GetCapsuleOffsets(Quaternion rotation, float radius, out Vector3 wristOffset, out Vector3 fingertipOffset)
-        {
-            wristOffset = rotation * _capsuleStart;
-            fingertipOffset = rotation * _capsuleEnd;
+            for (int i = 0; i < _shapes.Length; i++) {
+                if (!_shapes[i].IsActive) {
+                    continue;
+                }
 
-            // A carried prop's shape isn't pulled in: it reaches its radius
-            // past the prop's middle, as the prop does.
-            if (!_hasHeldShape) {
-                InsetCapsuleEnds(ref wristOffset, ref fingertipOffset, radius);
+                lines.Color = targetColor;
+                _shapes[i].Geometry.Draw(lines, targetPosition, controllerRotation);
+                lines.Color = visualColor;
+                _shapes[i].Geometry.Draw(lines, _visual.position, handRotation);
             }
         }
 
         /// <summary>
-        /// A capsule's rounded ends stick out radius past its two points, so
-        /// both points are pulled in by radius - the capsule then ends at the
-        /// wrist and fingertip themselves rather than beyond them. Never past
-        /// the middle, for a radius bigger than half the hand.
-        /// </summary>
-        private static void InsetCapsuleEnds(ref Vector3 a, ref Vector3 b, float radius)
-        {
-            Vector3 axis = b - a;
-            float length = axis.magnitude;
-
-            if (length < 0.0001f) {
-                return;
-            }
-
-            float inset = Mathf.Min(radius, length * 0.5f);
-            Vector3 step = axis / length * inset;
-            a += step;
-            b -= step;
-        }
-
-        /// <summary>
-        /// Pushes the hand capsule (root at position, ends at position + the
-        /// offsets) out of anything on collisionLayers it overlaps, and returns
+        /// Pushes the hand (root at position, pieces where OrientShapes() put
+        /// them) out of anything on collisionLayers it overlaps, and returns
         /// where the root ends up - position itself if it's already clear.
         ///
-        /// OverlapCapsuleNonAlloc lists what the capsule is inside (into the
-        /// shared buffer, no allocation). For each, ComputePenetration gives
-        /// the shortest way out: a direction and a distance. The hand is moved
-        /// that far plus skinWidth, so it ends a little clear of the surface
-        /// rather than exactly touching it. capsuleRotation turns the
-        /// penetration collider to lie along the hand. Nearly every frame the
-        /// overlap finds nothing and this costs one cheap query.
+        /// Each piece's overlap lists what it's inside (into the shared
+        /// buffer, no allocation). For each, ComputePenetration gives the
+        /// shortest way out: a direction and a distance. The whole hand is
+        /// moved that far plus skinWidth, so it ends a little clear of the
+        /// surface rather than exactly touching it. Nearly every frame the
+        /// overlaps find nothing and this costs one cheap query per piece.
         ///
         /// isClear says whether it got the hand out of everything. False
         /// means it ran out of passes still moving - e.g. wedged between two
         /// surfaces closer together than the hand, where each push-out goes
         /// into the other one.
         /// </summary>
-        private Vector3 Depenetrate(
-            Vector3 position,
-            Vector3 wristOffset,
-            Vector3 fingertipOffset,
-            Quaternion capsuleRotation,
-            LayerMask collisionLayers,
-            float radius,
-            float skinWidth,
-            out bool isClear)
+        private Vector3 Depenetrate(Vector3 position, LayerMask collisionLayers, float skinWidth, out bool isClear)
         {
             isClear = false;
 
             for (int pass = 0; pass < MaxDepenetrationPasses; pass++) {
-                int count = Physics.OverlapCapsuleNonAlloc(
-                    position + wristOffset,
-                    position + fingertipOffset,
-                    radius,
-                    _overlapBuffer,
-                    collisionLayers,
-                    QueryTriggerInteraction.Ignore);
-
-                if (count == 0) {
-                    isClear = true;
-                    break;
-                }
-
-                // The penetration collider is centred on the middle of the
-                // capsule. Insetting both ends by the same amount doesn't move
-                // the middle, so it's simply halfway between them.
-                Vector3 centre = position + (wristOffset + fingertipOffset) * 0.5f;
+                bool overlaps = false;
                 bool moved = false;
 
-                for (int i = 0; i < count; i++) {
-                    Collider other = _overlapBuffer[i];
+                for (int s = 0; s < _shapes.Length; s++) {
+                    HandCollisionShape shape = _shapes[s];
 
-                    // Only possible if collisionLayers wrongly includes
-                    // PlayerHands - the hand can't push out of itself.
-                    if (other == _penetrationCollider) {
+                    if (!shape.IsActive) {
                         continue;
                     }
 
-                    other.transform.GetPositionAndRotation(out Vector3 otherPosition, out Quaternion otherRotation);
+                    int count = shape.Overlap(position, _overlapBuffer, collisionLayers);
 
-                    // False if they only touch - nothing to push out of.
-                    if (!Physics.ComputePenetration(
-                            _penetrationCollider, centre, capsuleRotation,
-                            other, otherPosition, otherRotation,
-                            out Vector3 direction, out float distance)) {
-                        continue;
+                    for (int i = 0; i < count; i++) {
+                        Collider other = _overlapBuffer[i];
+
+                        // Only possible if collisionLayers wrongly includes
+                        // PlayerHands - the hand can't push out of itself.
+                        if (shape.Owns(other)) {
+                            continue;
+                        }
+
+                        overlaps = true;
+
+                        // False if they only touch - nothing to push out of.
+                        if (!shape.ComputePenetration(position, other, out Vector3 direction, out float distance)) {
+                            continue;
+                        }
+
+                        // Moved immediately rather than summed, so the next
+                        // collider (and piece) is checked from where the
+                        // hand now is.
+                        position += direction * (distance + skinWidth);
+                        moved = true;
                     }
-
-                    // Moved immediately rather than summed, so the next
-                    // collider is checked from where the hand now is.
-                    Vector3 push = direction * (distance + skinWidth);
-                    position += push;
-                    centre += push;
-                    moved = true;
                 }
 
-                // Overlapping only by touching - as clear as it gets.
-                if (!moved) {
+                // Inside nothing, or overlapping only by touching - as clear
+                // as it gets.
+                if (!overlaps || !moved) {
                     isClear = true;
                     break;
                 }
@@ -864,22 +808,43 @@ namespace Player
         }
 
         /// <summary>
-        /// Sweeps the hand capsule (root at from, ends at from + the offsets)
-        /// towards to. Each hit stops it skinWidth short of the surface; the
-        /// rest of the movement is flattened onto the surface (so pushing
+        /// Sweeps every piece from position along direction for distance and
+        /// gives the nearest hit of them all - where the hand as a whole
+        /// stops. No allocations: each cast returns one hit through an out
+        /// parameter.
+        /// </summary>
+        private bool CastShapes(Vector3 position, Vector3 direction, float distance, LayerMask collisionLayers, out RaycastHit nearest)
+        {
+            nearest = default;
+            bool hasHit = false;
+
+            for (int i = 0; i < _shapes.Length; i++) {
+                if (!_shapes[i].IsActive || !_shapes[i].Cast(position, direction, distance, collisionLayers, out RaycastHit hit)) {
+                    continue;
+                }
+
+                if (!hasHit || hit.distance < nearest.distance) {
+                    nearest = hit;
+                    hasHit = true;
+                }
+            }
+
+            return hasHit;
+        }
+
+        /// <summary>
+        /// Sweeps the hand (root at from, pieces where OrientShapes() put
+        /// them) towards to. Each hit stops it skinWidth short of the surface;
+        /// the rest of the movement is flattened onto the surface (so pushing
         /// diagonally into a wall slides along it) and swept again, up to
         /// MaxSweeps times. Returns where the root ends up - to itself if
-        /// nothing was in the way. No allocations: CapsuleCast returns one hit
-        /// through an out parameter. startsClear is Depenetrate()'s isClear
-        /// for from.
+        /// nothing was in the way. startsClear is Depenetrate()'s isClear for
+        /// from.
         /// </summary>
-        private static Vector3 SweepAndSlide(
+        private Vector3 SweepAndSlide(
             Vector3 from,
             Vector3 to,
-            Vector3 wristOffset,
-            Vector3 fingertipOffset,
             LayerMask collisionLayers,
-            float radius,
             float skinWidth,
             bool startsClear)
         {
@@ -901,18 +866,7 @@ namespace Player
                 }
 
                 Vector3 direction = remaining / distance;
-
-                // Triggers are ignored: ledges, ladders and ropes are trigger
-                // volumes for the hand rays, not surfaces to stop at.
-                bool hit = Physics.CapsuleCast(
-                    position + wristOffset,
-                    position + fingertipOffset,
-                    radius,
-                    direction,
-                    out RaycastHit hitInfo,
-                    distance + skinWidth,
-                    collisionLayers,
-                    QueryTriggerInteraction.Ignore);
+                bool hit = CastShapes(position, direction, distance + skinWidth, collisionLayers, out RaycastHit hitInfo);
 
                 if (!hit) {
                     _trace?.Append($" | [{i}] clear rem={distance:F4}");

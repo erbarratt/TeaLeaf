@@ -206,8 +206,8 @@ LODGroup:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 9117468059116048381}
   serializedVersion: 2
-  m_LocalReferencePoint: {x: 0, y: 0, z: 0}
-  m_Size: 1
+  m_LocalReferencePoint: {x: 0.018457875, y: -0.0111534, z: -0.0004954934}
+  m_Size: 0.35693362
   m_FadeMode: 1
   m_AnimateCrossFading: 1
   m_LastLODIsBillboard: 0
@@ -277,6 +277,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: b81c66b4e5dda86418e66354b1828875, type: 2}
+    - target: {fileID: -5754084199372789682, guid: 70514e3cc2d949d4dbf1366f212b6cd5, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 4300000, guid: ba4b2f551e66cbd40b9eb8a2a2ae98fd, type: 2}
     - target: {fileID: 919132149155446097, guid: 70514e3cc2d949d4dbf1366f212b6cd5, type: 3}
       propertyPath: m_Name
       value: Kettle_LOD2
@@ -435,6 +439,10 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
       objectReference: {fileID: 2100000, guid: b81c66b4e5dda86418e66354b1828875, type: 2}
+    - target: {fileID: -5754084199372789682, guid: 70514e3cc2d949d4dbf1366f212b6cd5, type: 3}
+      propertyPath: m_Mesh
+      value: 
+      objectReference: {fileID: 4300000, guid: 9015fa98974c3e145aef0140f2c807e9, type: 2}
     - target: {fileID: 919132149155446097, guid: 70514e3cc2d949d4dbf1366f212b6cd5, type: 3}
       propertyPath: m_Name
       value: Kettle_LOD1

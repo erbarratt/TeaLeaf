@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 818e631233dd2a64eb27938ec822a0d9, type: 3}
   m_Name: ArrowHold
   m_EditorClassIdentifier: Assembly-CSharp::Interaction.HandSnapProfile
-  leftPositionOffset: {x: -0.0155, y: 0.02, z: -0.1496}
+  leftPositionOffset: {x: -0.0099, y: -0.0496, z: -0.149}
   leftRotationOffset: {x: 0, y: 84.2, z: -90}
-  rightPositionOffset: {x: 0.0155, y: 0.02, z: -0.1496}
+  rightPositionOffset: {x: 0.0099, y: -0.0496, z: -0.149}
   rightRotationOffset: {x: 0, y: -84.2, z: 90}
   fingerRotations:
   - {x: -0.2227555, y: -0.45986697, z: -0.19252084, w: 0.8377578}

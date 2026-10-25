@@ -29,9 +29,9 @@ namespace Player
     ///
     /// So the prop follows the hand VISUAL, not the controller. The visual
     /// stops at surfaces (the physical hands), and while a prop is carried
-    /// the hand's collision shape is enlarged to cover it
-    /// (PlayerHandVisuals.SetHeldShape) - so a carried prop stops at a wall
-    /// with the hand instead of being pushed through it.
+    /// the hand's collision shape takes in the prop's colliders as well as
+    /// the hand's own (PlayerHandVisuals.SetHeldShape) - so a carried prop
+    /// stops at a wall with the hand instead of being pushed through it.
     ///
     /// A hand does one thing at a time: a hand gripping a climbable can't
     /// pick up, and a hand carrying a prop can't climb (PlayerClimbing
@@ -372,7 +372,6 @@ namespace Player
             // player is on, so the hand takes it from that side.
             HandSnapPose handPose = grabbable.GetSnapPose(hold.isLeftHand, grabPoint, playerTracking.HeadPosition, default);
             Transform prop = grabbable.transform;
-            prop.GetPositionAndRotation(out Vector3 propPosition, out Quaternion propRotation);
 
             hold.grabbable = grabbable;
             hold.isReaching = true;
@@ -384,14 +383,11 @@ namespace Player
             grabbable.BeginHold(_heldLayer);
             SnapFor(hold).Snap(handPose, reachDuration);
 
-            // The hand's collision now covers the prop too: a ball round
-            // the prop's middle, given where that will be relative to the
-            // hand. "Relative to the hand": undo the hand pose's rotation,
-            // so the offset is in the hand's own axes and turns with it.
-            Quaternion toHand = Quaternion.Inverse(handPose.Rotation);
-            Vector3 centre = propPosition + propRotation * grabbable.LocalCentre;
-            Vector3 centreFromHand = toHand * (centre - handPose.Position);
-            playerHandVisuals.SetHeldShape(hold.isLeftHand, centreFromHand, grabbable.HoldRadius);
+            // The hand's collision now covers the prop too, alongside the
+            // hand's own: a piece per collider, measured where it lies now
+            // relative to the pose the hand is reaching to - which is where
+            // it'll be in the hand.
+            playerHandVisuals.SetHeldShape(hold.isLeftHand, grabbable.Colliders, handPose.Position, handPose.Rotation);
         }
 
         /// <summary>

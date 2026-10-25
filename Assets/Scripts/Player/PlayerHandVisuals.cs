@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using Core;
 using Unity.Profiling;
 using UnityEngine;
@@ -46,10 +47,15 @@ namespace Player
         // default, which simply turns hand collision off.
         [SerializeField] private LayerMask collisionLayers;
 
-        // Radius of each hand's capsule, in metres. A capsule is round and a
-        // hand is flat, so this is a compromise between the hand's width
-        // (~0.09m) and thickness (~0.03m).
-        [SerializeField] private float handRadius = 0.035f;
+        // Sizes of the pieces each hand collides with (palm box, thumb and
+        // finger capsules) that the bones don't give - see HandShapeFitter.
+        // Read once, in Awake().
+        [SerializeField] private HandShapeSizes handShapes = new();
+
+        // Where the trigger and grip that curl the fingers come from: the
+        // fingers' collision switches between open and fist with them. Found
+        // on the Player root if empty.
+        [SerializeField] private PlayerInputXR playerInput;
 
         // Gap kept between the hand and a surface, in metres, so the next
         // frame's sweep doesn't start already touching it.
@@ -85,20 +91,7 @@ namespace Player
         // The ghost's flat colour; keep the alpha low. Read once, in Awake().
         [SerializeField] private Color ghostColor = new(1f, 1f, 1f, 0.2f);
 
-        // The bones the hand capsule is measured between (wrist to the tip of
-        // the middle finger) - once, at Awake, at the bind pose. Filled in by
-        // Reset() or the "Find Hand Bones" context menu.
-        [SerializeField] private Transform leftWristBone;
-        [SerializeField] private Transform leftFingertipBone;
-        [SerializeField] private Transform rightWristBone;
-        [SerializeField] private Transform rightFingertipBone;
-
-        // Bone names in hand.fbx - the right hand is the same model mirrored,
-        // so its bones have the same (Left) names.
-        private const string WristBoneName = "J_Left_Hand";
-        private const string FingertipBoneName = "J_Left_HandMiddle4";
-
-        // Debug capsule colours (gizmos and in-headset): where the controller
+        // Debug shape colours (gizmos and in-headset): where the controller
         // wants the hand, where the visual is, and the visual while a surface
         // is holding it back.
         private static readonly Color _gizmoTargetColor = new(1f, 1f, 1f, 0.3f);
@@ -116,6 +109,10 @@ namespace Player
         private HandGhost _leftGhost;
         private HandGhost _rightGhost;
         private Material _ghostMaterial;
+
+        // The Edit Mode gizmo's pieces, measured from the bones each time
+        // it's drawn - see DrawDebug().
+        private HandShapeGeometry[] _editModeShapes;
 
         // Time.time each hand last pushed something. Start well in the
         // past, so the first push counts.
@@ -137,15 +134,15 @@ namespace Player
         public Transform RightHandVisual => rightHandVisual;
 
         /// <summary>
-        /// Enlarges one hand's collision shape to cover a prop it's
-        /// carrying, so the prop stops at surfaces with the hand:
-        /// centreFromVisual is the middle of the prop relative to the hand
-        /// visual (in the visual's own axes), radius its size. See
+        /// Adds a prop one hand is carrying to its collision shape - a piece
+        /// per collider - so the prop stops at surfaces with the hand:
+        /// handPosition and handRotation are where the visual holds it from,
+        /// the colliders measured as they lie now. See
         /// HandPhysicalFollow.SetHeldShape().
         /// </summary>
-        public void SetHeldShape(bool isLeftHand, Vector3 centreFromVisual, float radius)
+        public void SetHeldShape(bool isLeftHand, IReadOnlyList<Collider> colliders, Vector3 handPosition, Quaternion handRotation)
         {
-            (isLeftHand ? _leftFollow : _rightFollow).SetHeldShape(centreFromVisual, radius);
+            (isLeftHand ? _leftFollow : _rightFollow).SetHeldShape(colliders, handPosition, handRotation);
         }
 
         /// <summary>
@@ -190,63 +187,29 @@ namespace Player
 
         /// <summary>
         /// Editor-only: runs when the component is first added. Finds the two
-        /// hand visuals and their bones under this object by name, so they
-        /// don't need dragging in by hand.
+        /// hand visuals under this object by name and the player's input, so
+        /// they don't need dragging in by hand.
         /// </summary>
         private void Reset()
         {
             leftHandVisual = transform.Find("Left Hand/Left Hand Visual");
             rightHandVisual = transform.Find("Right Hand/Right Hand Visual");
-            FindHandBones();
-        }
-
-        /// <summary>
-        /// Fills in the wrist and fingertip bones of both hand visuals by name.
-        /// Also on the component's right-click menu, since Reset() only runs
-        /// when the component is first added.
-        /// </summary>
-        [ContextMenu("Find Hand Bones")]
-        private void FindHandBones()
-        {
-#if UNITY_EDITOR
-            // Lets the change be undone, and marks the object dirty so it's
-            // actually saved - a context menu edit isn't otherwise tracked.
-            UnityEditor.Undo.RecordObject(this, "Find Hand Bones");
-#endif
-
-            leftWristBone = FindChildByName(leftHandVisual, WristBoneName);
-            leftFingertipBone = FindChildByName(leftHandVisual, FingertipBoneName);
-            rightWristBone = FindChildByName(rightHandVisual, WristBoneName);
-            rightFingertipBone = FindChildByName(rightHandVisual, FingertipBoneName);
-        }
-
-        /// <summary>
-        /// Searches everything under root (at any depth) for a transform
-        /// called name. Editor-only use, so the allocation doesn't matter.
-        /// </summary>
-        private static Transform FindChildByName(Transform root, string name)
-        {
-            if (root == null) {
-                return null;
-            }
-
-            foreach (Transform child in root.GetComponentsInChildren<Transform>(true)) {
-                if (child.name == name) {
-                    return child;
-                }
-            }
-
-            return null;
+            playerInput = GetComponentInParent<PlayerInputXR>();
         }
 
         private void Awake()
         {
-            // Created once here (capturing each visual's rest pose and the
-            // hand capsule), never per frame, so neither allocates.
+            if (playerInput == null) {
+                playerInput = GetComponentInParent<PlayerInputXR>();
+            }
+
+            // Created once here (capturing each visual's rest pose and
+            // measuring the hand's collision pieces from its bones), never
+            // per frame, so neither allocates.
             LeftVisualSnap = new HandVisualSnap(leftHandVisual, snapBlendDuration);
             RightVisualSnap = new HandVisualSnap(rightHandVisual, snapBlendDuration);
-            _leftFollow = new HandPhysicalFollow(leftHandVisual, leftWristBone, leftFingertipBone);
-            _rightFollow = new HandPhysicalFollow(rightHandVisual, rightWristBone, rightFingertipBone);
+            _leftFollow = new HandPhysicalFollow(leftHandVisual, handShapes);
+            _rightFollow = new HandPhysicalFollow(rightHandVisual, handShapes);
 
             // One material shared by both ghosts. The ghosts copy the visuals,
             // so this must run while the visuals are still on their
@@ -285,8 +248,8 @@ namespace Player
 
         private void OnDestroy()
         {
-            // Each follow's penetration collider lives at the scene root, so it
-            // isn't destroyed along with this object. Null if Awake() never ran.
+            // Each follow's parked colliders live at the scene root, so they
+            // aren't destroyed along with this object. Null if Awake() never ran.
             _leftFollow?.Destroy();
             _rightFollow?.Destroy();
 
@@ -348,7 +311,15 @@ namespace Player
             // when the using block closes - no allocation, and compiled out
             // of non-development builds.
             using (_physicalFollowMarker.Auto()) {
-                follow.Tick(collisionLayers, handRadius, skinWidth, catchUpDuration, maxSeparation, Time.deltaTime);
+                // The fingers collide open or curled into a fist as the hand
+                // Animator shows them. No input (PC Play without it): open.
+                if (playerInput != null) {
+                    follow.SetFingerCurl(
+                        isLeftHand ? playerInput.LeftTrigger : playerInput.RightTrigger,
+                        isLeftHand ? playerInput.LeftGrip : playerInput.RightGrip);
+                }
+
+                follow.Tick(collisionLayers, skinWidth, catchUpDuration, maxSeparation, Time.deltaTime);
             }
 
             bool startedPushing = false;
@@ -373,7 +344,7 @@ namespace Player
         }
 
         /// <summary>
-        /// While selected, draws each hand's collision capsule in the Scene
+        /// While selected, draws each hand's collision pieces in the Scene
         /// view - see DrawDebug(). Editor-only.
         /// </summary>
         private void OnDrawGizmosSelected()
@@ -382,63 +353,50 @@ namespace Player
         }
 
         /// <summary>
-        /// Draws each hand's collision capsule - in the Scene view's gizmos
+        /// Draws each hand's collision pieces - in the Scene view's gizmos
         /// and, while InHeadsetGizmos is on, in the headset. In Play Mode:
         /// where the controller wants the hand (faint) and where the visual
-        /// actually is (green, red while a surface holds it back). In Edit
-        /// Mode: the capsule between the bones, for checking handRadius
-        /// against the model. The same either way, so detailed is ignored.
+        /// actually is (green, red while a surface holds it back), with a
+        /// carried prop's pieces and the fingers in the pose they collide in.
+        /// In Edit Mode: the open hand's pieces from the bones, for checking
+        /// handShapes against the model. The same either way, so detailed is
+        /// ignored.
         /// </summary>
         public void DrawDebug(DebugLines lines, bool detailed)
         {
             if (Application.isPlaying && _leftFollow != null) {
-                DrawFollowCapsules(lines, _leftFollow);
-                DrawFollowCapsules(lines, _rightFollow);
+                _leftFollow.DrawDebug(lines, _gizmoTargetColor, _leftFollow.IsInContact ? _gizmoContactColor : _gizmoFreeColor);
+                _rightFollow.DrawDebug(lines, _gizmoTargetColor, _rightFollow.IsInContact ? _gizmoContactColor : _gizmoFreeColor);
                 return;
             }
 
             lines.Color = _gizmoFreeColor;
-            DrawBoneCapsule(lines, leftWristBone, leftFingertipBone);
-            DrawBoneCapsule(lines, rightWristBone, rightFingertipBone);
+            DrawEditModeShapes(lines, leftHandVisual);
+            DrawEditModeShapes(lines, rightHandVisual);
         }
 
         /// <summary>
-        /// Draws one hand's target and actual capsules in Play Mode.
+        /// Draws one hand's open pieces, measured from its bones as they are
+        /// now (editor only, so measuring each time doesn't matter). Skipped
+        /// if the visual or a bone is missing.
         /// </summary>
-        private void DrawFollowCapsules(DebugLines lines, HandPhysicalFollow follow)
+        private void DrawEditModeShapes(DebugLines lines, Transform visual)
         {
-            follow.GetDebugCapsules(
-                handRadius,
-                out Vector3 targetWrist, out Vector3 targetFingertip,
-                out Vector3 visualWrist, out Vector3 visualFingertip);
-
-            // Bigger than the hand's while it carries a prop.
-            float radius = follow.ShapeRadius(handRadius);
-
-            lines.Color = _gizmoTargetColor;
-            lines.WireCapsule(targetWrist, targetFingertip, radius);
-
-            lines.Color = follow.IsInContact ? _gizmoContactColor : _gizmoFreeColor;
-            lines.WireCapsule(visualWrist, visualFingertip, radius);
-        }
-
-        /// <summary>
-        /// Draws the capsule between two bones as the sweep would build it
-        /// (ends pulled in by the radius). Skipped if a bone is missing.
-        /// </summary>
-        private void DrawBoneCapsule(DebugLines lines, Transform wrist, Transform fingertip)
-        {
-            if (wrist == null || fingertip == null) {
+            if (visual == null || visual.parent == null || handShapes == null) {
                 return;
             }
 
-            Vector3 a = wrist.position;
-            Vector3 b = fingertip.position;
-            Vector3 axis = b - a;
-            float inset = Mathf.Min(handRadius, axis.magnitude * 0.5f);
-            Vector3 step = axis.normalized * inset;
+            _editModeShapes ??= new HandShapeGeometry[HandShapeFitter.ShapeCount];
 
-            lines.WireCapsule(a + step, b - step, handRadius);
+            if (!HandShapeFitter.FitOpen(visual, handShapes, _editModeShapes)) {
+                return;
+            }
+
+            Quaternion controllerRotation = visual.parent.rotation;
+
+            for (int i = 0; i < _editModeShapes.Length; i++) {
+                _editModeShapes[i].Draw(lines, visual.position, controllerRotation);
+            }
         }
     }
 }

@@ -65,6 +65,8 @@ namespace Player
         [SerializeField] private PlayerArrows playerArrows;
         [Tooltip("The compass worn on the back of a hand, on the Hands object. Optional.")]
         [SerializeField] private PlayerCompass playerCompass;
+        [Tooltip("Held tools burning away when let go of and back in when taken, on the Hands object. Optional.")]
+        [SerializeField] private ToolBurn toolBurn;
         [Tooltip("Places the hand visuals, on the Hands object. Ticked after the body has moved and turned.")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
         [Tooltip("The hands' finger animation, on the Hands object. Ticked last, so it reads this frame's snap weight.")]
@@ -121,6 +123,9 @@ namespace Player
         // see Awake().
         private bool _hasBow;
 
+        // Whether the rig has a ToolBurn - see Awake().
+        private bool _hasToolBurn;
+
         /// <summary>
         /// Editor-only convenience: Unity calls Reset() when the component is
         /// first added (or via the Inspector's Reset menu item), so every
@@ -153,6 +158,7 @@ namespace Player
             playerBow = GetComponentInChildren<PlayerBow>();
             playerArrows = GetComponentInChildren<PlayerArrows>();
             playerCompass = GetComponentInChildren<PlayerCompass>();
+            toolBurn = GetComponentInChildren<ToolBurn>();
             playerHandVisuals = GetComponentInChildren<PlayerHandVisuals>();
             playerHandAnimation = GetComponentInChildren<PlayerHandAnimation>();
         }
@@ -255,6 +261,13 @@ namespace Player
 
             // And the bow, which always comes with its arrows.
             _hasBow = playerBow != null && playerArrows != null;
+
+            if (toolBurn == null) {
+                toolBurn = GetComponentInChildren<ToolBurn>();
+            }
+
+            // And tools burning away and back in.
+            _hasToolBurn = toolBurn != null;
         }
 
         /// <summary>
@@ -569,6 +582,12 @@ namespace Player
             // a mantle.
             if (_hasBow) {
                 playerArrows.TickFlight();
+            }
+
+            // Tools burning away where they were let go of, or back in on
+            // a hand - every path, so a burn started in a mantle finishes.
+            if (_hasToolBurn) {
+                toolBurn.Tick();
             }
         }
     }

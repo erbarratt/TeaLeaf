@@ -1,27 +1,25 @@
-// The lockpicking pieces: the big lock that floats in front of a door while
-// it's being picked (Interaction.BigLock), and the two picks themselves. A
+// The simple shapes built in code (Interaction.LockMeshBuilder): the pack's
+// spaces, the keyring, the compass, rope-arrow ropes and moss patches. A
 // plain lit colour that can be faded in and out.
 //
 // The colour comes from the mesh, one colour per point (set when the mesh is
-// built in code), so the lock's body, its keyway, its marks and the picks
-// are all one material and never need a texture. A model with a texture
-// and no vertex colours (the pack's chest) sets _BaseMap instead: its
-// colours then read white, and the texture gives the colour.
+// built in code), so a whole piece is one material however many colours it
+// has, and never needs a texture. A model with a texture and no vertex
+// colours (the pack's chest) sets _BaseMap instead: its colours then read
+// white, and the texture gives the colour.
 //
 // Cheap, for Quest: all the lighting is worked out per point of the mesh
 // (per vertex), not per pixel - the shapes are flat-sided, so it looks the
 // same. Only the moon and the scene's ambient light are counted, with no
 // shadows, and the result never goes below _MinLight: levels are dark, and a
-// lock nobody could see would be no use. A pixel just copies the colour its
+// piece nobody could see would be no use. A pixel just copies the colour its
 // three points agreed on.
 //
 // Fading: one shader, set up two ways by the material (see
 // Interaction.LockMeshBuilder.CreateMaterial()). Solid: Geometry queue, no
 // blending - an ordinary opaque surface. See-through: Transparent queue,
-// blended by _Alpha. The big lock only wears the see-through one for the
-// fraction of a second it takes to fade in or out, then swaps to the solid
-// one, so the cost of blending isn't paid while it's just sitting there.
-// Depth is written either way, so its near parts hide its far parts.
+// blended by _Alpha (the compass's sound arrows). Depth is written either
+// way, so near parts hide far parts.
 //
 // In the Resources folder so it's always included in builds - otherwise
 // Shader.Find() only works in the editor.

@@ -186,7 +186,7 @@ namespace LevelGen
             // Each building drawn by one merged renderer from afar: last of
             // the building, once every piece left stands, so nothing above
             // (shafts, rooms) sees a proxy's renderer.
-            BuildingProxies.Build(spec, rootObject.transform, settings, log);
+            BuildingProxies.Build(spec.sector, rootObject.transform, settings, log);
 
             // The report on the result: its markers go on the root, before
             // the fingerprint is taken.

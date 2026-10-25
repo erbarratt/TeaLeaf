@@ -72,6 +72,11 @@ namespace Player
         // bear weight, and makes it let go.
         [SerializeField] private PlayerClimbing playerClimbing;
 
+        // Optional: an arrow picked up burns away where it lay. Without
+        // one it just vanishes. Found in Awake() if not wired (it's on this
+        // same object).
+        [SerializeField] private ToolBurn toolBurn;
+
         [Header("Shooting")]
 
         // How fast an arrow leaves the bow at full draw, in metres a second
@@ -258,9 +263,18 @@ namespace Player
         // What a tumbling arrow weighs, in kilograms.
         private const float ArrowMass = 0.03f;
 
-        // How thick the solid box round a tumbling arrow is, in metres:
-        // fatter than the shaft, since very thin boxes rest badly.
-        private const float SolidThickness = 0.02f;
+        // The shaft's radius, in metres, the same on every model: a
+        // tumbling arrow's solid capsule is this thick.
+        private const float ShaftRadius = 0.007f;
+
+        // Each kind's head, measured from its model, in metres back from
+        // the model's tip, indexed by the kind's number (water,
+        // noisemaker, rope, stun, sleep, moss): where the head ends and
+        // the bare shaft begins, and the middle and radius of the solid
+        // ball round its widest part. Measure again if a model changes.
+        private static readonly float[] _headEnds = { 0.16f, 0.18f, 0.175f, 0.15f, 0.16f, 0.175f };
+        private static readonly float[] _headCentres = { 0.07f, 0.08f, 0.085f, 0.04f, 0.078f, 0.078f };
+        private static readonly float[] _headRadii = { 0.042f, 0.072f, 0.07f, 0.041f, 0.034f, 0.057f };
 
         private bool _hasHaptics;
         private bool _hasClimbing;
@@ -276,6 +290,13 @@ namespace Player
         // material they share, made at load.
         private readonly Mesh[] _arrowMeshes = new Mesh[_arrowKinds];
         private float _arrowLength;
+
+        // Each kind's solid shapes in arrow space (Z along it, tip of the
+        // longest model at 0), set once at load: the shaft capsule's
+        // middle and length (nock to head), and the head ball's middle.
+        private readonly float[] _shaftMiddles = new float[_arrowKinds];
+        private readonly float[] _shaftLengths = new float[_arrowKinds];
+        private readonly float[] _headMiddles = new float[_arrowKinds];
         private Mesh _ropeMesh;
         private Mesh _mossMesh;
         private Material _plainMaterial;
@@ -303,7 +324,10 @@ namespace Player
         private Transform _arrowRoot;
         private Transform[] _arrows;
         private MeshFilter[] _arrowFilters;
+        private CapsuleCollider[] _arrowShafts;
+        private SphereCollider[] _arrowHeads;
         private Arrow[] _arrowParts;
+        private ToolBurn.Target[] _arrowBurns;
         private BoltType[] _arrowTypes;
         private ArrowState[] _arrowStates;
         private int[] _arrowRopes;
@@ -416,6 +440,7 @@ namespace Player
             playerClimbing = GetComponentInParent<PlayerClimbing>();
             playerHandInteraction = GetComponent<PlayerHandInteraction>();
             playerHandVisuals = GetComponent<PlayerHandVisuals>();
+            toolBurn = GetComponent<ToolBurn>();
             arcLayers = DefaultArcLayers();
             groundLayers = LayerMask.GetMask("Environment");
         }
@@ -444,6 +469,10 @@ namespace Player
 
             if (playerClimbing == null) {
                 playerClimbing = GetComponentInParent<PlayerClimbing>();
+            }
+
+            if (toolBurn == null) {
+                toolBurn = GetComponent<ToolBurn>();
             }
 
             // Looked up once, so the per-frame code tests plain bools.
@@ -480,6 +509,25 @@ namespace Player
             BuildArrows();
             BuildRopes();
             BuildMoss();
+        }
+
+        /// <summary>
+        /// Registers each pooled arrow's model with ToolBurn, so one picked
+        /// up can burn away where it lay. Start() rather than Awake():
+        /// ToolBurn finds its shader in its own Awake(), and every Awake()
+        /// has run before the first Start().
+        /// </summary>
+        private void Start()
+        {
+            if (toolBurn == null) {
+                return;
+            }
+
+            _arrowBurns = new ToolBurn.Target[_arrows.Length];
+
+            for (int i = 0; i < _arrows.Length; i++) {
+                _arrowBurns[i] = toolBurn.Register(_arrowFilters[i].GetComponent<MeshRenderer>());
+            }
         }
 
         private void OnDisable()
@@ -556,6 +604,25 @@ namespace Player
                 _arrowLength = Mathf.Max(_arrowLength, _arrowMeshes[i].bounds.size.z);
             }
 
+            // Each kind's solid shapes, from where its model's tip and nock
+            // fall once MakeArrowModel() has put it half the longest
+            // length back (a kind with no mesh: the longest's).
+            for (int i = 0; i < _arrowKinds; i++) {
+                float tip = 0f;
+                float nock = -_arrowLength;
+
+                if (_arrowMeshes[i] != null) {
+                    Bounds bounds = _arrowMeshes[i].bounds;
+                    tip = bounds.max.z - _arrowLength * 0.5f;
+                    nock = bounds.min.z - _arrowLength * 0.5f;
+                }
+
+                float shaftFront = tip - _headEnds[i];
+                _shaftMiddles[i] = (nock + shaftFront) * 0.5f;
+                _shaftLengths[i] = shaftFront - nock;
+                _headMiddles[i] = tip - _headCentres[i];
+            }
+
             if (arrowMaterial == null) {
                 Debug.LogWarning("PlayerArrows: no arrow material set.", this);
             }
@@ -565,11 +632,11 @@ namespace Player
         /// Makes the pool of arrows, once, under one object at the scene
         /// root (an arrow in flight mustn't move with the player), all
         /// switched off until shot. Each has what it needs to bounce - a
-        /// Rigidbody and a solid box on the Projectile layer, both idle
+        /// Rigidbody, a solid capsule the shaft's length and thickness and
+        /// a solid ball round the head, on the Projectile layer, all idle
         /// until it does - and, on a child on the Interactable layer
-        /// (which hand rays look at), the trigger ball it's picked up by.
-        /// The box and the ball sit round the shaft's middle, behind the
-        /// tip at the arrow's origin.
+        /// (which hand rays look at), the trigger ball it's picked up by,
+        /// round the shaft's middle, behind the tip at the arrow's origin.
         /// </summary>
         private void BuildArrows()
         {
@@ -590,6 +657,8 @@ namespace Player
             _arrowRoot = new GameObject("Arrows").transform;
             _arrows = new Transform[count];
             _arrowFilters = new MeshFilter[count];
+            _arrowShafts = new CapsuleCollider[count];
+            _arrowHeads = new SphereCollider[count];
             _arrowParts = new Arrow[count];
             _arrowTypes = new BoltType[count];
             _arrowStates = new ArrowState[count];
@@ -618,10 +687,17 @@ namespace Player
                 body.useGravity = false;
                 body.mass = ArrowMass;
 
-                BoxCollider solid = arrow.AddComponent<BoxCollider>();
-                solid.center = middle;
-                solid.size = new Vector3(SolidThickness, SolidThickness, _arrowLength);
-                solid.sharedMaterial = _arrowPhysicsMaterial;
+                // Sized to the kind shot in SetSolidShape().
+                CapsuleCollider shaft = arrow.AddComponent<CapsuleCollider>();
+                shaft.direction = 2;
+                shaft.radius = ShaftRadius;
+                shaft.sharedMaterial = _arrowPhysicsMaterial;
+                _arrowShafts[i] = shaft;
+
+                SphereCollider head = arrow.AddComponent<SphereCollider>();
+                head.sharedMaterial = _arrowPhysicsMaterial;
+                _arrowHeads[i] = head;
+                SetSolidShape(i, (BoltType)0);
 
                 GameObject grab = new("Arrow Grab");
 
@@ -637,7 +713,7 @@ namespace Player
                 ball.radius = pickupRadius;
 
                 _arrowParts[i] = arrow.AddComponent<Arrow>();
-                _arrowParts[i].SetUp(i, body, solid, ball, landedDamping, landedAngularDamping);
+                _arrowParts[i].SetUp(i, body, shaft, head, ball, landedDamping, landedAngularDamping);
 
                 arrow.SetActive(false);
                 _arrows[i] = arrow.transform;
@@ -839,10 +915,28 @@ namespace Player
 
             Transform arrow = _arrows[index];
             _arrowFilters[index].sharedMesh = _arrowMeshes[(int)kind];
+            SetSolidShape(index, kind);
             arrow.SetPositionAndRotation(tip, Quaternion.LookRotation(velocity));
             arrow.gameObject.SetActive(true);
 
             PlayCue(shotCue, tip);
+        }
+
+        /// <summary>
+        /// Fits a pooled arrow's solid capsule and head ball to a kind's
+        /// model (measured at load in SetUpArrowMeshes()). Called as it's
+        /// shot, while both are switched off.
+        /// </summary>
+        private void SetSolidShape(int index, BoltType kind)
+        {
+            int k = (int)kind;
+            CapsuleCollider shaft = _arrowShafts[index];
+            shaft.center = new Vector3(0f, 0f, _shaftMiddles[k]);
+            shaft.height = _shaftLengths[k];
+
+            SphereCollider head = _arrowHeads[index];
+            head.center = new Vector3(0f, 0f, _headMiddles[k]);
+            head.radius = _headRadii[k];
         }
 
         /// <summary>
@@ -884,8 +978,9 @@ namespace Player
         /// <summary>
         /// Either hand picking an arrow up: on the frame its grip is
         /// pressed, free, with its ray on an arrow at rest, the arrow goes
-        /// straight back into the inventory and is put away - it is never
-        /// carried, so it never touches anything. With no room for it (the
+        /// straight back into the inventory and is put away, burning away
+        /// where it lay (ToolBurn) - it is never carried, so it never
+        /// touches anything. With no room for it (the
         /// player already carries the most of that kind) it stays where it
         /// is, and the hand feels only a faint tap. Called by
         /// PlayerController after the hand rays and before the grab
@@ -931,6 +1026,13 @@ namespace Player
             if (inventory != null && !inventory.TryAddBolt(_arrowTypes[index])) {
                 Pulse(isLeftHand, noRoomAmplitude, noRoomDuration);
                 return;
+            }
+
+            // A copy is left burning away where the arrow lay (before it's
+            // switched off, while it still shows), and the arrow itself
+            // goes at once.
+            if (_arrowBurns != null) {
+                toolBurn.BurnAway(_arrowBurns[index]);
             }
 
             PutAway(index);

@@ -5,9 +5,9 @@ using UnityEngine.Rendering;
 namespace Interaction
 {
     /// <summary>
-    /// Builds the simple coloured shapes the lockpicking pieces are made of
-    /// (the big lock's body and marks, the picks): boxes and a flat-ended
-    /// cylinder, collected into one mesh. Each point carries its own
+    /// Builds simple coloured shapes (the pack's spaces, the keyring, the
+    /// compass, ropes, moss): boxes and a flat-ended cylinder, collected
+    /// into one mesh. Each point carries its own
     /// colour, which the TeaLeaf/LockFade shader draws, so a whole piece is
     /// one mesh and one material however many colours it has.
     ///

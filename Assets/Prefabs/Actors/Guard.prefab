@@ -69,6 +69,7 @@ GameObject:
   - component: {fileID: 1388694834986731243}
   - component: {fileID: 1092821135610948165}
   - component: {fileID: 5694401856782067401}
+  - component: {fileID: 9092620840478590722}
   m_Layer: 11
   m_Name: Guard
   m_TagString: Untagged
@@ -322,6 +323,38 @@ MonoBehaviour:
   headHitbox: {fileID: 3512543630576677933}
   standUpTime: 0.8
   topplePush: 1.5
+--- !u!114 &9092620840478590722
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8353593655831311469}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8bbffc8d4aa095d4680a6a50c22ee8ce, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AI.GuardShadow
+  hips: {fileID: 0}
+  leftFoot: {fileID: 0}
+  leftToesEnd: {fileID: 0}
+  rightFoot: {fileID: 0}
+  rightToesEnd: {fileID: 0}
+  bodyRenderer: {fileID: 0}
+  bodyWidth: 0.65
+  bodyStrength: 1
+  castHeight: 0.8
+  maxLength: 2.2
+  stretchTaper: 1
+  checkInterval: 0.25
+  moonEaseTime: 0.4
+  footWidth: 0.16
+  footLengthScale: 2.95
+  footStrength: 1
+  plantedHeight: 0.14
+  liftedHeight: 0.35
+  floorClearance: 0.015
+  floorSearch: 0.4
 --- !u!1001 &7091291610027848554
 PrefabInstance:
   m_ObjectHideFlags: 0

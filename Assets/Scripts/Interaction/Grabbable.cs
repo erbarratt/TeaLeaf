@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Core;
 using UnityEngine;
 
@@ -67,7 +68,7 @@ namespace Interaction
         [Tooltip("The per-hand offsets from the grip frame to the hand visual and the finger pose, shared by every prop held the same way. Left empty, the hand sits exactly on the grip frame and the fingers keep their input curl. Posed with TeaLeaf > Modify Prefab > Pose with Hand.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
-        [Tooltip("The prop's size for the hand's collision while it is carried, in metres: the hand stops when a ball this big round the prop's middle would touch a surface, so the prop never goes into walls. Guessed from the colliders when the component is added.")]
+        [Tooltip("How far the prop reaches from its middle, in metres: how small it shrinks to fit a pack space, where its worth coins float, and how far the hand that let go of it must be before hands touch it again. Guessed from the colliders when the component is added. Carried, it collides with its own colliders.")]
         [SerializeField] private float holdRadius = 0.15f;
 
         // How far beyond the prop's bounds WakeNeighbours() looks, in
@@ -99,6 +100,10 @@ namespace Interaction
         public bool IsStowed { get; private set; }
 
         public float HoldRadius => holdRadius;
+
+        /// Every collider of the prop (triggers too), for the hand's
+        /// collision to take its shape while it's carried.
+        public IReadOnlyList<Collider> Colliders => _colliders;
 
         /// The profile the hand holds the prop with (null if none).
         public HandSnapProfile SnapProfile => snapProfile;
@@ -363,8 +368,8 @@ namespace Interaction
         /// ignores it altogether, like the hand visual, which has no
         /// collider: a kinematic body still shoves any physics body it's
         /// moved into, so a carried prop would sweep other props off a
-        /// table. It still stops AT things - the hand's own sweep covers
-        /// the prop (PlayerHandVisuals.SetHeldShape) and holds the hand
+        /// table. It still stops AT things - the hand's own sweep takes in
+        /// its colliders (PlayerHandVisuals.SetHeldShape) and holds the hand
         /// back. EndHold() makes it solid again.
         /// </summary>
         public void BeginCarry()

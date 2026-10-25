@@ -78,6 +78,7 @@ namespace Player
         [SerializeField] private bool visibilityDebug = true;
         [SerializeField] private bool playerHandVisuals = true;
         [SerializeField] private bool playerBodyZones = true;
+        [SerializeField] private bool blackjackHit = true;
 
         // Any IDebugDrawable type without its own toggle above.
         [SerializeField] private bool other = true;
@@ -219,6 +220,7 @@ namespace Player
             visibilityDebug = on;
             playerHandVisuals = on;
             playerBodyZones = on;
+            blackjackHit = on;
             other = on;
             noiseCirclesPlayer = on;
             noiseCirclesOther = on;
@@ -353,6 +355,7 @@ namespace Player
                 VisibilityDebug => visibilityDebug,
                 PlayerHandVisuals => playerHandVisuals,
                 PlayerBodyZones => playerBodyZones,
+                PlayerBlackjack => blackjackHit,
                 _ => other
             };
         }

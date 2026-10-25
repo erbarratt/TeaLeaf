@@ -1,12 +1,19 @@
-// A door's leaf, with a keyhole the player can look through: a plain lit
-// colour, and a keyhole-shaped opening cut right out of it. Nothing is
+// A door's leaf, with a keyhole the player can look through: a lit
+// surface (a colour times an optional texture, with an optional normal
+// map), and a keyhole-shaped opening cut right out of it. Nothing is
 // drawn inside the opening, so the room behind the door shows through it -
 // seen with the player's own two eyes, so it has real depth, and nothing is
 // drawn a second time (the cheap alternative to a second camera).
 //
 // Interaction.DoorKeyhole tells the shader where the opening is and how big
 // (it grows as the head comes near). With no DoorKeyhole the size is zero
-// and nothing is cut: an ordinary flat-coloured surface.
+// and nothing is cut: an ordinary surface.
+//
+// The textures are there so a pack door (or the lock on it) can be drawn
+// with its own art: a copy of its material on this shader with the same
+// base map and normal map. Without them the base map is plain white and
+// the normal map flat, so the door is just its colour. The pack's
+// smoothness and occlusion maps aren't used.
 //
 // How the opening is made: each pixel works out how far it is from the
 // keyhole's outline (a "signed distance": below zero inside the outline,
@@ -36,6 +43,8 @@ Shader "TeaLeaf/DoorLeaf"
     Properties
     {
         _BaseColor ("Colour", Color) = (0.45, 0.3, 0.18, 1)
+        _BaseMap ("Texture", 2D) = "white" {}
+        [Normal] _BumpMap ("Normal Map", 2D) = "bump" {}
 
         [Header(Keyhole)]
         // The band round the opening's edge, standing in for the dark
@@ -43,8 +52,8 @@ Shader "TeaLeaf/DoorLeaf"
         _RimColor ("Rim Colour", Color) = (0.05, 0.04, 0.03, 1)
         _RimWidth ("Rim Width (m)", Range(0.0005, 0.02)) = 0.004
 
-        // Set per door by DoorKeyhole, not by hand. Centre: the keyhole's
-        // middle, in the leaf's own space. Right/Up: the directions across
+        // Set per door by DoorKeyhole, not by hand. Centre: the keyhole
+        // circle's centre, in the leaf's own space. Right/Up: the directions across
         // the door's face, scaled so a distance along them comes out in
         // metres whatever the leaf's scale. Size: x is the radius of the
         // keyhole's circle in metres (the rest is unused). All zero = no
@@ -73,6 +82,7 @@ Shader "TeaLeaf/DoorLeaf"
 
         CBUFFER_START(UnityPerMaterial)
             half4 _BaseColor;
+            float4 _BaseMap_ST;
             half4 _RimColor;
             float _RimWidth;
             float4 _KeyholeCentre;
@@ -85,22 +95,50 @@ Shader "TeaLeaf/DoorLeaf"
         // opening's outline, in metres: below zero inside the opening,
         // above zero outside it.
         //
-        // The outline is the classic keyhole: a circle with a slot running
-        // down from it, all sized by one number, the circle's radius.
-        // Measured from the keyhole's middle, the circle's centre is one
-        // radius up; the slot is as wide as the radius, starts inside the
-        // circle and ends two radii below the middle - so it sticks out
-        // below the circle by the circle's diameter. (DoorKeyhole's
-        // BuildOutline() draws the same shape for the opening's walls:
-        // change one, change the other.)
+        // The outline is the lock plate's keyhole (the Lock Plate prefab):
+        // a circle with a slot running down from it that widens towards
+        // its bottom, all sized by one number, the circle's radius.
+        // Measured from the circle's centre (the keyhole's place), the
+        // slot starts inside the circle, half a radius down, half a radius
+        // either side of the middle, and ends 3.4 radii down, 0.73 either
+        // side. (DoorKeyhole's BuildOutline() draws the same shape for the
+        // opening's walls: change one, change the other.)
         //
         // Each part has a simple distance of its own. A circle: how far
-        // from its centre, less the radius. A rectangle: abs() folds its
-        // four quarters onto one, then it's how far past the corner the
-        // point is (outside), or how near the closest side (inside, below
-        // zero). The keyhole is the two together, and a point's distance
-        // to "either of two shapes" is the smaller of its distances to
-        // each.
+        // from its centre, less the radius. The slot is a trapezoid - a
+        // box with sloping sides - whose distance is worked out in
+        // Trapezoid() below. The keyhole is the two together, and a
+        // point's distance to "either of two shapes" is the smaller of its
+        // distances to each.
+        static const float SlotTop = -0.5;
+        static const float SlotBottom = -3.4;
+        static const float SlotTopHalfWidth = 0.5;
+        static const float SlotBottomHalfWidth = 0.73;
+
+        // How far a point is from a trapezoid standing upright about its
+        // own middle: halfHeight up and down, bottomHalf either side of
+        // the middle line at its bottom, topHalf at its top. Below zero
+        // inside. (Inigo Quilez's well-known formula.)
+        //
+        // abs() folds the left half onto the right, so only one sloping
+        // side matters. Then the point's nearest spot is on either the
+        // flat top or bottom (ca: how far past it, across and up) or the
+        // sloping side (cb: the point less its nearest spot on that
+        // side's line, clamped to the side's two ends). The distance is
+        // the shorter of the two, made negative when the point is inside
+        // both the side and the top and bottom.
+        float Trapezoid(float2 p, float bottomHalf, float topHalf, float halfHeight)
+        {
+            float2 topCorner = float2(topHalf, halfHeight);
+            float2 side = float2(topHalf - bottomHalf, 2.0 * halfHeight);
+            p.x = abs(p.x);
+
+            float2 ca = float2(p.x - min(p.x, p.y < 0.0 ? bottomHalf : topHalf), abs(p.y) - halfHeight);
+            float2 cb = p - topCorner + side * saturate(dot(topCorner - p, side) / dot(side, side));
+            float s = (cb.x < 0.0 && ca.y < 0.0) ? -1.0 : 1.0;
+            return s * sqrt(min(dot(ca, ca), dot(cb, cb)));
+        }
+
         float KeyholeDistance(float3 positionOS)
         {
             float3 offset = positionOS - _KeyholeCentre.xyz;
@@ -108,13 +146,12 @@ Shader "TeaLeaf/DoorLeaf"
 
             float radius = _KeyholeSize.x;
 
-            float toCircle = length(across - float2(0.0, radius)) - radius;
+            float toCircle = length(across) - radius;
 
-            // The slot: from one radius above the middle (the circle's
-            // centre) to two below, so its own middle is half a radius
-            // down, and it's half a radius by one and a half each way.
-            float2 q = abs(across - float2(0.0, -0.5 * radius)) - float2(0.5, 1.5) * radius;
-            float toSlot = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0);
+            // The slot, measured from its own middle.
+            float slotMiddle = 0.5 * (SlotTop + SlotBottom) * radius;
+            float slotHalfHeight = 0.5 * (SlotTop - SlotBottom) * radius;
+            float toSlot = Trapezoid(across - float2(0.0, slotMiddle), SlotBottomHalfWidth * radius, SlotTopHalfWidth * radius, slotHalfHeight);
 
             // No size = no opening: push the distance well outside, or the
             // one pixel at the centre would count as on the outline.
@@ -159,10 +196,17 @@ Shader "TeaLeaf/DoorLeaf"
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
+            TEXTURE2D(_BaseMap);
+            SAMPLER(sampler_BaseMap);
+            TEXTURE2D(_BumpMap);
+            SAMPLER(sampler_BumpMap);
+
             struct Attributes
             {
                 float4 positionOS : POSITION;
                 float3 normalOS : NORMAL;
+                float4 tangentOS : TANGENT;
+                float2 uv : TEXCOORD0;
                 float2 staticLightmapUV : TEXCOORD1;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
@@ -191,6 +235,12 @@ Shader "TeaLeaf/DoorLeaf"
                 // The position in the leaf's own space, for the keyhole.
                 float3 positionOS : TEXCOORD6;
 
+                // The textures' coordinates, and the direction across the
+                // surface the normal map's "right" points (w: which way
+                // its "up" points, for mirrored UVs).
+                float2 uv : TEXCOORD7;
+                half4 tangentWS : TEXCOORD8;
+
                 float4 positionCS : SV_POSITION;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
                 UNITY_VERTEX_OUTPUT_STEREO
@@ -205,7 +255,7 @@ Shader "TeaLeaf/DoorLeaf"
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 
                 VertexPositionInputs vertexInput = GetVertexPositionInputs(input.positionOS.xyz);
-                VertexNormalInputs normalInput = GetVertexNormalInputs(input.normalOS);
+                VertexNormalInputs normalInput = GetVertexNormalInputs(input.normalOS, input.tangentOS);
 
                 #if defined(_FOG_FRAGMENT)
                     half fogFactor = 0;
@@ -217,6 +267,8 @@ Shader "TeaLeaf/DoorLeaf"
                 output.positionWS = vertexInput.positionWS;
                 output.positionCS = vertexInput.positionCS;
                 output.normalWS = NormalizeNormalPerVertex(normalInput.normalWS);
+                output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
+                output.tangentWS = half4(normalInput.tangentWS, input.tangentOS.w * GetOddNegativeScale());
 
                 OUTPUT_LIGHTMAP_UV(input.staticLightmapUV, unity_LightmapST, output.staticLightmapUV);
                 OUTPUT_SH4(vertexInput.positionWS, output.normalWS.xyz, GetWorldSpaceNormalizeViewDir(vertexInput.positionWS), output.vertexSH, output.probeOcclusion);
@@ -254,17 +306,27 @@ Shader "TeaLeaf/DoorLeaf"
 
                 // Dark right at the opening's edge, the door's own colour
                 // by the rim's width away from it.
-                half3 albedo = lerp(_RimColor.rgb, _BaseColor.rgb, saturate(keyholeDistance / max(_RimWidth, 0.0001)));
+                half3 baseColor = _BaseColor.rgb * SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, input.uv).rgb;
+                half3 albedo = lerp(_RimColor.rgb, baseColor, saturate(keyholeDistance / max(_RimWidth, 0.0001)));
+
+                // The normal map turns the surface's normal: its three
+                // values are amounts along the surface's right (tangent),
+                // up (bitangent, worked out from the other two) and out
+                // (normal). A mesh with no tangents (the opening's walls)
+                // just keeps its own normal.
+                half3 normalTS = UnpackNormal(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, input.uv));
+                half3 bitangentWS = input.tangentWS.w * cross(input.normalWS, input.tangentWS.xyz);
+                half3 normalWS = TransformTangentToWorld(normalTS, half3x3(input.tangentWS.xyz, bitangentWS, input.normalWS));
 
                 SurfaceData surfaceData = (SurfaceData)0;
                 surfaceData.albedo = albedo;
                 surfaceData.alpha = 1.0;
                 surfaceData.occlusion = 1.0;
-                surfaceData.normalTS = half3(0.0, 0.0, 1.0);
+                surfaceData.normalTS = normalTS;
 
                 InputData inputData = (InputData)0;
                 inputData.positionWS = positionWS;
-                inputData.normalWS = NormalizeNormalPerPixel(input.normalWS);
+                inputData.normalWS = NormalizeNormalPerPixel(normalWS);
                 inputData.viewDirectionWS = GetWorldSpaceNormalizeViewDir(positionWS);
 
                 #if defined(REQUIRES_VERTEX_SHADOW_COORD_INTERPOLATOR)

@@ -1,0 +1,86 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1281787016783199739
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7318025754205966419}
+  - component: {fileID: 9158574598983065391}
+  - component: {fileID: 5088416432845125249}
+  m_Layer: 0
+  m_Name: Big Lock
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7318025754205966419
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1281787016783199739}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &9158574598983065391
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1281787016783199739}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a39c246c179b4ad4ea7a01dd37d6c859, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Interaction.BigLock
+  modelScale: 3.5
+  pickLength: 0.2
+  pickDepth: 0.015
+  pickLift: 35
+  gripAlong: 0.15
+  minLight: 0.35
+  rightStartAngle: 30
+  stopSpacing: 28
+  stopTolerance: 1.5
+  returnSpeed: 240
+  leftStartAngle: -30
+  leftArc: 120
+  pinFeelAngle: 10
+  pinSetAngle: 5
+  pinHoldTime: 1
+  minPinGap: 20
+  deadRadius: 0.03
+  fadeDuration: 0.25
+  pickCue: {fileID: 11400000, guid: 6d9e230dda7560048a2cc410498ecee8, type: 2}
+  unlockCue: {fileID: 11400000, guid: 6d9e230dda7560048a2cc410498ecee8, type: 2}
+  pickVolume: 0.4
+  pickNoiseScale: 0.3
+  scrapeAngle: 25
+--- !u!114 &5088416432845125249
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1281787016783199739}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83186b6eeef96c74aab01f6db8d9baa1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Interaction.BigLockDebug
+  bigLock: {fileID: 9158574598983065391}
+  radius: 0.16
+  standOff: 0.04
+  logChanges: 1

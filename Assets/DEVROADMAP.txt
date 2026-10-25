@@ -106,6 +106,11 @@ Phase 1 - Locomotion and physical hands (Player)
 [x] Physical hands: kinematic sweep and slide, depenetration, held
     rotation, elastic band, snap-back, rays from the visual hand, ghost
     hands, contact haptics.
+[x] Physical hand shape: six pieces per hand (palm box, thumb and
+    finger capsules) fitted from the bones, open or fisted by trigger
+    and grip; a carried prop adds its own colliders.
+[ ] Try the six-piece hand shape in the headset (gaps, props carried
+    against walls).
 [x] In-headset gizmos (DebugLines, InHeadsetGizmos).
 [x] PC Play: a development switch on LevelManager to walk the level in
     Play Mode with the mouse and keyboard, no headset (PcPlay).
@@ -225,13 +230,18 @@ Blackjack:
 [x] Drawing it (PlayerBlackjack): the hand without the lockpicks, empty
     and reaching over its own shoulder (PlayerBodyZones), draws it by
     pressing grip and holds it while grip is held; letting go puts it
-    away. Greybox model.
+    away. Tripo leather-wrapped cudgel, placed by the BlackjackGrip
+    profile.
 [ ] Try in the headset: drawing it over the shoulder. Tune where it
     sits in the hand; a hold pose.
 [x] Swing detection (PlayerBlackjack.TickSwing): the blackjack's head
     moving faster than a threshold (measured in the player's own space,
-    so walking isn't a swing) while it touches a GuardHead collider.
-    One blow per touch.
+    so walking isn't a swing) while the capsule round its head touches
+    a GuardHead collider. One blow per touch.
+[x] Tools burn (ToolBurn, TeaLeaf/Burn): bow, blackjack, worn lockpicks
+    and the big lock burn into being when taken; let go of, they and
+    arrows burn away where they were let go of.
+[ ] Look at the burn in the headset; tune its time and colours.
 [x] Takedown rules (Guard.TryKnockOut): works only if the guard isn't
     chasing and the player is behind it (dot product of the guard's
     facing and the level direction from player to guard). Otherwise the
@@ -298,6 +308,13 @@ Lockpicking:
     pick leaves the pin early; only letting go of the right pick resets;
     the picks are always worn (not equipped); the lock is the same
     whichever hand wears them; the game doesn't pause.
+[x] Lockpicking art: Tripo lockpicks (hook and tension wrench) worn,
+    carried and on the big lock; the Lock Plate prefab (Tripo lock) on
+    doors and, 3.5 times real size, as the big lock's body, each pick
+    turning about its tip in the keyhole; the door keyhole shaped as
+    the plate's; the pack's Rectangle Door with a keyhole and lock.
+[ ] Try the lockpicking art in the headset: picks on the hand, the big
+    lock's size and place, the picks' pivots.
 [x] Chests (Chest, ChestLid): the same lock kinds as doors, picked or
     opened with a key through the same locks; unlocked, a hand takes
     the front of the lid and lifts it. Chest Test Area builder.
@@ -442,6 +459,8 @@ Guard:
 [x] A rigged, textured model: Tripo-generated guard_1 (21k triangles,
     67 bones, one SkinnedMeshRenderer, URP Lit), imported as Generic at
     scale 1.8.
+[x] Blob shadows (GuardShadow, TeaLeaf/BlobShadow) under body and
+    feet, stretched away from the moon (Baked: no realtime moon shadow).
 [x] Clips: idle, walk, run, look-around, stunned, knocked-out fall
     (holds its last frame), as project copies with the hips' ground
     motion frozen so they play in place.
@@ -461,6 +480,8 @@ Player hands:
 [x] Finger poses as data on HandSnapProfile (16 finger bone rotations),
     played over the Animator by HandFingerPoser; offsets and fingers
     posed without Play Mode in TeaLeaf > Modify Prefab > Pose with Hand.
+[x] Hand model: an armoured gauntlet (Tripo), the hand's skeleton
+    fitted into it in Blender.
 [ ] Pose with Hand: finger poses of their own for the door handle,
     lockpick hold, blackjack, bow grip, arrow, string and pack (stand-in
     copies now).
@@ -670,9 +691,10 @@ Greybox build:
             placed pieces, so no gap shows the void and no light reaches
             a facade from behind.
         [x] Building proxies: one LODGroup per building (full detail,
-            the pieces' second levels, then one renderer merged from
-            their lowest levels); proxy meshes git-ignored, remade by
-            regenerating.
+            then one lightmapped renderer merged from the pieces'
+            second levels, textured from one atlas per sector); proxy
+            meshes and atlases git-ignored, remade by regenerating or
+            TeaLeaf > Level Gen > Rebuild Building Proxies.
         [x] Street ground runs on under the steps; side walls close the
             step where a jettied storey stands beside an unjettied one;
             the hole check finds an end open over its top or bottom.
@@ -836,8 +858,9 @@ Phase 10 - Performance pass (PCVR target rig)
         Parallax; the cobbles' 5x5 search is the heavy one. If they cost
         too much, bake each pattern into textures at level load (as the
         moon's face is) and keep the same material settings.
-    [ ] Main light shadows cover only moving things near the player
-        (level shadows baked): try 10-15m on the target rig.
+    [ ] Shadow distance (50m, for the Mixed lamps' shadows from movers;
+        the moon is Baked, main light shadows off): try shorter on the
+        target rig.
     [ ] Batching: the docks draw in about 216 batches with the GPU
         Resident Drawer on. Compare it against static batching (GPU
         Resident Drawer off) on CPU and GPU frame time, not the batch

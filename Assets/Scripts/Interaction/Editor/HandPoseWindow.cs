@@ -17,9 +17,12 @@ namespace Interaction
     /// What can be posed: every prefab under Assets/Prefabs with a
     /// Grabbable (the profile goes on its Grabbable, read by
     /// PlayerHandHolding), and the things the player holds that aren't
-    /// props - the bow, an arrow, the bow string and the pack (the profile
-    /// goes on PlayerBow or PlayerPack in the Player prefab). Opened on a
-    /// selected Grabbable prefab, it starts on that.
+    /// props - the bow, an arrow, the bow string, the pack, the blackjack,
+    /// the lockpicks worn on the back of the hand and carried, and a pick
+    /// on the big lock (the profile goes
+    /// on PlayerBow, PlayerPack, PlayerBlackjack or PlayerLockpicking in
+    /// the Player prefab). Opened on a selected Grabbable prefab, it
+    /// starts on that.
     ///
     /// What's posed is copied into the open scene high above the level,
     /// with a copy of the Player prefab's left or right hand visual placed
@@ -30,7 +33,8 @@ namespace Interaction
     /// (Grabbable.GetGripFrame(); a cylinder grip is posed for a head
     /// standing in front of the prop, -Z, as the player would hold it), or
     /// for the held things the frame they're placed by (the bow's origin,
-    /// an arrow's nock, the pack's origin).
+    /// an arrow's nock, the pack's origin, the blackjack model's origin,
+    /// the lockpicks' tips, a big lock pick's grip frame).
     ///
     /// The pose being edited is kept in the window, so it survives a script
     /// reload or Play Mode; the copies are plain Instantiates marked
@@ -79,7 +83,11 @@ namespace Interaction
             Bow,
             Arrow,
             BowString,
-            Pack
+            Pack,
+            Blackjack,
+            LockpicksWorn,
+            Lockpicks,
+            Lockpick
         }
 
         /// <summary>
@@ -295,7 +303,7 @@ namespace Interaction
         private void OnGUI()
         {
             if (_subjectKeys.Count == 0) {
-                EditorGUILayout.HelpBox($"Nothing to pose: no bow or pack in {PlayerPrefabPath}, and no prefab under {PrefabFolder} has a Grabbable on its root.", MessageType.Info);
+                EditorGUILayout.HelpBox($"Nothing to pose: no bow, pack, blackjack or lockpicks in {PlayerPrefabPath}, and no prefab under {PrefabFolder} has a Grabbable on its root.", MessageType.Info);
                 return;
             }
 
@@ -386,9 +394,10 @@ namespace Interaction
                 Capture();
                 isLeftHand = hand == 0;
 
-                // Each hand gets its own bow (mirrored), so the whole
+                // Each hand gets its own bow (mirrored) or big lock pick
+                // (the left the hook, the right the wrench), so the whole
                 // preview is remade; for anything else only the hand.
-                if (TryGetTool(out Held tool) && (tool == Held.Bow || tool == Held.BowString)) {
+                if (TryGetTool(out Held tool) && (tool == Held.Bow || tool == Held.BowString || tool == Held.Lockpick)) {
                     ShowPreview(false);
                 } else {
                     ShowHand();
@@ -817,11 +826,14 @@ namespace Interaction
 
         /// <summary>
         /// A copy of a held thing as the game places it, from the models
-        /// set on PlayerBow, PlayerArrows and Pack in the Player prefab:
-        /// the bow (frame: its origin), an arrow (frame: its nock, Z to the
-        /// tip), the bow with an arrow nocked at the string's rest (frame:
-        /// the nock), or the pack's chest with a block where its spaces are
-        /// (frame: the pack's origin).
+        /// set on PlayerBow, PlayerArrows, Pack, PlayerBlackjack and
+        /// PlayerLockpicking in the Player prefab: the bow (frame: its
+        /// origin), an arrow (frame: its nock, Z to the tip), the bow with
+        /// an arrow nocked at the string's rest (frame: the nock), the
+        /// pack's chest with a block where its spaces are (frame: the
+        /// pack's origin), the blackjack (frame: its model's origin), the
+        /// lockpicks (frame: their tips, Z to the handles) or the shown
+        /// hand's big lock pick (frame: its grip frame).
         /// </summary>
         private void BuildToolPreview(Held tool)
         {
@@ -839,8 +851,28 @@ namespace Interaction
                 return;
             }
 
+            if (tool == Held.Blackjack) {
+                // The model under the frame object, keeping its import
+                // turn, as PlayerBlackjack lays it.
+                PlayerBlackjack blackjack = player.GetComponentInChildren<PlayerBlackjack>(true);
+                GameObject model = blackjack != null ? new SerializedObject(blackjack).FindProperty("blackjackModel").objectReferenceValue as GameObject : null;
+
+                if (model == null) {
+                    Debug.LogError($"Pose with Hand: no blackjack model on PlayerBlackjack in {PlayerPrefabPath}.");
+                    return;
+                }
+
+                Instantiate(model, _prop.transform, false);
+                return;
+            }
+
             if (tool == Held.Arrow) {
                 _gripPoint = BuildArrowPreview(player, _prop.transform);
+                return;
+            }
+
+            if (tool == Held.LockpicksWorn || tool == Held.Lockpicks || tool == Held.Lockpick) {
+                BuildLockpickPreview(player, tool == Held.Lockpick);
                 return;
             }
 
@@ -925,6 +957,66 @@ namespace Interaction
             model.AddComponent<MeshFilter>().sharedMesh = mesh;
             model.AddComponent<MeshRenderer>().sharedMaterial = data.FindProperty("arrowMaterial").objectReferenceValue as Material;
             return parent;
+        }
+
+        /// <summary>
+        /// The lockpicks model from PlayerLockpicking. Worn or carried:
+        /// both picks at the player's size, the frame their tips (the copy's
+        /// origin). On the big lock: only the shown hand's pick (left the
+        /// hook, right the wrench) at the big lock's size, lying along Z,
+        /// the frame its grip frame (BigLock.GripTurn, gripAlong out). The
+        /// big lock's size is the open scene's Big Lock's, or BigLock's
+        /// own defaults with none.
+        /// </summary>
+        private void BuildLockpickPreview(GameObject player, bool isOnBigLock)
+        {
+            PlayerLockpicking lockpicking = player.GetComponentInChildren<PlayerLockpicking>(true);
+            SerializedObject data = lockpicking != null ? new SerializedObject(lockpicking) : null;
+            GameObject model = data != null ? data.FindProperty("picksModel").objectReferenceValue as GameObject : null;
+
+            if (model == null) {
+                Debug.LogError($"Pose with Hand: no lockpicks model on PlayerLockpicking in {PlayerPrefabPath}.");
+                return;
+            }
+
+            if (!isOnBigLock) {
+                Transform picks = Instantiate(model, _prop.transform, false).transform;
+                picks.localScale = Vector3.one * data.FindProperty("pickLength").floatValue;
+                return;
+            }
+
+            Transform part = model.transform.Find(isLeftHand ? BigLock.LeftPickName : BigLock.RightPickName);
+
+            if (part == null) {
+                Debug.LogError($"Pose with Hand: the lockpicks model has no {(isLeftHand ? BigLock.LeftPickName : BigLock.RightPickName)}.");
+                return;
+            }
+
+            // Read from a component, never woken here (BigLock has no
+            // ExecuteAlways): the scene's, or a passing one for defaults.
+            BigLock bigLock = FindFirstObjectByType<BigLock>();
+            GameObject passing = null;
+
+            if (bigLock == null) {
+                passing = new GameObject { hideFlags = HideFlags.HideAndDontSave };
+                bigLock = passing.AddComponent<BigLock>();
+            }
+
+            SerializedObject lockData = new(bigLock);
+            float pickLength = lockData.FindProperty("pickLength").floatValue;
+            float gripAlong = lockData.FindProperty("gripAlong").floatValue;
+
+            if (passing != null) {
+                DestroyImmediate(passing);
+            }
+
+            GameObject pick = Instantiate(part.gameObject, _prop.transform, false);
+            pick.transform.SetLocalPositionAndRotation(Vector3.zero, Quaternion.identity);
+            pick.transform.localScale = Vector3.one * pickLength;
+
+            _gripPoint = new GameObject("Grip Frame").transform;
+            _gripPoint.SetParent(_prop.transform, false);
+            _gripPoint.SetLocalPositionAndRotation(new Vector3(0f, 0f, gripAlong), BigLock.GripTurn);
         }
 
         /// <summary>
@@ -1156,6 +1248,10 @@ namespace Interaction
                     Held.Bow => "The bow's origin and axes (Z the way it shoots, Y its top). The hand holding the bow.",
                     Held.Arrow => "The arrow's nock (Z along the arrow to its tip). The drawing hand holding an arrow off the string.",
                     Held.BowString => "The nock of an arrow on the string at rest. In play only where the nock sits in the hand and the fingers are used: the hand keeps its controller's turn.",
+                    Held.Blackjack => "The blackjack model's origin (X along it to the head, Y up). The hand without the lockpicks holding it.",
+                    Held.LockpicksWorn => "The picks' tips (Z along them to the handles). The hand wearing them on its back (right-handed: the left). Only where they sit is used: the hand keeps its input curl.",
+                    Held.Lockpicks => "The picks' tips (Z along them to the handles). The hand without the lockpicks carrying both to a lock.",
+                    Held.Lockpick => "The grip frame on this hand's big lock pick (left the hook, right the wrench): Y along the pick away from the keyway, Z into the lock. In play the pick leans out of the lock's face and turns with the hand.",
                     _ => "The pack's origin: the middle of its spaces on the chest's back wall (X right, Y up, Z away from the player). The chest's handle is on the shown hand's side, as in play."
                 };
             }
@@ -1177,6 +1273,10 @@ namespace Interaction
                     Held.Bow => "BowGrip",
                     Held.Arrow => "ArrowHold",
                     Held.BowString => "BowString",
+                    Held.Blackjack => "BlackjackGrip",
+                    Held.LockpicksWorn => "LockpicksWorn",
+                    Held.Lockpicks => "LockpicksCarry",
+                    Held.Lockpick => "LockpickHold",
                     _ => "PackHold"
                 };
             }
@@ -1190,7 +1290,18 @@ namespace Interaction
         /// </summary>
         private string OwnerDescription()
         {
-            return TryGetTool(out Held tool) ? $"{(tool == Held.Pack ? "PlayerPack" : "PlayerBow")} in the Player prefab" : "the prefab";
+            if (!TryGetTool(out Held tool)) {
+                return "the prefab";
+            }
+
+            string owner = tool switch {
+                Held.Pack => "PlayerPack",
+                Held.Blackjack => "PlayerBlackjack",
+                Held.LockpicksWorn or Held.Lockpicks or Held.Lockpick => "PlayerLockpicking",
+                _ => "PlayerBow"
+            };
+
+            return $"{owner} in the Player prefab";
         }
 
         /// <summary>
@@ -1212,6 +1323,10 @@ namespace Interaction
                 Held.Bow => "Bow (held)",
                 Held.Arrow => "Arrow (in hand)",
                 Held.BowString => "Bow String (drawing)",
+                Held.Blackjack => "Blackjack (held)",
+                Held.LockpicksWorn => "Lockpicks (on the back of the hand)",
+                Held.Lockpicks => "Lockpicks (carried)",
+                Held.Lockpick => "Lockpick (on the big lock)",
                 _ => "Pack (held)"
             };
         }
@@ -1228,9 +1343,12 @@ namespace Interaction
                 return null;
             }
 
-            Component owner = tool == Held.Pack
-                ? player.GetComponentInChildren<PlayerPack>(true)
-                : player.GetComponentInChildren<PlayerBow>(true);
+            Component owner = tool switch {
+                Held.Pack => player.GetComponentInChildren<PlayerPack>(true),
+                Held.Blackjack => player.GetComponentInChildren<PlayerBlackjack>(true),
+                Held.LockpicksWorn or Held.Lockpicks or Held.Lockpick => player.GetComponentInChildren<PlayerLockpicking>(true),
+                _ => player.GetComponentInChildren<PlayerBow>(true)
+            };
 
             if (owner == null) {
                 return null;
@@ -1240,6 +1358,10 @@ namespace Interaction
                 Held.Bow => "bowProfile",
                 Held.Arrow => "arrowProfile",
                 Held.BowString => "stringProfile",
+                Held.Blackjack => "blackjackProfile",
+                Held.LockpicksWorn => "wornProfile",
+                Held.Lockpicks => "carryProfile",
+                Held.Lockpick => "pickProfile",
                 _ => "packProfile"
             };
 
