@@ -120,6 +120,15 @@ namespace LevelGen
         /// </summary>
         internal GameObject PlaceTile(PieceAnnotation piece, Vector3 surfaceCentre, Quaternion rotation, Transform parent)
         {
+            return PlaceTile(piece, surfaceCentre, rotation, Vector3.one, parent);
+        }
+
+        /// <summary>
+        /// The same, the tile scaled along its own axes first (stretched to
+        /// cover a room's floor exactly).
+        /// </summary>
+        internal GameObject PlaceTile(PieceAnnotation piece, Vector3 surfaceCentre, Quaternion rotation, Vector3 scale, Transform parent)
+        {
             if (!_entries.TryGetValue(piece.guid, out CatalogueEntry entry)) {
                 return null;
             }
@@ -130,7 +139,7 @@ namespace LevelGen
             Vector3 surface = entry.hasWalkSurface
                 ? new Vector3((entry.walkMin.x + entry.walkMax.x) * 0.5f, entry.walkHeight, (entry.walkMin.z + entry.walkMax.z) * 0.5f)
                 : new Vector3((entry.renderMin.x + entry.renderMax.x) * 0.5f, entry.renderMax.y, (entry.renderMin.z + entry.renderMax.z) * 0.5f);
-            return Place(piece, surfaceCentre - rotation * surface, rotation, Vector3.one, parent);
+            return Place(piece, surfaceCentre - rotation * Vector3.Scale(scale, surface), rotation, scale, parent);
         }
 
         /// <summary>

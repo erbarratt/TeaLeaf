@@ -105,7 +105,6 @@ namespace Interaction
         // round something thin).
         private const string PickProfilePath = "Assets/Data/Hand Poses/LockpickHold.asset";
         private const string PicksModelPath = "Assets/TripoModels/lockpicks/lockpicks.fbx";
-        private const string LockModelPath = "Assets/Prefabs/Interactive/Lock Plate.prefab";
         private const string BigLockPrefabPath = "Assets/Prefabs/Interactive/Big Lock.prefab";
         private const string RopeProfilePath = "Assets/Data/Hand Poses/RopeGrip.asset";
 
@@ -782,20 +781,14 @@ namespace Interaction
                 }
             }
 
-            // The picks' and lock's models and the hand on a pick, unless
-            // already set.
+            // The picks' model and the hand on a pick, unless already set.
             SerializedObject settings = new(lockpicking);
             settings.FindProperty("bigLock").objectReferenceValue = bigLock;
             SerializedProperty model = settings.FindProperty("picksModel");
-            SerializedProperty lockModel = settings.FindProperty("lockModel");
             SerializedProperty pickProfile = settings.FindProperty("pickProfile");
 
             if (model.objectReferenceValue == null) {
                 model.objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(PicksModelPath);
-            }
-
-            if (lockModel.objectReferenceValue == null) {
-                lockModel.objectReferenceValue = AssetDatabase.LoadAssetAtPath<GameObject>(LockModelPath);
             }
 
             if (pickProfile.objectReferenceValue == null) {

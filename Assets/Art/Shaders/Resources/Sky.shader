@@ -5,7 +5,7 @@
 // Each disc is a quad (two triangles). The mesh doesn't store where its
 // corners are - it stores the direction of the disc's centre, which corner
 // each vertex is, and how big the disc is, and this shader works the corner
-// out. That lets it do three things a fixed mesh couldn't:
+// out. That lets it do two things a fixed mesh couldn't:
 //
 //  - Lock the sky to the camera. Corners are placed relative to the eye's
 //    own position, so walking never moves a star (no parallax), and both
@@ -14,9 +14,8 @@
 //  - Keep stars from shimmering. A star smaller than a pixel flickers as
 //    the head moves, so it is never drawn smaller than _MinPixelRadius; it
 //    is made dimmer instead, by as much as it was enlarged.
-//  - Twinkle. Each star's brightness wavers a little, by its own rhythm.
 //
-// All of that is per vertex (four per star), so it costs next to nothing.
+// Both are per vertex (four per star), so they cost next to nothing.
 //
 // Nothing here is lit or lights anything: it only outputs the colours it is
 // given. How bright the level is comes from the Directional Light and the
@@ -28,24 +27,15 @@ Shader "TeaLeaf/Sky"
 {
     Properties
     {
-        // How much a star's brightness wavers: 0.2 = up to 20% either way.
-        _TwinkleAmount ("Twinkle Amount", Range(0, 1)) = 0.2
-
-        // How fast, in radians per second for the slowest of the waves.
-        _TwinkleSpeed ("Twinkle Speed", Float) = 5
-
-        // The share of the twinkle left for stars straight overhead; stars
-        // at the horizon get all of it.
-        _TwinkleOverhead ("Twinkle Overhead", Range(0, 1)) = 0.3
-
         // The smallest radius a star is drawn at, in screen pixels.
         _MinPixelRadius ("Min Pixel Radius", Float) = 0.75
 
-        // The moon's face (greyscale, made by MoonSurfaceBuilder), which
-        // the disc's colour is multiplied by. Only read when the
+        // The moon's face (a picture, set by ProceduralSky), which the
+        // disc's colour is multiplied by; its scale and offset pick the
+        // square of the picture the moon fills. Only read when the
         // _SURFACE_TEXTURE keyword is on: the moon's material, not the
         // stars'.
-        [NoScaleOffset] _SurfaceTex ("Surface Texture", 2D) = "white" {}
+        _SurfaceTex ("Surface Texture", 2D) = "white" {}
     }
 
     SubShader
@@ -102,10 +92,8 @@ Shader "TeaLeaf/Sky"
             SAMPLER(sampler_SurfaceTex);
 
             CBUFFER_START(UnityPerMaterial)
-                float _TwinkleAmount;
-                float _TwinkleSpeed;
-                float _TwinkleOverhead;
                 float _MinPixelRadius;
+                float4 _SurfaceTex_ST;
             CBUFFER_END
 
             struct Attributes
@@ -119,13 +107,8 @@ Shader "TeaLeaf/Sky"
                 half4 color : COLOR;
 
                 // xy = which corner (-1 or 1 each way), z = the disc's
-                // radius (at 1m away, so near enough radians), w = where in
-                // its twinkle this star starts.
-                float4 corner : TEXCOORD0;
-
-                // x = this star's own twinkle speed (a multiplier),
-                // y = how much it twinkles at all (0 for the moon).
-                float2 twinkle : TEXCOORD1;
+                // radius (at 1m away, so near enough radians).
+                float3 corner : TEXCOORD0;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
 
@@ -165,19 +148,10 @@ Shader "TeaLeaf/Sky"
                     brightness = shrink * shrink;
                 }
 
-                // Twinkle: three waves at speeds that never line up, so the
-                // result wavers irregularly rather than pulsing. Real stars
-                // twinkle most near the horizon, where their light comes
-                // through the most air.
-                float phase = input.corner.w;
-                float time = _Time.y * _TwinkleSpeed * input.twinkle.x + phase;
-                float wave = sin(time) * 0.5 + sin(time * 1.731 + phase * 2.3) * 0.3 + sin(time * 2.917 + phase * 5.1) * 0.2;
-                float strength = _TwinkleAmount * input.twinkle.y * lerp(1.0, _TwinkleOverhead, saturate(direction.y));
-                brightness *= max(1.0 + wave * strength, 0.0);
-
                 // Two directions at right angles to the star's, to lay the
-                // quad out across the line of sight. Which way round they
-                // are doesn't matter: a disc looks the same turned.
+                // quad out across the line of sight: right level, up as
+                // near the sky's up as it can be, so the moon's picture
+                // stands upright.
                 float3 reference = abs(direction.y) > 0.999 ? float3(1.0, 0.0, 0.0) : float3(0.0, 1.0, 0.0);
                 float3 right = normalize(cross(reference, direction));
                 float3 up = cross(direction, right);
@@ -217,9 +191,14 @@ Shader "TeaLeaf/Sky"
 
                 half3 color = input.color.rgb;
 
-                // The quad's corners run -1 to 1 and the picture 0 to 1.
+                // The quad's corners run -1 to 1 and the picture 0 to 1,
+                // then into the square the picture's moon fills. The
+                // picture's own see-through edge trims the disc too.
                 #if defined(_SURFACE_TEXTURE)
-                    color *= SAMPLE_TEXTURE2D(_SurfaceTex, sampler_SurfaceTex, input.uv * 0.5 + 0.5).rgb;
+                    float2 pictureUV = input.uv * 0.5 + 0.5;
+                    half4 surface = SAMPLE_TEXTURE2D(_SurfaceTex, sampler_SurfaceTex, TRANSFORM_TEX(pictureUV, _SurfaceTex));
+                    color *= surface.rgb * surface.a;
+                    coverage *= surface.a;
                 #endif
 
                 return half4(color * coverage, input.color.a * coverage);

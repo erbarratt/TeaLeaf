@@ -5,14 +5,13 @@ using UnityEngine;
 namespace Interaction
 {
     /// <summary>
-    /// The big lock: a large copy of a lock that floats in front of it
-    /// while it's being picked, with the two picks sticking out of its
-    /// keyhole for the hands to work. One in the scene, built once at load
-    /// and reused for every lock. The lock is a large copy of the lock
-    /// plate model (given by SetLockModel()), and the picks large copies
-    /// of the player's own (the lockpicks model, given by SetPickModel()):
-    /// the hook on the left, searching for pins, and the bent tension
-    /// wrench on the right, turning.
+    /// The big lock: two large picks sticking out of the real lock's
+    /// keyhole while it's being picked, for the hands to work. One in the
+    /// scene, built once at load and reused for every lock. The picks are
+    /// large copies of the player's own (the lockpicks model, given by
+    /// SetPickModel()): the hook on the left, searching for pins, and the
+    /// bent tension wrench on the right, turning. Nothing else is drawn:
+    /// the lock is the real one on the door.
     ///
     /// It also IS the puzzle - which stage the lock is at, where the pins
     /// are, how long a pin has been held. The player's half
@@ -30,19 +29,20 @@ namespace Interaction
     /// go of the right pick before that swings it back to its start and
     /// starts the lock again, with new pins.
     ///
-    /// Each pick turns about its tip, deep in the keyhole: the right
-    /// pick's behind the middle of the keyhole's round top, the left's
+    /// Each pick turns about its tip, deep in the keyhole: the left
+    /// pick's behind the middle of the keyhole's round top, the right's
     /// behind the middle of the slot below it. A pick is turned by carrying the hand round its
     /// pivot, like a clock hand: the pick's angle is the hand's, not the
     /// wrist's twist.
     ///
     /// This object's own axes: X to the player's right, Y up the face, Z
-    /// away from the player (into the door). Its origin is the middle of
-    /// the round top of the keyhole, on the plate's face. Unscaled.
+    /// away from the player (into the door). Shown, its origin is the
+    /// middle of the round top of the real keyhole, on the lock's face.
+    /// Unscaled.
     ///
     /// It appears and goes at once (Show()/Hide()); the burn into being
     /// and away is the player's (PlayerLockpicking, through its ToolBurn,
-    /// with the three renderers this exposes).
+    /// with the two renderers this exposes).
     ///
     /// No Update(): PlayerLockpicking calls Tick() while it's in use.
     /// </summary>
@@ -54,20 +54,16 @@ namespace Interaction
 
         [Header("Shape")]
 
-        // How many times bigger than the real lock plate the big lock is.
-        // The plate model is real size (12.7cm tall), so 3.5 makes the
-        // big lock about 45cm tall.
-        [Tooltip("How many times bigger than the real lock plate the big lock is. The Lock Plate prefab is real size, 12.7cm tall, so 3.5 makes the big lock about 45cm tall.")]
-        [SerializeField] private float modelScale = 3.5f;
-
         // The picks: how long each is, how far each goes into the
         // keyhole, and how far they lean out of the face towards the
         // player, in degrees (0 = flat against the face, 90 = straight
         // out).
         [Tooltip("How long each pick is from its tip in the keyhole to the end of its handle, in metres. The lockpicks model is scaled to it.")]
         [SerializeField] private float pickLength = 0.2f;
-        [Tooltip("How deep into the keyhole each pick's tip sits, past the face, in metres: each pick turns about its tip there. The keyhole is about 2cm deep at the big lock's size.")]
-        [SerializeField] private float pickDepth = 0.015f;
+        [Tooltip("How deep into the keyhole each pick's tip sits, past the lock's face, in metres: each pick turns about its tip there. Kept shallow, so a leaning pick leaves through the keyhole, not the face round it: the Lock Plate's keyhole is 8mm in radius and 5.7mm deep.")]
+        [SerializeField] private float pickDepth = 0.004f;
+        [Tooltip("How far both picks' tips are moved up the keyhole, in metres (negative is down), from where they otherwise sit: the left behind the round top's centre, the right behind the slot's middle. Each pick still turns about its tip, so the hand angles are measured from there too. Applied on each Show().")]
+        [SerializeField] private float pickRise;
         [Tooltip("How far the picks lean out of the face towards the player, in degrees: 0 is flat against the face, 90 straight out.")]
         [SerializeField] private float pickLift = 35f;
 
@@ -148,21 +144,23 @@ namespace Interaction
         /// the pick from the player's side, as on a rope.
         public static readonly Quaternion GripTurn = Quaternion.LookRotation(Vector3.down, Vector3.forward);
 
-        // The Lock Plate model's keyhole radius at real size, in metres.
-        private const float PlateKeyholeRadius = 0.008f;
+        // How far below the keyhole's round top the slot's middle is for a
+        // lock with no DoorKeyhole (a chest's, say), in metres: the Lock
+        // Plate model's (8mm radius, DoorKeyhole's default wedge).
+        private const float DefaultSlotMiddle = (DoorKeyhole.SlotTop + DoorKeyhole.DefaultSlotBottom) * 0.5f * 0.008f;
 
         private Transform _leftPick;
         private Transform _rightPick;
 
         // Where each pick's tip sits and the pick turns about, pickDepth
-        // into the keyhole, in this object's space: the right pick behind
+        // into the keyhole, in this object's space: the left pick behind
         // the middle of the keyhole's round top (this object's origin),
-        // the left behind the middle of the slot below it.
+        // the right behind the middle of the slot below it (set by Show(),
+        // from the lock's keyhole).
         private Vector3 _leftPivot;
         private Vector3 _rightPivot;
 
-        // The body (the lock plate) and the two picks.
-        private MeshRenderer _bodyRenderer;
+        // The two picks.
         private MeshRenderer _leftPickRenderer;
         private MeshRenderer _rightPickRenderer;
 
@@ -197,9 +195,8 @@ namespace Interaction
         /// True while a hand can take a pick: in view and not yet open.
         public bool CanBeWorked => _isShown && !_isUnlocked;
 
-        /// The lock's three renderers (body, left pick, right pick), for
-        /// the player's side to burn in and away. Made in Awake().
-        public MeshRenderer BodyRenderer => _bodyRenderer;
+        /// The two picks' renderers, for the player's side to burn in and
+        /// away. Made in Awake().
         public MeshRenderer LeftPickRenderer => _leftPickRenderer;
         public MeshRenderer RightPickRenderer => _rightPickRenderer;
 
@@ -217,11 +214,11 @@ namespace Interaction
         public float LeftAngle => leftStartAngle - LeftSweep;
 
         /// Where the left pick's tip is and it turns, in this object's
-        /// space: in the keyhole behind the middle of its slot.
+        /// space: in the keyhole behind the middle of its round top.
         public Vector3 LeftPivot => _leftPivot;
 
         /// Where the right pick's tip is and it turns, in this object's
-        /// space: in the keyhole behind the middle of its round top.
+        /// space: in the keyhole behind the middle of its slot.
         public Vector3 RightPivot => _rightPivot;
 
         /// Where this stage's pin is, as a sweep of the left pick.
@@ -261,8 +258,8 @@ namespace Interaction
 
         private void Awake()
         {
-            BuildBody();
             BuildPicks();
+            PlacePivots(DefaultSlotMiddle);
 
             ApplyLeftSweep(0f);
             ApplyRightAngle(rightStartAngle);
@@ -270,74 +267,38 @@ namespace Interaction
         }
 
         /// <summary>
-        /// Makes the lock's body object. It draws nothing until
-        /// SetLockModel() gives it the lock plate's mesh and materials.
-        /// </summary>
-        private void BuildBody()
-        {
-            _bodyRenderer = AddPart("Body");
-        }
-
-        /// <summary>
         /// Makes the two picks' objects, scaled so the model (1 long) is
-        /// pickLength long, each with its tip (the model's origin) at its
-        /// pivot pickDepth into the keyhole: the right pick behind the
-        /// keyhole's round top, the left behind the middle of the slot
-        /// below it (the slot's shape is DoorKeyhole's, in keyhole radii,
-        /// made modelScale times bigger like the plate). Each turns about
-        /// its tip (ApplyLeftSweep()/ApplyRightAngle()), and draws nothing
-        /// until SetPickModel() gives it its mesh and materials.
+        /// pickLength long. Each turns about its tip, the model's origin
+        /// (ApplyLeftSweep()/ApplyRightAngle()), placed at its pivot by
+        /// PlacePivots(), and draws nothing until SetPickModel() gives it
+        /// its mesh and materials.
         /// </summary>
         private void BuildPicks()
         {
-            float radius = PlateKeyholeRadius * modelScale;
-            _rightPivot = new Vector3(0f, 0f, pickDepth);
-            _leftPivot = new Vector3(0f, (DoorKeyhole.SlotTop + DoorKeyhole.SlotBottom) * 0.5f * radius, pickDepth);
-
             _leftPickRenderer = AddPart("Left Pick");
             _leftPick = _leftPickRenderer.transform;
-            _leftPick.localPosition = _leftPivot;
             _leftPick.localScale = Vector3.one * pickLength;
 
             _rightPickRenderer = AddPart("Right Pick");
             _rightPick = _rightPickRenderer.transform;
-            _rightPick.localPosition = _rightPivot;
             _rightPick.localScale = Vector3.one * pickLength;
         }
 
         /// <summary>
-        /// Gives the body its looks from the lock plate model (the Lock
-        /// Plate prefab: unscaled root at the middle of the keyhole's round
-        /// top on the plate's face, X across, Y up, Z into the door, the
-        /// model under it at real size): the model's mesh, placed as it is
-        /// in the prefab but modelScale times bigger, drawn with the model's
-        /// own materials (URP Lit, shared, never changed here, so the big
-        /// lock looks just like a door's). Called once at load by
-        /// PlayerLockpicking. A model with no mesh leaves the body unseen,
-        /// with a warning.
+        /// Puts each pick's tip at its pivot, pickDepth into the keyhole:
+        /// the left pick behind the keyhole's round top, the right behind
+        /// the middle of the slot below it, slotMiddle metres below the
+        /// round top's centre (DoorKeyhole.RestSlotMiddle), both raised
+        /// pickRise. Called on each
+        /// Show(), so the picks fit whichever lock is being picked.
         /// </summary>
-        public void SetLockModel(GameObject model)
+        private void PlacePivots(float slotMiddle)
         {
-            MeshFilter filter = model.GetComponentInChildren<MeshFilter>();
+            _leftPivot = new Vector3(0f, pickRise, pickDepth);
+            _rightPivot = new Vector3(0f, slotMiddle + pickRise, pickDepth);
 
-            if (filter == null) {
-                Debug.LogWarning($"BigLock: the lock model {model.name} has no mesh, so the lock isn't shown.", this);
-                return;
-            }
-
-            _bodyRenderer.GetComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
-
-            // Where the mesh sits in the prefab, from its root, and how
-            // big it is there - all made modelScale times bigger.
-            Transform root = model.transform;
-            Transform part = filter.transform;
-            Transform body = _bodyRenderer.transform;
-
-            body.localPosition = root.InverseTransformPoint(part.position) * modelScale;
-            body.localRotation = Quaternion.Inverse(root.rotation) * part.rotation;
-            body.localScale = part.lossyScale * modelScale;
-
-            _bodyRenderer.sharedMaterials = filter.GetComponent<MeshRenderer>().sharedMaterials;
+            _leftPick.localPosition = _leftPivot;
+            _rightPick.localPosition = _rightPivot;
         }
 
         /// <summary>
@@ -373,8 +334,7 @@ namespace Interaction
 
         /// <summary>
         /// A child object with no mesh or material yet (given by
-        /// SetLockModel()/SetPickModel()), and no shadows: it's a floating
-        /// aid, not part of the room.
+        /// SetPickModel()), and no shadows, like the player's other tools.
         /// </summary>
         private MeshRenderer AddPart(string partName)
         {
@@ -399,13 +359,20 @@ namespace Interaction
         }
 
         /// <summary>
-        /// Brings the lock into view for target, at a place in the world,
-        /// with everything back at the start and new pins.
+        /// Brings the picks into view in target's keyhole, at the middle
+        /// of its round top on the face the player is on, with everything
+        /// back at the start and new pins. The picks fit the size of the
+        /// lock's DoorKeyhole (none: the Lock Plate's).
         /// </summary>
         public void Show(PickableLock target, Vector3 position, Quaternion rotation)
         {
             Target = target;
             transform.SetPositionAndRotation(position, rotation);
+
+            // Once per lock picked, not per frame. No keyhole: the Lock
+            // Plate's.
+            DoorKeyhole keyhole = DoorKeyhole.ForLock(target);
+            PlacePivots(keyhole != null ? keyhole.RestSlotMiddle : DefaultSlotMiddle);
 
             _isShown = true;
             _isUnlocked = false;
@@ -691,12 +658,11 @@ namespace Interaction
         }
 
         /// <summary>
-        /// Switches the body and both picks on or off together. Called only
-        /// on Show()/Hide() (and once in Awake()).
+        /// Switches both picks on or off together. Called only on
+        /// Show()/Hide() (and once in Awake()).
         /// </summary>
         private void SetRenderersEnabled(bool isEnabled)
         {
-            _bodyRenderer.enabled = isEnabled;
             _leftPickRenderer.enabled = isEnabled;
             _rightPickRenderer.enabled = isEnabled;
         }
@@ -781,10 +747,9 @@ namespace Interaction
         }
 
         /// <summary>
-        /// Plays cue from the real lock - where the sound truly is, for
-        /// the player's ears and the guards' - not from this floating
-        /// copy. With no sound player in the scene, the guards still hear
-        /// it.
+        /// Plays cue from the real lock, where the sound truly is, for the
+        /// player's ears and the guards'. With no sound player in the
+        /// scene, the guards still hear it.
         /// </summary>
         private void Play(SoundCue cue, float volumeScale, float noiseScale)
         {

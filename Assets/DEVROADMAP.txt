@@ -99,7 +99,11 @@ Phase 1 - Locomotion and physical hands (Player)
     jump buffer), one MovementState.
 [x] Ray-targeted climbing and the general hand snap pose
     (IHandSnapTarget, HandSnapProfile, the Snap Pose finger layer).
-[x] Mantling: per-target landing point, head-locked arrow, stick up.
+[x] Mantling: per-target landing point, head-locked arrow, stick up;
+    the body rises straight up clear of the edge, across, then down
+    onto the landing, corners rounded.
+[x] Steep ground slides: standing only on ground steeper than the
+    slope limit is not grounded (slides down, no jump, no climbing it).
 [x] Ladders, ropes (hanging, strung, sagging), zip lines, two-sided
     edges, ladder mantles.
 [x] Ledge, rung and rope grip finger poses.
@@ -169,6 +173,13 @@ Phase 3 - Interaction framework (Interaction namespace)
 [x] Keyhole view and the lock plate.
 [x] Doors on pack prefabs: a hinge offset from the object's origin, a
     one-way swing, and a door with no handle pushed open from shut.
+[x] Fixed pull handles (DoorHandle.turns off: taking it frees the
+    latch); the ShabbyDoor prefab (Tripo wooden door) with its own
+    handle pose (ShabbyDoorHandle), a lock on each face and a keyhole.
+[x] Keyhole black at rest, see-through only as the head comes close;
+    the wedge's size per keyhole; the opening rises and its walls reach
+    out of the faces as it opens. DoorLeaf takes URP Lit's surface.
+[ ] Look at the keyhole and the ShabbyDoor in the headset.
 [ ] Hold poses for other prop shapes (the test cube and crate are held
     by the middle with the ledge fingers) - as real props need them.
 [ ] Door handle hand pose: Assets/Data/DoorHandle.asset is a copy of
@@ -239,7 +250,7 @@ Blackjack:
     so walking isn't a swing) while the capsule round its head touches
     a GuardHead collider. One blow per touch.
 [x] Tools burn (ToolBurn, TeaLeaf/Burn): bow, blackjack, worn lockpicks
-    and the big lock burn into being when taken; let go of, they and
+    and the big lock's picks burn into being when taken; let go of, they and
     arrows burn away where they were let go of.
 [ ] Look at the burn in the headset; tune its time and colours.
 [x] Takedown rules (Guard.TryKnockOut): works only if the guard isn't
@@ -309,12 +320,13 @@ Lockpicking:
     the picks are always worn (not equipped); the lock is the same
     whichever hand wears them; the game doesn't pause.
 [x] Lockpicking art: Tripo lockpicks (hook and tension wrench) worn,
-    carried and on the big lock; the Lock Plate prefab (Tripo lock) on
-    doors and, 3.5 times real size, as the big lock's body, each pick
-    turning about its tip in the keyhole; the door keyhole shaped as
+    carried, and as large copies sticking out of the real keyhole
+    (no lock body drawn), each turning about its tip in the keyhole,
+    the keyhole shut and black on the picker's face while picking; the
+    Lock Plate prefab (Tripo lock) on doors; the door keyhole shaped as
     the plate's; the pack's Rectangle Door with a keyhole and lock.
 [ ] Try the lockpicking art in the headset: picks on the hand, the big
-    lock's size and place, the picks' pivots.
+    picks' size and place in the keyhole, their pivots.
 [x] Chests (Chest, ChestLid): the same lock kinds as doors, picked or
     opened with a key through the same locks; unlocked, a hand takes
     the front of the lid and lifts it. Chest Test Area builder.
@@ -355,6 +367,11 @@ Perception:
 [x] Two meters per guard (0-1), suspicion and detection, each held a
     while after it was last raised and then draining; full suspicion
     makes a patrolling guard suspicious, full detection chases.
+[x] Alert mark over the head (GuardAlertMarker, TeaLeaf/OverlayFill):
+    a question mark filling yellow with suspicion, red once full, full
+    through a search, then draining; an exclamation mark red with
+    detection; pops in; drawn on top of everything.
+[ ] Look at the alert marks in the headset.
 [x] Hearing: an INoiseListener on NoiseSystem, which delivers only the
     noises that reach the guard through rooms and portals, with a
     loudness and the point it was heard from; louder noise = more on
@@ -693,8 +710,15 @@ Greybox build:
         [x] Building proxies: one LODGroup per building (full detail,
             then one lightmapped renderer merged from the pieces'
             second levels, textured from one atlas per sector); proxy
-            meshes and atlases git-ignored, remade by regenerating or
-            TeaLeaf > Level Gen > Rebuild Building Proxies.
+            meshes and atlases git-ignored, built after each generation
+            by TeaLeaf > Level Gen > Rebuild Building Proxies.
+        [x] Open window interiors: an Open Window Wall placed by hand in
+            place of a generated wall; generation takes out the pieces
+            it stands in for; TeaLeaf > Level Gen > Build Open Window
+            Interiors builds a room behind it (walls of the facade's
+            style, floor and ceiling tiles, one collider per face, a
+            sound room and window portal); folded into the proxies.
+        [ ] Try open window interiors in a scene and in the headset.
         [x] Street ground runs on under the steps; side walls close the
             step where a jettied storey stands beside an unjettied one;
             the hole check finds an end open over its top or bottom.
@@ -755,6 +779,11 @@ Lighting:
         Built; switched off until the shading reads as soft light and
         has been judged in the headset. Then hand-placed ones at windows
         and gaps the generator doesn't know.
+    [x] Night sky (ProceduralSky): steady stars, the moon a photo on its
+        disc, Thief VR-style clouds from a cubemap churning in place
+        over them (TeaLeaf/SkyClouds).
+    [ ] Replace the stand-in cloud cubemap (SkyClouds_REPLACEME, Thief
+        VR's) with our own; look at the sky in the headset.
     [ ] Look over the bake in the headset: leaks, blotches, probe-lit
         pieces that stand out, moving things' shadows on the baked level.
     [ ] Torches. A realtime point light with no shadows shines through
@@ -845,7 +874,7 @@ Phase 10 - Performance pass (PCVR target rig)
     [ ] Switch off the features nothing uses (additional-light shadows
         until torches need them, light cookies, reflection probe
         blending) and choose between Forward and Forward+.
-    [x] Render scale 1.0 in PC_RPAsset, MSAA at 2x (4x is the aim), the
+    [x] Render scale 1.0 in PC_RPAsset, MSAA at 4x, the
         moon's shadow map at 2048 over 25m.
     [ ] Measure both on the target rig; come down only if the frame
         time says so.
@@ -856,8 +885,7 @@ Phase 10 - Performance pass (PCVR target rig)
         TeaLeaf/BrickWall) work their pattern out per pixel, on surfaces
         that fill the view. Profile them, with and without Dirt and
         Parallax; the cobbles' 5x5 search is the heavy one. If they cost
-        too much, bake each pattern into textures at level load (as the
-        moon's face is) and keep the same material settings.
+        too much, bake each pattern into textures at level load and keep the same material settings.
     [ ] Shadow distance (50m, for the Mixed lamps' shadows from movers;
         the moon is Baked, main light shadows off): try shorter on the
         target rig.

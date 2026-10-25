@@ -67,16 +67,15 @@ namespace Player
         [Tooltip("How long the whole mantle takes, in seconds.")]
         [SerializeField] private float duration = 0.4f;
 
-        // Fraction of the mantle (0-1) by which the rise is complete. The
-        // rise eases out, so it's quick at first and settles at the top.
-        [Tooltip("The fraction of the mantle (0-1) by which the rise is complete. The rise eases out.")]
-        [SerializeField] private float riseEndsAt = 0.6f;
+        // How far above the edge the feet rise before moving across it.
+        [Tooltip("How far above the edge (a ledge's lip, a ladder's top) the feet rise before moving across it, in metres.")]
+        [SerializeField] private float edgeClearance = 0.05f;
 
-        // Fraction of the mantle (0-1) at which moving forward onto the
-        // ledge begins. Starting before the rise ends makes the path one
-        // smooth curve up and over instead of "up, stop, forward".
-        [Tooltip("The fraction of the mantle (0-1) at which the move forward onto the ledge begins. Before Rise Ends At, so the path is one curve up and over.")]
-        [SerializeField] private float forwardStartsAt = 0.3f;
+        // How far before and after each corner of the path (up, across,
+        // down) the curve round it starts and ends. Never more than half
+        // of either leg it joins, so the two curves can't overlap.
+        [Tooltip("How far before and after each corner of the path (up, across, down) the curve round it starts and ends, in metres. Capped at half of the shorter leg it joins; 0 = sharp corners.")]
+        [SerializeField] private float cornerRadius = 0.25f;
 
         // Extra height added to the landing, in metres, so the re-enabled
         // CharacterController never starts slightly inside the floor.
@@ -101,9 +100,18 @@ namespace Player
         /// </summary>
         public bool IsMantling { get; private set; }
 
-        // Rig position when the mantle started, and where it must end.
-        private Vector3 _startPosition;
-        private Vector3 _targetPosition;
+        // Points each curved corner of the path is laid out with.
+        private const int CornerSteps = 8;
+
+        // The mantle path as rig positions: the start, each corner's curve
+        // (CornerSteps + 1 points) and the end. Worked out once when a
+        // mantle starts; made once here, so nothing is allocated in play.
+        private readonly Vector3[] _pathPoints = new Vector3[2 + 2 * (CornerSteps + 1)];
+
+        // Distance along the path to each point in _pathPoints, and its
+        // whole length.
+        private readonly float[] _pathDistances = new float[2 + 2 * (CornerSteps + 1)];
+        private float _pathLength;
 
         private float _elapsed;
 
@@ -167,9 +175,18 @@ namespace Player
             // off to the side of the origin - so move the rig by however far
             // the capsule's bottom is from the point, and the capsule lands
             // exactly on it.
-            Vector3 feetTarget = target.GetMantleLanding(CapsuleBottom()) + Vector3.up * landingLift;
-            _startPosition = playerTransform.position;
-            _targetPosition = _startPosition + (feetTarget - CapsuleBottom());
+            Vector3 feetStart = CapsuleBottom();
+            Vector3 feetTarget = target.GetMantleLanding(feetStart) + Vector3.up * landingLift;
+            Vector3 startPosition = playerTransform.position;
+            Vector3 targetPosition = startPosition + (feetTarget - feetStart);
+
+            // How high the feet go before moving across: clear of the edge,
+            // and never below the landing (a landing above the edge is then
+            // reached on the way up) or below where they already are.
+            float feetTop = Mathf.Max(target.GetMantleEdgeHeight(feetStart) + edgeClearance, feetTarget.y, feetStart.y);
+            float rise = feetTop - feetStart.y;
+
+            BuildPath(startPosition, targetPosition, rise);
             _elapsed = 0f;
 
             playerClimbing.ReleaseAll();
@@ -210,24 +227,83 @@ namespace Player
         }
 
         /// <summary>
-        /// Where the rig is at progress t (0-1). Height and horizontal
-        /// movement follow separate, overlapping curves: the rise eases out
-        /// and is done by riseEndsAt; the forward move eases in and out from
-        /// forwardStartsAt to the end. Separately, each would be "up, then
-        /// over"; overlapped, they make one smooth arc that clears the lip.
+        /// Lays out the mantle path from start to target (rig positions)
+        /// in three legs: straight up by rise, across level to above the
+        /// target, then straight down onto it (no length when the target is
+        /// at the top). Each of the two corners is rounded off with a curve
+        /// (a quadratic Bezier with the corner as its middle control point)
+        /// starting and ending cornerRadius from it, so the player sweeps
+        /// round the corners instead of stopping and turning. A leg of no
+        /// length makes its corner sharp, i.e. no curve.
+        /// </summary>
+        private void BuildPath(Vector3 start, Vector3 target, float rise)
+        {
+            Vector3 top = start + Vector3.up * rise;
+            Vector3 overTarget = new(target.x, top.y, target.z);
+
+            int count = 0;
+            _pathPoints[count++] = start;
+            count = AddCorner(start, top, overTarget, count);
+            count = AddCorner(top, overTarget, target, count);
+            _pathPoints[count] = target;
+
+            // Distances along the path, so it can be travelled at an even
+            // speed whatever the legs' lengths.
+            _pathDistances[0] = 0f;
+
+            for (int i = 1; i < _pathPoints.Length; i++) {
+                _pathDistances[i] = _pathDistances[i - 1] + Vector3.Distance(_pathPoints[i - 1], _pathPoints[i]);
+            }
+
+            _pathLength = _pathDistances[_pathPoints.Length - 1];
+        }
+
+        /// <summary>
+        /// Writes the curve round corner (coming from previous, going on to
+        /// next) into _pathPoints from index, and returns the index after
+        /// it. The curve starts and ends the same distance from the corner:
+        /// cornerRadius, capped at half of each leg.
+        /// </summary>
+        private int AddCorner(Vector3 previous, Vector3 corner, Vector3 next, int index)
+        {
+            Vector3 toPrevious = previous - corner;
+            Vector3 toNext = next - corner;
+            float radius = Mathf.Min(cornerRadius, toPrevious.magnitude * 0.5f, toNext.magnitude * 0.5f);
+            radius = Mathf.Max(radius, 0f);
+
+            Vector3 curveStart = corner + toPrevious.normalized * radius;
+            Vector3 curveEnd = corner + toNext.normalized * radius;
+
+            for (int step = 0; step <= CornerSteps; step++) {
+                float s = (float)step / CornerSteps;
+                float u = 1f - s;
+                _pathPoints[index++] = u * u * curveStart + 2f * u * s * corner + s * s * curveEnd;
+            }
+
+            return index;
+        }
+
+        /// <summary>
+        /// Where the rig is at progress t (0-1): the point that far along
+        /// the path by distance, eased out - quick off the wall, settling
+        /// onto the landing.
         /// </summary>
         private Vector3 PathPosition(float t)
         {
-            Vector3 offset = _targetPosition - _startPosition;
+            float eased = 1f - (1f - t) * (1f - t);
+            float distance = eased * _pathLength;
 
-            float riseT = riseEndsAt > 0f ? Mathf.Clamp01(t / riseEndsAt) : 1f;
-            float rise = 1f - (1f - riseT) * (1f - riseT);
+            for (int i = 1; i < _pathPoints.Length; i++) {
+                if (_pathDistances[i] < distance) {
+                    continue;
+                }
 
-            float forwardSpan = 1f - forwardStartsAt;
-            float forwardT = forwardSpan > 0f ? Mathf.Clamp01((t - forwardStartsAt) / forwardSpan) : 1f;
-            float forward = Mathf.SmoothStep(0f, 1f, forwardT);
+                float span = _pathDistances[i] - _pathDistances[i - 1];
+                float along = span > 0f ? (distance - _pathDistances[i - 1]) / span : 1f;
+                return Vector3.Lerp(_pathPoints[i - 1], _pathPoints[i], along);
+            }
 
-            return _startPosition + new Vector3(offset.x * forward, offset.y * rise, offset.z * forward);
+            return _pathPoints[_pathPoints.Length - 1];
         }
 
         /// <summary>

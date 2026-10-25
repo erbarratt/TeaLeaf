@@ -88,6 +88,11 @@ desktop.ini
 /Assets/ASTROFISH_GAMES.meta
 
 # Level generator building proxy meshes (tens of MB, rewritten every
-# generation) - remade by regenerating the level
+# proxy build) - remade by TeaLeaf > Level Gen > Rebuild Building Proxies
 /Assets/Data/LevelGen/Proxies/
 /Assets/Data/LevelGen/Proxies.meta
+
+# Stand-in cloud cubemap extracted from Thief VR - not ours to publish;
+# kept local until our own replaces it
+/Assets/Art/Textures/Sky/SkyClouds_REPLACEME.png
+/Assets/Art/Textures/Sky/SkyClouds_REPLACEME.png.meta

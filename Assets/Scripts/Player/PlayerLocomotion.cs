@@ -194,6 +194,30 @@ namespace Player
         /// TickMovement().
         private bool _wasClimbing;
 
+        // How far in from a ground contact, in metres, the check for the
+        // real surface starts (away from the capsule), and from how high
+        // above it the ray comes down - see TryGetSurfaceNormal(). The
+        // inset is small so even a near-vertical slope is still below the
+        // ray's start.
+        private const float SurfaceProbeInset = 0.005f;
+        private const float SurfaceProbeHeight = 0.1f;
+
+        // Gathered by OnControllerColliderHit() during each Move(), reset in
+        // TickMovement() just before it: whether the capsule's bottom touched
+        // ground it can stand on, ground too steep to stand on, and that
+        // steep surface's normal.
+        private bool _touchedWalkableGround;
+        private bool _touchedSteepGround;
+        private Vector3 _touchedSteepNormal;
+
+        // True when the last Move() left the capsule resting only on ground
+        // steeper than the CharacterController's Slope Limit (a roof, say).
+        // That doesn't count as ground: the player slides down it as if in
+        // the air and can't jump. Set in TickState(), used by next frame's
+        // TickMovement().
+        private bool _isOnSteepGround;
+        private Vector3 _steepGroundNormal;
+
         /// <summary>
         /// True while the sprint toggle is on. Most systems should read
         /// MovementState instead, which is only Sprinting while the player
@@ -285,6 +309,11 @@ namespace Player
         /// </summary>
         public Vector3 TickMovement(bool isClimbing)
         {
+            // Fresh for this frame's Move(), which PlayerController calls
+            // next; OnControllerColliderHit() fills them in during it.
+            _touchedWalkableGround = false;
+            _touchedSteepGround = false;
+
             bool climbStarted = isClimbing && !_wasClimbing;
             _wasClimbing = isClimbing;
 
@@ -310,15 +339,113 @@ namespace Player
 
             // Read once and shared: isGrounded is a call into the engine, and
             // it can't change until PlayerController's Move() anyway. It's
-            // last frame's Move() result - the latest available here.
-            bool isGrounded = characterController.isGrounded;
+            // last frame's Move() result - the latest available here. Ground
+            // too steep to stand on doesn't count: on it the player keeps
+            // momentum, has only air control, and gravity builds up.
+            bool isGrounded = characterController.isGrounded && !_isOnSteepGround;
 
             // Jump before gravity: HandleGravity() only snaps vertical
             // velocity to groundedGravity while it's negative, so a fresh
             // upward launch speed set here survives it.
             HandleJump();
 
-            return HandleMovement(isGrounded) + HandleGravity(isGrounded);
+            HandleMovement(isGrounded);
+            HandleGravity(isGrounded);
+
+            if (_isOnSteepGround) {
+                SlideAlongSteepGround();
+            }
+
+            return (_horizontalVelocity + Vector3.up * _verticalVelocity) * Time.deltaTime;
+        }
+
+        /// <summary>
+        /// On ground too steep to stand on, takes away the part of the
+        /// velocity going into the slope, like a frictionless surface: what's
+        /// left runs along it, so gravity (built up each frame by
+        /// HandleGravity()) turns into a slide down the slope that speeds up
+        /// the steeper it is, and pushing the stick up the slope only pushes
+        /// into it. Done here rather than left to the CharacterController,
+        /// which stops the player climbing a steep slope but never slides
+        /// them down one.
+        /// </summary>
+        private void SlideAlongSteepGround()
+        {
+            Vector3 velocity = _horizontalVelocity + Vector3.up * _verticalVelocity;
+            float intoGround = Vector3.Dot(velocity, _steepGroundNormal);
+
+            if (intoGround < 0f) {
+                velocity -= _steepGroundNormal * intoGround;
+            }
+
+            _horizontalVelocity = new Vector3(velocity.x, 0f, velocity.z);
+            _verticalVelocity = velocity.y;
+        }
+
+        /// <summary>
+        /// Called by Unity during characterController.Move() for each
+        /// collider the capsule touches (PlayerBodyPushing gets the same
+        /// call). Sorts contacts on the capsule's bottom into ground it can
+        /// stand on and ground too steep for its Slope Limit, for TickState().
+        /// No physics query unless a contact looks too steep.
+        /// </summary>
+        private void OnControllerColliderHit(ControllerColliderHit hit)
+        {
+            // Only contacts below the centre of the capsule's bottom sphere
+            // are ground; higher ones are walls and ceilings.
+            float bottomSphereCentreY = characterController.transform.position.y
+                + characterController.center.y
+                - characterController.height * 0.5f
+                + characterController.radius;
+
+            if (hit.point.y >= bottomSphereCentreY || hit.normal.y <= 0f) {
+                return;
+            }
+
+            float slopeLimit = characterController.slopeLimit;
+
+            if (Vector3.Angle(hit.normal, Vector3.up) <= slopeLimit) {
+                _touchedWalkableGround = true;
+                return;
+            }
+
+            // A contact normal can be steep just because the capsule is on
+            // the corner of a step or ledge, so the steepness is checked
+            // against the real surface there.
+            if (!TryGetSurfaceNormal(hit, out Vector3 surfaceNormal)) {
+                return;
+            }
+
+            if (Vector3.Angle(surfaceNormal, Vector3.up) <= slopeLimit) {
+                _touchedWalkableGround = true;
+            } else {
+                _touchedSteepGround = true;
+                _touchedSteepNormal = surfaceNormal;
+            }
+        }
+
+        /// <summary>
+        /// The normal of the surface under a contact point: one ray straight
+        /// down against only the touched collider, starting a hair in from
+        /// the contact (away from the capsule, so on a corner it lands on
+        /// the top face the capsule rests on, not off the edge). False if
+        /// the ray misses - a corner over nothing.
+        /// </summary>
+        private static bool TryGetSurfaceNormal(ControllerColliderHit hit, out Vector3 normal)
+        {
+            Vector3 away = hit.normal;
+            away.y = 0f;
+
+            Vector3 origin = hit.point - away.normalized * SurfaceProbeInset + Vector3.up * SurfaceProbeHeight;
+            Ray ray = new Ray(origin, Vector3.down);
+
+            if (hit.collider.Raycast(ray, out RaycastHit surfaceHit, SurfaceProbeHeight * 2f)) {
+                normal = surfaceHit.normal;
+                return true;
+            }
+
+            normal = Vector3.up;
+            return false;
         }
 
         /// <summary>
@@ -347,7 +474,13 @@ namespace Player
                 return;
             }
 
-            bool isGrounded = characterController.isGrounded;
+            // Resting only on ground too steep to stand on counts as off the
+            // ground: coyote time runs out, the state goes Airborne after the
+            // grace time, and reaching flat ground fires Landed.
+            _isOnSteepGround = !isClimbing && _touchedSteepGround && !_touchedWalkableGround;
+            _steepGroundNormal = _touchedSteepNormal;
+
+            bool isGrounded = characterController.isGrounded && !_isOnSteepGround;
 
             if (isGrounded) {
                 _timeSinceGrounded = 0f;
@@ -417,6 +550,7 @@ namespace Player
             _horizontalVelocity = Vector3.zero;
             _jumpBufferTimer = 0f;
             _hasJumped = false;
+            _isOnSteepGround = false;
         }
 
         /// <summary>
@@ -479,7 +613,8 @@ namespace Player
         /// Handles the jump button: stands up if crouched (no jump, so a
         /// sneak is never broken by accident), otherwise buffers the press
         /// and jumps as soon as it's allowed - grounded or within coyote
-        /// time, not already mid-jump, and fully standing.
+        /// time, not already mid-jump, fully standing, and not on ground too
+        /// steep to stand on.
         /// </summary>
         private void HandleJump()
         {
@@ -507,7 +642,9 @@ namespace Player
             // growing into a ceiling during takeoff.
             bool isFullyStanding = Mathf.Approximately(characterController.height, _standingHeight);
 
-            if (_hasJumped || !withinCoyoteTime || !isFullyStanding) {
+            // Steep ground is checked as well as coyote time, which would
+            // otherwise still allow a jump just after stepping onto it.
+            if (_hasJumped || !withinCoyoteTime || !isFullyStanding || _isOnSteepGround) {
                 return;
             }
 
@@ -517,8 +654,8 @@ namespace Player
         }
 
         /// <summary>
-        /// Reads movement input from the left thumbstick and returns this frame's
-        /// horizontal movement. Movement is relative to the Player root's orientation
+        /// Reads movement input from the left thumbstick and sets this frame's
+        /// horizontal velocity. Movement is relative to the Player root's orientation
         /// rather than the headset orientation.
         ///
         /// On the ground the stick sets _horizontalVelocity directly, exactly
@@ -528,7 +665,7 @@ namespace Player
         /// bleeds away at airDrag. isGrounded flickering for a frame on a
         /// step just holds the current velocity, so it's invisible.
         /// </summary>
-        private Vector3 HandleMovement(bool isGrounded)
+        private void HandleMovement(bool isGrounded)
         {
             Vector2 moveInput = playerInput.MoveAxis;
 
@@ -567,8 +704,6 @@ namespace Player
                     targetVelocity,
                     acceleration * Time.deltaTime);
             }
-
-            return _horizontalVelocity * Time.deltaTime;
         }
 
         /// <summary>
@@ -643,18 +778,15 @@ namespace Player
         }
 
         /// <summary>
-        /// Applies gravity to the vertical velocity and returns this frame's
-        /// vertical movement.
+        /// Applies gravity to the vertical velocity.
         /// </summary>
-        private Vector3 HandleGravity(bool isGrounded)
+        private void HandleGravity(bool isGrounded)
         {
             if (isGrounded && _verticalVelocity < 0f) {
                 _verticalVelocity = groundedGravity;
             }
 
             _verticalVelocity += gravity * Time.deltaTime;
-
-            return Vector3.up * (_verticalVelocity * Time.deltaTime);
         }
 
         /// <summary>

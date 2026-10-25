@@ -37,6 +37,9 @@ namespace Player
         [Tooltip("Seconds a tool takes to burn away when let go of, or back in when taken (0-2). 0 = no burn: tools vanish and appear at once.")]
         [SerializeField, Range(0f, 2f)] private float duration = 0.8f;
 
+        /// Seconds a burn takes, either way (0 = none).
+        public float Duration => duration;
+
         [Header("Look")]
 
         // How many noise blobs to a metre: larger = smaller holes.

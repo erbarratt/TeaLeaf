@@ -145,6 +145,15 @@ namespace Interaction
         }
 
         /// <summary>
+        /// Height of the lip the mantle goes over. Mantleable edges are
+        /// level, so any point on the lip will do.
+        /// </summary>
+        public float GetMantleEdgeHeight(Vector3 feetPosition)
+        {
+            return ClosestLipPoint(feetPosition).y;
+        }
+
+        /// <summary>
         /// Where the lip starts and ends along the edge (its X), in real
         /// metres in mantlePoint's unscaled frame: the box's X extent times
         /// the scale, lowest first.

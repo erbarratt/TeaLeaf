@@ -131,6 +131,10 @@ namespace LevelGen
         // material): put into a share of the window holes filled
         // (GeneratorSettings.LitWindowShare), the unlit inserts in the rest.
         public bool lit;
+        // A plain wall the open window interiors may build their rooms from
+        // (OpenWindowInteriors), scaled thin; any style it is tagged with
+        // matches a building's, "default" stands in where none does.
+        public bool openWindowInterior;
         public bool excluded;
         public bool verified;
         public string note = "";

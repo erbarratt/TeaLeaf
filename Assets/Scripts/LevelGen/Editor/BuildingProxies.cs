@@ -8,11 +8,13 @@ using UnityEngine.Rendering;
 namespace LevelGen
 {
     /// <summary>
-    /// Each building seen from further off as one renderer (LevelGenerator,
-    /// last before the report). A building's pieces stand under two groups -
-    /// its walls, foundations, beams and dressing under Facades (or Lots)/
-    /// [owner]/Building i, its roofs, chimneys and dormers under Roofs/
-    /// [owner]/Building i - and each piece carries the pack's own LODGroup
+    /// Each building seen from further off as one renderer (menu Rebuild
+    /// Building Proxies, after a generation and the open window interiors).
+    /// A building's pieces stand under two groups - its walls, foundations,
+    /// beams and dressing under Facades (or Lots)/[owner]/Building i, its
+    /// roofs, chimneys and dormers under Roofs/[owner]/Building i - plus any
+    /// open window standing in it and the room behind it, outside the
+    /// generated root (OpenWindowInteriors); each piece carries the pack's own LODGroup
     /// (or several, one per nested part), switching at its own small size.
     /// The building switches for the whole building at once: up close every
     /// piece's full detail, piece by piece (each culled on its own,
@@ -75,6 +77,9 @@ namespace LevelGen
         {
             public Transform Group;
             public Transform Roofs;
+            // Open windows standing in the building and their interiors,
+            // outside the generated root (OpenWindowInteriors).
+            public readonly List<Transform> Extras = new();
             public readonly List<Renderer> Near = new();
             public readonly List<MeshRenderer> Merged = new();
             // The pack's fading, copied from its first LODGroup.
@@ -116,6 +121,9 @@ namespace LevelGen
 
                 List<string> log = new();
                 Build(sector, root.transform, settings, log);
+                // The proxies are the generator's own work: recorded in the
+                // fingerprint, so a regeneration doesn't take them for hand edits.
+                root.Record(root.SpecPath, LevelGenerator.Fingerprint(root.transform));
                 EditorSceneManager.MarkSceneDirty(root.gameObject.scene);
                 Debug.Log($"BuildingProxies: rebuilt '{sector}', {restored} piece LODGroup(s) given back first.\n{string.Join("\n", log)}\nRebake the lighting (and occlusion) to light them.");
             }
@@ -145,6 +153,10 @@ namespace LevelGen
 
             if (building.Roofs != null) {
                 restored += RestorePieces(building.Roofs);
+            }
+
+            foreach (Transform extra in building.Extras) {
+                restored += RestorePieces(extra);
             }
 
             return restored;
@@ -564,6 +576,26 @@ namespace LevelGen
                 }
             }
 
+            // Each open window (and the room behind it) goes with the
+            // building holding the generated wall nearest it.
+            List<OpenWindowInterior> windows = OpenWindowInteriors.InSector(root.parent);
+            PieceAnnotations annotations = windows.Count > 0 ? PieceAnnotations.Load() : null;
+
+            foreach (OpenWindowInterior window in windows) {
+                Transform group = annotations != null ? OpenWindowInteriors.BuildingOf(window, root, annotations) : null;
+                Building building = buildings.Find(b => b.Group == group);
+
+                if (building == null) {
+                    continue;
+                }
+
+                building.Extras.Add(window.transform);
+
+                if (window.Built != null) {
+                    building.Extras.Add(window.Built.transform);
+                }
+            }
+
             return buildings;
         }
 
@@ -586,6 +618,10 @@ namespace LevelGen
 
             if (building.Roofs != null) {
                 AddChildren(building.Roofs, groups, renderers);
+            }
+
+            foreach (Transform extra in building.Extras) {
+                AddChildren(extra, groups, renderers);
             }
 
             HashSet<Renderer> inGroups = new();

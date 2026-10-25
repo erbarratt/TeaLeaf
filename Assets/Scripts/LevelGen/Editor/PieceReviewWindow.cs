@@ -683,6 +683,8 @@ namespace LevelGen
                 piece.onePerStorey);
             piece.lit = EditorGUILayout.Toggle(new GUIContent("Lit", "A window insert whose panes glow as if lit from behind: put into the share of filled window holes the settings' Lit Window Share gives, the unlit inserts in the rest."),
                 piece.lit);
+            piece.openWindowInterior = EditorGUILayout.Toggle(new GUIContent("Open Window Interior", "A plain wall the open window interiors build their rooms from (scaled thin), matched to the building's style, else to the \"default\" style. Needs Verified too."),
+                piece.openWindowInterior);
             piece.excluded = EditorGUILayout.Toggle("Excluded", piece.excluded);
             piece.verified = EditorGUILayout.Toggle("Verified", piece.verified);
 

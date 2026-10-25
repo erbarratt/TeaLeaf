@@ -1602,7 +1602,7 @@ namespace LevelGen
         /// to it, is added. A length under one piece gets one piece of that
         /// width. Nothing for a length under SizeTolerance.
         /// </summary>
-        private static List<float> FitWidths(float length, float normal, float overlap, GeneratorSettings settings)
+        internal static List<float> FitWidths(float length, float normal, float overlap, GeneratorSettings settings)
         {
             List<float> widths = new();
 

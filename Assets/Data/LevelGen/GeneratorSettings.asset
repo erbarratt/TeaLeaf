@@ -166,6 +166,20 @@ MonoBehaviour:
   cullRange: 80
   roofEdgeGap: 1.5
   roofEdgeReach: 20
+  buildingProxies: 1
+  lowerDetailShare: 0.2
+  proxyCullShare: 0.04
+  proxyLightmapScale: 0.6
+  proxyBakePushoff: 0.03
+  proxyAtlasSize: 4096
+  proxyAtlasTile: 512
+  proxyAtlasPadding: 16
+  openWindowFloorTile: {fileID: 2649417001457240065, guid: 14949f16e82076c43ad2424b546ff3ee, type: 3}
+  openWindowTileOverlap: 0.1
+  openWindowFloorOffset: 0.06
+  openWindowCeilingOffset: -0.06
+  openWindowWallThickness: 0.36
+  openWindowPortalSize: {x: 1.2, y: 1.3}
   moonShaftStreetMaxWidth: 0
   moonShaftMaxLength: 40
   moonShaftInset: 0.3

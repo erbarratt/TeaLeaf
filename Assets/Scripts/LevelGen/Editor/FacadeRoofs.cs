@@ -179,8 +179,8 @@ namespace LevelGen
         /// Gives each building a wall colour and, separately, a roof colour:
         /// the plain one (ColourVariants.Default: the maintainer's unsuffixed
         /// copy of each piece's material, else the piece's own) or a colour
-        /// variant (ColourVariants: a material under Assets/Art/Materials or
-        /// Assets/Prefabs named after a piece's material with a colour
+        /// variant (ColourVariants: a material in the variant folders under
+        /// Assets/Art/Materials/Environment named after a piece's material with a colour
         /// suffix), each chosen at random from the variants the pieces
         /// concerned have - so a roof may take a colour no wall has. The
         /// wall colour goes to every piece under the building's group (walls,

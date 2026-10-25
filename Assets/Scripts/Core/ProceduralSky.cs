@@ -8,12 +8,14 @@ namespace Core
     /// The level's night sky. There is no skybox: the camera clears to a
     /// flat colour (black) and this component draws the stars and the moon
     /// over it as flat discs, with the TeaLeaf/Sky shader - which keeps
-    /// them locked to the camera, pin-sharp at any resolution, and makes
-    /// the stars twinkle (see the shader for how). When the level loads it
+    /// them locked to the camera and pin-sharp at any resolution (see the
+    /// shader for how). The stars are steady. When the level loads it
     /// builds one mesh holding every star, placed at random above the
     /// horizon from the settings and seed, and one for the moon, which is
     /// aimed where the Directional Light shines from - so the moon in the
-    /// sky is where the moonlight and its shadows come from. Building takes
+    /// sky is where the moonlight and its shadows come from. Over both go
+    /// the clouds, a cubemap drifting with the wind (TeaLeaf/SkyClouds,
+    /// as Thief VR's cloud layer). Building takes
     /// about a millisecond and happens in OnEnable(), before the first
     /// frame, behind ScreenFade's level-start black; nothing runs per frame
     /// afterwards. The sky is a picture only: it gives off no light, which
@@ -72,19 +74,6 @@ namespace Core
         // 0 = full brightness right down to the horizon.
         [SerializeField, Range(0f, 30f)] private float horizonFade = 6f;
 
-        [Header("Twinkle")]
-
-        // How much a star's brightness wavers: 0.2 = up to 20% either way,
-        // 0 = steady.
-        [SerializeField, Range(0f, 1f)] private float twinkleAmount = 0.2f;
-
-        // How fast it wavers.
-        [SerializeField, Range(0f, 20f)] private float twinkleSpeed = 5f;
-
-        // The share of the twinkle that stars straight overhead keep; stars
-        // at the horizon get all of it. 1 = the same everywhere.
-        [SerializeField, Range(0f, 1f)] private float twinkleOverhead = 0.3f;
-
         [Header("Moon")]
         [SerializeField] private bool showMoon = true;
 
@@ -97,24 +86,64 @@ namespace Core
 
         [SerializeField] private Color moonColor = new Color(0.85f, 0.87f, 0.9f);
 
-        // Paint the moon's face (seas, craters, rays). Off, the moon is a
-        // plain disc of the colour above.
-        [SerializeField] private bool showMoonSurface = true;
+        // The picture of the moon's face, multiplied by the colour above.
+        // Left empty, the moon is a plain disc of that colour.
+        [SerializeField] private Texture2D moonTexture;
 
-        [SerializeField] private MoonSurfaceSettings moonSurface = new MoonSurfaceSettings();
+        // The square of the picture the moon's disc fills, in 0-1 picture
+        // coordinates (x, y from the bottom left; width, height), so a
+        // picture with a margin round the moon needs no cropping.
+        [SerializeField] private Rect moonTextureArea = new Rect(0f, 0f, 1f, 1f);
+
+        [Header("Clouds")]
+        [SerializeField] private bool showClouds = true;
+
+        // The clouds all round: bright where thick, black where the sky is
+        // clear. Left empty, there are no clouds.
+        [SerializeField] private Cubemap cloudCubemap;
+
+        // What the cubemap's colour is multiplied by. The numbers are used
+        // as they are, not converted to linear like a material colour.
+        [SerializeField] private Color cloudTint = new Color(0.118f, 0.102f, 0.18f);
+
+        // Brightness on top of the tint.
+        [SerializeField, Range(0f, 8f)] private float cloudExposure = 1.1f;
+
+        // Turns the clouds round the vertical axis, in degrees.
+        [SerializeField, Range(0f, 360f)] private float cloudRotation = 214f;
+
+        // How much thick cloud hides the stars and moon behind it: 0 = the
+        // clouds only add light, 1 = the thickest cloud hides them.
+        [SerializeField, Range(0f, 1f)] private float cloudOpacity = 1f;
+
+        // Which way the clouds flow across the sky (world x, z). Its length
+        // scales the distance below too.
+        [SerializeField] private Vector2 wind = new Vector2(0.78f, 2.27f);
+
+        // How far the clouds flow in one cycle before the read jumps back
+        // (see the TeaLeaf/SkyClouds shader); negative flows the other way.
+        // Small: too far and the jump shows as a pulse.
+        [SerializeField, Range(-0.2f, 0.2f)] private float flowDistance = -0.02f;
+
+        // Flow cycles per second.
+        [SerializeField, Range(0f, 1f)] private float flowSpeed = 0.05f;
 
         private const string ShaderName = "TeaLeaf/Sky";
+        private const string CloudShaderName = "TeaLeaf/SkyClouds";
         private const string SurfaceKeyword = "_SURFACE_TEXTURE";
 
         // The meshes are never culled: the shader draws them around the
         // camera wherever it is, so their real bounds mean nothing.
         private const float BoundsSize = 100000f;
 
-        private static readonly int _twinkleAmountId = Shader.PropertyToID("_TwinkleAmount");
-        private static readonly int _twinkleSpeedId = Shader.PropertyToID("_TwinkleSpeed");
-        private static readonly int _twinkleOverheadId = Shader.PropertyToID("_TwinkleOverhead");
         private static readonly int _minPixelRadiusId = Shader.PropertyToID("_MinPixelRadius");
         private static readonly int _surfaceTexId = Shader.PropertyToID("_SurfaceTex");
+        private static readonly int _cloudTexId = Shader.PropertyToID("_CloudTex");
+        private static readonly int _tintId = Shader.PropertyToID("_Tint");
+        private static readonly int _exposureId = Shader.PropertyToID("_Exposure");
+        private static readonly int _rotationId = Shader.PropertyToID("_Rotation");
+        private static readonly int _opacityId = Shader.PropertyToID("_Opacity");
+        private static readonly int _windId = Shader.PropertyToID("_Wind");
 
         // The four corners of a quad, and the two triangles joining them.
         private static readonly Vector2[] _corners = {
@@ -130,11 +159,14 @@ namespace Core
         private Material _material;
 
         // The moon has a material of its own, the same shader with its
-        // face switched on, and the picture of that face.
+        // face switched on.
         private Material _moonMaterial;
-        private Texture2D _moonTexture;
+
+        // The clouds have a shader of their own.
+        private Material _cloudMaterial;
         private MeshFilter _stars;
         private MeshFilter _moon;
+        private MeshFilter _clouds;
 
         // What the scene and camera had before this component took over,
         // put back when it is disabled.
@@ -172,9 +204,10 @@ namespace Core
         private void OnEnable()
         {
             Shader shader = Shader.Find(ShaderName);
+            Shader cloudShader = Shader.Find(CloudShaderName);
 
-            if (shader == null) {
-                Debug.LogError($"ProceduralSky: shader '{ShaderName}' not found - the sky is left as it was.");
+            if (shader == null || cloudShader == null) {
+                Debug.LogError($"ProceduralSky: shader '{ShaderName}' or '{CloudShaderName}' not found - the sky is left as it was.");
                 return;
             }
 
@@ -193,8 +226,16 @@ namespace Core
                 hideFlags = HideFlags.DontSave
             };
 
+            _cloudMaterial = new Material(cloudShader) {
+                name = "Procedural Sky Clouds",
+                hideFlags = HideFlags.DontSave
+            };
+
+            // The clouds last of all, so they pass in front of the stars
+            // and the moon.
             _stars = CreatePart("Sky Stars", _material, 0);
             _moon = CreatePart("Sky Moon", _moonMaterial, 1);
+            _clouds = CreatePart("Sky Clouds", _cloudMaterial, 2);
 
             // No skybox: the camera clears to the sky colour instead.
             _previousSkybox = RenderSettings.skybox;
@@ -229,21 +270,23 @@ namespace Core
 
             ReleasePart(_stars);
             ReleasePart(_moon);
+            ReleasePart(_clouds);
             Release(_material);
             Release(_moonMaterial);
-            Release(_moonTexture);
+            Release(_cloudMaterial);
             _moonMaterial = null;
-            _moonTexture = null;
+            _cloudMaterial = null;
             _stars = null;
             _moon = null;
+            _clouds = null;
             _material = null;
         }
 
         /// <summary>
-        /// Makes the sky again from the current settings: the star and moon
-        /// meshes, the twinkle, the moon's face, the background colour and
-        /// the moon's direction. Quick (a few milliseconds, most of it the
-        /// moon's face), but it allocates, so in the game it's only for
+        /// Makes the sky again from the current settings: the star, moon
+        /// and cloud meshes, the moon's face, the clouds' look, the
+        /// background colour and the moon's direction. Quick (about a
+        /// millisecond), but it allocates, so in the game it's only for
         /// level load.
         /// </summary>
         public void Rebuild()
@@ -258,23 +301,32 @@ namespace Core
 
             ReplaceMesh(_stars, BuildStarMesh());
             ReplaceMesh(_moon, BuildMoonMesh());
+            ReplaceMesh(_clouds, BuildCloudMesh());
 
-            _material.SetFloat(_twinkleAmountId, twinkleAmount);
-            _material.SetFloat(_twinkleSpeedId, twinkleSpeed);
-            _material.SetFloat(_twinkleOverheadId, twinkleOverhead);
+            // The clouds: the cubemap and its look, all read by the shader
+            // (the flow runs there, off the shader's own clock).
+            bool hasClouds = showClouds && cloudCubemap != null;
+            _clouds.gameObject.SetActive(hasClouds);
+
+            if (hasClouds) {
+                _cloudMaterial.SetTexture(_cloudTexId, cloudCubemap);
+                _cloudMaterial.SetVector(_tintId, cloudTint);
+                _cloudMaterial.SetFloat(_exposureId, cloudExposure);
+                _cloudMaterial.SetFloat(_rotationId, cloudRotation);
+                _cloudMaterial.SetFloat(_opacityId, cloudOpacity);
+                _cloudMaterial.SetVector(_windId, new Vector4(wind.x, wind.y, flowDistance, flowSpeed));
+            }
 
             // The setting is a width, the shader wants a radius.
             _material.SetFloat(_minPixelRadiusId, minStarPixels * 0.5f);
 
-            // The moon's face: painted afresh, or switched off in the
-            // shader (a keyword picks which version of it is used).
-            Release(_moonTexture);
-            _moonTexture = null;
-
-            if (showMoonSurface) {
-                _moonTexture = MoonSurfaceBuilder.Build(moonSurface);
-                _moonTexture.hideFlags = HideFlags.DontSave;
-                _moonMaterial.SetTexture(_surfaceTexId, _moonTexture);
+            // The moon's face, or switched off in the shader (a keyword
+            // picks which version of it is used). The texture's scale and
+            // offset fit the picture's moon to the disc.
+            if (moonTexture != null) {
+                _moonMaterial.SetTexture(_surfaceTexId, moonTexture);
+                _moonMaterial.SetTextureScale(_surfaceTexId, moonTextureArea.size);
+                _moonMaterial.SetTextureOffset(_surfaceTexId, moonTextureArea.position);
                 _moonMaterial.EnableKeyword(SurfaceKeyword);
             } else {
                 _moonMaterial.DisableKeyword(SurfaceKeyword);
@@ -347,8 +399,7 @@ namespace Core
             int vertexCount = starCount * 4;
             var directions = new Vector3[vertexCount];
             var colors = new Color[vertexCount];
-            var corners = new Vector4[vertexCount];
-            var twinkles = new Vector2[vertexCount];
+            var corners = new Vector3[vertexCount];
             var triangles = new int[starCount * 6];
 
             Random random = Random.CreateFromIndex((uint)seed);
@@ -382,35 +433,58 @@ namespace Core
                 // Alpha 0 = added to what's behind it (see the shader).
                 Color color = ToLinear(tint, brightness, 0f);
 
-                // Each star starts at its own point in its twinkle and
-                // runs at its own speed, so no two keep time.
-                float phase = random.NextFloat(0f, 100f);
-                float speed = random.NextFloat(0.6f, 1.4f);
-
-                WriteQuad(i, direction, color, RadiusFromWidth(width), phase, new Vector2(speed, 1f),
-                    directions, colors, corners, twinkles, triangles);
+                WriteQuad(i, direction, color, RadiusFromWidth(width), directions, colors, corners, triangles);
             }
 
-            return CreateMesh("Sky Stars", directions, colors, corners, twinkles, triangles);
+            return CreateMesh("Sky Stars", directions, colors, corners, triangles);
         }
 
         /// <summary>
         /// Builds the moon's mesh: one quad straight ahead (+Z), which
-        /// AimMoon() turns towards the light. It doesn't twinkle, and
-        /// covers what's behind it.
+        /// AimMoon() turns towards the light. It covers what's behind it.
         /// </summary>
         private Mesh BuildMoonMesh()
         {
             var directions = new Vector3[4];
             var colors = new Color[4];
-            var corners = new Vector4[4];
-            var twinkles = new Vector2[4];
+            var corners = new Vector3[4];
             var triangles = new int[6];
 
-            WriteQuad(0, Vector3.forward, ToLinear(moonColor, 1f, 1f), RadiusFromWidth(moonSize), 0f, Vector2.zero,
-                directions, colors, corners, twinkles, triangles);
+            WriteQuad(0, Vector3.forward, ToLinear(moonColor, 1f, 1f), RadiusFromWidth(moonSize), directions, colors, corners, triangles);
 
-            return CreateMesh("Sky Moon", directions, colors, corners, twinkles, triangles);
+            return CreateMesh("Sky Moon", directions, colors, corners, triangles);
+        }
+
+        /// <summary>
+        /// Builds the clouds' mesh: a cube round the eye, its eight corners
+        /// directions, which the shader places round the camera and reads
+        /// the cubemap along. Drawn from inside (the shader culls nothing).
+        /// </summary>
+        private static Mesh BuildCloudMesh()
+        {
+            var mesh = new Mesh {
+                name = "Sky Clouds",
+                hideFlags = HideFlags.DontSave
+            };
+
+            mesh.SetVertices(new[] {
+                new Vector3(-1f, -1f, -1f), new Vector3(1f, -1f, -1f), new Vector3(1f, 1f, -1f), new Vector3(-1f, 1f, -1f),
+                new Vector3(-1f, -1f, 1f), new Vector3(1f, -1f, 1f), new Vector3(1f, 1f, 1f), new Vector3(-1f, 1f, 1f)
+            });
+
+            // Two triangles per face: back, front, left, right, bottom, top.
+            mesh.SetTriangles(new[] {
+                0, 1, 2, 0, 2, 3,
+                4, 6, 5, 4, 7, 6,
+                0, 3, 7, 0, 7, 4,
+                1, 5, 6, 1, 6, 2,
+                0, 4, 5, 0, 5, 1,
+                3, 2, 6, 3, 6, 7
+            }, 0, false);
+
+            mesh.bounds = new Bounds(Vector3.zero, Vector3.one * BoundsSize);
+            mesh.UploadMeshData(true);
+            return mesh;
         }
 
         /// <summary>
@@ -418,16 +492,15 @@ namespace Core
         /// arrays. The layout matches the shader's Attributes.
         /// </summary>
         private static void WriteQuad(
-            int index, Vector3 direction, Color color, float radius, float phase, Vector2 twinkle,
-            Vector3[] directions, Color[] colors, Vector4[] corners, Vector2[] twinkles, int[] triangles)
+            int index, Vector3 direction, Color color, float radius,
+            Vector3[] directions, Color[] colors, Vector3[] corners, int[] triangles)
         {
             int firstVertex = index * 4;
 
             for (int c = 0; c < 4; c++) {
                 directions[firstVertex + c] = direction;
                 colors[firstVertex + c] = color;
-                corners[firstVertex + c] = new Vector4(_corners[c].x, _corners[c].y, radius, phase);
-                twinkles[firstVertex + c] = twinkle;
+                corners[firstVertex + c] = new Vector3(_corners[c].x, _corners[c].y, radius);
             }
 
             for (int t = 0; t < 6; t++) {
@@ -439,7 +512,7 @@ namespace Core
         /// Turns the filled arrays into a mesh.
         /// </summary>
         private static Mesh CreateMesh(
-            string meshName, Vector3[] directions, Color[] colors, Vector4[] corners, Vector2[] twinkles, int[] triangles)
+            string meshName, Vector3[] directions, Color[] colors, Vector3[] corners, int[] triangles)
         {
             var mesh = new Mesh {
                 name = meshName,
@@ -453,7 +526,6 @@ namespace Core
             mesh.SetVertices(directions);
             mesh.SetColors(colors);
             mesh.SetUVs(0, corners);
-            mesh.SetUVs(1, twinkles);
             mesh.SetTriangles(triangles, 0, false);
             mesh.bounds = new Bounds(Vector3.zero, Vector3.one * BoundsSize);
 

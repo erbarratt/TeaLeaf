@@ -95,7 +95,7 @@ namespace LevelGen
         /// </summary>
         internal static void RunWalkways(Transform root, GeneratorSettings settings, List<string> log)
         {
-            Run(root, PiecesUnderGroups(root, name => name == WalkwayGroup), "Walkway", settings.FoundationColliderTolerance, SurfaceType.Wood, true, log);
+            Run(root, PiecesUnderGroups(root, group => group.name == WalkwayGroup), "Walkway", settings.FoundationColliderTolerance, SurfaceType.Wood, true, log);
         }
 
         /// <summary>
@@ -104,12 +104,24 @@ namespace LevelGen
         /// window walls, and the windows and doors set in them) placed
         /// anywhere under root: a storey's upright boxes become one box per
         /// run, storeys with their fronts in line one box together; a door
-        /// surround's slanted boxes stay as they are. Adds one line to log.
+        /// surround's slanted boxes stay as they are. A group in unmerged (a
+        /// storey an open window stands in, OpenWindowInteriors.CutWalls)
+        /// keeps its pieces' own colliders, so no box closes the window.
+        /// Adds one line to log.
         /// </summary>
-        internal static void RunWalls(Transform root, GeneratorSettings settings, List<string> log)
+        internal static void RunWalls(Transform root, HashSet<Transform> unmerged, GeneratorSettings settings, List<string> log)
         {
-            Run(root, PiecesUnderGroups(root, name => name == CornerGroup || name.StartsWith(StoreyGroupPrefix, StringComparison.Ordinal)),
+            Run(root, PiecesUnderGroups(root, group => IsWallGroup(group.name) && !unmerged.Contains(group)),
                 "Wall", settings.WallColliderTolerance, SurfaceType.Stone, true, log);
+        }
+
+        /// <summary>
+        /// Whether a group's name is one of a building's wall groups ("Storey
+        /// n" or "Corner") whose pieces RunWalls merges.
+        /// </summary>
+        internal static bool IsWallGroup(string name)
+        {
+            return name == CornerGroup || name.StartsWith(StoreyGroupPrefix, StringComparison.Ordinal);
         }
 
         /// <summary>
@@ -160,13 +172,13 @@ namespace LevelGen
         /// Every placed piece (an outermost prefab instance) under any group
         /// below root whose name the test accepts; each piece once.
         /// </summary>
-        private static List<GameObject> PiecesUnderGroups(Transform root, Func<string, bool> isGroup)
+        private static List<GameObject> PiecesUnderGroups(Transform root, Func<Transform, bool> isGroup)
         {
             List<GameObject> pieces = new();
             HashSet<GameObject> seen = new();
 
             foreach (Transform group in root.GetComponentsInChildren<Transform>(true)) {
-                if (!isGroup(group.name) || PrefabUtility.IsPartOfPrefabInstance(group)) {
+                if (!isGroup(group) || PrefabUtility.IsPartOfPrefabInstance(group)) {
                     continue;
                 }
 

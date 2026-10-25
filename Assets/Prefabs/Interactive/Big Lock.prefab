@@ -45,12 +45,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a39c246c179b4ad4ea7a01dd37d6c859, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Interaction.BigLock
-  modelScale: 3.5
   pickLength: 0.2
-  pickDepth: 0.015
-  pickLift: 35
+  pickDepth: 0
+  pickRise: 0
+  pickLift: 27
   gripAlong: 0.15
-  minLight: 0.35
   rightStartAngle: 30
   stopSpacing: 28
   stopTolerance: 1.5
@@ -62,7 +61,6 @@ MonoBehaviour:
   pinHoldTime: 1
   minPinGap: 20
   deadRadius: 0.03
-  fadeDuration: 0.25
   pickCue: {fileID: 11400000, guid: 6d9e230dda7560048a2cc410498ecee8, type: 2}
   unlockCue: {fileID: 11400000, guid: 6d9e230dda7560048a2cc410498ecee8, type: 2}
   pickVolume: 0.4

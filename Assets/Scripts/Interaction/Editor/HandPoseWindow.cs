@@ -16,13 +16,14 @@ namespace Interaction
     ///
     /// What can be posed: every prefab under Assets/Prefabs with a
     /// Grabbable (the profile goes on its Grabbable, read by
-    /// PlayerHandHolding), and the things the player holds that aren't
-    /// props - the bow, an arrow, the bow string, the pack, the blackjack,
-    /// the lockpicks worn on the back of the hand and carried, and a pick
-    /// on the big lock (the profile goes
-    /// on PlayerBow, PlayerPack, PlayerBlackjack or PlayerLockpicking in
-    /// the Player prefab). Opened on a selected Grabbable prefab, it
-    /// starts on that.
+    /// PlayerHandHolding), every door prefab there with a DoorHandle (the
+    /// profile goes on the handle, read by PlayerHandDoors), and the
+    /// things the player holds that aren't props - the bow, an arrow, the
+    /// bow string, the pack, the blackjack, the lockpicks worn on the back
+    /// of the hand and carried, and a pick on the big lock (the profile
+    /// goes on PlayerBow, PlayerPack, PlayerBlackjack or PlayerLockpicking
+    /// in the Player prefab). Opened on a selected Grabbable or door
+    /// prefab, it starts on that.
     ///
     /// What's posed is copied into the open scene high above the level,
     /// with a copy of the Player prefab's left or right hand visual placed
@@ -31,7 +32,8 @@ namespace Interaction
     /// selecting a bone and using the Rotate tool. Everything can be undone.
     /// The offsets are measured from a grip frame: a prop's real one
     /// (Grabbable.GetGripFrame(); a cylinder grip is posed for a head
-    /// standing in front of the prop, -Z, as the player would hold it), or
+    /// standing in front of the prop, -Z, as the player would hold it), a
+    /// door handle's on the door's front (DoorHandle.GetGripFrame()), or
     /// for the held things the frame they're placed by (the bow's origin,
     /// an arrow's nock, the pack's origin, the blackjack model's origin,
     /// the lockpicks' tips, a big lock pick's grip frame).
@@ -114,17 +116,19 @@ namespace Interaction
         [SerializeField] private HoldPose working;
 
         // Everything that can be posed - held things first, then every
-        // prefab under Assets/Prefabs whose root has a Grabbable, by path -
-        // with its name and the profile it uses.
+        // prefab under Assets/Prefabs whose root has a Grabbable or that has
+        // a DoorHandle, by path - with its name and the profile it uses.
         private readonly List<string> _subjectKeys = new();
         private readonly List<string> _subjectNames = new();
         private readonly List<HandSnapProfile> _subjectProfiles = new();
 
-        // The copy being posed against. A prop's Grabbable (null for a
-        // held thing), and the transform the grip frame is read from: a
-        // prop's grip point (null: its origin), or a held thing's frame.
+        // The copy being posed against. A prop's Grabbable or a door's
+        // handle (both null for a held thing), and the transform the grip
+        // frame is read from: a prop's grip point (null: its origin), or a
+        // held thing's frame.
         private GameObject _prop;
         private Grabbable _grabbable;
+        private DoorHandle _doorHandle;
         private Transform _gripPoint;
 
         // The pack's chest, under the pack copy: mirrored for the left hand
@@ -145,9 +149,9 @@ namespace Interaction
             HandPoseWindow window = GetWindow<HandPoseWindow>("Pose with Hand");
             GameObject selected = Selection.activeGameObject;
 
-            // On a selected Grabbable prefab, that; else what it showed
-            // last, or the first thing there is.
-            if (selected != null && PrefabUtility.IsPartOfPrefabAsset(selected) && selected.transform.parent == null && selected.GetComponent<Grabbable>() != null) {
+            // On a selected Grabbable or door prefab, that; else what it
+            // showed last, or the first thing there is.
+            if (selected != null && PrefabUtility.IsPartOfPrefabAsset(selected) && selected.transform.parent == null && FindProfileOwner(selected) != null) {
                 window.Choose(AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(selected)));
             } else if (string.IsNullOrEmpty(window.subject) && window._subjectKeys.Count > 0) {
                 window.Choose(window._subjectKeys[0]);
@@ -210,7 +214,8 @@ namespace Interaction
         /// <summary>
         /// Lists everything that can be posed, with its profile: the held
         /// things whose component the Player prefab has, then every prefab
-        /// under Assets/Prefabs whose root has a Grabbable, by path.
+        /// under Assets/Prefabs whose root has a Grabbable or that has a
+        /// DoorHandle, by path.
         /// </summary>
         private void FindSubjects()
         {
@@ -238,14 +243,24 @@ namespace Interaction
 
             foreach (string path in paths) {
                 GameObject asset = AssetDatabase.LoadAssetAtPath<GameObject>(path);
-                Grabbable grabbable = asset != null ? asset.GetComponent<Grabbable>() : null;
+                Component owner = asset != null ? FindProfileOwner(asset) : null;
 
-                if (grabbable != null) {
+                if (owner != null) {
                     _subjectKeys.Add(AssetDatabase.AssetPathToGUID(path));
-                    _subjectNames.Add(asset.name);
-                    _subjectProfiles.Add(grabbable.SnapProfile);
+                    _subjectNames.Add(owner is DoorHandle ? $"{asset.name} (handle)" : asset.name);
+                    _subjectProfiles.Add(owner is Grabbable grabbable ? grabbable.SnapProfile : ((DoorHandle)owner).SnapProfile);
                 }
             }
+        }
+
+        /// <summary>
+        /// What holds a prefab's profile: the Grabbable on its root, else
+        /// its (first) DoorHandle; null if it has neither.
+        /// </summary>
+        private static Component FindProfileOwner(GameObject prefab)
+        {
+            Grabbable grabbable = prefab.GetComponent<Grabbable>();
+            return grabbable != null ? grabbable : prefab.GetComponentInChildren<DoorHandle>(true);
         }
 
         /// <summary>
@@ -303,7 +318,7 @@ namespace Interaction
         private void OnGUI()
         {
             if (_subjectKeys.Count == 0) {
-                EditorGUILayout.HelpBox($"Nothing to pose: no bow, pack, blackjack or lockpicks in {PlayerPrefabPath}, and no prefab under {PrefabFolder} has a Grabbable on its root.", MessageType.Info);
+                EditorGUILayout.HelpBox($"Nothing to pose: no bow, pack, blackjack or lockpicks in {PlayerPrefabPath}, and no prefab under {PrefabFolder} has a Grabbable on its root or a DoorHandle.", MessageType.Info);
                 return;
             }
 
@@ -571,8 +586,9 @@ namespace Interaction
 
         /// <summary>
         /// Writes the pose to the profile, making the profile first (and
-        /// giving it to the prop's Grabbable, or the held thing's component
-        /// in the Player prefab) if there is none or it uses another.
+        /// giving it to the prop's Grabbable, the door's handle, or the held
+        /// thing's component in the Player prefab) if there is none or it
+        /// uses another.
         /// </summary>
         private void Save()
         {
@@ -624,8 +640,8 @@ namespace Interaction
 
         /// <summary>
         /// The subject takes the profile, if it holds another (or none):
-        /// the prop's Grabbable, or the held thing's field in the Player
-        /// prefab. Its prefab is saved.
+        /// the prop's Grabbable, the door's handle, or the held thing's
+        /// field in the Player prefab. Its prefab is saved.
         /// </summary>
         private void GiveProfile()
         {
@@ -637,7 +653,8 @@ namespace Interaction
                 field = ToolField(tool);
             } else {
                 prefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(subject));
-                field = prefab != null ? new SerializedObject(prefab.GetComponent<Grabbable>()).FindProperty("snapProfile") : null;
+                Component owner = prefab != null ? FindProfileOwner(prefab) : null;
+                field = owner != null ? new SerializedObject(owner).FindProperty("snapProfile") : null;
             }
 
             if (field == null || field.objectReferenceValue == profile) {
@@ -758,11 +775,16 @@ namespace Interaction
 
         /// <summary>
         /// The grip frame for a hand, as the copy lies: a prop's (for a
-        /// cylinder, the hand's side of it seen from a head in front), or
-        /// a held thing's frame.
+        /// cylinder, the hand's side of it seen from a head in front), a
+        /// door handle's on the door's front, or a held thing's frame.
         /// </summary>
         private void GetGripFrame(bool isLeft, out Vector3 position, out Quaternion rotation)
         {
+            if (_doorHandle != null) {
+                _doorHandle.GetGripFrame(isLeft, true, out position, out rotation);
+                return;
+            }
+
             if (_grabbable == null) {
                 Transform frame = _gripPoint != null ? _gripPoint : _prop.transform;
                 position = frame.position;
@@ -808,20 +830,26 @@ namespace Interaction
         }
 
         /// <summary>
-        /// A copy of the chosen Grabbable prefab, and its grip point.
+        /// A copy of the chosen Grabbable prefab and its grip point, or of
+        /// the chosen door prefab and its handle.
         /// </summary>
         private void BuildPropPreview()
         {
             GameObject asset = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(subject));
 
-            if (asset == null || asset.GetComponent<Grabbable>() == null) {
+            if (asset == null || FindProfileOwner(asset) == null) {
                 return;
             }
 
             _prop = Instantiate(asset, _previewPosition, asset.transform.rotation);
             _prop.name = PreviewName;
             _grabbable = _prop.GetComponent<Grabbable>();
-            _gripPoint = new SerializedObject(_grabbable).FindProperty("gripPoint").objectReferenceValue as Transform;
+
+            if (_grabbable != null) {
+                _gripPoint = new SerializedObject(_grabbable).FindProperty("gripPoint").objectReferenceValue as Transform;
+            } else {
+                _doorHandle = _prop.GetComponentInChildren<DoorHandle>(true);
+            }
         }
 
         /// <summary>
@@ -1169,6 +1197,7 @@ namespace Interaction
             _hand = null;
             _prop = null;
             _grabbable = null;
+            _doorHandle = null;
             _gripPoint = null;
             _packChest = null;
         }
@@ -1186,8 +1215,13 @@ namespace Interaction
 
             Bounds bounds = new(_prop.transform.position, Vector3.one * 0.1f);
 
-            foreach (Renderer renderer in _prop.GetComponentsInChildren<Renderer>()) {
-                bounds.Encapsulate(renderer.bounds);
+            // A door is framed round its handle only, not the whole leaf.
+            if (_doorHandle != null) {
+                bounds = new Bounds(_doorHandle.transform.position, Vector3.one * 0.3f);
+            } else {
+                foreach (Renderer renderer in _prop.GetComponentsInChildren<Renderer>()) {
+                    bounds.Encapsulate(renderer.bounds);
+                }
             }
 
             if (_hand != null) {
@@ -1256,6 +1290,12 @@ namespace Interaction
                 };
             }
 
+            if (_doorHandle != null) {
+                return _doorHandle.Turns
+                    ? "The door handle's lever on the door's front (Z into the door, Y along the lever towards the thumb). In play the hand on the back is the same pose turned round, and turns with the lever."
+                    : "The fixed handle's bar on the door's front (Z into the door, Y up the bar). In play the hand on the back is the same pose turned round.";
+            }
+
             string point = _gripPoint != null ? $"grip point '{_gripPoint.name}'" : "no grip point (the prop's origin)";
             return IsCylinder()
                 ? $"Cylinder round {point}, posed for a head {-_headOffset.z:0.##} m in front and {_headOffset.y:0.##} m above."
@@ -1282,7 +1322,12 @@ namespace Interaction
             }
 
             GameObject asset = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(subject));
-            return asset != null ? asset.name : "Hand Pose";
+
+            if (asset == null) {
+                return "Hand Pose";
+            }
+
+            return FindProfileOwner(asset) is DoorHandle ? asset.name + "Handle" : asset.name;
         }
 
         /// <summary>

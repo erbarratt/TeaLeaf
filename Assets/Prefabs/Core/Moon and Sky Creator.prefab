@@ -197,26 +197,23 @@ MonoBehaviour:
     m_NumAlphaKeys: 2
   starColorAmount: 0.6
   horizonFade: 6
-  twinkleAmount: 0.004
-  twinkleSpeed: 0.05
-  twinkleOverhead: 0.3
   showMoon: 1
   moonLight: {fileID: 1149683369641484150}
   moonSize: 4
   moonColor: {r: 0.85, g: 0.87, b: 0.9, a: 1}
-  showMoonSurface: 1
-  moonSurface:
-    textureSize: 512
-    seed: 1
-    seaAmount: 0.45
-    seaDarkness: 0.156
-    seaScale: 1.2
-    craterCount: 350
-    craterSize: {x: 0.012, y: 0.16}
-    craterSmallBias: 4
-    craterContrast: 0.225
-    rayCraters: 2
-    rayBrightness: 0.2
-    rayLength: 9
-    roughness: 0.691
-    edgeDarkening: 0.3
+  moonTexture: {fileID: 2800000, guid: 2e60ef887307c9442b2cc3d9004530e7, type: 3}
+  moonTextureArea:
+    serializedVersion: 2
+    x: 0.14746094
+    y: 0.15917969
+    width: 0.69384766
+    height: 0.6923828
+  showClouds: 1
+  cloudCubemap: {fileID: 8900000, guid: 84602a49023095d468eaf44bf777cb23, type: 3}
+  cloudTint: {r: 0.118, g: 0.102, b: 0.18, a: 1}
+  cloudExposure: 1.1
+  cloudRotation: 214
+  cloudOpacity: 1
+  wind: {x: 0.78, y: 2.27}
+  flowDistance: -0.02
+  flowSpeed: 0.05

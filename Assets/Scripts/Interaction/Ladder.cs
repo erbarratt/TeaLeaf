@@ -131,6 +131,15 @@ namespace Interaction
         }
 
         /// <summary>
+        /// Height of the ladder's top (the middle of its box's top face) -
+        /// what a mantle off it goes over.
+        /// </summary>
+        public float GetMantleEdgeHeight(Vector3 feetPosition)
+        {
+            return transform.TransformPoint(_boxCollider.center + Vector3.up * (_boxCollider.size.y * 0.5f)).y;
+        }
+
+        /// <summary>
         /// Editor-only: runs when the component is first added. Fills in a
         /// sensible default mantle point for this box.
         /// </summary>

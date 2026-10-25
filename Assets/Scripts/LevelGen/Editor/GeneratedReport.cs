@@ -274,13 +274,26 @@ namespace LevelGen
             pieces = new Grid();
             tiles = new Grid();
             List<MeshRenderer> renderers = new();
+            List<Transform> trees = new();
 
             foreach (Transform child in root) {
-                if (child.name == "Roofs") {
-                    continue;
+                if (child.name != "Roofs") {
+                    trees.Add(child);
                 }
+            }
+
+            // The open windows placed by hand in place of wall modules, outside
+            // the root: their pieces cover the neighbouring walls' ends.
+            foreach (OpenWindowInterior window in OpenWindowInteriors.InSector(root.parent)) {
+                trees.Add(window.transform);
+            }
+
+            foreach (Transform child in trees) {
 
                 bool street = child.name == "Streets";
+                // An open window's pieces only cover; their own ends are
+                // never looked at (nor closed by the gap filler).
+                bool window = child.parent != root;
 
                 foreach (Transform t in child.GetComponentsInChildren<Transform>(true)) {
                     if (!t.name.StartsWith("TL_") || (t.parent != null && IsInsidePiece(t.parent, root))) {
@@ -330,7 +343,7 @@ namespace LevelGen
 
                     byName.TryGetValue(t.name, out PieceAnnotation annotation);
                     Piece piece = new() {
-                        Root = t, Path = PathUnder(t, root), Category = annotation?.category ?? "",
+                        Root = t, Path = PathUnder(t, root), Category = window ? "" : annotation?.category ?? "",
                         Front = annotation != null && annotation.fronts.Count == 1 ? annotation.fronts[0] : Vector3.zero, Min = min, Max = max, World = world
                     };
                     (street ? tiles : pieces).Add(piece);

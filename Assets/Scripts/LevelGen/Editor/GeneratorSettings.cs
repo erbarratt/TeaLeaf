@@ -387,6 +387,20 @@ namespace LevelGen
         [Tooltip("Pixels round each tile's picture filled with its edge pixels, so the atlas's smaller mip levels don't blend one tile into its neighbour. Each mip level halves it: 16 holds to the fourth.")]
         [SerializeField, Range(0, 64)] private int proxyAtlasPadding = 16;
 
+        [Header("Open window interiors")]
+        [Tooltip("The floor tile laid, scaled to fit, as each open window interior's floor and ceiling (it needs a verified floor annotation for its walking surface).")]
+        [SerializeField] private GameObject openWindowFloorTile;
+        [Tooltip("How far neighbouring floor and ceiling tiles overlap each other, both ways.")]
+        [SerializeField, Range(0f, 0.5f)] private float openWindowTileOverlap = 0.03f;
+        [Tooltip("How far the floor's walking surface stands above the window's base (negative: below).")]
+        [SerializeField, Range(-1f, 1f)] private float openWindowFloorOffset;
+        [Tooltip("How far the ceiling's underside stands above the walls' top (negative: below).")]
+        [SerializeField, Range(-1f, 1f)] private float openWindowCeilingOffset;
+        [Tooltip("The share of their own depth (front to back) an open window interior's walls are scaled to: thin inner walls.")]
+        [SerializeField, Range(0.05f, 1f)] private float openWindowWallThickness = 0.36f;
+        [Tooltip("Width and height of the sound portal laid in each open window, joining the interior's sound room to the street's.")]
+        [SerializeField] private Vector2 openWindowPortalSize = new(1.2f, 1.3f);
+
         [Header("Moon shafts")]
         [Tooltip("Every segment of a street no wider than this, with a building on both sides, gets a shaft of moonlight: a MoonShaft laid level across the strip of sky between the two sides' eaves, which cuts itself down to the part the moon reaches and draws nothing where it reaches none. 0 places none.")]
         [SerializeField, Range(0f, 10f)] private float moonShaftStreetMaxWidth = 4.5f;
@@ -583,6 +597,12 @@ namespace LevelGen
         internal int ProxyAtlasSize => proxyAtlasSize;
         internal int ProxyAtlasTile => proxyAtlasTile;
         internal int ProxyAtlasPadding => proxyAtlasPadding;
+        internal GameObject OpenWindowFloorTile => openWindowFloorTile;
+        internal float OpenWindowTileOverlap => openWindowTileOverlap;
+        internal float OpenWindowFloorOffset => openWindowFloorOffset;
+        internal float OpenWindowCeilingOffset => openWindowCeilingOffset;
+        internal float OpenWindowWallThickness => openWindowWallThickness;
+        internal Vector2 OpenWindowPortalSize => openWindowPortalSize;
         internal float MoonShaftStreetMaxWidth => moonShaftStreetMaxWidth;
         internal float MoonShaftMaxLength => moonShaftMaxLength;
         internal float EdgeWallProbe => edgeWallProbe;

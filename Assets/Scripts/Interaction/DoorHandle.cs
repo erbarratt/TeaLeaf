@@ -20,6 +20,11 @@ namespace Interaction
     /// the lever turned. Reading the hand's twist and freeing the door is
     /// Player.PlayerHandDoors' job; the Door owns its lock and latch.
     ///
+    /// A fixed handle (turns off) is a pull fixed to the door, a bar
+    /// standing upright: nothing turns, and taking hold frees the latch
+    /// at once. The hand grips it thumb up, gripAlong along X still
+    /// placing it (usually 0, the bar straight out from this object).
+    ///
     /// Set up: a trigger BoxCollider on the Interactable layer, a child of
     /// the Door, unscaled, sticking further out of each face than anything
     /// solid so hand rays reach it first.
@@ -32,6 +37,9 @@ namespace Interaction
 
         [Tooltip("The part shown turning with the hand: the levers on both faces, as children of one object on the spindle, turned about its local Z. Optional: empty, nothing visible turns.")]
         [SerializeField] private Transform lever;
+
+        [Tooltip("On: a lever turned by the wrist to free the latch. Off: a fixed pull, an upright bar that doesn't turn - taking hold of it frees the latch at once, and the hand grips it thumb up.")]
+        [SerializeField] private bool turns = true;
 
         [Header("Grip")]
 
@@ -61,6 +69,13 @@ namespace Interaction
 
         /// The door this handle opens.
         public Door Door => door;
+
+        /// True for a lever turned by the wrist; false for a fixed pull,
+        /// which frees the latch as soon as it's taken.
+        public bool Turns => turns;
+
+        /// The hand offsets and finger pose shared by handles like this.
+        public HandSnapProfile SnapProfile => snapProfile;
 
         /// How far the lever is shown turned from rest, in degrees about
         /// the spindle (local Z).
@@ -149,30 +164,14 @@ namespace Interaction
 
         /// <summary>
         /// The hand snap pose for a hand on the lever on one side of the
-        /// door, with the lever turned leverAngle degrees. Called every
-        /// frame the handle is held, since the handle moves with the door
-        /// and turns with the hand.
-        ///
-        /// The grip frame is a hand held up flat towards the door, then
-        /// closed round the bar: it sits on the lever's surface on the
-        /// player's side, facing into the door, with its up along the
-        /// lever towards that hand's thumb. The thumb points across the
-        /// player's body - to their left for the right hand, their right
-        /// for the left - which is opposite ways along the door from its
-        /// two sides.
+        /// door, with the lever turned leverAngle degrees (0 for a fixed
+        /// handle). Called every frame the handle is held, since the
+        /// handle moves with the door and turns with the hand.
         /// </summary>
         public HandSnapPose GetSnapPose(bool isLeftHand, bool isFront, float leverAngle)
         {
-            transform.GetPositionAndRotation(out Vector3 spindle, out Quaternion rotation);
-
-            Vector3 outwards = rotation * (isFront ? Vector3.forward : Vector3.back);
-            Vector3 alongDoor = rotation * Vector3.right;
-
-            // Seen from the front, the player's left is the door's +X.
-            Vector3 thumb = isLeftHand == isFront ? -alongDoor : alongDoor;
-
-            Vector3 gripPosition = spindle + alongDoor * gripAlong + outwards * (standOff + gripRadius);
-            Quaternion gripRotation = Quaternion.LookRotation(-outwards, thumb);
+            GetGripFrame(isLeftHand, isFront, out Vector3 gripPosition, out Quaternion gripRotation);
+            Vector3 spindle = transform.position;
 
             // Without a profile, still snap to the bare grip frame so a
             // missing reference is obvious (hand badly offset), not a crash.
@@ -182,8 +181,36 @@ namespace Interaction
 
             // The lever turns about the spindle, and the hand on it goes
             // round with it: turn the whole pose about the spindle's axis.
-            Quaternion turn = Quaternion.AngleAxis(leverAngle, rotation * Vector3.forward);
+            Quaternion turn = Quaternion.AngleAxis(leverAngle, transform.forward);
             return new HandSnapPose(spindle + turn * (pose.Position - spindle), turn * pose.Rotation, pose.Profile);
+        }
+
+        /// <summary>
+        /// The grip frame on one side of the door with the lever at rest,
+        /// before the profile's offsets - what a pose is measured from (the
+        /// game, and Pose with Hand).
+        ///
+        /// A hand held up flat towards the door, then closed round the bar:
+        /// it sits on the bar's surface on the player's side, facing into
+        /// the door, with its up along the bar towards that hand's thumb.
+        /// On a lever the thumb points across the player's body - to their
+        /// left for the right hand, their right for the left - which is
+        /// opposite ways along the door from its two sides. On a fixed
+        /// pull the bar stands upright and the thumb points up.
+        /// </summary>
+        public void GetGripFrame(bool isLeftHand, bool isFront, out Vector3 position, out Quaternion rotation)
+        {
+            transform.GetPositionAndRotation(out Vector3 spindle, out Quaternion handleRotation);
+
+            Vector3 outwards = handleRotation * (isFront ? Vector3.forward : Vector3.back);
+            Vector3 alongDoor = handleRotation * Vector3.right;
+
+            // Seen from the front, the player's left is the door's +X.
+            Vector3 thumb = !turns ? handleRotation * Vector3.up
+                : isLeftHand == isFront ? -alongDoor : alongDoor;
+
+            position = spindle + alongDoor * gripAlong + outwards * (standOff + gripRadius);
+            rotation = Quaternion.LookRotation(-outwards, thumb);
         }
 
         /// <summary>

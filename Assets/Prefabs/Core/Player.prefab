@@ -1574,7 +1574,7 @@ MonoBehaviour:
   playerHandVisuals: {fileID: 771281869691341920}
   playerHandState: {fileID: 0}
   playerHaptics: {fileID: 6949945007257655946}
-  breakDistance: 0.4
+  breakDistance: 0.6
   unlatchAmplitude: 0.4
   unlatchDuration: 0.05
   lockedAmplitude: 0.7
@@ -1604,10 +1604,7 @@ MonoBehaviour:
   carryProfile: {fileID: 11400000, guid: 1e75bfec3fe91eb45ab3d361097cd1a1, type: 2}
   pickProfile: {fileID: 11400000, guid: bd4ce8224ab16984e9905c575b27f425, type: 2}
   takeDistance: 0.12
-  lockModel: {fileID: 6616072385862356346, guid: e2ac071d61b8ab24b9b752374a926a62, type: 3}
   insertDistance: 0.15
-  bigLockDistance: 0.04
-  bigLockBelowHead: 0.3
   leaveDistance: 1.5
   pickReach: 0.1
   breakDistance: 0.3

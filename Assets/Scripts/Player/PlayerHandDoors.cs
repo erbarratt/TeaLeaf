@@ -12,7 +12,9 @@ namespace Player
     /// Then, while it holds on:
     /// - Turning the wrist turns the lever. Turned far enough
     ///   (Door.UnlatchTwist) the latch frees and the door can swing. A
-    ///   locked door's lever stops short and rattles.
+    ///   locked door's lever stops short and rattles. A fixed handle
+    ///   (DoorHandle.Turns off) frees the latch, or rattles, as it's
+    ///   taken.
     /// - Once free, the door follows the hand round its hinge: the hand's
     ///   movement round the hinge line is the door's turn, so pushing,
     ///   pulling or walking through with the handle all work, either way.
@@ -514,17 +516,24 @@ namespace Player
             DoorHandle handle = hand.handle;
             Door door = handle.Door;
 
-            // How far the wrist has turned about the spindle since it took
-            // hold. Both rotations are relative to the door, so the door
-            // swinging under a hand that isn't turning reads as no twist.
-            Quaternion relative = Quaternion.Inverse(door.transform.rotation) * controllerRotation;
-            float twist = TwistAboutZ(relative * Quaternion.Inverse(hand.grabRotation));
-
-            // The lever turns with the wrist as far as its stop: the full
-            // turn that frees the latch, or the short one a lock or a shot
-            // bolt allows.
+            // The lever's stop: the full turn that frees the latch, or the
+            // short one a lock or a shot bolt allows.
             float stop = door.IsHeldShut ? door.LockedTwist : door.UnlatchTwist;
-            handle.SetLeverAngle(Mathf.Clamp(twist, -stop, stop));
+
+            // A fixed handle has nothing to turn: holding it counts as
+            // turned to the stop, so taking it frees the latch at once (or
+            // rattles a locked door once a grab).
+            float twist = stop;
+
+            if (handle.Turns) {
+                // How far the wrist has turned about the spindle since it
+                // took hold. Both rotations are relative to the door, so the
+                // door swinging under a hand that isn't turning reads as no
+                // twist. The lever turns with it as far as its stop.
+                Quaternion relative = Quaternion.Inverse(door.transform.rotation) * controllerRotation;
+                twist = TwistAboutZ(relative * Quaternion.Inverse(hand.grabRotation));
+                handle.SetLeverAngle(Mathf.Clamp(twist, -stop, stop));
+            }
 
             bool isAtStop = Mathf.Abs(twist) >= stop;
 

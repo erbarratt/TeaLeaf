@@ -9,11 +9,17 @@
 // (it grows as the head comes near). With no DoorKeyhole the size is zero
 // and nothing is cut: an ordinary surface.
 //
-// The textures are there so a pack door (or the lock on it) can be drawn
-// with its own art: a copy of its material on this shader with the same
-// base map and normal map. Without them the base map is plain white and
-// the normal map flat, so the door is just its colour. The pack's
-// smoothness and occlusion maps aren't used.
+// The surface is URP Lit's, with the same property names, so a pack or
+// Tripo door (or the lock on it) is drawn with its own art: a copy of its
+// URP Lit material switched to this shader keeps its base map, normal map
+// (and strength), metallic/smoothness map, metallic, smoothness,
+// occlusion map and the specular highlights and environment reflections
+// switches. As in URP Lit, with "Metallic Smoothness Map" on, metallic
+// comes from the map's red and smoothness from its alpha times
+// Smoothness; off, from the two sliders. Without textures the base map is
+// plain white, the normal map flat and occlusion none, so the door is just
+// its colour. Not taken over: emission, parallax, detail maps, the
+// specular workflow.
 //
 // How the opening is made: each pixel works out how far it is from the
 // keyhole's outline (a "signed distance": below zero inside the outline,
@@ -26,9 +32,11 @@
 // (the door's thickness) are a small mesh DoorKeyhole makes, drawn with
 // this same shader.
 //
-// Lighting is URP's simple (Blinn-Phong) model, as the other level shaders.
+// Lighting is URP Lit's physically based model (UniversalFragmentPBR), so
+// the door matches the Lit props round it. Dearer per pixel than the level
+// shaders' simple model, but only door leaves and lock plates use it.
 //
-// Cost, for Quest: a few sums per pixel. Throwing pixels away (clip) makes
+// Cost, for Quest: Lit's lighting plus a few sums per pixel. Throwing pixels away (clip) makes
 // the graphics chip's early depth test less effective for this material, so
 // keep it to door leaves, not whole walls. DoorKeyhole sets its values
 // through a MaterialPropertyBlock, which takes that one leaf out of the SRP
@@ -44,7 +52,20 @@ Shader "TeaLeaf/DoorLeaf"
     {
         _BaseColor ("Colour", Color) = (0.45, 0.3, 0.18, 1)
         _BaseMap ("Texture", 2D) = "white" {}
+        _Metallic ("Metallic", Range(0, 1)) = 0
+        _Smoothness ("Smoothness", Range(0, 1)) = 0.5
+
+        // On: metallic from the map's red, smoothness from its alpha times
+        // Smoothness (URP Lit's _METALLICSPECGLOSSMAP, kept by a copied
+        // Lit material).
+        [Toggle(_METALLICSPECGLOSSMAP)] _UseMetallicMap ("Metallic Smoothness Map", Float) = 0
+        _MetallicGlossMap ("Metallic (R) Smoothness (A)", 2D) = "white" {}
+        _BumpScale ("Normal Strength", Float) = 1
         [Normal] _BumpMap ("Normal Map", 2D) = "bump" {}
+        _OcclusionStrength ("Occlusion Strength", Range(0, 1)) = 1
+        _OcclusionMap ("Occlusion (G)", 2D) = "white" {}
+        [ToggleOff] _SpecularHighlights ("Specular Highlights", Float) = 1
+        [ToggleOff] _EnvironmentReflections ("Environment Reflections", Float) = 1
 
         [Header(Keyhole)]
         // The band round the opening's edge, standing in for the dark
@@ -56,12 +77,18 @@ Shader "TeaLeaf/DoorLeaf"
         // circle's centre, in the leaf's own space. Right/Up: the directions across
         // the door's face, scaled so a distance along them comes out in
         // metres whatever the leaf's scale. Size: x is the radius of the
-        // keyhole's circle in metres (the rest is unused). All zero = no
+        // keyhole's circle in metres, y how far above Centre the circle's
+        // centre now is, in metres (the rest is unused). All zero = no
         // opening.
         [HideInInspector] _KeyholeCentre ("Keyhole Centre", Vector) = (0, 0, 0, 0)
         [HideInInspector] _KeyholeRight ("Keyhole Right", Vector) = (0, 0, 0, 0)
         [HideInInspector] _KeyholeUp ("Keyhole Up", Vector) = (0, 0, 0, 0)
         [HideInInspector] _KeyholeSize ("Keyhole Size", Vector) = (0, 0, 0, 0)
+
+        // The wedge below the circle, in circle radii: x half its width at
+        // the top, y half its width at the bottom, z how far below the
+        // circle's centre its bottom is (negative). Set by DoorKeyhole.
+        [HideInInspector] _KeyholeSlot ("Keyhole Slot", Vector) = (0.5, 0.73, -3.4, 0)
     }
 
     SubShader
@@ -70,7 +97,7 @@ Shader "TeaLeaf/DoorLeaf"
         {
             "RenderType" = "Opaque"
             "RenderPipeline" = "UniversalPipeline"
-            "UniversalMaterialType" = "SimpleLit"
+            "UniversalMaterialType" = "Lit"
             "Queue" = "Geometry"
         }
 
@@ -83,26 +110,31 @@ Shader "TeaLeaf/DoorLeaf"
         CBUFFER_START(UnityPerMaterial)
             half4 _BaseColor;
             float4 _BaseMap_ST;
+            half _Metallic;
+            half _Smoothness;
+            half _BumpScale;
+            half _OcclusionStrength;
             half4 _RimColor;
             float _RimWidth;
             float4 _KeyholeCentre;
             float4 _KeyholeRight;
             float4 _KeyholeUp;
             float4 _KeyholeSize;
+            float4 _KeyholeSlot;
         CBUFFER_END
 
         // How far a point on the leaf (in the leaf's own space) is from the
         // opening's outline, in metres: below zero inside the opening,
         // above zero outside it.
         //
-        // The outline is the lock plate's keyhole (the Lock Plate prefab):
-        // a circle with a slot running down from it that widens towards
-        // its bottom, all sized by one number, the circle's radius.
+        // The outline is a circle with a slot (wedge) running down from it
+        // that widens towards its bottom, all sized by the circle's radius.
         // Measured from the circle's centre (the keyhole's place), the
-        // slot starts inside the circle, half a radius down, half a radius
-        // either side of the middle, and ends 3.4 radii down, 0.73 either
-        // side. (DoorKeyhole's BuildOutline() draws the same shape for the
-        // opening's walls: change one, change the other.)
+        // slot starts inside the circle, half a radius down, and ends where
+        // _KeyholeSlot says, its widths _KeyholeSlot's too, all in radii
+        // (DoorKeyhole's wedge settings; the Lock Plate prefab's keyhole by
+        // default). (DoorKeyhole's BuildOutline() draws the same shape for
+        // the opening's walls: change one, change the other.)
         //
         // Each part has a simple distance of its own. A circle: how far
         // from its centre, less the radius. The slot is a trapezoid - a
@@ -111,9 +143,6 @@ Shader "TeaLeaf/DoorLeaf"
         // point's distance to "either of two shapes" is the smaller of its
         // distances to each.
         static const float SlotTop = -0.5;
-        static const float SlotBottom = -3.4;
-        static const float SlotTopHalfWidth = 0.5;
-        static const float SlotBottomHalfWidth = 0.73;
 
         // How far a point is from a trapezoid standing upright about its
         // own middle: halfHeight up and down, bottomHalf either side of
@@ -144,14 +173,17 @@ Shader "TeaLeaf/DoorLeaf"
             float3 offset = positionOS - _KeyholeCentre.xyz;
             float2 across = float2(dot(offset, _KeyholeRight.xyz), dot(offset, _KeyholeUp.xyz));
 
+            // The opening rises as it grows (DoorKeyhole's Open Offset).
+            across.y -= _KeyholeSize.y;
+
             float radius = _KeyholeSize.x;
 
             float toCircle = length(across) - radius;
 
             // The slot, measured from its own middle.
-            float slotMiddle = 0.5 * (SlotTop + SlotBottom) * radius;
-            float slotHalfHeight = 0.5 * (SlotTop - SlotBottom) * radius;
-            float toSlot = Trapezoid(across - float2(0.0, slotMiddle), SlotBottomHalfWidth * radius, SlotTopHalfWidth * radius, slotHalfHeight);
+            float slotMiddle = 0.5 * (SlotTop + _KeyholeSlot.z) * radius;
+            float slotHalfHeight = 0.5 * (SlotTop - _KeyholeSlot.z) * radius;
+            float toSlot = Trapezoid(across - float2(0.0, slotMiddle), _KeyholeSlot.y * radius, _KeyholeSlot.x * radius, slotHalfHeight);
 
             // No size = no opening: push the distance well outside, or the
             // one pixel at the centre would count as on the outline.
@@ -174,9 +206,18 @@ Shader "TeaLeaf/DoorLeaf"
             #pragma vertex Vertex
             #pragma fragment Fragment
 
-            // The same lighting options URP's Simple Lit shader compiles
-            // for: shadows, extra lights, baked light, fog, foveation.
+            // The material's own switches, as in URP Lit.
+            #pragma shader_feature_local_fragment _METALLICSPECGLOSSMAP
+            #pragma shader_feature_local_fragment _SPECULARHIGHLIGHTS_OFF
+            #pragma shader_feature_local_fragment _ENVIRONMENTREFLECTIONS_OFF
+
+            // The lighting options URP Lit compiles for that the project
+            // uses: shadows, extra lights, reflection probes, baked light,
+            // fog, foveation.
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
+            #pragma multi_compile_fragment _ _REFLECTION_PROBE_BLENDING
+            #pragma multi_compile_fragment _ _REFLECTION_PROBE_BOX_PROJECTION
+            #pragma multi_compile_fragment _ _REFLECTION_PROBE_ATLAS
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             #pragma multi_compile _ EVALUATE_SH_MIXED EVALUATE_SH_VERTEX
             #pragma multi_compile _ LIGHTMAP_SHADOW_MIXING
@@ -200,6 +241,10 @@ Shader "TeaLeaf/DoorLeaf"
             SAMPLER(sampler_BaseMap);
             TEXTURE2D(_BumpMap);
             SAMPLER(sampler_BumpMap);
+            TEXTURE2D(_MetallicGlossMap);
+            SAMPLER(sampler_MetallicGlossMap);
+            TEXTURE2D(_OcclusionMap);
+            SAMPLER(sampler_OcclusionMap);
 
             struct Attributes
             {
@@ -314,14 +359,28 @@ Shader "TeaLeaf/DoorLeaf"
                 // up (bitangent, worked out from the other two) and out
                 // (normal). A mesh with no tangents (the opening's walls)
                 // just keeps its own normal.
-                half3 normalTS = UnpackNormal(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, input.uv));
+                half3 normalTS = UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, input.uv), _BumpScale);
                 half3 bitangentWS = input.tangentWS.w * cross(input.normalWS, input.tangentWS.xyz);
                 half3 normalWS = TransformTangentToWorld(normalTS, half3x3(input.tangentWS.xyz, bitangentWS, input.normalWS));
+
+                // Metallic and smoothness as URP Lit works them out: from
+                // the map (red, and alpha times the slider) when it's on,
+                // else the sliders.
+                #ifdef _METALLICSPECGLOSSMAP
+                    half4 metallicGloss = SAMPLE_TEXTURE2D(_MetallicGlossMap, sampler_MetallicGlossMap, input.uv);
+                    half metallic = metallicGloss.r;
+                    half smoothness = metallicGloss.a * _Smoothness;
+                #else
+                    half metallic = _Metallic;
+                    half smoothness = _Smoothness;
+                #endif
 
                 SurfaceData surfaceData = (SurfaceData)0;
                 surfaceData.albedo = albedo;
                 surfaceData.alpha = 1.0;
-                surfaceData.occlusion = 1.0;
+                surfaceData.metallic = metallic;
+                surfaceData.smoothness = smoothness;
+                surfaceData.occlusion = LerpWhiteTo(SAMPLE_TEXTURE2D(_OcclusionMap, sampler_OcclusionMap, input.uv).g, _OcclusionStrength);
                 surfaceData.normalTS = normalTS;
 
                 InputData inputData = (InputData)0;
@@ -361,7 +420,7 @@ Shader "TeaLeaf/DoorLeaf"
                     inputData.shadowMask = SAMPLE_SHADOWMASK(input.staticLightmapUV);
                 #endif
 
-                half4 color = UniversalFragmentBlinnPhong(inputData, surfaceData);
+                half4 color = UniversalFragmentPBR(inputData, surfaceData);
                 color.rgb = MixFog(color.rgb, inputData.fogCoord);
                 color.a = coverage;
                 return color;

@@ -6,6 +6,74 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-25 (late) (guard alert marks; the keyhole black until looked
+            into and the big lock's picks in the real keyhole; fixed
+            pull handles and the ShabbyDoor; mantle path and steep
+            ground; moon photo and Thief VR-style clouds; open window
+            interiors; 4x MSAA)
+---------------------------------------------------------------------------
+- GuardAlertMarker (on the Guard prefab): a mark over the guard's
+  head, turned to the camera. A question mark fills from the bottom
+  with suspicion, yellow, red once full; full yellow through a search,
+  then drains. An exclamation mark fills red with detection, latched
+  until detection is empty. Pops in with a short stretch and squash.
+  Meshes built once in code; shader TeaLeaf/OverlayFill (TeaLeaf/
+  Overlay plus a fill colour below a height), so it shows through
+  walls. Not yet seen in the headset.
+- Lockpicking: the big lock draws no lock body (the door's own lock
+  is the lock); the two large picks burn into being sticking out of the real
+  keyhole, on the face on the player's side (PickableLock.GetFace()),
+  each turning about its tip a few mm in. While a lock is picked its
+  DoorKeyhole cuts nothing and shows an opaque black cap just in front
+  of the picker's face, which hides the picks' tips and nothing that
+  sticks out; after the picks have burnt away it goes back to normal.
+- DoorKeyhole: black at rest (Keyhole Cap, TeaLeaf/KeyholeCap, fading
+  out as it opens), so the door is see-through only when the head
+  comes close. The wedge's top width, bottom width and length are per
+  keyhole; as it opens the circle rises (openOffset) and the walls
+  reach further out of each face (openDepth). Sizes in metres, so a
+  door may be scaled. TeaLeaf/DoorLeaf takes URP Lit's surface
+  (metallic map, occlusion, smoothness, the Lit switches): a keyhole
+  material is a copy of the art's Lit material.
+- DoorHandle.turns off = a fixed pull: nothing turns, taking it frees
+  the latch at once (locked: one rattle per grab). ShabbyDoor prefab
+  from the Tripo wooden door: two fixed pull bars, one handle volume
+  on their mirror line, a lock on each face and a keyhole. Pose with
+  Hand lists door prefabs' handles; ShabbyDoorHandle profile made in
+  it.
+- Mantling follows a path laid out at its start: straight up until the
+  feet clear the edge (IMantleable.GetMantleEdgeHeight()), across,
+  then down onto the landing, corners rounded, even speed.
+- Steep ground: standing only on ground steeper than the slope limit
+  is not grounded; the player slides down it and can't jump or walk up
+  it. A step's corner is read as its flat top (one ray on the hit
+  collider).
+- Sky: stars steady (twinkle removed); the moon's face is a photo
+  (moon_circle.png), the generated surface (MoonSurfaceBuilder,
+  MoonSurfaceSettings) removed; clouds from Thief VR's prologue
+  rebuilt from its material's values: a cubemap round the eye
+  (TeaLeaf/SkyClouds), tinted, thick cloud hiding stars and moon, two
+  reads half a cycle apart cross-faded so the clouds churn in place.
+  The cubemap is Thief VR's own as a stand-in (SkyClouds_REPLACEME).
+- Level generator, open window interiors: an Open Window Wall placed
+  by hand in place of a generated wall; generation takes out the
+  pieces it stands in for and leaves that storey's own colliders;
+  TeaLeaf > Level Gen > Build Open Window Interiors builds a room
+  behind it from walls marked openWindowInterior in the facade's
+  style, floor and ceiling tiles, one box collider per face, a sound
+  room and a window portal. Building proxies are built apart from a
+  generation: Rebuild Building Proxies runs after it (and after the
+  interiors) and folds the windows and rooms in. Colour variants are
+  read only from the Roofs, Walls and Extensions material folders (a
+  keyhole copy of a door material had turned into a colour).
+- Guard model re-textured from Tripo (new base, metallic, roughness,
+  normal maps). PC quality: 4x MSAA.
+- Lessons: a door handle volume must sit on the bars' mirror line or
+  the profile's offsets come out mirrored wrong on the back; a lock's
+  big picks must sit shallow, or leaning they leave through the plate
+  instead of the keyhole; any <material>_<x> copy under the colour
+  roots becomes a building colour.
+
 2026-10-25 (tools burn in and away; Tripo lockpicks, lock and cudgel;
             gauntlet hands with six-piece collision; guard blob
             shadows under a Baked moon; building proxies lightmapped

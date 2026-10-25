@@ -5,10 +5,11 @@ layout spec (a brief turned into JSON). Real prefab instances under its own root
 without touching hand-placed things. Set dressing only on its own buildings/streets: facade
 dressing (pipes, vents, walkways, lamp posts = gameplay lights), roof chimneys/dormers/ridge
 railings, chimney smoke, vent steam, street grass and nettles, moon shafts; also lays sound
-rooms/portals and bakes the guards' NavMesh over its streets. No other lighting, dressing or
-gameplay.
+rooms/portals and bakes the guards' NavMesh over its streets. Separate operations after a
+generation: rooms behind hand-placed open windows (Open window interiors), then the building
+proxies. No other lighting, dressing or gameplay.
 
-**State:** stages 1-7 built. Catalogue: 188 `Environment` prefabs (`Containers`,
+**State:** stages 1-7 built; open window interiors built, not yet tried in a scene. Catalogue: 188 `Environment` prefabs (`Containers`,
 `Interactive` not scanned). Untested: segment widths, storey counts, decking.
 
 **Fitting rule, every placed piece** (`FitWidths`, `fillStretchShare`): anything covering a
@@ -51,8 +52,9 @@ a closed post, may show, as a corner post.
   way (spec widths are only the base). One log line per finishing pass: `Foundation
   colliders`, `Walkway colliders`, `Wall colliders`, `Roof colliders`, `Nettles`, `Gaps`,
   `Visibility cull`, `Roof edge`, `Roof features`, `Roof railings`, `Pipes`, `Vents`, `Lamp
-  posts`, `Building colours`, `Backing`, `Moon shafts`, `Sound rooms`, `NavMesh`, `Building
-  proxies`.
+  posts`, `Building colours`, `Open windows`, `Backing`, `Moon shafts`, `Sound rooms`,
+  `NavMesh`. Then Build Open Window Interiors (if the sector has open windows) and Rebuild
+  Building Proxies, read their Console entries, save.
 - **Looking at the scene** (temporary camera rendering to PNG via `eval_file`): turn the camera's
   occlusion culling off (the scene's bake predates a regeneration) and render each view twice,
   keeping the second (the first frame after a change can come out wrong).
@@ -60,8 +62,8 @@ a closed post, may show, as a corner post.
   can race several edits and compile only the first: `unity command recompile`, poll
   `recompile_status`, confirm the new code is in (new field/type via reflection, assembly write
   time after the last edit) before trusting a generation.
-- Editor code in `LevelGen/Editor`, namespace `LevelGen`; only runtime component is
-  `GeneratedRoot` (`LevelGen/GeneratedRoot.cs`).
+- Editor code in `LevelGen/Editor`, namespace `LevelGen`; only runtime components are
+  `GeneratedRoot` (`LevelGen/GeneratedRoot.cs`) and `OpenWindowInterior` (data only).
 
 ## Brief and spec
 
@@ -94,9 +96,9 @@ a closed post, may show, as a corner post.
   Deletable; ground shows nothing until regenerated.
 - `Proxies/*.asset` — buildings' merged meshes (`BuildingProxies`), `<sector> - <owner> Building
   <i>` (proxy), with the sector's atlases and atlas material (`<sector> - Proxy Atlas*`,
-  `ProxyAtlas`); the sector's old ones deleted and rewritten each generation. (`ProxyLightmapParameters.asset` beside the folder is kept.) **Git-ignored** (tens of MB, rewritten every run): a fresh clone
-  or a deleted folder draws buildings beyond full-detail range as nothing until the level is
-  regenerated.
+  `ProxyAtlas`); the sector's old ones deleted and rewritten each proxy build. (`ProxyLightmapParameters.asset` beside the folder is kept.) **Git-ignored** (tens of MB, rewritten every run): a fresh clone
+  or a deleted folder draws buildings beyond full-detail range as nothing until the proxies
+  are rebuilt.
 - `GeneratorSettings.asset` — tunables (Settings).
 - `Layouts/*.json` — specs, one per area:
   - `example-street` (sector `Example Street`, origin): high street bending at a T with a
@@ -222,6 +224,11 @@ unless "asset". Meanings are in the sections that use them.
   (Scale In Lightmap of the proxy: ~18 texels per lightmap chart, what a clean bake needs);
   `proxyBakePushoff` 0.03m (pushoff of the proxies' Lightmap Parameters); `proxyAtlasSize`
   4096, `proxyAtlasTile` 512, `proxyAtlasPadding` 16px (proxy atlas).
+- **Open window interiors:** `openWindowFloorTile` (asset: `TL_Platforms_Planks_Ground`);
+  `openWindowTileOverlap` 3cm (floor and ceiling tiles, both ways); `openWindowFloorOffset` 0
+  (floor surface above the window's base); `openWindowCeilingOffset` 0 (ceiling underside
+  above the walls' top); `openWindowWallThickness` 0.36 (share of a wall's depth);
+  `openWindowPortalSize` 1.2 x 1.3m.
 - **Moon shafts:** `moonShaftStreetMaxWidth` 4.5m (**asset 0: off**); `moonShaftMaxLength`
   40m; `moonShaftInset` 0.3m; `moonShaftMinEaves` 2m.
 - **Sound rooms:** `soundAlleyMaxWidth` 4.5m; `soundStreetMuffle` 0.15; `soundSkyMuffle` 0.3;
@@ -238,7 +245,8 @@ unless "asset". Meanings are in the sections that use them.
    replaced whole on regeneration; warns if hand-edited). Hierarchy **streets > buildings >
    columns > storeys**. Foundations, then per storey wall modules (plain/window/door modules
    share a width, interchangeable), corners made by the walls themselves (no corner pieces),
-   roofs from the roof kit; no floors/interiors (by hand); fronts face the street. Window walls
+   roofs from the roof kit; no floors; interiors only behind open windows (Open window
+   interiors, a separate operation); fronts face the street. Window walls
    on any module of any storey. **Where several pieces fit, random, never the module before's
    piece** unless the only fit. **5a** straight runs; **5b** bends, ends, street corners, side
    returns; **5c** side walls by taller columns; **5d** lots; **5e** roofs.
@@ -698,11 +706,14 @@ unless "asset". Meanings are in the sections that use them.
   527.
 - **Building colours** (`FacadeBuilder.ColourBuildings` in `FacadeRoofs.cs`, last in `Build`
   after lamps; `ColourVariants.cs`): **one colour per corner-joined set** (`CornerLeaders`), on
-  members' facade and roof groups. **Colour = material variant by name**: materials under
-  `Assets/Art/Materials` and `Assets/Prefabs` listed by file name, `<material>_<suffix>` (e.g.
-  `Medieval_Roofs_4k_brown`) is the `<suffix>` variant; choices = suffixes present + `default`
-  (the same-named unsuffixed copy under those roots - maintainer's editable copy - else pack
-  material). **Walls and roofs apart** (`Colour()`): two draws per `Roofs/<owner>/Building <i>`,
+  members' facade and roof groups. **Colour = material variant by name**: materials in
+  `Assets/Art/Materials/Environment/{Roofs,Walls,Extensions}` only (`ColourVariants._roots`)
+  listed by file name, `<material>_<suffix>` (e.g. `Medieval_Roofs_4k_brown`) is the
+  `<suffix>` variant; choices = suffixes present + `default` (the same-named unsuffixed copy in
+  those folders - maintainer's editable copy - else pack material). **Never widen the roots**:
+  any `<material>_<x>` copy made for another use there becomes a colour (the doors'
+  `Medieval_Doors_4k_Keyhole` in `Doors` would put the keyhole material on generated doors);
+  a new coloured family gets its folder added. **Walls and roofs apart** (`Colour()`): two draws per `Roofs/<owner>/Building <i>`,
   always (stable as materials are added), walls then roof, each from its groups' own
   materials' suffixes; `ColourVariants.Apply` swaps every LOD's materials where a variant
   exists (override), noting materials lacking the suffix. Log `Building colours: walls brown
@@ -858,9 +869,14 @@ unless "asset". Meanings are in the sections that use them.
 
 ## Building proxies (`BuildingProxies.cs`)
 
+- **Not part of a generation: built by Rebuild Building Proxies** (below) after it and after
+  any open window interiors, so they fold in the open windows and leave out the walls those
+  stand in place of.
 - **Beyond full-detail range each building is one renderer**, not hundreds. Building =
-  `Facades|Lots/<owner>/Building <i>` + its `Roofs/<owner>/Building <i>` (dressing is under
-  the building; lamp posts, backing, foliage, colliders are not).
+  `Facades|Lots/<owner>/Building <i>` + its `Roofs/<owner>/Building <i>` + **each open window
+  standing in it and its room** (`Extras`: the building holding the generated wall nearest the
+  window, `OpenWindowInteriors.BuildingOf`; outside the group, held by its `LODGroup`)
+  (dressing is under the building; lamp posts, backing, foliage, colliders are not).
 - **One `LODGroup` per building on its facade group, switching the whole building at once**:
   level 0 every piece's full detail (and renderers in no `LODGroup`), piece by piece, down to
   `lowerDetailShare` of view height (~25m for a 12m building); level 1 the `Proxy` child down
@@ -896,7 +912,7 @@ unless "asset". Meanings are in the sections that use them.
   occluder, not batching static: one renderer already), casts, receives, **lightmapped**
   (`proxyLightmapScale`; probes off) so far streets show the baked shadows the full detail
   casts in the bake (a lower level receives, doesn't cast into it). No collider (no query,
-  NavMesh or sound probe sees it). **Each generation needs a rebake.**
+  NavMesh or sound probe sees it). **Each proxy build needs a rebake.**
 - **Own Lightmap Parameters** (`Assets/Data/LevelGen/ProxyLightmapParameters.asset`, made by
   the build when missing, defaults but pushoff = `proxyBakePushoff`; set on the renderer's
   serialized `m_LightmapParameters`): the bake keeps the full detail as solid geometry a few
@@ -931,12 +947,67 @@ unless "asset". Meanings are in the sections that use them.
   materials per proxy, atlas (materials in it, kept apart, triangles off it), lightmap scale,
   texels, texels per chart, bake pushoff`.
 - **TeaLeaf > Level Gen > Rebuild Building Proxies** (selected `Generated` root, else every
-  one in the open scene; sector from its `Sectors/<sector>/Geometry` parent): proxies again
-  after facades were changed by hand, without regenerating. Each building put back as placed
-  first: its `LODGroup` and `Proxy` removed, pieces' removed `LODGroup`s reverted from
-  their prefabs, renderer on/off overrides on those groups' renderers reverted (only the
-  proxy pass switches piece renderers off); pieces added by hand keep their own groups. Then
-  the same build. Not undoable (old meshes deleted); rebake lighting and occlusion after.
+  one in the open scene; sector from its `Sectors/<sector>/Geometry` parent): after every
+  generation, after open window interiors are built, and after facades are changed by hand.
+  Each building put back as placed first (extras too): its `LODGroup` and `Proxy` removed,
+  pieces' removed `LODGroup`s reverted from their prefabs, renderer on/off overrides on those
+  groups' renderers reverted (only the proxy pass switches piece renderers off); pieces added
+  by hand keep their own groups. Then the build, and the root's fingerprint taken again (the
+  proxies are no hand edit). Not undoable (old meshes deleted); rebake lighting and occlusion
+  after.
+
+## Open window interiors (`OpenWindowInteriors.cs`, `OpenWindowInterior.cs`)
+
+- **Open Window Wall** (`Assets/Prefabs/Environment/Walls/OpenWindowWall.prefab`: two
+  `PlasterWalls_A_WindowBase_Hole` back to back, thin, `Window_D_Open` inserts both sides; root
+  at the window's middle, +Z to the street) **placed by hand in place of one generated wall
+  module, upright facades only (no lean)**, under the sector's `Geometry` but **never inside
+  `Generated`** (a regeneration replaces that whole). Its **`OpenWindowInterior`** holds
+  `widthModules` (centred on the window), `depthModules`, and `built` (the room last built,
+  replaced when built again).
+- **A generation takes out the pieces each window stands in place of** (`CutWalls`, after the
+  cull, before `RunWalls`, so no merged collider closes the window): every `wall`,
+  `window-wall`, `door-wall`, `window`, `door` under `Facades`/`Lots` whose render middle is
+  inside the window's LOD0 box grown 0.3m. **The storey group (`Storey n` / `Corner`) a cut
+  piece stood in keeps its pieces' own colliders**: `RunWalls` leaves it out, so no merged box
+  spans the window. Log `Open windows: n piece(s) taken out for m open window(s), s storey(s)
+  left with their own colliders[; standing in place of nothing: ...]`. The report counts the window's pieces as
+  cover (neighbours' ends), never as walls of their own. The backing box behind is left as
+  built: moved and resized by hand.
+- **TeaLeaf > Level Gen > Build Open Window Interiors** (selected windows, else every one in the
+  open scene; one Undo step): per window, under `Geometry/Open Window Interiors/<window>
+  Interior` (never touched by a regeneration):
+  - **Walls**: verified plain `wall`s marked `openWindowInterior` (Review Pieces), one front, a
+    `left` point; **those sharing a style with the generated wall nearest the window** (same
+    storey, beside it), else those tagged **`default`**, else nothing built (logged). Only the
+    commonest height (within `sizeTolerance`); room height = that, walls never height-scaled.
+    Laid by the fitting rule (`FitWidths`, normal = median full-size width; per width a wall
+    within `wallScaleLimit`, else the nearest), random no repeat, seeded from the window's
+    position (rebuilt the same until it moves). **Scaled to `openWindowWallThickness` of their
+    depth** and to their width.
+  - **Box**: module = window box width - `wallOverlap`; room `widthModules` x module across,
+    `depthModules` x module deep, from the window's inside face back, floor on the window's
+    base. Back plane outside, face inside; back and front walls run on past the side walls'
+    backs, side walls past theirs: corners closed, no corner pieces. **Own thin front wall**
+    either side of the window, each end `wallOverlap` into it (none at one module wide).
+  - **Floor and ceiling**: `openWindowFloorTile` under/over the walls' whole outline, fewest
+    whole tiles overlapping by `openWindowTileOverlap`, scaled alike to cover it exactly; floor
+    walk surface `openWindowFloorOffset` above the base, ceiling turned over (top facing down),
+    underside `openWindowCeilingOffset` above the walls' top.
+  - **Colliders: one box per face** (`MergeFace`, `<room>/Colliders/<face>`): back, left,
+    right, floor, ceiling; **the front (with the window) keeps its pieces' own colliders**,
+    so no merged box stands beside the window. Each merged face's
+    pieces lose their box colliders; one box round them all in the room's frame takes their
+    place, first piece's layer and static flags, its `SurfaceTag` copied (else Stone walls, Wood
+    floor and ceiling).
+  - **Sound**: `Sound Room` (`SoundRoom` over the room, priority 2, reverb Room, no ambience)
+    and `Portal Window` in it (`openWindowPortalSize`, probes past both window faces). **No
+    NavMesh** (guards never go in). Light probes from Place Light Probes with the rest of the
+    level (`Core.LightProbePlacer`).
+  - Log per window: size, height, walls and style, tiles; warns if a generated wall still
+    stands in the window (regenerate first).
+- **Order**: place windows -> generate -> Build Open Window Interiors -> Rebuild Building
+  Proxies -> Place Light Probes -> rebake.
 
 ## Facade dressing (being built)
 
@@ -1244,7 +1315,9 @@ unless "asset". Meanings are in the sections that use them.
   (normalised: trimmed, lower case, hyphens); toggles `groundStoreyOnly` (e.g.
   `WallTall_StoneWindowBase`), `showsOpening` (plain wall showing a window/door - blind window
   walls, `DoorOrnate_Half*`, `WallDoorArch_Left` / `_Rright` - never a side wall),
-  `fillsStorey`, `onePerStorey`, `lit` (`TL_Window_*_Lit`); `excluded`, `verified`, `note`.
+  `fillsStorey`, `onePerStorey`, `lit` (`TL_Window_*_Lit`), `openWindowInterior` (plain wall
+  the open window interiors build from; still needs `verified`, and any facade style it carries
+  puts it on facades too); `excluded`, `verified`, `note`.
 - **Suggestion** (`PieceAnnotation.Suggest`): catalogue category, fronts, points; size from
   back plane (wall), walk surface (floor/ground), ramp width/rise/run (steps), else render box;
   `excluded` pre-ticked for `has-gameplay-scripts` / `assembly`. **Re-measure for this front**
@@ -1362,15 +1435,16 @@ unless "asset". Meanings are in the sections that use them.
 - Unlayable street (decked style without tiles, too few points): skipped, logged. One Console
   entry lists what was built. `Generated` holds `Streets`, `Facades`, `Lots`, `Roofs`,
   `Foliage`, `Foundation Colliders`, `Walkway Colliders`, `Wall Colliders`, `Roof Colliders`,
-  `Backing`, `Moon Shafts`, `Sound Rooms`, `NavMesh Volumes`, and the `NavMeshSurface`; each
-  building group holds its `LODGroup` and `Proxy`.
+  `Backing`, `Moon Shafts`, `Sound Rooms`, `NavMesh Volumes`, and the `NavMeshSurface`; once
+  the proxies are built each building group holds its `LODGroup` and `Proxy`.
 - **Pipeline:** validate (widths, `ResolveLots`) -> `StoreyPlan` -> `StreetGround` ->
   `FacadeBuilder.Build` -> `MergedColliders` foundations, walkways -> nettles -> `GapFiller` ->
   `StreetTest` (own entry, error if invalid; checks merged boxes) -> `VisibilityCull` ->
-  `RoofEdgeColliders` -> `RunWalls`, `RunRoofs` (after pieces/colliders are removed) ->
-  `Backing` (cut clear of the pieces left; no colliders) -> `MoonShafts` (rays need every collider; the cull never sees them) -> `SoundRooms` (tops from
-  walls left) -> `StreetNavMesh` (bakes from colliders) -> `BuildingProxies` (no pass after
-  it reads renderers) -> `GeneratedReport` -> fingerprint.
+  `OpenWindowInteriors.CutWalls` -> `RoofEdgeColliders` -> `RunWalls`, `RunRoofs` (after
+  pieces/colliders are removed) -> `Backing` (cut clear of the pieces left; no colliders) ->
+  `MoonShafts` (rays need every collider; the cull never sees them) -> `SoundRooms` (tops from
+  walls left) -> `StreetNavMesh` (bakes from colliders) -> `GeneratedReport` -> fingerprint.
+  Then by hand: Build Open Window Interiors, Rebuild Building Proxies.
 - **`StoreyPlan`** (rolls next after widths; logged): **facade** = min + range x rand^(4^-
   `storeyBias`) (+1 high, -1 low). **Lot matches neighbours**: facades with an edge point
   (sampled per metre, length from ground modules) within `lotNeighbourDistance` of the

@@ -36,5 +36,13 @@ namespace Interaction
         /// starts.
         /// </summary>
         Vector3 GetMantleLanding(Vector3 feetPosition);
+
+        /// <summary>
+        /// World height of the edge the mantle goes over (a ledge's lip, a
+        /// ladder's top), when it starts with the feet at feetPosition. The
+        /// mantle first rises until the feet are above it. Only called when
+        /// a mantle starts.
+        /// </summary>
+        float GetMantleEdgeHeight(Vector3 feetPosition);
     }
 }

@@ -35,12 +35,13 @@ namespace LevelGen
     /// touch no wall, logged as an error if one does. Last of all, always,
     /// the visibility cull (VisibilityCull): every piece a probe walking the
     /// streets can't see, at eye height or from high above them, is removed;
-    /// then the roof pieces left that face the void beyond the level lose
-    /// their colliders (RoofEdgeColliders), and the walls' and the roof
-    /// panels' colliders left are merged into as few boxes as possible too
-    /// (MergedColliders), and the guards' NavMesh is baked over the streets
-    /// (StreetNavMesh), and each building gets one merged proxy renderer
-    /// drawn from afar (BuildingProxies).
+    /// then the wall pieces the open windows stand in place of are taken out
+    /// (OpenWindowInteriors), the roof pieces left that face the void beyond
+    /// the level lose their colliders (RoofEdgeColliders), and the walls' and
+    /// the roof panels' colliders left are merged into as few boxes as
+    /// possible too (MergedColliders), and the guards' NavMesh is baked over
+    /// the streets (StreetNavMesh). The building proxies (BuildingProxies)
+    /// are built afterwards by hand, once the open window interiors stand.
     /// </summary>
     internal static class LevelGenerator
     {
@@ -157,6 +158,10 @@ namespace LevelGen
             // Always last of everything built: every piece no one in the
             // streets can see is taken out.
             VisibilityCull.Run(spec, heights, plan, rootObject.transform, settings, log);
+            // The wall pieces each open window (placed by hand outside
+            // Generated) stands in place of are taken out, before the walls'
+            // colliders are merged, so no box closes the window.
+            HashSet<Transform> openStoreys = OpenWindowInteriors.CutWalls(rootObject.transform, annotations, log);
             // Then the roofs left that face the void beyond the level lose
             // their colliders.
             RoofEdgeColliders.Run(roofs, settings, log);
@@ -164,7 +169,9 @@ namespace LevelGen
             // few boxes as possible: after the cull, so no box stands where a
             // piece was removed, and after the roof edge, which takes whole
             // pieces' colliders.
-            MergedColliders.RunWalls(rootObject.transform, settings, log);
+            // A storey an open window stands in keeps its pieces' own
+            // colliders, so no merged box closes the window.
+            MergedColliders.RunWalls(rootObject.transform, openStoreys, settings, log);
             MergedColliders.RunRoofs(rootObject.transform, annotations, settings, log);
             // The black boxes behind the facades, cut clear of every piece
             // left standing (gap fillers included); no colliders, so nothing
@@ -183,10 +190,8 @@ namespace LevelGen
             // laid over each street segment; baked once every collider
             // stands.
             StreetNavMesh.Build(spec, heights, settings, rootObject, log);
-            // Each building drawn by one merged renderer from afar: last of
-            // the building, once every piece left stands, so nothing above
-            // (shafts, rooms) sees a proxy's renderer.
-            BuildingProxies.Build(spec.sector, rootObject.transform, settings, log);
+            // The building proxies are not built here: they come after the
+            // open window interiors, by hand (Rebuild Building Proxies).
 
             // The report on the result: its markers go on the root, before
             // the fingerprint is taken.
@@ -259,7 +264,7 @@ namespace LevelGen
         /// instance of, so moving, adding, removing or swapping anything
         /// changes it.
         /// </summary>
-        private static string Fingerprint(Transform root)
+        internal static string Fingerprint(Transform root)
         {
             StringBuilder text = new();
             Transform[] all = root.GetComponentsInChildren<Transform>(true);

@@ -53,8 +53,8 @@ namespace Core
         // but gone at about 2 / density metres (0.1 = about 20m).
         [SerializeField] private float density = 0.1f;
 
-        // Only without the sky gradient: hide the stars and moon while the
-        // fog is on.
+        // Only without the sky gradient: hide the stars, moon and clouds
+        // while the fog is on.
         [SerializeField] private bool hideSky = true;
 
         [Header("Sky Gradient")]
@@ -92,6 +92,7 @@ namespace Core
         // The objects Core.ProceduralSky makes at the scene root.
         private const string StarsObjectName = "Sky Stars";
         private const string MoonObjectName = "Sky Moon";
+        private const string CloudsObjectName = "Sky Clouds";
 
         // The dome: its radius in metres (inside the camera's far clip
         // plane, beyond anything the fog leaves visible), how many pieces
@@ -117,6 +118,7 @@ namespace Core
         private Camera _camera;
         private GameObject _stars;
         private GameObject _moon;
+        private GameObject _clouds;
         private bool _isApplied;
 
         // The sky gradient's dome, made in Begin().
@@ -209,7 +211,7 @@ namespace Core
 
         /// <summary>
         /// Remembers how things were, finds the camera and the sky's
-        /// objects, makes the dome and turns the fog on. The two finds
+        /// objects, makes the dome and turns the fog on. The finds
         /// search the scene by name - fine once, in a debug script.
         /// </summary>
         private void Begin()
@@ -229,6 +231,7 @@ namespace Core
 
             _stars = GameObject.Find(StarsObjectName);
             _moon = GameObject.Find(MoonObjectName);
+            _clouds = GameObject.Find(CloudsObjectName);
 
             // A component added before roofLayers existed has none set.
             if (roofLayers.value == 0) {
@@ -329,7 +332,8 @@ namespace Core
         }
 
         /// <summary>
-        /// Shows or hides the stars and the moon, if the scene has them.
+        /// Shows or hides the stars, the moon and the clouds, if the scene
+        /// has them.
         /// </summary>
         private void SetSkyVisible(bool visible)
         {
@@ -339,6 +343,10 @@ namespace Core
 
             if (_moon != null) {
                 _moon.SetActive(visible);
+            }
+
+            if (_clouds != null) {
+                _clouds.SetActive(visible);
             }
         }
 

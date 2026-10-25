@@ -17,15 +17,16 @@ namespace Player
     ///   wears them (ToolBurn).
     /// - In a lock: brought close to a locked simple lock
     ///   (Interaction.PickableLock), they burn away and the
-    ///   carrying hand is freed. The big lock then burns into being in
-    ///   front of the door (ToolBurn), its picks standing in for them.
+    ///   carrying hand is freed. The big lock's two large picks then burn
+    ///   into being in the real lock's keyhole (ToolBurn), standing in
+    ///   for them.
     ///
-    /// While the picks are in a lock, each hand can grip its own pick on
-    /// the big lock (left hand the left pick, right hand the right) and
-    /// turn it by carrying the hand round the lock's middle. The hand
-    /// visual snaps onto the pick, as it does onto a door handle. Walking
-    /// away, or the lock opening, burns the big lock away where it is and
-    /// the picks back into being on the hand that wears them. The lock itself is never
+    /// While the picks are in a lock, each hand can grip its own large
+    /// pick (left hand the left pick, right hand the right) and turn it by
+    /// carrying the hand round the keyhole. The hand visual snaps onto the
+    /// pick, as it does onto a door handle. Walking away, or the lock
+    /// opening, burns the large picks away where they are and the picks
+    /// back into being on the hand that wears them. The lock itself is never
     /// mirrored: whichever hand wears the picks, the left hand works the
     /// left pick and the right hand the right one.
     ///
@@ -89,8 +90,8 @@ namespace Player
         // wired, and made with its default settings if there is none.
         [SerializeField] private BigLock bigLock;
 
-        // Optional: the big lock burns into being when the picks go in,
-        // and away when the picking ends. Found in Awake() if not wired
+        // Optional: the big lock's picks burn into being when the picks go
+        // in, and away when the picking ends. Found in Awake() if not wired
         // (it's on this same object); none = it appears and goes at once.
         [SerializeField] private ToolBurn toolBurn;
 
@@ -131,20 +132,9 @@ namespace Player
 
         [Header("Locks")]
 
-        // The lock plate (Assets/Prefabs/Interactive/Lock Plate.prefab):
-        // the big lock is a large copy of it. Empty: the big lock shows
-        // only its picks.
-        [SerializeField] private GameObject lockModel;
-
         // The carried picks go into a lock from within this many metres
         // of it.
         [SerializeField] private float insertDistance = 0.15f;
-
-        // Where the big lock appears: this far out from the real lock's
-        // face, and this far below the head (never lower than the real
-        // lock), in metres.
-        [SerializeField] private float bigLockDistance = 0.2f;
-        [SerializeField] private float bigLockBelowHead = 0.3f;
 
         // Further than this from the lock (metres, measured level from
         // the head), the picking is given up.
@@ -202,8 +192,10 @@ namespace Player
         // them: the right, unless the picks are worn on the right hand.
         private PickHand _taker;
 
-        // The lock the picks are in, while they're in one.
+        // The lock the picks are in, while they're in one, and the keyhole
+        // it's picked through (null if it has none).
         private PickableLock _lock;
+        private DoorKeyhole _keyhole;
 
         // The taking hand's grip as it was last frame: the picks are taken
         // on the frame grip is pressed, not by a hand that arrives already
@@ -217,9 +209,8 @@ namespace Player
         // Counts down to the next pulse while the left hand feels the pin.
         private float _pinPulseTimer;
 
-        // The big lock's body and two picks as ToolBurn knows them. Null
-        // without a ToolBurn.
-        private ToolBurn.Target _bodyBurn;
+        // The big lock's two picks as ToolBurn knows them. Null without a
+        // ToolBurn.
         private ToolBurn.Target _leftPickBurn;
         private ToolBurn.Target _rightPickBurn;
 
@@ -309,9 +300,9 @@ namespace Player
         }
 
         /// <summary>
-        /// Makes the picks, gives the big lock its copies of them and of
-        /// the lock plate, then registers its three renderers and the worn
-        /// picks' with ToolBurn (after the models, so the burn materials copy their
+        /// Makes the picks, gives the big lock its large copies of them,
+        /// then registers its two renderers and the worn picks' with
+        /// ToolBurn (after the model, so the burn materials copy its
         /// textures; ToolBurn finds its shader in its own Awake()).
         /// Start() rather than Awake(): they go on the left hand visual,
         /// and PlayerHandVisuals copies each hand visual in its own
@@ -327,12 +318,7 @@ namespace Player
                 bigLock.SetPickModel(picksModel);
             }
 
-            if (lockModel != null) {
-                bigLock.SetLockModel(lockModel);
-            }
-
             if (toolBurn != null) {
-                _bodyBurn = toolBurn.Register(bigLock.BodyRenderer);
                 _leftPickBurn = toolBurn.Register(bigLock.LeftPickRenderer);
                 _rightPickBurn = toolBurn.Register(bigLock.RightPickRenderer);
 
@@ -502,16 +488,14 @@ namespace Player
         }
 
         /// <summary>
-        /// Puts the picks into found: they burn away where they are (the big lock's
-        /// picks are the ones worked; none are drawn in the real lock), the
+        /// Puts the picks into found: they burn away where they are, the
         /// carrying hand is freed (and has to let go of grip before it can
-        /// take a pick), and the big lock burns into being in front of the
-        /// door.
+        /// take a pick), and the big lock's two large picks burn into being
+        /// in the lock's keyhole, on the face the player is on.
         /// </summary>
         private void Insert(PickableLock found)
         {
-            Vector3 headPosition = playerTracking.HeadPosition;
-            found.GetFace(headPosition, out Vector3 facePoint, out Vector3 outward);
+            found.GetFace(playerTracking.HeadPosition, out Vector3 facePoint, out Vector3 outward);
 
             _lock = found;
             _place = PicksPlace.InLock;
@@ -526,20 +510,24 @@ namespace Player
             BurnPicks(false);
             _picks.gameObject.SetActive(false);
 
-            // The big lock: out from the real one, facing the same way,
-            // lifted to a height that's comfortable to work at.
-            Vector3 position = facePoint + outward * bigLockDistance;
-            position.y = Mathf.Max(facePoint.y, headPosition.y - bigLockBelowHead);
+            // The keyhole stops being an opening and is drawn black on the
+            // face instead, so it hides the picks' tips inside it.
+            _keyhole = DoorKeyhole.ForLock(found);
 
-            bigLock.Show(found, position, Quaternion.LookRotation(-outward, found.transform.up));
+            if (_keyhole != null) {
+                _keyhole.BeginPicking(facePoint);
+            }
+
+            // The large picks in the real keyhole, facing into the door.
+            bigLock.Show(found, facePoint, Quaternion.LookRotation(-outward, found.transform.up));
             BurnBigLock(true);
             Pulse(_taker.isLeftHand, insertAmplitude, insertDuration);
         }
 
         /// <summary>
-        /// Burns the big lock's body and picks into being (just shown) or
-        /// away (call just before it's hidden, while it's still showing),
-        /// if the rig has a ToolBurn.
+        /// Burns the big lock's two picks into being (just shown) or away
+        /// (call just before it's hidden, while it's still showing), if
+        /// the rig has a ToolBurn.
         /// </summary>
         private void BurnBigLock(bool isIn)
         {
@@ -548,11 +536,9 @@ namespace Player
             }
 
             if (isIn) {
-                toolBurn.BurnIn(_bodyBurn);
                 toolBurn.BurnIn(_leftPickBurn);
                 toolBurn.BurnIn(_rightPickBurn);
             } else {
-                toolBurn.BurnAway(_bodyBurn);
                 toolBurn.BurnAway(_leftPickBurn);
                 toolBurn.BurnAway(_rightPickBurn);
             }
@@ -649,8 +635,8 @@ namespace Player
         }
 
         /// <summary>
-        /// Ends the picking, opened or not: both hands come off, the big
-        /// lock burns away where it is and the picks burn back into being
+        /// Ends the picking, opened or not: both hands come off, the large
+        /// picks burn away in the keyhole and the picks burn back into being
         /// on the hand that wears them.
         /// </summary>
         private void StopPicking()
@@ -659,6 +645,13 @@ namespace Player
             LetGo(_right, true);
             BurnBigLock(false);
             bigLock.Hide();
+
+            // The keyhole stays shut while the large picks burn away in it,
+            // then opens again as usual.
+            if (_keyhole != null) {
+                _keyhole.EndPicking(toolBurn != null ? toolBurn.Duration : 0f);
+                _keyhole = null;
+            }
 
             // Unity's == null is true for a lock destroyed while picked.
             if (_lock != null) {

@@ -7,9 +7,10 @@ namespace LevelGen
     /// <summary>
     /// Colour variants of the pieces' materials, for the generator to give a
     /// group of pieces (a building's roof) one colour chosen at random. A
-    /// variant is a material anywhere under Assets/Art/Materials or
-    /// Assets/Prefabs whose name is a piece material's name with a colour
-    /// suffix: Medieval_Roofs_4k_green is the green variant of
+    /// variant is a material in one of the variant folders (roofs, walls,
+    /// extensions under Assets/Art/Materials/Environment) whose name is a
+    /// piece material's name with a colour suffix: Medieval_Roofs_4k_green
+    /// is the green variant of
     /// Medieval_Roofs_4k. The suffix (green) names the colour across
     /// materials, so one colour can be applied to pieces using different
     /// materials - the tile panels and the hip pieces - as long as each has
@@ -20,8 +21,15 @@ namespace LevelGen
     /// </summary>
     internal class ColourVariants
     {
-        // Where the variant materials are looked for (the whole trees).
-        private static readonly string[] _roots = { "Assets/Art/Materials", "Assets/Prefabs" };
+        // Where the variant materials are looked for (the whole trees). Only
+        // the variant folders: elsewhere a copy made for another use (a door's
+        // keyhole material, Medieval_Doors_4k_Keyhole) would read as a colour.
+        private static readonly string[] _roots =
+        {
+            "Assets/Art/Materials/Environment/Roofs",
+            "Assets/Art/Materials/Environment/Walls",
+            "Assets/Art/Materials/Environment/Extensions"
+        };
 
         // The path of every material under the roots, by file name.
         private readonly Dictionary<string, string> _paths = new();
