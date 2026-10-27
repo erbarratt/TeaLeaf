@@ -28,6 +28,10 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 2094063486134169093, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 2321182549126203836, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -40,6 +44,10 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 3380134656171794188, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 3769695772718269078, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -68,6 +76,10 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 7688591254944050599, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 8430292185502756968, guid: d3fefdb0316b8744b9e8669508484cc8, type: 3}
       propertyPath: m_Name
       value: TL_Pipes_Convert_Junction

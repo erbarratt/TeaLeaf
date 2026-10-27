@@ -65,12 +65,16 @@ namespace Player
             public Vector3 launchSpin;
         }
 
+        [Tooltip("The input system on the Player root: each hand's trigger aims and throws, B cancels. Required; filled in when this component is added.")]
         [SerializeField] private PlayerInputXR playerInput;
 
         // For the head's position, which the arc's dots turn to face.
         // Optional: found in Awake() if not wired.
+        [Tooltip("The smoothed head pose on the Player root: the arc's dots turn to face the head. Empty looks for it on a parent at load.")]
         [SerializeField] private PlayerTracking playerTracking;
+        [Tooltip("Prop carrying on this Hands object: only a prop fully in the hand can be aimed, and it is let go of along the arc. Required; filled in when this component is added.")]
         [SerializeField] private PlayerHandHolding playerHandHolding;
+        [Tooltip("The hand visuals on this Hands object: the throw aims along the controller's forward and the launch moves the visual. Required; filled in when this component is added.")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         [Header("Aiming")]
@@ -79,56 +83,74 @@ namespace Player
         // it must be let out to throw (0-1). Two values with a gap between
         // them, so a finger hovering at one point can't flicker between
         // aiming and throwing.
+        [Tooltip("How far (0-1) the trigger must be pulled to start aiming a carried prop. e.g. 0.6 = a bit over half way. Higher = a firmer pull is needed; keep it above Aim End Trigger.")]
         [SerializeField] private float aimStartTrigger = 0.6f;
+        [Tooltip("How far (0-1) the trigger must be let out, once aiming, to throw. e.g. 0.3 = most of the way out. Lower = the trigger must be let out further; keep it below Aim Start Trigger so a hovering finger can't flicker between aiming and throwing.")]
         [SerializeField] private float aimEndTrigger = 0.3f;
 
         [Header("Throw")]
 
         // The speed every aimed throw leaves at, in metres a second. The
         // furthest throw is roughly speed x speed / 9.81 metres.
+        [Tooltip("The speed every aimed throw leaves the hand at, in metres per second; the furthest throw is roughly speed x speed / 9.81 metres. e.g. 9 = about 8m on the level. Higher = longer, flatter throws; lower = shorter lobs.")]
         [SerializeField] private float launchSpeed = 9f;
 
         // How fast the prop tumbles end over end as it flies, in radians a
         // second (6.28 = one turn a second). 0 = no spin.
+        [Tooltip("How fast an aimed prop tumbles end over end in flight, in radians per second. e.g. 6.28 = one turn a second. Higher = spins faster; 0 = no spin.")]
         [SerializeField] private float launchSpin = 5f;
 
         // The launch move: how far forward the hand goes (metres), how
         // long it takes to get there, and how long to come back (seconds).
+        [Tooltip("How far the hand visual moves forward in the throwing motion before letting go, in metres. e.g. 0.15 = a short flick forward. Higher = a bigger visible throw; the arc starts this far along the throw from the prop.")]
         [SerializeField] private float launchReach = 0.15f;
+        [Tooltip("Seconds the forward throwing motion takes before the prop is let go. e.g. 0.08 = a quick snap. Higher = a slower, more visible wind-up.")]
         [SerializeField] private float launchDuration = 0.08f;
+        [Tooltip("Seconds for the hand visual to come back to the controller after the throw. e.g. 0.2 = a gentle return. Higher = slower; lower = it snaps back.")]
         [SerializeField] private float launchReturnDuration = 0.2f;
 
         [Header("Arc")]
 
         // What the arc stops at. Filled in from the layer names if left
         // empty - see DefaultArcLayers().
+        [Tooltip("Layers the arc lands on. e.g. Default, Environment, Interactable, Guard: the arc stops on a wall, a crate or a guard. Empty fills in those layers at load; never include PlayerBlocker.")]
         [SerializeField] private LayerMask arcLayers;
 
         // The line is drawn as a row of straight pieces, each about this
         // long as it leaves the hand, in metres (they lengthen a little as
         // the prop speeds up on the way down). Drawing only - no rays - so
         // short pieces are nearly free.
+        [Tooltip("Length of each straight piece of the drawn arc as it leaves the hand, in metres (drawing only, no rays). e.g. 0.1 = a smooth curve. Lower = smoother but more vertices; higher = a visibly jointed line.")]
         [SerializeField] private float arcSegmentLength = 0.1f;
 
         // Finding where the arc lands is done separately, in longer
         // pieces of this many seconds of flight, one physics ray each -
         // see ComputeArc(). The arc is given up on (no landing = cancel)
         // after arcMaxTime seconds of flight.
+        [Tooltip("Seconds of flight covered by each physics ray when finding where the arc lands. e.g. 0.1 = 25 rays for a 2.5s arc. Lower = more accurate landing near edges but more rays each aiming frame; higher = cheaper but may cut corners.")]
         [SerializeField] private float arcCastTimeStep = 0.1f;
+        [Tooltip("Seconds of flight after which an arc that hasn't hit anything is given up on (shown red; releasing throws nothing). e.g. 2.5 = throws off a roof into the dark don't count. Higher = longer drops are allowed but cost more rays.")]
         [SerializeField] private float arcMaxTime = 2.5f;
 
         // How the arc is drawn: a solid line or a row of dots. Can be
         // changed while playing, to compare the two.
+        [Tooltip("How the arc is drawn: Line = a solid line, Dots = a row of dots facing the head. Can be changed while playing to compare them.")]
         [SerializeField] private ThrowArc.Style arcStyle = ThrowArc.Style.Line;
 
         // The line's width; and each dot's radius and the distance from
         // one dot to the next along the arc. All in metres, and read once
         // at startup.
+        [Tooltip("Width of the arc line, in metres; read once at startup. e.g. 0.01 = a 1cm line. Higher = a bolder line.")]
         [SerializeField] private float arcWidth = 0.01f;
+        [Tooltip("Radius of each dot in Dots style, in metres; read once at startup. e.g. 0.012 = small beads. Higher = bigger dots.")]
         [SerializeField] private float dotRadius = 0.012f;
+        [Tooltip("Distance from one dot to the next along the arc in Dots style, in metres; read once at startup. e.g. 0.12 = about eight dots a metre. Lower = denser dots.")]
         [SerializeField] private float dotSpacing = 0.12f;
+        [Tooltip("Radius of the disc drawn where a valid arc lands, in metres; read once at startup. e.g. 0.08 = a disc the size of a saucer. Higher = a bigger landing mark.")]
         [SerializeField] private float landingMarkerRadius = 0.08f;
+        [Tooltip("Colour of an arc that will throw, e.g. white. Its alpha sets how see-through the arc is.")]
         [SerializeField] private Color validColor = Color.white;
+        [Tooltip("Colour of an arc that won't throw (lands on nothing or its start is blocked), e.g. faded red. Its alpha sets how see-through it is.")]
         [SerializeField] private Color invalidColor = new(1f, 0.2f, 0.2f, 0.5f);
 
         private HandThrow _left;

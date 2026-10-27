@@ -18,13 +18,16 @@ namespace Core
     public class LightSource : MonoBehaviour, IDebugDrawable
     {
         // How bright it is close up: 1 = as bright as light gets.
+        [Tooltip("Gameplay brightness close up (0-1), where 1 = as bright as light gets, e.g. 0.7 = a dim lamp. Higher makes the player more visible to guards near it. Gameplay only: the visible light is the Light on the same object.")]
         [SerializeField, Range(0f, 1f)] private float level = 1f;
 
         // How far the light reaches, in metres. Beyond this it adds nothing.
+        [Tooltip("How far the gameplay light reaches, in metres, e.g. 6 = a player more than 6m away gets nothing from it. Higher lights a bigger area; walls and closed doors still block it.")]
         [SerializeField] private float range = 6f;
 
         // The fraction of the range that is at full brightness. From there
         // the light fades in a straight line to nothing at the range.
+        [Tooltip("Share of the Range that is at full Level, fading in a straight line to nothing at the Range, e.g. 0.5 with Range 6 = full brightness out to 3m, half at 4.5m. Higher = a hard-edged pool; 0 = fades all the way from the source.")]
         [SerializeField, Range(0f, 1f)] private float fullBrightnessFraction = 0.5f;
 
         // Every enabled light source in the scene. Sources add and remove

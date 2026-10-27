@@ -42,23 +42,23 @@ namespace AI
         [Serializable]
         public struct Fill
         {
-            [Tooltip("Seconds to fill the suspicion meter from empty. Below zero: never.")]
+            [Tooltip("Seconds of being seen to fill the suspicion meter from empty (full = Suspicious). e.g. 1 = a second in view makes the guard stop and look. Higher = slower to suspect; below zero = never.")]
             public float suspicionTime;
-            [Tooltip("Multiplies Suspicion Time while the player stands still. 0: never.")]
+            [Tooltip("Multiplies Suspicion Time while the player stands still (in place of the moving multipliers). e.g. 2.5 = two and a half times slower when still; below 1 = faster. 0 = never fills while still.")]
             public float suspicionStillMultiplier;
-            [Tooltip("Multiplies Suspicion Time while the player is crouched. 0: never.")]
+            [Tooltip("Multiplies Suspicion Time while the player is crouched, on top of the still or moving multiplier. e.g. 1.5 = half as slow again crouched. 0 = never fills while crouched.")]
             public float suspicionCrouchMultiplier;
-            [Tooltip("Seconds to fill the detection meter from empty (full = chase). Below zero: never.")]
+            [Tooltip("Seconds of being seen to fill the detection meter from empty (full = chase). e.g. 3 = three seconds in view and the guard gives chase. Higher = slower to detect; below zero = never.")]
             public float detectionTime;
-            [Tooltip("Multiplies Detection Time while the player stands still. 0: never.")]
+            [Tooltip("Multiplies Detection Time while the player stands still (in place of the moving multipliers). e.g. 2.5 = two and a half times slower when still. 0 = never fills while still.")]
             public float detectionStillMultiplier;
-            [Tooltip("Multiplies Detection Time while the player is crouched. 0: never.")]
+            [Tooltip("Multiplies Detection Time while the player is crouched, on top of the still or moving multiplier. e.g. 1.5 = half as slow again crouched. 0 = never fills while crouched.")]
             public float detectionCrouchMultiplier;
-            [Tooltip("Faster than this, in metres a second, the player counts as moving fast.")]
+            [Tooltip("Faster than this, in metres a second, the player counts as moving fast and Fast Multiplier applies instead of Moving Multiplier. e.g. 3 = sprinting. Lower = walking counts as fast.")]
             public float fastSpeed;
-            [Tooltip("Multiplies both times while the player moves, up to Fast Speed.")]
+            [Tooltip("Multiplies both times while the player moves (not still) at up to Fast Speed. e.g. 0.5 = fills twice as fast as the base times. Higher = movement is noticed less; 0 = never fills while moving.")]
             public float movingMultiplier;
-            [Tooltip("Multiplies both times while the player moves faster than Fast Speed.")]
+            [Tooltip("Multiplies both times while the player moves faster than Fast Speed. e.g. 0.02 = fifty times faster, nearly instant. Higher = running is noticed less; 0 = never fills while moving fast.")]
             public float fastMultiplier;
 
             public Fill(float suspicionTime, float suspicionStill, float suspicionCrouch,
@@ -87,12 +87,13 @@ namespace AI
         [Serializable]
         public class Band
         {
+            [Tooltip("A label for the band, shown in the list; nothing reads it. e.g. \"0-3m\".")]
             public string name;
-            [Tooltip("How long the band is, in metres, starting where the one before ends.")]
+            [Tooltip("How long the band is, in metres, starting where the one before ends (the first starts at the eye). e.g. 3 after a 3m band = covers 3-6m. Higher = its fill times hold over more distance.")]
             public float length;
-            [Tooltip("Fill times for a player in light (Visibility at least Lit Threshold).")]
+            [Tooltip("Fill times for a player in light (Visibility at least Lit Threshold), e.g. stood in moonlight.")]
             public Fill lit;
-            [Tooltip("Fill times for a player in the dark.")]
+            [Tooltip("Fill times for a player in the dark (Visibility below Lit Threshold), e.g. crouched in shadow. Set the times below zero for a band where the dark is never seen.")]
             public Fill dark;
         }
 
@@ -105,53 +106,49 @@ namespace AI
         [Serializable]
         public class Zone
         {
+            [Tooltip("A label for the zone, shown in the list; nothing reads it. e.g. \"Very Close\" or \"Peripheral\".")]
             public string name;
-            [Tooltip("How far ahead of the eye the zone reaches, in metres.")]
+            [Tooltip("How far ahead of the eye the zone reaches, in metres (depth straight ahead). e.g. 30 = sees across a wide street. Higher = sees further.")]
             public float range;
-            [Tooltip("Degrees either side of straight ahead the zone opens at.")]
+            [Tooltip("Degrees either side of straight ahead the zone opens at, until it reaches Max Half Width. e.g. 29 = about 58 degrees across. Higher = a wider view.")]
             [Range(0f, 89f)] public float halfAngle;
-            [Tooltip("The widest the zone gets either side of straight ahead, in metres.")]
+            [Tooltip("The widest the zone gets either side of straight ahead, in metres, however far out. e.g. 5 = a corridor 10m wide past where the angle reaches it. Higher = wider far off.")]
             public float maxHalfWidth;
-            [Tooltip("Degrees above straight ahead the zone opens at.")]
+            [Tooltip("Degrees above straight ahead the zone opens at, until it reaches Max Above. e.g. 20. Higher = sees more of what is above it (balconies, roofs).")]
             [Range(0f, 89f)] public float upAngle;
-            [Tooltip("The highest the zone gets above the eye, in metres.")]
+            [Tooltip("The highest the zone gets above the eye, in metres. e.g. 2 = a player on a ledge 2m over the guard's head is above the zone. Higher = sees higher up.")]
             public float maxAbove;
-            [Tooltip("Degrees below straight ahead the zone opens at.")]
+            [Tooltip("Degrees below straight ahead the zone opens at, until it reaches Max Below. e.g. 40. Higher = sees more of the ground close in front.")]
             [Range(0f, 89f)] public float downAngle;
-            [Tooltip("The lowest the zone gets below the eye, in metres.")]
+            [Tooltip("The lowest the zone gets below the eye, in metres. e.g. 4 = sees down into a sunken yard up to 4m below the eye. Higher = sees further down.")]
             public float maxBelow;
-            [Tooltip("From this far ahead, in metres, the limits ease to the end values below by Range. At Range or more: no narrowing.")]
+            [Tooltip("From this far ahead, in metres, the width, height and depth limits ease to the End values by Range. e.g. 1.8 in a 3m zone = it tapers over its last 1.2m. At Range or more: no narrowing.")]
             public float narrowFrom;
-            [Tooltip("Half width at Range, when narrowing.")]
+            [Tooltip("Half width at Range, in metres, when narrowing (from Narrow From the width eases to this). e.g. 0.5 = the zone's far end is 1m across.")]
             public float endHalfWidth;
-            [Tooltip("Height above the eye at Range, when narrowing.")]
+            [Tooltip("Height above the eye at Range, in metres, when narrowing. e.g. 0.5 = the zone's far end reaches half a metre above the eye.")]
             public float endAbove;
-            [Tooltip("Depth below the eye at Range, when narrowing.")]
+            [Tooltip("Depth below the eye at Range, in metres, when narrowing. e.g. 1.25 = the zone's far end reaches 1.25m below the eye.")]
             public float endBelow;
-            [Tooltip("Distance bands out from the eye, nearest first. Beyond the last, the last one's times hold.")]
+            [Tooltip("The zone's distance bands, one entry per band, nearest the eye first, each with its own lit and dark fill times. Beyond the last, the last one's times hold.")]
             public Band[] bands;
         }
 
-        [Tooltip("The vision zones, the widest (the view frustum) last. Where they overlap, the fastest fill wins.")]
+        [Tooltip("The vision zones, one entry per zone, the widest (the view frustum) last, e.g. Very Close, Close, Direct Line Of Sight, Peripheral. Where they overlap, the fastest fill wins.")]
         [SerializeField] private Zone[] zones;
 
         // The player counts as lit at this Visibility or more, dark below
         // it: which side of each band's table applies. Visibility already
         // includes crouching (PlayerVisibility), so a player crouched in
         // moonlight drops into the dark side.
-        [Tooltip("The player counts as lit at this Visibility (0-1) or more, else dark. Visibility includes crouching, so crouching in moonlight (0.4 x 0.6) counts as dark.")]
+        [Tooltip("The player counts as lit at this Visibility (0-1) or more, else dark: picks each band's Lit or Dark fill times. Visibility includes crouching, e.g. at 0.3 crouching in moonlight (0.24) counts as dark. Higher = more of the level counts as dark; lower = more as lit.")]
         [Range(0f, 1f)]
         [SerializeField] private float litThreshold = 0.3f;
-
-        // Slower than this the player counts as standing still. Room-scale
-        // sway moves the body a little even standing.
-        [Tooltip("Slower than this, in metres a second, the player counts as standing still (room-scale sway moves the body a little even standing).")]
-        [SerializeField] private float stillSpeed = 0.25f;
 
         // The player's test points that show (PlayerVisibility weights)
         // must add up to this to be seen: the body, or the head seen from
         // below plus a little more.
-        [Tooltip("The player's test points that show (weights on PlayerVisibility) must add up to at least this to be seen.")]
+        [Tooltip("The weights of the player's test points in view (set on PlayerVisibility: head points 0.17 each, under the head 0.5, waist 0.8) must add up to at least this to be seen. e.g. 0.5 = the body, or the head seen from below and a little more. Higher = more of the player must show.")]
         [SerializeField] private float seenWeight = 0.5f;
 
         public float LitThreshold => litThreshold;
@@ -204,31 +201,46 @@ namespace AI
 
         /// <summary>
         /// The fill times for the player at a point (relative to the eye),
-        /// lit or dark, moving at a speed, crouched or not: the fastest of
+        /// lit or dark, still or moving at a speed, crouched or not: the
+        /// fastest of
         /// every zone the point is in, each meter on its own. A time below
         /// zero is never. Returns whether either meter can fill at all -
         /// false outside every zone, or where every zone it is in can't
-        /// see it (so the guard needn't cast a ray).
+        /// see it (so the guard needn't cast a ray). Fastest Zone is the
+        /// index of the zone giving the fastest time of either meter (-1
+        /// if none can fill), for the gizmo.
         /// </summary>
-        public bool TryGetFillTimes(Vector3 local, bool isLit, float speed, bool isCrouched, out float suspicionTime, out float detectionTime)
+        public bool TryGetFillTimes(Vector3 local, bool isLit, bool isStill, float speed, bool isCrouched, out float suspicionTime, out float detectionTime, out int fastestZone)
         {
             suspicionTime = -1f;
             detectionTime = -1f;
+            fastestZone = -1;
 
             if (zones == null) {
                 return false;
             }
 
             float distance = local.magnitude;
+            float fastestTime = -1f;
 
-            foreach (Zone zone in zones) {
+            for (int i = 0; i < zones.Length; i++) {
+                Zone zone = zones[i];
+
                 if (zone.bands == null || zone.bands.Length == 0 || !IsInside(zone, local)) {
                     continue;
                 }
 
-                GetBandTimes(zone.bands, distance, isLit, speed, isCrouched, out float suspicion, out float detection);
+                GetBandTimes(zone.bands, distance, isLit, isStill, speed, isCrouched, out float suspicion, out float detection);
                 suspicionTime = Fastest(suspicionTime, suspicion);
                 detectionTime = Fastest(detectionTime, detection);
+
+                // The zone filling either meter soonest so far.
+                float zoneTime = Fastest(suspicion, detection);
+
+                if (zoneTime >= 0f && (fastestTime < 0f || zoneTime < fastestTime)) {
+                    fastestTime = zoneTime;
+                    fastestZone = i;
+                }
             }
 
             return suspicionTime >= 0f || detectionTime >= 0f;
@@ -240,7 +252,7 @@ namespace AI
         /// (unless either is never), then multiplied for how the player
         /// moves (that band's multipliers).
         /// </summary>
-        private void GetBandTimes(Band[] bands, float distance, bool isLit, float speed, bool isCrouched, out float suspicionTime, out float detectionTime)
+        private void GetBandTimes(Band[] bands, float distance, bool isLit, bool isStill, float speed, bool isCrouched, out float suspicionTime, out float detectionTime)
         {
             // Finds the band: each starts where the one before ends.
             // Beyond the last, the last one holds.
@@ -272,9 +284,9 @@ namespace AI
                 detectionTime = BlendTime(detectionTime, next.detectionTime, t);
             }
 
-            // How the player moves: standing still, or moving (fast or
-            // not); and crouched or not.
-            bool isStill = speed < stillSpeed;
+            // How the player moves: standing still (the stick let go,
+            // PlayerVisibility.IsStill), or moving (fast or not); and
+            // crouched or not.
             float moving = speed > fill.fastSpeed ? fill.fastMultiplier : fill.movingMultiplier;
 
             suspicionTime = Multiply(suspicionTime, isStill ? fill.suspicionStillMultiplier : moving);
@@ -368,15 +380,22 @@ namespace AI
         /// <summary>
         /// Draws every zone from an eye: a rectangle wherever the zone's
         /// outline bends (where a limit stops opening, where narrowing
-        /// starts, its far end) and the four edges joining them.
+        /// starts, its far end) and the four edges joining them. Zones
+        /// are drawn in the lines' colour, but the one at Highlight Zone
+        /// (an index; -1 = none) in Highlight Color.
         /// </summary>
-        public void DrawZones(DebugLines lines, Vector3 eyePosition, Quaternion eyeRotation)
+        public void DrawZones(DebugLines lines, Vector3 eyePosition, Quaternion eyeRotation, int highlightZone, Color highlightColor)
         {
             if (zones == null) {
                 return;
             }
 
-            foreach (Zone zone in zones) {
+            Color baseColor = lines.Color;
+
+            for (int zoneIndex = 0; zoneIndex < zones.Length; zoneIndex++) {
+                Zone zone = zones[zoneIndex];
+                lines.Color = zoneIndex == highlightZone ? highlightColor : baseColor;
+
                 // Where each limit reaches its most, where narrowing
                 // starts, the eye and the far end, in order.
                 _drawDepths[0] = 0f;
@@ -415,6 +434,8 @@ namespace AI
                     lines.Line(Corner(eyePosition, eyeRotation, -nearHalfWidth, nearAbove, near), d);
                 }
             }
+
+            lines.Color = baseColor;
         }
 
         /// <summary>
@@ -443,7 +464,6 @@ namespace AI
         private void Reset()
         {
             litThreshold = 0.3f;
-            stillSpeed = 0.25f;
             seenWeight = 0.5f;
 
             // Lit at arm's length: seen at once.

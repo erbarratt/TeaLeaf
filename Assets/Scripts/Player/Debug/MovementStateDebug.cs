@@ -12,7 +12,7 @@ using Player;
 /// </summary>
 public class MovementStateDebug : MonoBehaviour
 {
-    [Tooltip("The locomotion on the Player root whose Movement State and Landed event are logged.")]
+    [Tooltip("The locomotion on the Player root whose Movement State changes and Landed events are logged, e.g. \"[MovementState] Walking -> Sprinting\"; drag the Player root here.")]
     [SerializeField] private PlayerLocomotion playerLocomotion;
 
     private MovementState _lastState;

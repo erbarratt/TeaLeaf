@@ -3,7 +3,7 @@ using UnityEngine.InputSystem;
 
 public class TurnActionTest : MonoBehaviour
 {
-    [Tooltip("The thumbstick action read raw and logged whenever it is off centre.")]
+    [Tooltip("The thumbstick action read raw (enabled at start) and logged every frame it is off centre, e.g. the Player/Turn action from InputSystem_Actions. Left empty, nothing is read.")]
     [SerializeField] private InputActionReference turnAction;
 
     private void OnEnable()

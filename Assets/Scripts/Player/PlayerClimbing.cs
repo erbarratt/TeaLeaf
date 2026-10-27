@@ -19,14 +19,14 @@ namespace Player
         // nobody is climbing.
         private enum Hand { None, Left, Right }
 
-        [Tooltip("The input system on the Player root: the grips are read through it.")]
+        [Tooltip("The PlayerInputXR on the Player root: the grips are read through it, e.g. holding grip keeps a hand on a ledge. Must be set; it isn't looked up.")]
         [SerializeField] private PlayerInputXR playerInput;
-        [Tooltip("The tracking on the Player root: the controllers' positions and the head's pose.")]
+        [Tooltip("The PlayerTracking on the Player root: the controllers' positions (whose movement pulls the body) and the head's pose. Must be set; it isn't looked up.")]
         [SerializeField] private PlayerTracking playerTracking;
 
         // Only touched once, in Awake(), to disable minMoveDistance - see
         // its comment there. PlayerController owns the actual Move() call.
-        [Tooltip("The CharacterController on the Player root. Only its Min Move Distance is set here, to 0.")]
+        [Tooltip("The CharacterController on the Player root. Only its Min Move Distance is set here, to 0 at load, so slow hand pulls (e.g. under 1mm a frame) aren't swallowed. Must be set.")]
         [SerializeField] private CharacterController characterController;
 
         // The rig root transform that characterController.Move() displaces -
@@ -36,10 +36,10 @@ namespace Player
         // hand is a descendant of this transform, so its WORLD position
         // shifts the instant we move the rig, which would otherwise feed
         // straight back into next frame's delta and jitter the player.
-        [Tooltip("The Player root, the transform Move() displaces. Hand movement is measured in its space.")]
+        [Tooltip("The Player root, the transform Move() displaces. Hand movement is measured in its space, so moving or turning the body isn't read as a pull. Must be set.")]
         [SerializeField] private Transform playerTransform;
 
-        [Tooltip("The hand visuals on the Hands object: a hand that grabs is snapped onto what it took, and released when it lets go.")]
+        [Tooltip("The PlayerHandVisuals on the Hands object: a hand that grabs is snapped onto what it took (e.g. a ledge's grip pose), and released when it lets go. Must be set.")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         [Header("Grab Targeting")]
@@ -51,14 +51,14 @@ namespace Player
         // what gets grabbed, and its rayLength doubles as grab reach.
         // PlayerController ticks it before this class, so its targets are
         // always this frame's.
-        [Tooltip("The hand rays on the Hands object: a hand grabs the climbable its ray is on.")]
+        [Tooltip("The PlayerHandInteraction on the Hands object: a hand grabs the climbable its ray (and reticle) is on, so its Ray Length is the grab reach, e.g. 0.5 = ledges within 50cm. Must be set.")]
         [SerializeField] private PlayerHandInteraction playerHandInteraction;
 
         // What each hand is busy with. A hand carrying a prop, on a door
         // handle or using the lockpicks or keys can't grab a climbable -
         // grip is already held, so without this check it would grab any
         // ledge its ray crossed. Found (or made) in Awake() if not wired.
-        [Tooltip("What each hand is busy with, on the Hands object. A hand another system has cannot grab. Found or added at startup if empty.")]
+        [Tooltip("The PlayerHandState on the Hands object: a hand another system has cannot grab, e.g. one carrying a prop with grip held. Empty finds or adds one at load.")]
         [SerializeField] private PlayerHandState playerHandState;
 
         // Whatever each hand is holding - a ledge, a ladder, ... Typed as the

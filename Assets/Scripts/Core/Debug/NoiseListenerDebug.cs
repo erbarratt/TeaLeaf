@@ -14,9 +14,11 @@ namespace Core
     public class NoiseListenerDebug : MonoBehaviour, INoiseListener, IDebugDrawable
     {
         // How long the object stays lit after hearing a noise, in seconds.
+        [Tooltip("Seconds the object stays lit yellow, with a line to the noise, after hearing one. e.g. 2. Higher = stays lit longer; repeated noises keep it lit.")]
         [SerializeField] private float showDuration = 2f;
 
         // Also write each noise heard to the Console.
+        [Tooltip("On: each noise this object hears is also written to the Console, e.g. its type and loudness here. Off: it only lights up.")]
         [SerializeField] private bool logHeard = true;
 
         // The last noise heard and when. Starts far in the past so the

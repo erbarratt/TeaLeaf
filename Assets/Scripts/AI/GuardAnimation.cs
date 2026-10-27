@@ -45,33 +45,33 @@ namespace AI
     {
         // The model's Animator, a child of the guard's root. Found in
         // the children if not assigned.
-        [Tooltip("The model's Animator, a child of the guard's root. Found in the children if not assigned.")]
+        [Tooltip("The model's Animator, a child of the guard's root, e.g. the Animator on the prefab's Model object. Left empty, it is found in the children.")]
         [SerializeField] private Animator animator;
 
         // How long Speed takes to settle when the gait changes between
         // the walk and the run, so that blend doesn't snap. Up to walking
         // pace Speed follows the agent undamped.
-        [Tooltip("Seconds the Speed parameter takes to settle when the gait changes between walk and run. Up to walking pace it follows the agent undamped.")]
+        [Tooltip("Seconds the Animator's Speed parameter takes to settle when the gait changes between walk and run, so the blend doesn't snap. e.g. 0.1 = a quick but smooth change. Higher = slower blend (feet may slide); 0 = snaps. Up to walking pace it follows the agent undamped.")]
         [SerializeField] private float speedDamping = 0.1f;
 
         // How fast a planted foot travels back along the ground in the
         // walk and run clips at normal playback (measured from the clips'
         // feet, not their hips, which surge). Must match the blend tree's
         // walk and run thresholds in Guard.controller.
-        [Tooltip("How fast a planted foot travels along the ground in the walk clip at normal playback, in metres a second. Must match the walk threshold in Guard.controller's blend tree.")]
+        [Tooltip("How fast a planted foot travels along the ground in the walk clip at normal playback, in metres a second; faster ground speeds play the clip faster to match. e.g. 0.97: a guard walking at 1.07 plays the walk at 1.1x. Must match the walk threshold in Guard.controller's blend tree.")]
         [SerializeField] private float walkSpeed = 0.97f;
-        [Tooltip("How fast a planted foot travels along the ground in the run clip at normal playback, in metres a second. Must match the run threshold in Guard.controller's blend tree.")]
+        [Tooltip("How fast a planted foot travels along the ground in the run clip at normal playback, in metres a second; faster ground speeds play the clip faster to match. e.g. 3.1: a guard chasing at 3.6 plays the run at 1.16x. Must match the run threshold in Guard.controller's blend tree.")]
         [SerializeField] private float runSpeed = 3.1f;
 
         // Leaning back while slowing: the most it leans, in degrees; the
         // deceleration, in metres a second per second, that gives the
         // whole lean at running pace; and how long the lean takes to
         // follow a change, in seconds, so it rises and settles smoothly.
-        [Tooltip("The most the model leans back while slowing down, in degrees.")]
+        [Tooltip("The most the model leans back while slowing down, in degrees. e.g. 8 = a visible lean braking from a run. Higher = more lean; 0 = never leans.")]
         [SerializeField] private float maxLeanAngle = 8f;
-        [Tooltip("The deceleration, in metres a second per second, that gives the whole lean at running pace. Slower speeds lean less.")]
+        [Tooltip("The deceleration, in metres a second per second, that gives the whole Max Lean Angle at running pace; slower speeds and gentler braking lean less. e.g. 3 = the guard's usual braking from a run leans fully. Lower = leans fully on softer braking.")]
         [SerializeField] private float fullLeanDeceleration = 3f;
-        [Tooltip("Seconds the lean takes to follow a change, so it rises and settles smoothly.")]
+        [Tooltip("Seconds the lean takes to follow a change, so it rises and settles smoothly. e.g. 0.15 = eases in over a step or so. Higher = softer, laggier lean; 0 = jumps straight to it.")]
         [SerializeField] private float leanSmoothing = 0.15f;
 
         // Footfalls: where in the walk and run clips (0-1 through the
@@ -79,9 +79,9 @@ namespace AI
         // 0.15m above the root, measured by sampling the clips. Both
         // clips are two strides long, so four steps each. Remeasure if the
         // clips change.
-        [Tooltip("Where in Guard_Walk (0-1 through the clip) each heel comes down. Measured from the clip: remeasure if it changes.")]
+        [Tooltip("One entry per heel strike: where in Guard_Walk (0-1 through the clip) that heel comes down and a footstep sounds. e.g. 0.3 = a step 30% of the way through; the clip is two strides, so four entries. Measured from the clip: remeasure if it changes.")]
         [SerializeField] private float[] walkFootfalls = { 0.045f, 0.3f, 0.555f, 0.8f };
-        [Tooltip("Where in Guard_Run (0-1 through the clip) each heel comes down. Measured from the clip: remeasure if it changes.")]
+        [Tooltip("One entry per heel strike: where in Guard_Run (0-1 through the clip) that heel comes down and a footstep sounds. e.g. 0.445 = a step just before halfway; the clip is two strides, so four entries. Measured from the clip: remeasure if it changes.")]
         [SerializeField] private float[] runFootfalls = { 0.175f, 0.445f, 0.685f, 0.95f };
 
         // How close to walking pace a damped Speed must come back down

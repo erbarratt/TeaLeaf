@@ -38,55 +38,71 @@ namespace Core
     {
         // The fog's colour. Pale grey is the Silent Hill daytime look; try
         // a dark blue-grey for night.
+        [Tooltip("The fog's colour, also the camera's clear colour without Sky Gradient. e.g. pale grey = the Silent Hill daytime look; try a dark blue-grey for night.")]
         [SerializeField] private Color fogColor = new(0.55f, 0.57f, 0.6f, 1f);
 
         // How the fog thickens with distance. Linear: none before
         // startDistance, total at endDistance - a definite wall. The two
         // exponential modes use density instead and have no hard edge.
+        [Tooltip("How the fog thickens with distance. e.g. Linear: none before Start Distance, total at End Distance - a definite wall. Exponential and Exponential Squared use Density instead and have no hard edge.")]
         [SerializeField] private FogMode mode = FogMode.Linear;
 
         // Linear only, in metres.
+        [Tooltip("Linear mode only: distance from the camera, in metres, where the fog begins. e.g. 1 = haze from arm's length. Higher = a clear space round the player before the fog starts.")]
         [SerializeField] private float startDistance = 1f;
+        [Tooltip("Linear mode only: distance from the camera, in metres, where the fog is total and nothing shows through. e.g. 18 = the far side of a street is gone. Higher = see further.")]
         [SerializeField] private float endDistance = 18f;
 
         // Exponential modes only. For ExponentialSquared, things are all
         // but gone at about 2 / density metres (0.1 = about 20m).
+        [Tooltip("Exponential modes only: how thick the fog is, per metre. e.g. 0.1 with Exponential Squared = things all but gone at about 20m (2 / density). Higher = thicker fog, shorter view.")]
         [SerializeField] private float density = 0.1f;
 
         // Only without the sky gradient: hide the stars, moon and clouds
         // while the fog is on.
+        [Tooltip("Only without Sky Gradient. On: the stars, moon and clouds are hidden while the fog is on, leaving a flat fog-coloured sky. Off: they still show over the fog.")]
         [SerializeField] private bool hideSky = true;
 
         [Header("Sky Gradient")]
+        [Tooltip("On: the sky stays, and a 100m dome round the head in fog colour hazes it, solid near the horizon and thinning overhead, e.g. a moon glimpsed through the murk. Off: the camera clears to fog colour (see Hide Sky).")]
         [SerializeField] private bool skyGradient = true;
 
         // Up to this many degrees above the horizon the sky is solid fog.
+        [Tooltip("Sky Gradient: up to this many degrees above the horizon the sky is solid fog. e.g. 5 = a thick band along the skyline. Higher = more of the sky hidden.")]
         [SerializeField] private float hazeFullAngle = 5f;
 
         // From there the fog thins, until at this many degrees above the
         // horizon (and on up to straight overhead) only overheadFog of it
         // is left.
+        [Tooltip("Sky Gradient: degrees above the horizon where the fog has thinned to Overhead Fog, staying so up to straight overhead. e.g. 50 = a long, soft fade. Lower = the sky clears closer to the horizon.")]
         [SerializeField] private float hazeClearAngle = 50f;
 
         // How much fog is left overhead: 0 = a clear night sky, 1 = as
         // thick as at the horizon.
+        [Tooltip("Sky Gradient: how much fog is left overhead, 0-1. e.g. 0.35 = stars dimly through the haze; 0 = a clear night sky overhead, 1 = as thick as at the horizon.")]
         [SerializeField, Range(0f, 1f)] private float overheadFog = 0.35f;
 
         [Header("Indoors")]
+        [Tooltip("On: with a roof over the head (Roof Layers within Roof Check Height) the fog thins to Indoor Fog Amount, e.g. stepping into a house clears the view. Off: the fog is the same everywhere.")]
         [SerializeField] private bool clearIndoors = true;
 
         // How much of the fog is left indoors: 0.1 = a tenth as thick (it
         // reaches ten times as far).
+        [Tooltip("How much of the fog is left indoors. e.g. 0.1 = a tenth as thick (it reaches ten times as far). Lower = clearer indoors; 1 = no change indoors.")]
         [SerializeField, Range(0.01f, 1f)] private float indoorFogAmount = 0.1f;
 
         // "Indoors" = something on roofLayers within this many metres
         // straight above the head.
+        [Tooltip("Indoors = something on Roof Layers within this many metres straight above the head. e.g. 6 = a ceiling or roof up to two storeys up. Higher = high eaves and archways count as indoors too.")]
         [SerializeField] private float roofCheckHeight = 6f;
+        [Tooltip("Layers that count as a roof for the indoors check, e.g. Environment. Left empty (Nothing), it is filled in with Environment.")]
         [SerializeField] private LayerMask roofLayers;
 
         // Seconds between roof checks, and seconds the fog takes to thin
         // out or come back.
+        [Tooltip("Seconds between roof checks (one ray up from the head). e.g. 0.2 = five a second. Lower = notices a doorway sooner, one more ray each time.")]
         [SerializeField] private float roofCheckInterval = 0.2f;
+        [Tooltip("Seconds the fog takes to thin out on going indoors, or come back on going out. e.g. 1.5 = clears over a few steps inside. Higher = slower change; lower = snappier.")]
         [SerializeField] private float indoorBlendTime = 1.5f;
 
         // The objects Core.ProceduralSky makes at the scene root.

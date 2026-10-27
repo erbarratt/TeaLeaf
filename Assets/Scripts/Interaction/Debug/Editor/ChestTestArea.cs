@@ -98,7 +98,7 @@ namespace Interaction
             PlaceholderSounds.Create();
 
             SoundCue cue = AssetDatabase.LoadAssetAtPath<SoundCue>(PlaceholderSounds.ImpactCuePath);
-            HandSnapProfile profile = DoorTestArea.EnsureHandleProfile();
+            HandSnapProfile profile = DoorTestArea.ProfileOr(DoorTestArea.ChestLidProfilePath, DoorTestArea.EnsureHandleProfile());
 
             BuildChest("Chest (No Lock)", parent, -Spacing, DoorLock.None, profile, cue, environment, interactable);
             BuildChest("Chest (Simple Lock)", parent, 0f, DoorLock.Simple, profile, cue, environment, interactable);
@@ -161,8 +161,8 @@ namespace Interaction
             settings.FindProperty("lockedCue").objectReferenceValue = cue;
             settings.ApplyModifiedPropertiesWithoutUndo();
 
-            // The hand's pose on the lid is the door handle's, as a
-            // stand-in.
+            // The hand's pose on the lid: ChestLid.asset, or the door
+            // handle's as a stand-in until Pose with Hand makes that.
             SerializedObject gripSettings = new(grip.AddComponent<ChestLid>());
             gripSettings.FindProperty("chest").objectReferenceValue = component;
             gripSettings.FindProperty("snapProfile").objectReferenceValue = profile;

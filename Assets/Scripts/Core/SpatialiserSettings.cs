@@ -24,40 +24,50 @@ namespace Core
     {
         // Overall volume of spatialised sounds, to match them to what
         // they were under Unity's own panning.
+        [Tooltip("Overall volume of spatialised sounds, to match them to how loud they were under Unity's own panning, e.g. 1 = unchanged, 1.2 = a fifth louder. Higher = louder.")]
         [SerializeField, Range(0f, 2f)] private float volume = 1f;
 
         [Header("Time difference between the ears")]
         // The head's radius in metres: it sets how late the far ear
         // hears a sound. 0.0875 is an average adult.
+        [Tooltip("The listener's head radius in metres, which sets how late the far ear hears a sound from one side, e.g. 0.0875 = an average adult (up to about 0.7ms late). Bigger = a longer delay, a wider-sounding sideways sound.")]
         [SerializeField, Range(0.05f, 0.12f)] private float headRadius = 0.0875f;
 
         // Multiplies the delay: 1 = real, 0 = none.
+        [Tooltip("Multiplies the far ear's delay, e.g. 1 = real, 0.5 = half. Higher = a stronger left/right cue; 0 = no time difference.")]
         [SerializeField, Range(0f, 2f)] private float timeDifference = 1f;
 
         [Header("Head shadow (the far ear)")]
         // The far ear's volume with the sound fully to one side.
+        [Tooltip("The far ear's volume with the sound fully to one side, e.g. 0.7 = 70% as loud as straight ahead. Lower = a stronger head shadow; 1 = no drop.")]
         [SerializeField, Range(0f, 1f)] private float farEarVolume = 0.7f;
 
         // The near ear's volume with the sound fully to one side: a
         // little over 1, so a sound doesn't seem to drop as it moves
         // from in front to beside.
+        [Tooltip("The near ear's volume with the sound fully to one side, e.g. 1.15 = 15% louder than straight ahead, so a sound doesn't seem to drop as it moves from in front to beside. Higher = a louder near ear; 1 = no boost.")]
         [SerializeField, Range(1f, 1.5f)] private float nearEarVolume = 1.15f;
 
         // Frequencies above this are rolled off in the far ear, in Hz.
+        [Tooltip("Frequency above which the far ear's sound is rolled off by the head shadow, in Hz, e.g. 1500 = the far ear loses most of the hiss and click of a sound. Lower = a duller far ear.")]
         [SerializeField, Range(300f, 8000f)] private float shadowCutoff = 1500f;
 
         // How much of that roll-off is applied with the sound fully to
         // one side: 0 = none, 1 = all.
+        [Tooltip("How much of the far ear's roll-off is mixed in with the sound fully to one side, 0-1, e.g. 0.85 = mostly dulled. Higher = a stronger head shadow; 0 = none.")]
         [SerializeField, Range(0f, 1f)] private float shadowAmount = 0.85f;
 
         [Header("Behind")]
         // Frequencies above this are rolled off for a sound behind, in Hz.
+        [Tooltip("Frequency above which a sound from behind is rolled off in both ears, in Hz, e.g. 3500 = behind sounds lose their top end. Lower = behind sounds much duller (easier to tell from in front).")]
         [SerializeField, Range(1000f, 12000f)] private float rearCutoff = 3500f;
 
         // How much of that roll-off is applied directly behind.
+        [Tooltip("How much of the behind roll-off is mixed in with the sound directly behind, 0-1, e.g. 0.6 = noticeably duller. Higher = a stronger front/back difference; 0 = none.")]
         [SerializeField, Range(0f, 1f)] private float rearAmount = 0.6f;
 
         // The volume directly behind.
+        [Tooltip("Volume of a sound directly behind, compared with in front, e.g. 0.9 = 10% quieter. Lower = behind sounds quieter; 1 = no drop.")]
         [SerializeField, Range(0.5f, 1f)] private float rearVolume = 0.9f;
 
         public float Volume => volume;

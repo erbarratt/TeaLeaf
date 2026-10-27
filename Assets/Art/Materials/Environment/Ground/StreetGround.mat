@@ -15,7 +15,7 @@ Material:
   - _PARALLAX
   m_InvalidKeywords: []
   m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
+  m_EnableInstancingVariants: 1
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
   stringTagMap: {}
@@ -25,77 +25,77 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _CobbleAlbedo:
-        m_Texture: {fileID: 2800000, guid: 1ee6ff3ca1823441ed5fbb6196fd9745, type: 3}
+        m_Texture: {fileID: 2800000, guid: cb35b7000e9d6b442952221714312782, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _CobbleHeight:
-        m_Texture: {fileID: 2800000, guid: f92375e375c92cd3334c60290973270b, type: 3}
+        m_Texture: {fileID: 2800000, guid: 06024ac9855349a1ac9d4dbce83fd47d, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _CobbleNormal:
-        m_Texture: {fileID: 2800000, guid: fceb9a92ec60f5119c546d11de2a8858, type: 3}
+        m_Texture: {fileID: 2800000, guid: e6a97aaf6a5446299306531f54305d04, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _CobbleOcclusion:
-        m_Texture: {fileID: 2800000, guid: b774f28048aa753a495d549996913972, type: 3}
+        m_Texture: {fileID: 2800000, guid: a53b0ecaa9f4438ba2e225fa81c85be2, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _CobbleSmoothness:
-        m_Texture: {fileID: 2800000, guid: 14332cdabc80dcad42e1aafd9819b407, type: 3}
+        m_Texture: {fileID: 2800000, guid: 038e9e9afd614c15a7c4f1e16f9e46fd, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DirtAlbedo:
-        m_Texture: {fileID: 2800000, guid: 2e1d1a3aabddcc0b15e76116b58305ff, type: 3}
+        m_Texture: {fileID: 2800000, guid: 4605df72d5cc41908892fdc1ba80149f, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DirtHeight:
-        m_Texture: {fileID: 2800000, guid: ec432486b1f7e61a23017142dfb2f53f, type: 3}
+        m_Texture: {fileID: 2800000, guid: 0833bcf8808a4891b063533ca1f27c81, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DirtNormal:
-        m_Texture: {fileID: 2800000, guid: 5572294ad6bce86bbf3c3b0f031e6b9a, type: 3}
+        m_Texture: {fileID: 2800000, guid: dd6fc707898d4c70bef0dbb7e34f9171, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DirtOcclusion:
-        m_Texture: {fileID: 2800000, guid: cc2bc0baeecbf3511507c3881a29817c, type: 3}
+        m_Texture: {fileID: 2800000, guid: e00b0d2c39064fc3baff055914ea9b9b, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DirtSmoothness:
-        m_Texture: {fileID: 2800000, guid: 76650af3398c0c5b44ff4e824e118320, type: 3}
+        m_Texture: {fileID: 2800000, guid: ab3027bc51024558a68a699182a5973f, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _WetAlbedo:
-        m_Texture: {fileID: 2800000, guid: 67dd4f33d074da3056e5fb8649791172, type: 3}
+        m_Texture: {fileID: 2800000, guid: 08dba177b84b4c50b515a7bd3217141b, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _WetHeight:
-        m_Texture: {fileID: 2800000, guid: ffc27536b6d478ca76537c6e67a78430, type: 3}
+        m_Texture: {fileID: 2800000, guid: 0453d3dc99aa4474b141de3704379968, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _WetNormal:
-        m_Texture: {fileID: 2800000, guid: 402e5b292931180ff3193e537e045f6b, type: 3}
+        m_Texture: {fileID: 2800000, guid: 0a5a45ebcfe84f448da5278fd6a01bba, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _WetOcclusion:
-        m_Texture: {fileID: 2800000, guid: fe9bffa0befbe58c5626e8c0d42402b6, type: 3}
+        m_Texture: {fileID: 2800000, guid: 2c48c91135744d67996e5770a9fc7495, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _WetSmoothness:
-        m_Texture: {fileID: 2800000, guid: a1e06c78033069c148295abf20b51361, type: 3}
+        m_Texture: {fileID: 2800000, guid: a376bb9bc03b43be9310629c27c0ca8a, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
     - _CobbleRotation: 0
-    - _CobbleSharpness: 0.85
+    - _CobbleSharpness: 0.561
     - _CobbleTile: 3
     - _DirtRotation: 0
     - _DirtTile: 3
     - _NormalStrength: 1
     - _Occlusion: 0.7
     - _Parallax: 1
-    - _ParallaxDepth: 0.1
-    - _Smoothness: 1
+    - _ParallaxDepth: 0.03
+    - _Smoothness: 0.57
     - _WetRotation: 0
     - _WetSharpness: 0.6
     - _WetTile: 3

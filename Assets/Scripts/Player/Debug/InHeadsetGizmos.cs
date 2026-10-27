@@ -36,11 +36,13 @@ namespace Player
     {
         // Show each object's detailed ("selected in the editor") view rather
         // than its plain one - there's no selection in the headset.
+        [Tooltip("On: each object's detailed view is drawn (as the Scene view shows it when selected - there's no selection in the headset), e.g. the body zones' chest box and shoulder balls; off: only each object's plain view.")]
         [SerializeField] private bool showDetail = true;
 
         // Draw the shapes through walls and other geometry, rather than
         // hidden by it. On by default: a hand capsule held back by a wall is
         // half inside it.
+        [Tooltip("On: shapes are drawn through walls and other geometry, e.g. a hand capsule held half inside a wall shows whole; off: hidden behind geometry like anything else. Can be flipped while playing.")]
         [SerializeField] private bool seeThroughWalls = true;
 
         // Which kinds of gizmo are drawn. A new IDebugDrawable type gets a
@@ -51,36 +53,64 @@ namespace Player
         // Ticking or unticking this sets every toggle below (both noise
         // circle toggles included) to match - see OnValidate(). Each can still be changed
         // on its own afterwards.
+        [Tooltip("Ticking or unticking sets every gizmo type toggle below, and both noise circle toggles, to match, e.g. untick it, then tick only Guards to see guards alone. Each can still be changed on its own afterwards.")]
         [SerializeField] private bool all = true;
 
+        [Tooltip("On: guards' gizmos are drawn (AI.Guard), e.g. its suspicion and detection meters as lines above its head, coloured by its state; off: hidden.")]
         [SerializeField] private bool guards = true;
+        [Tooltip("On: guards' planted-foot balls are drawn (AI.GuardFootLock), e.g. green while a foot is planted, yellow while the lock fades; off: hidden.")]
         [SerializeField] private bool guardFootLocks = true;
+        [Tooltip("On: guard patrol routes are drawn (AI.PatrolRoute), e.g. the path a guard walks between its points; off: hidden.")]
         [SerializeField] private bool patrolRoutes = true;
+        [Tooltip("On: Core.NoiseDebug's fading wire spheres are drawn, e.g. a sphere the size of each noise's radius; off: hidden.")]
         [SerializeField] private bool noiseDebug = true;
+        [Tooltip("On: stand-in noise listeners' markers are drawn (Core.NoiseListenerDebug), e.g. a marker turning yellow with a line to the noise it heard; off: hidden.")]
         [SerializeField] private bool noiseListeners = true;
+        [Tooltip("On: colliders left on the Default layer are outlined (Core.DefaultLayerGizmos), e.g. a wall never moved to Environment; off: hidden.")]
         [SerializeField] private bool defaultLayerColliders = true;
+        [Tooltip("On: level exit zones are drawn (Core.ExitZone), e.g. the volume the player escapes through; off: hidden.")]
         [SerializeField] private bool exitZones = true;
+        [Tooltip("On: gameplay light sources are drawn (Core.LightSource), e.g. a wire sphere of a torch's range; off: hidden.")]
         [SerializeField] private bool lightSources = true;
+        [Tooltip("On: sound rooms are drawn (Core.SoundRoom), e.g. the box of each room sound passes through; off: hidden.")]
         [SerializeField] private bool soundRooms = true;
+        [Tooltip("On: sound portals are drawn (Core.SoundPortal), e.g. a doorway joining two sound rooms, coloured open or closed (warning colour if both sides are the same room); off: hidden.")]
         [SerializeField] private bool soundPortals = true;
+        [Tooltip("On: climbable edges are drawn (Interaction.ClimbableEdge), e.g. a ledge's grab volume box and a line along its lip; off: hidden.")]
         [SerializeField] private bool climbableEdges = true;
+        [Tooltip("On: climbable ropes are drawn (Interaction.ClimbableRope), e.g. a rope hung by a rope arrow; off: hidden.")]
         [SerializeField] private bool climbableRopes = true;
+        [Tooltip("On: ladders are drawn (Interaction.Ladder), e.g. the outline of its grab box; off: hidden.")]
         [SerializeField] private bool ladders = true;
+        [Tooltip("On: doors are drawn (Interaction.Door), e.g. the arc its free edge swings through; off: hidden.")]
         [SerializeField] private bool doors = true;
+        [Tooltip("On: door handles are drawn (Interaction.DoorHandle), e.g. the handle's grab volume; off: hidden.")]
         [SerializeField] private bool doorHandles = true;
+        [Tooltip("On: sliding door bolts are drawn (Interaction.DoorBolt), e.g. the outline of the bolt's grab box; off: hidden.")]
         [SerializeField] private bool doorBolts = true;
+        [Tooltip("On: door keyholes are drawn (Interaction.DoorKeyhole), e.g. the shape of the keyhole's cut through the door; off: hidden.")]
         [SerializeField] private bool doorKeyholes = true;
+        [Tooltip("On: keyed locks are drawn (Interaction.KeyLock), e.g. a circle on each face, coloured locked or unlocked; off: hidden.")]
         [SerializeField] private bool keyLocks = true;
+        [Tooltip("On: pickable locks are drawn (Interaction.PickableLock), e.g. a circle on each face, coloured locked or unlocked; off: hidden.")]
         [SerializeField] private bool pickableLocks = true;
+        [Tooltip("On: the big lock's picking view is drawn (Interaction.BigLockDebug), e.g. where this stage's pin is hidden and where each pick is; off: hidden.")]
         [SerializeField] private bool bigLockDebug = true;
+        [Tooltip("On: grabbable props are drawn (Interaction.Grabbable), e.g. a bottle's grip axis and the cylinder the hand closes round; off: hidden.")]
         [SerializeField] private bool grabbables = true;
+        [Tooltip("On: the level generator's markers in each generated root are drawn (LevelGen.GeneratedRoot), e.g. a wire box per placement marker, with an upright line in the detailed view; off: hidden.")]
         [SerializeField] private bool generatedRoots = true;
+        [Tooltip("On: the player's head-locked visibility gauge is drawn (VisibilityDebug), e.g. a bar from blue to yellow as the player gets more visible; off: hidden.")]
         [SerializeField] private bool visibilityDebug = true;
+        [Tooltip("On: the physical hands' collision pieces are drawn (PlayerHandVisuals), e.g. each hand's palm box and finger capsules, green or red in contact; off: hidden.")]
         [SerializeField] private bool playerHandVisuals = true;
+        [Tooltip("On: the body reach zones are drawn (PlayerBodyZones, detailed view in Play Mode), e.g. the chest box and both shoulder balls, green while a hand is in one; off: hidden.")]
         [SerializeField] private bool playerBodyZones = true;
+        [Tooltip("On: the blackjack's hit capsule is drawn while it's drawn (PlayerBlackjack), e.g. orange, red while touching a guard's head; off: hidden.")]
         [SerializeField] private bool blackjackHit = true;
 
         // Any IDebugDrawable type without its own toggle above.
+        [Tooltip("On: every drawable type without its own toggle above is drawn, e.g. a newly added gizmo type; off: those are hidden.")]
         [SerializeField] private bool other = true;
 
         // A flat circle of each noise's radius where it was made (footsteps,
@@ -88,12 +118,16 @@ namespace Player
         // Player: noises whose source is the player's rig (footsteps,
         // landings). Other: everything else (guards, props, doors, bolts).
         [Header("Noise Circles")]
+        [Tooltip("On: noises made by the player's rig show as fading circles of their radius, e.g. footsteps and landings; off: hidden (also hides ones already fading).")]
         [SerializeField] private bool noiseCirclesPlayer = true;
+        [Tooltip("On: every other noise shows as a fading circle of its radius, e.g. guards, doors, thrown props and arrows; off: hidden (also hides ones already fading).")]
         [SerializeField] private bool noiseCirclesOther = true;
 
         // How long a circle takes to fade out, in seconds.
+        [Tooltip("Seconds a noise circle takes to fade out, e.g. 2 = each footstep's circle is gone two seconds later. Higher = circles linger longer; 0 = no circles at all.")]
         [SerializeField] private float noiseFadeTime = 2f;
 
+        [Tooltip("The noise circles' colour; its alpha is where the fade starts, e.g. light cyan.")]
         [SerializeField] private Color noiseColor = new(0.2f, 0.9f, 1f, 1f);
 
         private const string ShaderName = "TeaLeaf/DebugLines";

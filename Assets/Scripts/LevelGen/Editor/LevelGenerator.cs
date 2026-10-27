@@ -105,6 +105,8 @@ namespace LevelGen
 
             GeneratedRoot root = rootObject.AddComponent<GeneratedRoot>();
             GeneratedReport.Begin();
+            // Sheared walls of this sector go in (and come from) its own folder.
+            ShearedMeshes.Begin(spec.sector);
             Dictionary<string, BuildingStyle> styles = BuildingStyle.Gather(annotations, catalogue, settings);
             // The random sequence goes on from where the street widths left it.
             PiecePlacer placer = new(catalogue);
@@ -177,10 +179,11 @@ namespace LevelGen
             // left standing (gap fillers included); no colliders, so nothing
             // after them sees them.
             Backing.Build(rootObject.transform, FacadeBuilder.Backings, settings, log);
-            // Shafts of moonlight across the narrow streets' mouths: once
-            // every piece and collider stands, since each beam is cut by
-            // rays against them, and after the cull, which never sees them.
-            MoonShafts.Build(spec, settings, rootObject.transform, log);
+            // Shafts of moonlight beside each building's moon shadow in the
+            // streets: once every piece and collider stands, since the
+            // shadows are found by rays against them, and after the cull,
+            // which never sees them.
+            MoonShafts.Build(spec, heights, settings, rootObject.transform, log);
             // The sound rooms over the streets, a junction room where they
             // meet and the portals between: their heights come from the
             // walls left standing.
@@ -190,6 +193,9 @@ namespace LevelGen
             // laid over each street segment; baked once every collider
             // stands.
             StreetNavMesh.Build(spec, heights, settings, rootObject, log);
+            // The level complete, the sector's sheared wall meshes it no
+            // longer uses (an earlier generation's) are deleted.
+            ShearedMeshes.ClearUnused(rootObject.transform, log);
             // The building proxies are not built here: they come after the
             // open window interiors, by hand (Rebuild Building Proxies).
 

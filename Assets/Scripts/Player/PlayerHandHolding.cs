@@ -102,35 +102,45 @@ namespace Player
             public int sampleCount;
         }
 
+        [Tooltip("The input system on the Player root: grip picks a prop up and letting go drops or throws it. Required; filled in when this component is added.")]
         [SerializeField] private PlayerInputXR playerInput;
 
         // For the head's position: a cylinder prop is gripped on the
         // player's side. Optional: found in Awake() if not wired.
+        [Tooltip("The smoothed head and hand poses on the Player root, e.g. a cylinder prop like a tankard is gripped on the side facing the player's head. Empty looks for it on a parent at load.")]
         [SerializeField] private PlayerTracking playerTracking;
+        [Tooltip("The hand rays on this Hands object: grip picks up the prop the hand's ray is pointing at. Required; filled in when this component is added.")]
         [SerializeField] private PlayerHandInteraction playerHandInteraction;
+        [Tooltip("The hand visuals on this Hands object: the visual reaches out to the prop and the carried prop becomes its child. Required; filled in when this component is added.")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         // What each hand is busy with: a hand climbing, on a door handle
         // or using the lockpicks or keys can't pick up. Found (or made)
         // in Awake() if not wired (it's on this same object).
+        [Tooltip("Who owns each hand: a hand climbing, on a door handle or holding picks or keys can't pick up, e.g. a hand on a ledge ignores the kettle beside it. Empty finds it on this object at load, adding one if there is none.")]
         [SerializeField] private PlayerHandState playerHandState;
 
         // Seconds for the hand visual to reach out to a prop being picked
         // up, and seconds for hand and prop to come back to the controller.
+        [Tooltip("Seconds for the hand visual to reach out to a prop being picked up. e.g. 0.12 = a quick snatch from a metre away. Higher = a slower, more visible reach; lower = nearly instant.")]
         [SerializeField] private float reachDuration = 0.12f;
+        [Tooltip("Seconds for the hand and its new prop to come back to the controller. e.g. 0.18 = the prop glides into the hand. Higher = a slower return; lower = it snaps back.")]
         [SerializeField] private float returnDuration = 0.18f;
 
         // Seconds for the fingers to open from the prop's hold pose back to
         // following the grip and trigger, after a drop.
+        [Tooltip("Seconds for the fingers to open from the prop's hold pose back to following grip and trigger after a drop. e.g. 0.1 = the hand relaxes almost at once. Higher = the fingers open more slowly.")]
         [SerializeField] private float poseReleaseDuration = 0.1f;
 
         // A dropped prop goes back on its own layer (where hands collide
         // with it and can target it) once its middle is its hold radius
         // plus this far from the hand, in metres - about a hand's length...
+        [Tooltip("A dropped prop goes back to its own layer (hands collide with it and can target it again) once it is its hold radius plus this far from the hand, in metres. e.g. 0.12 = about a hand's length. Higher = the hand passes through it for longer after a drop; lower = it can catch on the hand that let it go.")]
         [SerializeField] private float releaseClearance = 0.12f;
 
         // ...or after this many seconds, if it hasn't got clear (dropped
         // onto a table with the hand left resting on it).
+        [Tooltip("Seconds after a drop before the prop goes back to its own layer even if it hasn't got clear of the hand, e.g. 0.5 for a cup set on a table with the hand still resting by it. Higher = waits longer; lower = the hand may be pushed off it sooner.")]
         [SerializeField] private float releaseTimeout = 0.5f;
 
         [Header("Throwing")]
@@ -138,23 +148,28 @@ namespace Player
         // For the body's own speed, added to a throw, and for the rig the
         // hand's movement is measured in. Optional: found in Awake() if
         // not wired.
+        [Tooltip("The CharacterController on the Player root: its speed is added to a throw (throwing while walking goes further) and hand movement is measured relative to the rig. Empty looks for it on a parent at load.")]
         [SerializeField] private CharacterController characterController;
 
         // How far back the throw looks, in seconds: the prop's speed is
         // its movement over this long, up to the moment it's let go.
         // Longer is steadier but slower to notice a quick flick.
+        [Tooltip("How far back a throw looks, in seconds: the prop's speed is its movement over this long before letting go. e.g. 0.1 = the last tenth of a second of the swing. Higher = steadier throws but a quick flick counts for less; lower = more responsive but jittery.")]
         [SerializeField] private float throwSampleWindow = 0.1f;
 
         // Letting go with the prop moving slower than this (metres a
         // second, relative to the body) is a drop from rest, not a throw.
+        [Tooltip("Letting go with the prop moving slower than this, in metres per second relative to the body, just drops it. e.g. 1 = an idle hand drops, a toss throws. Higher = only firm swings throw; lower = small hand movements fling props.")]
         [SerializeField] private float throwMinSpeed = 1f;
 
         // Multiplies the hand's part of the throw: above 1 throws further
         // than the real movement would.
+        [Tooltip("Multiplies the hand's part of a throw. e.g. 1 = as fast as the real hand moved; 1.5 = half as fast again, so an underarm lob reaches further. Higher = throws go further than the real movement would.")]
         [SerializeField] private float throwStrength = 1f;
 
         // The fastest a prop can leave the hand, in metres a second - so a
         // tracking glitch can't fire one across the level.
+        [Tooltip("The fastest a prop can leave the hand, in metres per second, so a tracking glitch can't fire it across the level. e.g. 12 = a hard overarm throw. Higher = allows harder throws; lower = caps throws shorter.")]
         [SerializeField] private float throwMaxSpeed = 12f;
 
         // How many frames of movement each hand remembers. Must cover

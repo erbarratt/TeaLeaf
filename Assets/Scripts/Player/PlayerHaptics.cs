@@ -23,32 +23,32 @@ namespace Player
         // useSmoothTurn: off, Pulse() does nothing, so every haptic in the
         // game stops. A future settings dialogue sets it through
         // HapticsEnabled.
-        [Tooltip("Off, no controller vibrates at all: every pulse in the game goes through this one switch.")]
+        [Tooltip("On: controllers vibrate. Off: no controller vibrates at all, since every pulse in the game goes through this one switch, e.g. for a player who dislikes rumble.")]
         [SerializeField] private bool hapticsEnabled = true;
 
-        [Tooltip("The hand visuals on the Hands object, which say when a physical hand first touches a surface.")]
+        [Tooltip("The hand visuals on the Hands object, which say when a physical hand first touches a surface (e.g. a tap as the hand meets a wall). Filled in when this component is added; must be set.")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         [Header("Hand Contact")]
         // Strength (0-1) and length (seconds) of the pulse when a hand first
         // touches something - a light tap, not a rumble.
-        [Tooltip("Strength (0-1) of the tap when a hand first touches something.")]
+        [Tooltip("Strength (0-1) of the tap when a hand first touches something. e.g. 0.15 = a light tap, not a rumble. Higher = stronger; 0 = no contact taps.")]
         [SerializeField] private float contactAmplitude = 0.15f;
-        [Tooltip("Length of that tap, in seconds.")]
+        [Tooltip("Length of the contact tap, in seconds. e.g. 0.03 = a tick. Higher = a longer buzz.")]
         [SerializeField] private float contactDuration = 0.03f;
 
         // Seconds after a contact pulse before the same hand can pulse
         // again, so a hand sliding over a bumpy surface (brief losses of
         // contact) taps once instead of buzzing continuously.
-        [Tooltip("Seconds after a contact tap before the same hand can tap again.")]
+        [Tooltip("Seconds after a contact tap before the same hand can tap again, so sliding over a bumpy wall taps once rather than buzzing. e.g. 0.25 = at most four taps a second. Higher = fewer taps; 0 = every new touch taps.")]
         [SerializeField] private float contactCooldown = 0.25f;
 
         [Header("Test Pulse")]
         // Strength (0-1) and length (seconds) of the right-click "Test ...
         // Pulse" menu items, for checking the bindings in Play Mode.
-        [Tooltip("Strength (0-1) of the right-click Test Pulse menu items, for checking the bindings in Play Mode.")]
+        [Tooltip("Strength (0-1) of the right-click Test Left/Right Pulse menu items, for checking the bindings in Play Mode. e.g. 0.5 = a clear medium buzz. Higher = stronger.")]
         [SerializeField] private float testAmplitude = 0.5f;
-        [Tooltip("Length of a test pulse, in seconds.")]
+        [Tooltip("Length of a test pulse, in seconds. e.g. 0.1 = a short buzz. Higher = longer.")]
         [SerializeField] private float testDuration = 0.1f;
 
         // The two controllers as XR devices. Looked up the first time a

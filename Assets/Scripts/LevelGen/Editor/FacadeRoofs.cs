@@ -32,6 +32,9 @@ namespace LevelGen
         // How far forward of its pivot each dormer piece's front wall stands
         // (DormerFront), by guid, read once per Build call.
         private static readonly Dictionary<string, float> _dormerFronts = new();
+        // How far above its render box bottom each gable piece's tie beam's
+        // underside stands (GableTie), by guid, read once per Build call.
+        private static readonly Dictionary<string, float> _gableTies = new();
         // The lowest vertices of a dormer piece: within this of the bottom
         // of its render box.
         private const float DormerBottom = 0.05f;
@@ -100,6 +103,7 @@ namespace LevelGen
         {
             _roofs.Clear();
             _dormerFronts.Clear();
+            _gableTies.Clear();
 
             foreach (PieceAnnotation piece in annotations.pieces) {
                 if (!piece.verified || piece.excluded || !piece.category.StartsWith("roof-") || placer.Entry(piece) == null) {
@@ -363,12 +367,12 @@ namespace LevelGen
                 }
 
                 float top = RoofTop(spot, frontage);
-                float face = RoofFace(spot, frontage);
+                float face = RoofFace(spot, frontage, settings);
                 int last = first;
 
                 while (last + 1 < spots.Count && spots[last + 1].Run == spot.Run && spots[last + 1].Storeys > 0
                     && Mathf.Abs(RoofTop(spots[last + 1], frontage) - top) <= settings.SizeTolerance
-                    && Mathf.Abs(RoofFace(spots[last + 1], frontage) - face) < SameDepth) {
+                    && Mathf.Abs(RoofFace(spots[last + 1], frontage, settings) - face) < SameDepth) {
                     last++;
                 }
 
@@ -417,11 +421,15 @@ namespace LevelGen
 
         /// <summary>
         /// How far forward of the street edge the face of a module's top
-        /// storey stands: its column's depth plus its building's jetty.
+        /// storey stands at the top of its walls: its column's depth plus
+        /// its building's jetty plus, on a leaning run, how far the lean
+        /// (FacadeLean) has carried the walls' top forward - so the eave
+        /// stands in front of the leaning wall as it would an upright one.
         /// </summary>
-        private static float RoofFace(ModuleSpot spot, Frontage frontage)
+        private static float RoofFace(ModuleSpot spot, Frontage frontage, GeneratorSettings settings)
         {
-            return spot.Depth + StoreyJetty(frontage.Buildings[spot.Building], spot.Storeys - 1);
+            Building building = frontage.Buildings[spot.Building];
+            return spot.Depth + StoreyJetty(building, spot.Storeys - 1) + LeanForward(building, frontage.Runs[spot.Run], Top(building, spot.Storeys), settings);
         }
 
         /// <summary>
@@ -479,6 +487,39 @@ namespace LevelGen
         private static float SlopeLength(RoofStretch stretch, GeneratorSettings settings)
         {
             return stretch.Rows * Middles("roof-end")[0].height * stretch.RowScale - (stretch.Rows - 1) * settings.RoofRowOverlap;
+        }
+
+        /// <summary>
+        /// How far behind its top storey's face a facade roof's gable reaches
+        /// (its back foot: where the back slope's underside comes down to the
+        /// walls' top, RoofGable), for a roof of RoofRows unscaled rows; 0
+        /// with no roof pieces. The side walls a gable stands on run back at
+        /// least this far, or its bottom shows a gap behind them.
+        /// </summary>
+        private static float GableReach(GeneratorSettings settings)
+        {
+            if (RoofPieces("roof-end").Count == 0) {
+                return 0f;
+            }
+
+            float pitch = settings.RoofPitch * Mathf.Deg2Rad;
+            float slope = settings.RoofRows * Middles("roof-end")[0].height - (settings.RoofRows - 1) * settings.RoofRowOverlap;
+            float under = settings.RoofEaveDrop / Mathf.Tan(pitch);
+            return 2f * slope * Mathf.Cos(pitch) - under - settings.RoofEaveOverhang;
+        }
+
+        /// <summary>
+        /// How far above its walls' top a facade roof's ridge stands, for a
+        /// roof of RoofRows unscaled rows; 0 with no roof pieces.
+        /// </summary>
+        private static float RoofRise(GeneratorSettings settings)
+        {
+            if (RoofPieces("roof-end").Count == 0) {
+                return 0f;
+            }
+
+            float slope = settings.RoofRows * Middles("roof-end")[0].height - (settings.RoofRows - 1) * settings.RoofRowOverlap;
+            return slope * Mathf.Sin(settings.RoofPitch * Mathf.Deg2Rad) - settings.RoofEaveDrop;
         }
 
         /// <summary>
@@ -992,13 +1033,24 @@ namespace LevelGen
                 return;
             }
 
+            // The piece's carved corner blocks hang below its tie beam: the
+            // beam's underside, not the blocks, is sunk RoofGableSink into
+            // the walls (else a slot shows between them), the piece made that
+            // much taller so its apex stays under the ridge.
+            float pieceHeight = entry.renderMax.y - entry.renderMin.y;
+            float tieShare = Mathf.Clamp(GableTie(piece, entry) / pieceHeight, 0f, 0.5f);
+            height /= 1f - tieShare;
+            float bottom = top - settings.RoofGableSink - tieShare * height;
+
             // Its pivot plane (the wall's face, in every gable piece; its
             // beam ends run on half a metre past it, under the tiles' verge)
             // on the end.
             Vector2 onRidge = run.Start + run.Along * position + run.Front * ridgeLine;
-            Vector3 scale = new(width / (entry.renderMax.x - entry.renderMin.x), height / (entry.renderMax.y - entry.renderMin.y), 1f);
+            // Thinned to WallThickness like the walls, about its pivot plane
+            // (the face stays on the end; its beam ends come in with it).
+            Vector3 scale = new(width / (entry.renderMax.x - entry.renderMin.x), height / pieceHeight, settings.WallThickness);
             placer.PlaceAt(piece, new Vector3((entry.renderMin.x + entry.renderMax.x) * 0.5f, entry.renderMin.y, 0f),
-                new Vector3(onRidge.x, top - settings.RoofGableSink, onRidge.y), Quaternion.LookRotation(Level(outward), Vector3.up), scale, group);
+                new Vector3(onRidge.x, bottom, onRidge.y), Quaternion.LookRotation(Level(outward), Vector3.up), scale, group);
         }
 
         /// <summary>
@@ -1464,6 +1516,47 @@ namespace LevelGen
             Vector3 wallBottom = new((entry.renderMin.x + entry.renderMax.x) * 0.5f, entry.renderMin.y, frontDepth);
             placer.PlaceAt(piece, wallBottom, seat, Quaternion.LookRotation(front, Vector3.up), Vector3.one, RoofGroup(building));
             return true;
+        }
+
+        /// <summary>
+        /// How far above a gable piece's render box bottom its tie beam's
+        /// underside stands: the lowest of its rendered meshes' vertices in
+        /// the middle half of its width (the carved blocks at its two lower
+        /// corners hang below the beam), in the prefab root's space. Read
+        /// from the prefab once per build; 0 where it can't be read.
+        /// </summary>
+        private static float GableTie(PieceAnnotation piece, CatalogueEntry entry)
+        {
+            if (_gableTies.TryGetValue(piece.guid, out float tie)) {
+                return tie;
+            }
+
+            GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(piece.guid));
+            float lowest = float.MaxValue;
+            float from = Mathf.Lerp(entry.renderMin.x, entry.renderMax.x, 0.25f);
+            float to = Mathf.Lerp(entry.renderMin.x, entry.renderMax.x, 0.75f);
+
+            if (prefab != null) {
+                foreach (MeshRenderer renderer in prefab.GetComponentsInChildren<MeshRenderer>(true)) {
+                    MeshFilter filter = renderer.GetComponent<MeshFilter>();
+
+                    if (filter == null || filter.sharedMesh == null) {
+                        continue;
+                    }
+
+                    foreach (Vector3 vertex in filter.sharedMesh.vertices) {
+                        Vector3 local = prefab.transform.InverseTransformPoint(filter.transform.TransformPoint(vertex));
+
+                        if (local.x >= from && local.x <= to) {
+                            lowest = Mathf.Min(lowest, local.y);
+                        }
+                    }
+                }
+            }
+
+            tie = lowest == float.MaxValue ? 0f : Mathf.Max(0f, lowest - entry.renderMin.y);
+            _gableTies[piece.guid] = tie;
+            return tie;
         }
 
         /// <summary>

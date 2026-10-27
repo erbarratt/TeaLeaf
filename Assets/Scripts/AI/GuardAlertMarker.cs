@@ -10,15 +10,19 @@ namespace AI
     /// colour from the bottom up as the guard's meter does, and empties
     /// downwards as the meter drains.
     ///
-    /// - Suspicion rising: the question mark pops up and fills yellow with
-    ///   the suspicion meter. Once the meter is full (the guard stops,
-    ///   Suspicious) the mark is red.
+    /// - Suspicion or detection rising: the question mark pops up and fills
+    ///   yellow with whichever meter is higher (detection fills only once
+    ///   suspicion is full, but holds longer, so it can outlast it). Once
+    ///   suspicion is full (the guard stops, Suspicious) the mark is red.
     /// - Searching: the question mark is full and yellow for the whole
     ///   search. When the search ends it drains away at drainRate (the
     ///   guard empties its meters at once on giving up; the mark doesn't).
-    /// - Detection full (a chase): the exclamation mark pops up, all red,
-    ///   and empties as detection drains after the chase. Once detection
-    ///   is empty the question mark takes over if suspicion is still up.
+    /// - Detection filling from sight (suspicion full, player still seen):
+    ///   the exclamation mark pops up and fills red with detection; full is
+    ///   a chase. It empties as detection drains (the player hid, or after
+    ///   the chase). Once detection is empty the question mark takes over
+    ///   if suspicion is still up. Detection raised another way (a noise,
+    ///   a bump) shows on the question mark until full.
     /// - Nothing left to show, or knocked out: no mark.
     ///
     /// Each time a mark appears (or one mark changes to the other) it pops:
@@ -42,31 +46,31 @@ namespace AI
             Exclamation
         }
 
-        [Tooltip("Height of the mark's foot above the guard's feet, in metres.")]
+        [Tooltip("Height of the mark's foot above the guard's feet (its root), in metres. e.g. 2.1 = just over the head of a 1.8m guard. Higher = floats further above the head.")]
         [SerializeField] private float height = 2.1f;
 
-        [Tooltip("Height of the mark, in metres.")]
+        [Tooltip("Height of the mark, in metres (width follows its shape). e.g. 0.3 = about the size of the guard's head. Higher = bigger, easier to read from afar.")]
         [SerializeField] private float size = 0.3f;
 
-        [Tooltip("How fast the question mark drains once the guard stops searching or shrugs a suspicion off, in fills per second.")]
+        [Tooltip("How fast the question mark empties once the guard stops searching or shrugs a suspicion off, in whole marks per second (it never shows less than the suspicion or detection meter). e.g. 1 = a full mark drains away in a second. Higher = vanishes sooner.")]
         [SerializeField] private float drainRate = 1f;
 
         [Header("Pop")]
-        [Tooltip("Seconds the pop takes, from appearing to settled.")]
+        [Tooltip("Seconds the pop takes each time a mark appears or swaps, from appearing to settled (it grows over the first 30%, then wobbles). e.g. 0.45 = a quick bounce. Higher = slower, longer wobble.")]
         [SerializeField] private float popDuration = 0.45f;
 
-        [Tooltip("How far the first stretch of the pop goes: 0.35 = 35% taller (and thinner) than settled. The squash after is about half that.")]
+        [Tooltip("How far the first stretch of the pop goes, as a share of the mark's height: e.g. 0.35 = 35% taller (and thinner) than settled; the squash after is about half that. Higher = bouncier; 0 = it only grows in, no wobble.")]
         [Range(0f, 1f)]
         [SerializeField] private float popStretch = 0.35f;
 
         [Header("Colours")]
-        [Tooltip("The mark's colour where it isn't filled.")]
+        [Tooltip("The mark's colour above its fill, where it isn't filled, e.g. white: a half-full question mark is yellow below, white above.")]
         [SerializeField] private Color baseColor = Color.white;
 
-        [Tooltip("Fill while suspicion rises.")]
+        [Tooltip("The question mark's fill colour while suspicion rises and all through a search, e.g. yellow.")]
         [SerializeField] private Color suspicionColor = new Color(1f, 0.85f, 0.1f, 1f);
 
-        [Tooltip("Fill once suspicion is full, and the exclamation mark's.")]
+        [Tooltip("The question mark's fill colour once suspicion is full or the guard is Suspicious, and the exclamation mark's fill as detection rises, e.g. red.")]
         [SerializeField] private Color alarmColor = new Color(0.9f, 0.1f, 0.1f, 1f);
 
         // Shared by every guard: built by the first to wake.
@@ -91,12 +95,12 @@ namespace AI
         private Mark _mark;
         private float _popTime;
 
-        // The exclamation mark: latched from detection reaching full until
-        // it has drained out.
+        // The exclamation mark: latched from detection filling from sight
+        // (or reaching full) until it has drained out.
         private bool _isDetected;
 
-        // The question mark's fill: never below the suspicion meter, full
-        // while searching, otherwise draining at drainRate - so a meter
+        // The question mark's fill: never below the higher of the two
+        // meters, full while searching, otherwise draining at drainRate - so a meter
         // emptied at once still drains away on the mark.
         private float _questionFill;
 
@@ -150,8 +154,10 @@ namespace AI
                 _questionFill = 0f;
             }
 
-            // Latched: set at full, cleared at empty.
-            if (detection >= 1f) {
+            // Latched: set once the guard's eyes start filling detection
+            // (or it's full some other way, e.g. a noise), cleared at
+            // empty - so the exclamation mark fills as detection rises.
+            if (detection > 0f && (detection >= 1f || _guard.IsDetecting)) {
                 _isDetected = true;
             } else if (detection <= 0f) {
                 _isDetected = false;
@@ -161,14 +167,20 @@ namespace AI
                 _questionFill = 1f;
                 _isQuestionRed = false;
             } else if (state != GuardState.KnockedOut) {
-                _questionFill = Mathf.Max(suspicion, _questionFill - drainRate * Time.deltaTime);
+                // Detection counts too: it holds longer than suspicion, or
+                // a noise raises it, so it can be the higher, and until
+                // it's full (the exclamation mark) this is the only mark
+                // that can show it.
+                float meter = Mathf.Max(suspicion, detection);
+                _questionFill = Mathf.Max(meter, _questionFill - drainRate * Time.deltaTime);
 
                 // Red once suspicion is full: stopped to look (Suspicious),
-                // or about to. Yellow while it fills; a mark draining after
-                // a suspicion was shrugged off stays the colour it was.
+                // or about to. Yellow while either meter fills; a mark
+                // draining after a suspicion was shrugged off stays the
+                // colour it was.
                 if (state == GuardState.Suspicious || suspicion >= 1f) {
                     _isQuestionRed = true;
-                } else if (suspicion > 0f) {
+                } else if (meter > 0f) {
                     _isQuestionRed = false;
                 }
             }

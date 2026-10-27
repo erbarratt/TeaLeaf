@@ -23,31 +23,31 @@ namespace Interaction
     {
         // What kind of lock it has, and for a keyed one the id its key
         // must have (the same text as the Key's Key Id).
-        [Tooltip("What kind of lock the chest has: None (the lid always lifts), Simple (can be picked, through a PickableLock given this chest) or Keyed (its own key only, through a KeyLock given this chest).")]
+        [Tooltip("What kind of lock the chest has: None (the lid always lifts), Simple (can be picked, through a PickableLock given this chest) or Keyed (its own key only, through a KeyLock given this chest). e.g. Keyed with Key Id \"green\" = only the green key opens it.")]
         [SerializeField] private DoorLock lockType = DoorLock.None;
-        [Tooltip("For a Keyed lock, the id its key must have: the same text as the Key's Key Id. Ignored for the other lock kinds.")]
+        [Tooltip("For a Keyed lock, the id its key must have: the same text as the Key's Key Id. e.g. \"green\" = opened by the key whose Key Id is green. Ignored for the other lock kinds.")]
         [SerializeField] private string keyId;
 
-        [Tooltip("Whether the chest starts the level locked. Only matters with a lock: a chest with no lock is never locked.")]
+        [Tooltip("On: the chest starts the level locked and the lid won't move until it's picked or opened with its key. Off: it starts unlocked. Only matters with a lock: a chest whose Lock Type is None is never locked.")]
         [SerializeField] private bool startsLocked = true;
 
-        [Tooltip("The lid: a child object on the hinge line, with the chest's axes, that turns about its own X to open. Required.")]
+        [Tooltip("The lid: a child object on the hinge line, with the chest's axes, that turns about its own X to open. e.g. drag the chest's Lid child here. Required: left empty, the chest logs an error and does nothing.")]
         [SerializeField] private Transform lid;
 
         // How far the lid opens, in degrees, and the angle below which a
         // lid that's let go of drops shut.
-        [Tooltip("How far the lid can be lifted from shut, in degrees.")]
+        [Tooltip("How far the lid can be lifted from shut, in degrees. e.g. 100 = a little past upright, so it rests open. Higher = it tips further back; lower = it stops short of upright.")]
         [SerializeField] private float maxOpenAngle = 100f;
-        [Tooltip("A lid let go of below this angle, in degrees, drops shut by itself. Let go of further open, it stays where it was left.")]
+        [Tooltip("A lid let go of below this angle, in degrees, drops shut by itself; let go of further open, it stays where it was left. e.g. 8 = a lid barely lifted falls shut. Higher = it drops shut from further open; 0 = it always stays where it's left.")]
         [SerializeField] private float closeAngle = 8f;
 
         // The lid starting to open, dropping shut, and being tried while
         // locked. All optional.
-        [Tooltip("The sound of the lid starting to open, played from the lid so guards hear it too. Optional: empty is silent.")]
+        [Tooltip("The SoundCue for the lid starting to open, played from the lid so guards hear it too. e.g. drag a creaking-hinge cue here. Empty = it opens silently.")]
         [SerializeField] private SoundCue openCue;
-        [Tooltip("The sound of the lid dropping shut. Optional: empty is silent.")]
+        [Tooltip("The SoundCue for the lid dropping shut, played from the lid so guards hear it too. e.g. drag a wooden thud cue here. Empty = it shuts silently.")]
         [SerializeField] private SoundCue closeCue;
-        [Tooltip("The rattle of the lid being tried while the chest is locked. Optional: empty is silent.")]
+        [Tooltip("The SoundCue for the rattle of the lid being tried while the chest is locked, played from the lid so guards hear it too. e.g. drag a locked-rattle cue here. Empty = trying it is silent.")]
         [SerializeField] private SoundCue lockedCue;
 
         // How the lid is turned when shut.

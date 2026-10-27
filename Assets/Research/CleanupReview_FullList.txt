@@ -1,0 +1,875 @@
+Appendix to CleanupReview.txt: every project asset (outside Assets/ASTROFISH_GAMES) that the Intro scene, Resources folders and project settings don't use, 2026-10-26.
+Tags: [path in code] = a script names this file; [folder in code: X] = a script names its folder (editor tools, Dev Room builders, generator); [in level-gen data] = catalogue/annotations JSON names it by GUID.
+
+== _Recovery (2)
+  _Recovery/0 (1).unity (12646 KB)
+  _Recovery/0.unity (12822 KB)
+== Art/Animations (2)
+  Art/Animations/Guard/Guard_Fall.anim (3711 KB) [folder in code: Assets/Art/Animations/Guard/]
+  Art/Animations/Guard/Guard_Idle.anim (2669 KB) [folder in code: Assets/Art/Animations/Guard/]
+== Art/Colliders (1)
+  Art/Colliders/BarrelCollider.asset (5 KB) [path in code]
+== Art/Materials (11)
+  Art/Materials/Environment/Roofs/Medieval_RoofPeaked_4k_orange.mat (4 KB) [folder in code: Assets/Art/Materials/Environment/Roofs/]
+  Art/Materials/LootGold.mat (3 KB) [path in code]
+  Art/Materials/Environment/Roofs/Medieval_RoofPeaked_ALBEDO_4k_brown.tif (17703 KB) [folder in code: Assets/Art/Materials/Environment/Roofs/]
+  Art/Materials/TeaLeaf_Water.mat (1 KB)
+  Art/Materials/TestGeometry.mat (3 KB) [path in code]
+  Art/Materials/VR_Hands_M.mat (3 KB)
+  Art/Materials/MoonShaft.mat (1 KB) [path in code]
+  Art/Materials/Environment/Roofs/Medieval_RoofPeaked_4k_brown.mat (4 KB) [folder in code: Assets/Art/Materials/Environment/Roofs/]
+  Art/Materials/LockPlate.mat (1 KB) [path in code]
+  Art/Materials/Environment/Roofs/Medieval_RoofPeaked_ALBEDO_4k_orange.png (5361 KB) [folder in code: Assets/Art/Materials/Environment/Roofs/]
+  Art/Materials/Environment/Ground/MudGround.mat (3 KB)
+== Art/Shaders (4)
+  Art/Shaders/Water.shader (27 KB)
+  Art/Shaders/Cobblestone.shader (42 KB)
+  Art/Shaders/BrickWall.shader (38 KB)
+  Art/Shaders/MoonShaft.shader (10 KB)
+== Audio/footsteps (19)
+  Audio/footsteps/bones/1.ogg (5 KB)
+  Audio/footsteps/dog/4.ogg (8 KB)
+  Audio/footsteps/dog/2.ogg (7 KB)
+  Audio/footsteps/bones/2.ogg (5 KB)
+  Audio/footsteps/bones/6.ogg (5 KB)
+  Audio/footsteps/dog/7.ogg (7 KB)
+  Audio/footsteps/bones/5.ogg (5 KB)
+  Audio/footsteps/bones/7.ogg (5 KB)
+  Audio/footsteps/mech/0.ogg (5 KB)
+  Audio/footsteps/dog/3.ogg (7 KB)
+  Audio/footsteps/bones/8.ogg (5 KB)
+  Audio/footsteps/bones/0.ogg (5 KB)
+  Audio/footsteps/dog/1.ogg (7 KB)
+  Audio/footsteps/bones/9.ogg (5 KB)
+  Audio/footsteps/dog/0.ogg (7 KB)
+  Audio/footsteps/dog/5.ogg (6 KB)
+  Audio/footsteps/bones/3.ogg (5 KB)
+  Audio/footsteps/dog/6.ogg (7 KB)
+  Audio/footsteps/bones/4.ogg (5 KB)
+== Audio/Placeholder (21)
+  Audio/Placeholder/AmbienceIndoorPlaceholder.wav (516 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/FootstepMetalPlaceholder3.wav (34 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/FootstepPlaceholder3.wav (12 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/AmbienceOutsidePlaceholder.wav (775 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/CreakPlaceholder2.wav (43 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/FootstepCarpetPlaceholder1.wav (12 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/FootstepWaterPlaceholder3.wav (34 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/TorchLoopPlaceholder.wav (344 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/FootstepWaterPlaceholder1.wav (34 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/FootstepMetalPlaceholder1.wav (34 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/FootstepCarpetPlaceholder2.wav (12 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/FootstepCarpetPlaceholder3.wav (12 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/CreakPlaceholder1.wav (43 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/FootstepWoodPlaceholder2.wav (12 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/FootstepPlaceholder2.wav (12 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/CreakPlaceholder3.wav (43 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/FootstepMetalPlaceholder2.wav (34 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/FootstepWoodPlaceholder3.wav (12 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/FootstepPlaceholder1.wav (12 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/FootstepWoodPlaceholder1.wav (12 KB) [folder in code: Assets/Audio/Placeholder/]
+  Audio/Placeholder/FootstepWaterPlaceholder2.wav (34 KB) [folder in code: Assets/Audio/Placeholder/]
+== Data/Hand Poses (2)
+  Data/Hand Poses/LadderRung.asset (1 KB) [path in code] [folder in code: Assets/Data/Hand Poses/]
+  Data/Hand Poses/BottleHold.asset (1 KB) [path in code] [folder in code: Assets/Data/Hand Poses/]
+== Data/LevelGen (179)
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD1_d34066a4_x-8.75.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x+10.25.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD0_d34066a4_x-8.75.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x+10.25.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x-9.25.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Zbar_LOD1_11cf1f04_x+12.50.asset (24 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street dead end 2 Building 0.asset (2101 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street left 0-2 Building 1.asset (1211 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x-12.50.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street right 0-1 Building 2.asset (2944 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x-9.50.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street left 0-1 Building 1.asset (1159 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street right 0-2 Building 5.asset (1330 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD0_d34066a4_x-5.50.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street left 0-2 Building 2.asset (1728 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street right 0-1 Building 1.asset (1381 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x+4.75.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x+11.50.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_WindowBase_LOD0_0c78d572_x+5.50.asset (42 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Layouts/example-two-lots.json (24 KB) [folder in code: Assets/Data/LevelGen/Layouts/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x+15.75.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x+7.75.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Zbar_LOD0_11cf1f04_x+11.50.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street left 0-2 Building 0.asset (2204 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street left 0-2 Building 8.asset (1338 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x-4.50.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x+11.25.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street dead end 0 Building 0.asset (1000 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Zbar_LOD1_11cf1f04_x+4.75.asset (24 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street right 0-7 Building 3.asset (1403 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x-15.50.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street left 0-7 Building 6.asset (1531 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x+13.50.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x-13.50.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Layouts/example-block.json (3 KB) [folder in code: Assets/Data/LevelGen/Layouts/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x+14.00.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x-13.00.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD1_d34066a4_x+11.00.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/catalogue.json (1682 KB) [path in code] [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD1_d34066a4_x-5.75.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street right 0-1 Building 0.asset (2118 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Zbar_LOD1_11cf1f04_x+6.50.asset (24 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Zbar_LOD0_11cf1f04_x+4.75.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street right 0-2 Building 0.asset (1419 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x+12.50.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets - Proxy Atlas MRAO.png (7578 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_WindowBase_LOD1_0c78d572_x+10.00.asset (21 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x-4.75.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street right 0-2 Building 7.asset (1542 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street right 0-7 Building 0.asset (2248 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets - Proxy Atlas Albedo.png (8872 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Layouts/example-quarter.json (13 KB) [folder in code: Assets/Data/LevelGen/Layouts/]
+  Data/LevelGen/Proxies/Three Streets -middle-street right 0-7 Building 6.asset (843 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x+9.75.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x+5.50.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/ProxyLightmapParameters.asset (0 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street right 0-2 Building 6.asset (1706 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x-6.75.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street right 1-2 Building 1.asset (2979 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street right 0-7 Building 5.asset (3058 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD1_d34066a4_x-7.00.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD0_d34066a4_x-5.00.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street left 0-7 Building 8.asset (2315 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street left 1-2 Building 2.asset (2725 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD1_d34066a4_x-5.00.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street right 0-2 Building 9.asset (1533 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Zbar_LOD1_11cf1f04_x-5.50.asset (24 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x+4.50.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD0_d34066a4_x+5.00.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street right 0-2 Building 2.asset (1176 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Layouts/example-slope.json (8 KB) [folder in code: Assets/Data/LevelGen/Layouts/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x-7.75.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD0_d34066a4_x-8.00.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street left 0-1 Building 3.asset (3561 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street right 0-2 Building 1.asset (1747 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x-9.25.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x-7.75.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street left 0-7 Building 2.asset (1402 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x-4.50.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x+13.50.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Zbar_LOD0_11cf1f04_x+12.50.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x+11.25.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x-11.75.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x+9.75.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Zbar_LOD1_11cf1f04_x+4.25.asset (24 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street left 0-7 Building 9.asset (1191 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street right 0-7 Building 9.asset (906 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_WindowBase_LOD1_0c78d572_x-5.00.asset (21 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street left 1-2 Building 3.asset (1837 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street left 0-7 Building 7.asset (1432 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD0_d34066a4_x-11.00.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD1_d34066a4_x+5.00.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x+5.50.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x-5.75.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street left 0-7 Building 0.asset (1237 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x+12.25.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_WindowBase_LOD1_0c78d572_x+5.50.asset (21 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Zbar_LOD0_11cf1f04_x-5.50.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street left 0-2 Building 5.asset (1616 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street left 0-1 Building 0.asset (2515 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x+15.75.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street right 0-2 Building 4.asset (1602 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street left 0-2 Building 7.asset (2949 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Zbar_LOD0_11cf1f04_x+10.00.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_WindowBase_LOD0_0c78d572_x+10.00.asset (42 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street left 0-2 Building 4.asset (2150 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street right 0-7 Building 1.asset (1694 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street left 0-2 Building 3.asset (1570 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x+8.25.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x-12.50.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street right 1-2 Building 3.asset (1986 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street right 0-2 Building 8.asset (1578 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street left 0-7 Building 1.asset (1919 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Layouts/three-streets.json (20 KB) [folder in code: Assets/Data/LevelGen/Layouts/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x-5.00.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Zbar_LOD1_11cf1f04_x+11.50.asset (24 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x+8.25.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street left 1-2 Building 0.asset (1013 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street left 1-2 Building 1.asset (2363 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street left 1-2 Building 4.asset (1843 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Zbar_LOD0_11cf1f04_x-4.75.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets - Proxy Atlas.mat (4 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street right 1-2 Building 2.asset (1453 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD0_d34066a4_x-7.00.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x+5.00.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x-15.50.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD0_d34066a4_x+5.25.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD1_d34066a4_x-11.25.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x-5.50.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_WindowBase_LOD0_0c78d572_x-5.00.asset (42 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street right 0-7 Building 10.asset (3567 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street right 0-2 Building 3.asset (2807 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD1_d34066a4_x-8.00.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street right 0-7 Building 7.asset (1327 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Zbar_LOD0_11cf1f04_x+4.25.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street left 0-2 Building 6.asset (998 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street left 0-7 Building 5.asset (2402 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/annotations.json (256 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street right 0-1 Building 3.asset (949 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street right 0-1 Building 4.asset (2663 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street left 0-7 Building 10.asset (1981 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street left 0-7 Building 3.asset (3987 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/GeneratorSettings.asset (4 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD1_d34066a4_x-5.50.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Layouts/example-street.json (5 KB) [path in code] [folder in code: Assets/Data/LevelGen/Layouts/]
+  Data/LevelGen/Proxies/Three Streets -middle-street left 0-7 Building 4.asset (1769 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x-11.75.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street right 0-7 Building 4.asset (1800 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x+12.75.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x-5.50.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x+12.75.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x-9.50.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x+11.50.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x-5.75.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x+12.25.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Layouts/example-three-levels.json (62 KB) [folder in code: Assets/Data/LevelGen/Layouts/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Zbar_LOD0_11cf1f04_x+6.50.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street right 0-7 Building 8.asset (2652 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x+7.75.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x+10.50.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street left 0-2 Building 9.asset (1239 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Zbar_LOD1_11cf1f04_x-4.75.asset (24 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street left 0-7 Building 11.asset (573 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x+12.50.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD1_e0e439df_x-13.50.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street right 1-2 Building 0.asset (1216 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets - Proxy Atlas Normal.png (9667 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD0_d34066a4_x-5.75.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -middle-street right 0-7 Building 2.asset (1873 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD1_d34066a4_x+5.25.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD1_d34066a4_x-11.00.asset (32 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x-13.00.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -east-street left 0-1 Building 2.asset (1147 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street dead end 2 Building 0.asset (1422 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD0_d34066a4_x+11.00.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Proxies/Three Streets -west-street dead end 0 Building 0.asset (2177 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Cross_LOD0_e0e439df_x-6.75.asset (65 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_WallTall_WindowBase_LOD0_d34066a4_x-11.25.asset (53 KB) [folder in code: Assets/Data/LevelGen/]
+  Data/LevelGen/Sheared/Medieval_PlasterWalls_A_Zbar_LOD1_11cf1f04_x+10.00.asset (24 KB) [folder in code: Assets/Data/LevelGen/]
+== Data/Sound (3)
+  Data/Sound/Environment/TorchLoopPlaceholder.asset (0 KB) [folder in code: Assets/Data/Sound/]
+  Data/Sound/Ambience and Music/AmbienceIndoorPlaceholder.asset (0 KB) [folder in code: Assets/Data/Sound/]
+  Data/Sound/Interactive/CreakPlaceholder.asset (0 KB) [folder in code: Assets/Data/Sound/]
+== Prefabs/Dressing (5)
+  Prefabs/Dressing/Chair_2.prefab (19 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Dressing/Chair_1.prefab (18 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Dressing/Table.prefab (15 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Dressing/WardrobeShelfBody.prefab (13 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Dressing/Broom.prefab (19 KB) [folder in code: Assets/Prefabs/]
+== Prefabs/Environment (282)
+  Prefabs/Environment/Chimneys/TL_Chimney_Supports.prefab (9 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_Roof_2x2_B.prefab (76 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Cliffs/MCastle_CliffRock_Sml_01.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_Walkway.prefab (24 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_LargeRoofFront_Extension.prefab (70 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Extensions/TL_Extension_LargeTopLeft.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_Masonary_Lower_3x3.prefab (108 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Windows/TL_Window_C_Open_Lit.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PortchCorner_Extension.prefab (3 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PlanedWood_BeamBrackets01.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_Extension_Pannels.prefab (28 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PortchCorner_Short.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Fixtures_WoodenSmallSupport.prefab (8 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_Masonary_Lower_2x2_B.prefab (82 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_Grass_B.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Iron/TL_IronFixtures_Knocker.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Building_House1.prefab (329 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PortchCorner_Tall_Cropped.prefab (8 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Ground/TL_StoneFloor_D.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_Fern_Large.prefab (2 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PlanedWood_BeamShort.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Building_Composite_B.prefab (266 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_WoodLarge_StrongSupportLow.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Chimneys/TL_Chimney_StackMiddle_01.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Platforms_Planks_Half.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_IvyVines_EdgeOver.prefab (2 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Cliffs/MCastle_CliffRock_Med_02.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_IvyVines_Single.prefab (2 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Fences/TL_Fences_Fixed_B.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PlanedWood_SupportCornerShort.prefab (9 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Portch_Beam.prefab (2 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_Dock_B.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_Valve_Base.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_WallkwayPlaster_Strong.prefab (36 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_Floor_2x2_D 1.prefab (69 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_Flowers_Cluster_A.prefab (9 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Building_House.prefab (207 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Ground/TL_GroundCover_Rocks2.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Ground/TL_StoneFloor_C.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_Flowers_A.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_Capped_End_Large.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_WallDoorArch_Left.prefab (8 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_ChimneyTop_Large.prefab (60 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Extensions/TL_Extension_LargeStruts_Half.prefab (9 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_LargeRoofExtension.prefab (46 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Ground/TL_StoneFloor_E.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Building_Composite_F.prefab (254 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Building_StoneLookoutTower.prefab (84 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Walls/TL_PlasterWall_B_LowCurves.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_ShortSideWall_A.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_Valve_Large.prefab (10 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_Grass_Cluster_A.prefab (35 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_Roof_2x2_D.prefab (81 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_Extension_Cross.prefab (27 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_Extension_Windows.prefab (32 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Fences/TL_Fences_BrokenBeam_01.prefab (3 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Walls/TL_PlasterWalls_A_PlanksWindow.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_WallkwayPannels_WoodRoof.prefab (25 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Ground/TL_Assembly_Rock_B.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PlanedWood_BeamLong.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PlanedWood_RailsSloped02.prefab (3 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_Floor_3x3_A.prefab (87 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Platforms_Planks_HalfGround.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Building_RepunTower.prefab (331 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_CellarWindow_LeftHalf.prefab (8 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Cliffs/MCastle_CliffRock_Lrg_01.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Walls/TL_PlasterWalls_A_WindowBase_Half.prefab (2 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Fixtures_WoodenSideCorner.prefab (8 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_Tower_Base.prefab (118 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_Valve_Small.prefab (9 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_Extension_Window.prefab (33 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipe_Section_Large.prefab (12 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_Flower_Cluster_B.prefab (9 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Platforms_SideWall_Half_02.prefab (2 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Platforms_ShortBoardPlanks.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_Roof_3x3.prefab (146 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_Masonary_Entrance_1x1.prefab (45 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Ground/TL_StoneFloor_A.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_Floor_3x3_B.prefab (77 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Roofs/TL_RoofTiles_Middle.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_Fern_Med.prefab (2 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Windows/TL_Window_C_Open.prefab (8 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_DoorOrnate_HalfLeft.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Walls/TL_PlasterWalls_A_MidColumn.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Building_Composite_E.prefab (340 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Ground/TL_Assembly_RockWall_A.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_Fern_A.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PlanedWood_FenceBracketsLong.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/RoofWalls/TL_RoofWall_CornerB.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_Extension_CrossTall.prefab (43 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PlanedWood_BeamBracketsLong.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Building_Composite_G.prefab (542 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_Flowers_C.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_WoodenStairsPlatform.prefab (83 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_Roof_2x2_C.prefab (122 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Iron/TL_IronFixtures_Chain.prefab (2 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Iron/TL_IronFixtures_TorchBracket.prefab (11 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Building_Composite_A.prefab (243 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_Vent_A.prefab (9 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Iron/TL_IronFixtures_CellarBars.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Extensions/TL_Extension_Smaller.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Buildings_OpenAirSheter.prefab (226 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PortchCorner_Medium.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Chimneys/TL_Chimney_Supports_Half.prefab (9 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_Valve.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Walls/TL_Masonary_Foundations_CornerOut_01.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_IvyVines_LongVert.prefab (2 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Cliffs/MCastle_CliffRock_Sml_02.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Shelter_Small.prefab (34 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PortchStraight_Extension.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Deciduous_Tree_B.prefab (8 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_WallkwayPannels_Strong.prefab (36 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Ground/TL_GroundCover_Rocks1.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Walls/TL_WallsTall_CornerNarrow.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Platforms_BoardPlanks_SupportsCorner.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Ground/TL_Assembly_RockWall_B.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Walls/TL_PlasterWalls_B_WindiwRoof.prefab (9 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Chimneys/TL_Chimney_Slab_Base.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_Small_A.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipe_Section_Small.prefab (11 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/RoofWalls/TL_RoofWall_LargeB.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Roofs/TL_RoofTiles_Supports.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Extensions/TL_Extension_LargeTop.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_WoodLargeWall_Corner.prefab (8 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Walls/TL_PlasterWalls_B_MasonaryWall_Cropped.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Extensions/TL_Extension_Large.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Building_Composite_H.prefab (258 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_WoodLargeWall_Curved.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_DoorOrnate_HalfRight.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_Roof_2x2_A.prefab (50 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Windows/TL_Window_D_Open_Lit.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PlanedWood_SupportMiddleShort.prefab (9 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_WallkwayWindows_Strong.prefab (41 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Platforms_LoosePlank_01.prefab (2 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Extensions/TL_Extension_LargeStruts.prefab (11 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Ground/TL_StoneFloor_Tile.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Fixtures_WoodenPlatform.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PlanedWood_Rails02.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Walls/TL_PlasterWalls_A_PlanksHalf.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_Extension_WindowsTall.prefab (48 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Cliffs/MCastle_CliffRock_Med_01.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Grass_Foliage_Cluster_B.prefab (10 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Fences/TL_Fences_Broken.prefab (8 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PlanedWood_RailsSloped.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Cliffs/MCastle_CliffRock_Lrg_02.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Platforms_Steps_Wide.prefab (11 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Roofs/TL_RoofTiles_TopCorner_Half.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_SideEntranceExtension.prefab (55 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_ShortSideWall_B.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Roofs/TL_Roof_PeakedWindow.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_WoodLarge_WallWindows.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Walls/TL_PlasterWalls_B_MasonaryWall_Half.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Ground/TL_Assembly_Rock_C.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_Fern_SideSml_A.prefab (2 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_Grass_A.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Building_House_VLarge.prefab (759 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_TJunction.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_Masonary_Lower_3x3_B.prefab (109 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_Large_A.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_Floor_2x2_C.prefab (54 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Fences/TL_Fences_BrokenBeam_02.prefab (3 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_Roof_3x2.prefab (68 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_Floor_2x2_D.prefab (59 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Roofs/TL_RoofTiles_MiddleSide_Cropped.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_WoodLargeWall_CornerLower.prefab (9 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Platforms_LoosePlank_02.prefab (2 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_WallDoorArch_Rright.prefab (8 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Fixtures_WoodOverhangRoof_Handle.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Chimneys/TL_Chimney_StackMiddle_HalfCropped.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Chimneys/TL_Chimney_Supports_Cropped.prefab (10 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_Vent_Large.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Platforms_Planks.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Fixtures_WoodenSmallSupport_Corner.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Deciduous_Tree_A.prefab (29 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_WoodenStairsPlatform_B.prefab (54 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Extensions/TL_Extension_LargeStrutsCorner.prefab (10 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Chimneys/TL_Chimney_StackMiddle_02.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_TowerBridge_Section.prefab (104 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Building_StrangeTower.prefab (166 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Extensions/TL_Extension_LargeBottom.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Roofs/TL_Roof_PeakedTop.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_StepsCellarPlatform.prefab (28 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_Masonary_Lower_2x2.prefab (78 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_IvyVines_ShortVert.prefab (2 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Platforms_SideWall_Half_01.prefab (2 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_Fern_SideSml_B.prefab (2 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_Roof_2x3_A.prefab (99 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Fences/TL_Fences_Broken_C.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PortchColumn_Medium.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PlanedWood_SupportCornerTall.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_Capped_End_Small.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_Corner_Large_Sml.prefab (8 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_OutHouse.prefab (57 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_CellarWall.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Platforms_SideWall.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_Extension_PannelsTall.prefab (44 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Portch_BeamSmall.prefab (2 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/RoofWalls/TL_RoofWall_LargeA.prefab (8 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_WoodMasonaryPlatform_Half.prefab (20 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_Flowers_B.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PortchColumn_Small.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_Fern_B.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_TowerBridge_Complex.prefab (631 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Fences/TL_Fences_Broken_B.prefab (9 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Fixtures_WoodenSideSupport_Straight.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Steps/Steps Wood Narrow.prefab (10 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Fixtures_WoodenPlatform_Corner.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Platforms_Steps_Half.prefab (10 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_Walkway1.prefab (15 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_WallkwayPannels.prefab (26 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Cliffs/MCastle_CliffRock_Sml_03.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PortchColumn_MediumBeam.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_CellarWindow.prefab (9 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Walls/TL_PlasterWalls_A_MidColumn 1.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Platforms_BoardPlanks.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PlanedWood_BeamBrackets02.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Ground/TL_Assembly_Rock_A.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Extensions/TL_Extension_LargeTopRight.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Fences/TL_Fences_Fixed.prefab (9 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/RoofWalls/TL_RoofWall_CornerA.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Building_BespokeTiered.prefab (618 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_WoodMasonaryPlatform.prefab (32 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_WallCorner.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Platforms_PlanksNailed.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_CellarWindow_RightHalf.prefab (8 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Chimneys/TL_Chimney_StackMiddle_Half.prefab (5 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_WoodLarge_WallLow.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/DEMO_House.prefab (170 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PlanedWood_Rails01.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_IvyVines_ShortHoz.prefab (2 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_Masonary_Lower_2x2_C.prefab (82 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Iron/TL_IronFixtures_LargeTorch.prefab (10 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Platforms_BoardPlanks_Supports.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PortchStraight_Tall.prefab (10 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Building_Bridge.prefab (54 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_WoodLarge_WallHalf.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Platforms_Steps_Narrow.prefab (11 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Chimneys/TL_Chimney_StackMiddle.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Roofs/TL_RoofTiles_SupportsHalf.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Roofs/TL_RoofTiles_MiddleSide_Half.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_RepunTower_Top.prefab (219 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_Convert_Junction.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Extensions/TL_Extension_SmallStruts.prefab (9 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_DoorExtension.prefab (34 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_WoodLarge_StrongSupportColumn.prefab (11 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Building_Composite_C.prefab (231 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PortchColumn_Short.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Walls/TL_PlasterWalls_B_Corner.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_Corner_Small_Sml.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Foliage/TL_Foliage_Dock_A.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_Corner_Large.prefab (8 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Building_House_Large1.prefab (466 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_Junction.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_Walkway2.prefab (21 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Chimneys/TL_Chimney_Small_Half.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Walls/TL_Masonary_Foundations_CornerIn_01.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_TJunction_Small.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Iron/TL_IronFixtures_Lock.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_StepsPlatfomWoodMasonary.prefab (18 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_Floor_2x2_B.prefab (66 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Chimneys/TL_Chimney_Supports_HalfDCropped.prefab (9 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Iron/TL_IronFixtures_Armature.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_Corner_Small.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Roofs/TL_Roof_PeakedMiddle.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_Roof_4x4.prefab (134 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_Platforms_Steps_Short.prefab (8 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Building_Composite_D.prefab (294 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_WoodLargeWall_CornerLow.prefab (8 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Iron/TL_IronFixtures_Lamp.prefab (12 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/RoofWalls/TL_RoofWall_CroppedCorner.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_WoodLarge_Wall.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Iron/TL_IronFixtures_XSupport.prefab (2 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_WallCorner_Cropped.prefab (7 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Ground/TL_StoneFloor_B.prefab (4 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Pipes/TL_Pipes_Junction_Small.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/PltfrmSprts/TL_PortchCorner_Tall.prefab (10 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_TowerBridge_Entrance.prefab (162 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Masonry/TL_Masonary_WoodLarge_WallLower.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_Floor_2x2_A.prefab (73 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Roofs/TL_RoofTiles_MiddleWindowHole.prefab (6 KB) [path in code] [in level-gen data] [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Exteriors/TL_Building_House2.prefab (387 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Environment/Building_Layers/TL_Building_House_Roof_3x3_C.prefab (122 KB) [folder in code: Assets/Prefabs/]
+== Prefabs/Interactive (3)
+  Prefabs/Interactive/Lock Plate.prefab (4 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Interactive/Doors/Rectangle Door.prefab (16 KB) [folder in code: Assets/Prefabs/]
+  Prefabs/Interactive/Doors/Curved Top Door.prefab (7 KB) [folder in code: Assets/Prefabs/]
+== Scenes (3)
+  Scenes/Main-NavMesh.asset (138 KB)
+  Scenes/Main.unity (3730 KB)
+  Scenes/Level Gen Test.unity (30328 KB)
+== Scenes/Level Gen Test (22)
+  Scenes/Level Gen Test/Lightmap-1_comp_light.exr (2534 KB)
+  Scenes/Level Gen Test/Lightmap-6_comp_shadowmask.png (423 KB)
+  Scenes/Level Gen Test/Lightmap-4_comp_shadowmask.png (187 KB)
+  Scenes/Level Gen Test/LightingData.asset (13540 KB)
+  Scenes/Level Gen Test/Lightmap-8_comp_shadowmask.png (377 KB)
+  Scenes/Level Gen Test/Lightmap-5_comp_shadowmask.png (581 KB)
+  Scenes/Level Gen Test/Lightmap-9_comp_light.exr (821 KB)
+  Scenes/Level Gen Test/Lightmap-2_comp_shadowmask.png (182 KB)
+  Scenes/Level Gen Test/Lightmap-6_comp_light.exr (2895 KB)
+  Scenes/Level Gen Test/Lightmap-9_comp_shadowmask.png (64 KB)
+  Scenes/Level Gen Test/Lightmap-3_comp_shadowmask.png (257 KB)
+  Scenes/Level Gen Test/Lightmap-8_comp_light.exr (4829 KB)
+  Scenes/Level Gen Test/Lightmap-4_comp_light.exr (2582 KB)
+  Scenes/Level Gen Test/Lightmap-2_comp_light.exr (2013 KB)
+  Scenes/Level Gen Test/Lightmap-5_comp_light.exr (3110 KB)
+  Scenes/Level Gen Test/OcclusionCullingData.asset (3123 KB)
+  Scenes/Level Gen Test/Lightmap-7_comp_shadowmask.png (299 KB)
+  Scenes/Level Gen Test/Lightmap-0_comp_light.exr (2352 KB)
+  Scenes/Level Gen Test/Lightmap-7_comp_light.exr (2600 KB)
+  Scenes/Level Gen Test/Lightmap-3_comp_light.exr (1892 KB)
+  Scenes/Level Gen Test/Lightmap-0_comp_shadowmask.png (79 KB)
+  Scenes/Level Gen Test/Lightmap-1_comp_shadowmask.png (180 KB)
+== Scenes/Main (1)
+  Scenes/Main/OcclusionCullingData.asset (1090 KB)
+== TripoModels/armored_gauntlet_3d_model (3)
+  TripoModels/armored_gauntlet_3d_model/armored_gauntlet_3d_model.fbm/armored_gauntlet_3d_model_metallic_Smoothness.png (3819 KB)
+  TripoModels/armored_gauntlet_3d_model/armored_gauntlet_3d_model.fbx (135 KB)
+  TripoModels/armored_gauntlet_3d_model/armored_gauntlet_3d_model.fbm/armored_gauntlet_3d_model_metallic.JPEG (2182 KB)
+== TripoModels/arrows_3d_model (2)
+  TripoModels/arrows_3d_model/arrows_3d_model.fbm/arrows_roughness.JPEG (1650 KB) [folder in code: Assets/TripoModels/arrows_3d_model/]
+  TripoModels/arrows_3d_model/arrows_3d_model.fbx (580 KB) [folder in code: Assets/TripoModels/arrows_3d_model/]
+== TripoModels/blue_floral_porcelain_3d_model (8)
+  TripoModels/blue_floral_porcelain_3d_model/Materials/blue_floral_porcelain_3d_model.mat (3 KB)
+  TripoModels/blue_floral_porcelain_3d_model/blue_floral_porcelain_3d_model.fbx (188 KB)
+  TripoModels/blue_floral_porcelain_3d_model/blue_floral_porcelain_3d_model.fbm/blue_floral_porcelain_3d_model_normal.JPEG (1690 KB)
+  TripoModels/blue_floral_porcelain_3d_model/blue_floral_porcelain_3d_model.fbm/blue_floral_porcelain_3d_model_roughness.JPEG (819 KB)
+  TripoModels/blue_floral_porcelain_3d_model/blue_floral_porcelain_3d_model.fbm/blue_floral_porcelain_3d_model_metallic_Smoothness.png (940 KB)
+  TripoModels/blue_floral_porcelain_3d_model/blue_floral_porcelain_3d_model.fbm/blue_floral_porcelain_3d_model_basecolor.JPEG (3091 KB)
+  TripoModels/blue_floral_porcelain_3d_model/blue_floral_porcelain_3d_model.fbm/blue_floral_porcelain_3d_model_metallic.JPEG (854 KB)
+  TripoModels/blue_floral_porcelain_3d_model/blue_floral_porcelain_3d_model.fbm/blue_floral_porcelain_3d_model_rm.PNG (4971 KB)
+== TripoModels/bow_3d_model (4)
+  TripoModels/bow_3d_model/bow_rigged.fbx (279 KB)
+  TripoModels/bow_3d_model/bow_rigged_hole.fbx (308 KB)
+  TripoModels/bow_3d_model/bow_3d_model.fbm/bow_3d_model_roughness.JPEG (1791 KB)
+  TripoModels/bow_3d_model/bow_3d_model.fbx (185 KB)
+== TripoModels/coin_with_raven_3d_model (8)
+  TripoModels/coin_with_raven_3d_model/coin_with_raven_3d_model.fbm/coin_with_raven_3d_model_rm.PNG (12939 KB)
+  TripoModels/coin_with_raven_3d_model/Materials/coin_with_raven_3d_model.mat (3 KB)
+  TripoModels/coin_with_raven_3d_model/coin_with_raven_3d_model.fbm/coin_with_raven_3d_model_normal.JPEG (1410 KB)
+  TripoModels/coin_with_raven_3d_model/coin_with_raven_3d_model.fbm/coin_with_raven_3d_model_metallic.JPEG (2006 KB)
+  TripoModels/coin_with_raven_3d_model/coin_with_raven_3d_model.fbm/coin_with_raven_3d_model_metallic_Smoothness.png (3169 KB)
+  TripoModels/coin_with_raven_3d_model/coin_with_raven_3d_model.fbm/coin_with_raven_3d_model_basecolor.JPEG (2944 KB)
+  TripoModels/coin_with_raven_3d_model/coin_with_raven_3d_model.fbx (50 KB)
+  TripoModels/coin_with_raven_3d_model/coin_with_raven_3d_model.fbm/coin_with_raven_3d_model_roughness.JPEG (1839 KB)
+== TripoModels/green_glass_bottle_3d_model (8)
+  TripoModels/green_glass_bottle_3d_model/green_glass_bottle_3d_model.fbm/green_glass_bottle_3d_model_roughness.JPEG (2114 KB)
+  TripoModels/green_glass_bottle_3d_model/green_glass_bottle_3d_model.fbm/green_glass_bottle_3d_model_metallic_Smoothness.png (3175 KB)
+  TripoModels/green_glass_bottle_3d_model/Materials/green_glass_bottle_3d_model.mat (3 KB)
+  TripoModels/green_glass_bottle_3d_model/green_glass_bottle_3d_model.fbm/green_glass_bottle_3d_model_rm.PNG (13486 KB)
+  TripoModels/green_glass_bottle_3d_model/green_glass_bottle_3d_model.fbm/green_glass_bottle_3d_model_normal.JPEG (1107 KB)
+  TripoModels/green_glass_bottle_3d_model/green_glass_bottle_3d_model.fbm/green_glass_bottle_3d_model_basecolor.JPEG (2654 KB)
+  TripoModels/green_glass_bottle_3d_model/green_glass_bottle_3d_model.fbm/green_glass_bottle_3d_model_metallic.JPEG (2157 KB)
+  TripoModels/green_glass_bottle_3d_model/green_glass_bottle_3d_model.fbx (107 KB)
+== TripoModels/guard_1 (6)
+  TripoModels/guard_1/guard_1.fbm/guard_fbx_roughness.JPEG (2107 KB)
+  TripoModels/guard_1/guard_1.fbm/guard_1_fbx_metallic.JPEG (2426 KB)
+  TripoModels/guard_1/guard_1.fbm/tripo_normal_a9a2b479-6e0c-4bec-b9a3-5feb7d6164fc.jpg (1942 KB)
+  TripoModels/guard_1/guard_1.fbm/guard_1_fbx_roughness.JPEG (2052 KB)
+  TripoModels/guard_1/guard_1.fbm/guard_1_fbx_metallic_Smoothness.png (3738 KB)
+  TripoModels/guard_1/guard_1.fbm/tripo_rgb_bf056814-812c-4bed-a615-adae92a1a7c2.jpg (3495 KB)
+== TripoModels/leather-wrapped_cudgel_3d_model (2)
+  TripoModels/leather-wrapped_cudgel_3d_model/leather-wrapped_cudgel_3d_model.fbm/leather-wrapped_cudgel_3d_model_roughness.JPEG (1182 KB)
+  TripoModels/leather-wrapped_cudgel_3d_model/leather-wrapped_cudgel_3d_model.fbm/leather-wrapped_cudgel_3d_model_metallic.JPEG (1273 KB)
+== TripoModels/lock (2)
+  TripoModels/lock/lock.fbm/lock_fbx_metallic_Smoothness.png (3144 KB)
+  TripoModels/lock/lock.fbm/lock_fbx_roughness.JPEG (1728 KB)
+== TripoModels/lockpicks (2)
+  TripoModels/lockpicks/lockpicks.fbm/lockpicks_fbx_roughness.JPEG (1380 KB)
+  TripoModels/lockpicks/lockpicks.fbm/lockpicks_fbx_metallic_Smoothness.png (2109 KB)
+== TripoModels/rusted_kettle_3d_model (4)
+  TripoModels/rusted_kettle_3d_model/rusted_kettle_3d_model.fbm/rusted_kettle_3d_model_metallic.JPEG (1895 KB)
+  TripoModels/rusted_kettle_3d_model/rusted_kettle_3d_model.fbm/rusted_kettle_3d_model_rm.PNG (11913 KB)
+  TripoModels/rusted_kettle_3d_model/rusted_kettle_3d_model.fbm/rusted_kettle_3d_model_roughness.JPEG (1661 KB)
+  TripoModels/rusted_kettle_3d_model/rusted_kettle_3d_model.fbx (92 KB)
+== TripoModels/treasure_chest_3d_model (2)
+  TripoModels/treasure_chest_3d_model/treasure_chest_3d_model.fbm/treasure_chest_3d_model_metallic.JPEG (1577 KB) [folder in code: Assets/TripoModels/treasure_chest_3d_model/]
+  TripoModels/treasure_chest_3d_model/treasure_chest_3d_model.fbm/treasure_chest_3d_model_roughness.JPEG (1383 KB) [folder in code: Assets/TripoModels/treasure_chest_3d_model/]
+== TripoModels/wooden_barrel_3d_model (7)
+  TripoModels/wooden_barrel_3d_model/ladder_LOD2.asset (51 KB)
+  TripoModels/wooden_barrel_3d_model/wooden_barrel_3d_model.fbm/wooden_barrel_3d_model_metallic_Smoothness.png (1540 KB)
+  TripoModels/wooden_barrel_3d_model/wooden_barrel_3d_model.fbx (140 KB)
+  TripoModels/wooden_barrel_3d_model/wooden_barrel_3d_model.fbm/wooden_barrel_3d_model_roughness.JPEG (1146 KB)
+  TripoModels/wooden_barrel_3d_model/wooden_barrel_3d_model.fbm/wooden_barrel_3d_model_rm.PNG (7160 KB)
+  TripoModels/wooden_barrel_3d_model/ladder.fbx (57 KB)
+  TripoModels/wooden_barrel_3d_model/ladder_LOD1.asset (70 KB)
+== TripoModels/wooden_bed_3d_model (3)
+  TripoModels/wooden_bed_3d_model/Materials/wooden_bed_3d_model.mat (3 KB)
+  TripoModels/wooden_bed_3d_model/wooden_bed_3d_model.fbx (431 KB)
+  TripoModels/wooden_bed_3d_model/wooden_bed_3d_model.fbm/wooden_bed_3d_model_basecolor.jpg (3851 KB)
+== TripoModels/wooden_bench_3d_model (10)
+  TripoModels/wooden_bench_3d_model/wooden_bench_3d_model.fbm/wooden_bench_3d_model_normal.JPEG (993 KB)
+  TripoModels/wooden_bench_3d_model/wooden_bench_3d_model_LOD2.asset (87 KB)
+  TripoModels/wooden_bench_3d_model/Materials/wooden_bench_3d_model.mat (4 KB)
+  TripoModels/wooden_bench_3d_model/wooden_bench_3d_model.fbm/wooden_bench_3d_model_rm.PNG (7423 KB)
+  TripoModels/wooden_bench_3d_model/wooden_bench_3d_model.fbm/wooden_bench_3d_model_metallic_Smoothness.png (1368 KB)
+  TripoModels/wooden_bench_3d_model/wooden_bench_3d_model.fbm/wooden_bench_3d_model_roughness.JPEG (1118 KB)
+  TripoModels/wooden_bench_3d_model/wooden_bench_3d_model.fbx (63 KB)
+  TripoModels/wooden_bench_3d_model/wooden_bench_3d_model.fbm/wooden_bench_3d_model_metallic.JPEG (1161 KB)
+  TripoModels/wooden_bench_3d_model/wooden_bench_3d_model.fbm/wooden_bench_3d_model_basecolor.JPEG (2846 KB)
+  TripoModels/wooden_bench_3d_model/wooden_bench_3d_model_LOD1.asset (111 KB)
+== TripoModels/wooden_broom_3d_model (11)
+  TripoModels/wooden_broom_3d_model/wooden_broom_3d_model_LOD1.asset (46 KB)
+  TripoModels/wooden_broom_3d_model/wooden_broom_3d_model.fbm/wooden_broom_3d_model_metallic.JPEG (1040 KB)
+  TripoModels/wooden_broom_3d_model/wooden_broom_3d_model.fbm/wooden_broom_3d_model_basecolor.JPEG (2680 KB)
+  TripoModels/wooden_broom_3d_model/wooden_broom_3d_model.fbx (52 KB)
+  TripoModels/wooden_broom_3d_model/wooden_broom_3d_model.fbm/wooden_broom_3d_model_rm.PNG (6602 KB)
+  TripoModels/wooden_broom_3d_model/wooden_broom_3d_model_Collision.asset (21 KB)
+  TripoModels/wooden_broom_3d_model/Materials/wooden_broom_3d_model.mat (4 KB)
+  TripoModels/wooden_broom_3d_model/wooden_broom_3d_model_LOD2.asset (21 KB)
+  TripoModels/wooden_broom_3d_model/wooden_broom_3d_model.fbm/wooden_broom_3d_model_metallic_Smoothness.png (1181 KB)
+  TripoModels/wooden_broom_3d_model/wooden_broom_3d_model.fbm/wooden_broom_3d_model_normal.JPEG (1581 KB)
+  TripoModels/wooden_broom_3d_model/wooden_broom_3d_model.fbm/wooden_broom_3d_model_roughness.JPEG (1004 KB)
+== TripoModels/wooden_chair_3d_model (10)
+  TripoModels/wooden_chair_3d_model/wooden_chair_3d_model.fbm/wooden_chair_3d_model_metallic_Smoothness.png (1582 KB)
+  TripoModels/wooden_chair_3d_model/wooden_chair_3d_model.fbm/wooden_chair_3d_model_basecolor.JPEG (2163 KB)
+  TripoModels/wooden_chair_3d_model/wooden_chair_3d_model.fbm/wooden_chair_3d_model_roughness.JPEG (1208 KB)
+  TripoModels/wooden_chair_3d_model/Materials/wooden_chair_3d_model.mat (4 KB)
+  TripoModels/wooden_chair_3d_model/wooden_chair_3d_model.fbm/wooden_chair_3d_model_rm.PNG (8203 KB)
+  TripoModels/wooden_chair_3d_model/wooden_chair_3d_model.fbx (36 KB)
+  TripoModels/wooden_chair_3d_model/wooden_chair_3d_model_LOD2.asset (33 KB)
+  TripoModels/wooden_chair_3d_model/wooden_chair_3d_model.fbm/wooden_chair_3d_model_metallic.JPEG (1234 KB)
+  TripoModels/wooden_chair_3d_model/wooden_chair_3d_model_LOD1.asset (45 KB)
+  TripoModels/wooden_chair_3d_model/wooden_chair_3d_model.fbm/wooden_chair_3d_model_normal.JPEG (781 KB)
+== TripoModels/wooden_chair_3d_model_2 (10)
+  TripoModels/wooden_chair_3d_model_2/wooden_chair_3d_model_1.fbx (36 KB)
+  TripoModels/wooden_chair_3d_model_2/wooden_chair_3d_model_1.fbm/wooden_chair_3d_model_1_normal.JPEG (874 KB)
+  TripoModels/wooden_chair_3d_model_2/wooden_chair_3d_model_1_LOD1.asset (43 KB)
+  TripoModels/wooden_chair_3d_model_2/Materials/wooden_chair_3d_model_1.mat (4 KB)
+  TripoModels/wooden_chair_3d_model_2/wooden_chair_3d_model_1_LOD2.asset (29 KB)
+  TripoModels/wooden_chair_3d_model_2/wooden_chair_3d_model_1.fbm/wooden_chair_3d_model_1_basecolor.JPEG (2327 KB)
+  TripoModels/wooden_chair_3d_model_2/wooden_chair_3d_model_1.fbm/wooden_chair_3d_model_1_metallic.JPEG (1617 KB)
+  TripoModels/wooden_chair_3d_model_2/wooden_chair_3d_model_1.fbm/wooden_chair_3d_model_1_metallic_Smoothness.png (2260 KB)
+  TripoModels/wooden_chair_3d_model_2/wooden_chair_3d_model_1.fbm/wooden_chair_3d_model_1_rm.PNG (10887 KB)
+  TripoModels/wooden_chair_3d_model_2/wooden_chair_3d_model_1.fbm/wooden_chair_3d_model_1_roughness.JPEG (1659 KB)
+== TripoModels/wooden_chest_3d_model (8)
+  TripoModels/wooden_chest_3d_model/wooden_chest_3d_model.fbm/wooden_chest_3d_model_metallic_Smoothness.png (2030 KB)
+  TripoModels/wooden_chest_3d_model/wooden_chest_3d_model.fbm/wooden_chest_3d_model_rm.PNG (9593 KB)
+  TripoModels/wooden_chest_3d_model/wooden_chest_3d_model.fbm/wooden_chest_3d_model_metallic.JPEG (1568 KB)
+  TripoModels/wooden_chest_3d_model/wooden_chest_3d_model.fbm/wooden_chest_3d_model_roughness.JPEG (1359 KB)
+  TripoModels/wooden_chest_3d_model/wooden_chest_3d_model.fbm/wooden_chest_3d_model_basecolor.JPEG (3257 KB)
+  TripoModels/wooden_chest_3d_model/Materials/wooden_chest_3d_model.mat (3 KB)
+  TripoModels/wooden_chest_3d_model/wooden_chest_3d_model.fbx (102 KB)
+  TripoModels/wooden_chest_3d_model/wooden_chest_3d_model.fbm/wooden_chest_3d_model_normal.JPEG (1502 KB)
+== TripoModels/wooden_door_3d_model (3)
+  TripoModels/wooden_door_3d_model/wooden_door_3d_model.fbm/wooden_door_3d_model_rm.PNG (6002 KB)
+  TripoModels/wooden_door_3d_model/wooden_door_3d_model.fbm/wooden_door_3d_model_roughness.JPEG (1002 KB)
+  TripoModels/wooden_door_3d_model/wooden_door_3d_model.fbm/wooden_door_3d_model_metallic.JPEG (980 KB)
+== TripoModels/wooden_shelf_3d_model (10)
+  TripoModels/wooden_shelf_3d_model/wooden_shelf_3d_model.fbx (49 KB)
+  TripoModels/wooden_shelf_3d_model/wooden_shelf_3d_model.fbm/wooden_shelf_3d_model_metallic.JPEG (2037 KB)
+  TripoModels/wooden_shelf_3d_model/wooden_shelf_3d_model_LOD1.asset (85 KB)
+  TripoModels/wooden_shelf_3d_model/wooden_shelf_3d_model.fbm/wooden_shelf_3d_model_metallic_Smoothness.png (2848 KB)
+  TripoModels/wooden_shelf_3d_model/wooden_shelf_3d_model_LOD2.asset (49 KB)
+  TripoModels/wooden_shelf_3d_model/wooden_shelf_3d_model.fbm/wooden_shelf_3d_model_roughness.JPEG (2147 KB)
+  TripoModels/wooden_shelf_3d_model/wooden_shelf_3d_model.fbm/wooden_shelf_3d_model_normal.JPEG (1032 KB)
+  TripoModels/wooden_shelf_3d_model/wooden_shelf_3d_model.fbm/wooden_shelf_3d_model_basecolor.JPEG (2649 KB)
+  TripoModels/wooden_shelf_3d_model/Materials/wooden_shelf_3d_model.mat (4 KB)
+  TripoModels/wooden_shelf_3d_model/wooden_shelf_3d_model.fbm/wooden_shelf_3d_model_rm.PNG (13104 KB)
+
+== Runtime scripts not on anything in the Intro scene (R = runtime, E = editor; refs = other script files naming it)
+R AI/GuardState.cs | refs 5
+R Core/ExitZone.cs | refs 3 (LevelManager,SoundRoom,InHeadsetGizmos)
+R Core/Flame.cs | refs 3 (FlameFlicker,PlayerArrows,SoundTestHouse)
+R Core/FoveatedRendering.cs | refs 0
+R Core/GameState.cs | refs 4
+R Core/INoiseListener.cs | refs 3 (Guard,NoiseSystem,NoiseListenerDebug)
+R Core/ListenerReverb.cs | refs 1 (SoundPlayer)
+R Core/MoonShaft.cs | refs 1 (MoonShafts)
+R Core/Noise.cs | refs 18
+R Core/NoiseSystem.cs | refs 10
+R Core/NoiseType.cs | refs 10
+R Core/OverlayMaterial.cs | refs 5
+R Core/ReverbSettings.cs | refs 7
+R Core/RoomAmbience.cs | refs 1 (SoundPlayer)
+R Core/SceneLight.cs | refs 5
+R Core/SoundLoop.cs | refs 7
+R Core/SoundLoopPlayer.cs | refs 1 (SoundPlayer)
+R Core/SoundPath.cs | refs 7
+R Core/SoundPropagation.cs | refs 8
+R Core/SpatialiserMode.cs | refs 1 (SoundPlayer)
+R Core/SpatialiserSettings.cs | refs 2 (SoundPlayer,SpatialVoice)
+R Core/SpatialVoice.cs | refs 4
+R Core/SurfaceType.cs | refs 13
+R Interaction/Chest.cs | refs 11
+R Interaction/ChestLid.cs | refs 3 (Chest,PlayerHandDoors,ChestTestArea)
+R Interaction/ClimbableRope.cs | refs 6
+R Interaction/DoorBolt.cs | refs 4
+R Interaction/DoorLock.cs | refs 6
+R Interaction/DoorSwing.cs | refs 1 (Door)
+R Interaction/HandPushRegistry.cs | refs 4
+R Interaction/HandSnapPose.cs | refs 17
+R Interaction/HandTargetRegistry.cs | refs 13
+R Interaction/IClimbable.cs | refs 6
+R Interaction/IHandPushable.cs | refs 4
+R Interaction/IHandSnapTarget.cs | refs 5
+R Interaction/IHandTarget.cs | refs 17
+R Interaction/IMantleable.cs | refs 4
+R Interaction/ImpactNoise.cs | refs 1 (GrabbableTestProps)
+R Interaction/IZipLine.cs | refs 3 (ClimbableRope,IClimbable,PlayerClimbing)
+R Interaction/KeyLock.cs | refs 6
+R Interaction/Ladder.cs | refs 9
+R Interaction/LockMeshBuilder.cs | refs 4
+R Inventory/BoltType.cs | refs 4
+R Inventory/Key.cs | refs 16
+R Inventory/Keyring.cs | refs 3 (Key,Pack,PlayerKeys)
+R Inventory/Loot.cs | refs 3 (Pack,PlayerPack,LootTestProps)
+R Inventory/PackSlot.cs | refs 3 (Pack,PlayerKeys,PlayerPack)
+R Inventory/ToolType.cs | refs 2 (PlayerInventory,InventoryDebug)
+R Player/Arrow.cs | refs 4
+R Player/BallisticArc.cs | refs 2 (PlayerArrows,PlayerHandThrowing)
+R Player/HandCollisionShape.cs | refs 2 (HandPhysicalFollow,HandShapeGeometry)
+R Player/HandFingerPoser.cs | refs 1 (PlayerHandAnimation)
+R Player/HandGhost.cs | refs 1 (PlayerHandVisuals)
+R Player/HandPhysicalFollow.cs | refs 6
+R Player/HandPoseFilter.cs | refs 2 (HandSmoothingSettings,PlayerTracking)
+R Player/HandShapeFitter.cs | refs 3 (HandPhysicalFollow,HandShapeSizes,PlayerHandVisuals)
+R Player/HandShapeGeometry.cs | refs 4
+R Player/HandShapeSizes.cs | refs 3 (HandPhysicalFollow,HandShapeFitter,PlayerHandVisuals)
+R Player/HandSmoothingSettings.cs | refs 2 (HandPoseFilter,PlayerTracking)
+R Player/HandVisualSnap.cs | refs 10
+R Player/LootWorthMarker.cs | refs 1 (PlayerPack)
+R Player/MovementState.cs | refs 4
+R Player/ThrowArc.cs | refs 3 (PlayerArrows,PlayerBow,PlayerHandThrowing)
+R AI/Debug/GuardAnimationTest.cs | refs 1 (GuardTestsArea)
+R AI/Debug/GuardDebug.cs | refs 1 (GuardTestSetup)
+E AI/Editor/GuardRagdollBuilder.cs | refs 0
+R Core/Debug/DebugDrawRegistry.cs | refs 28
+R Core/Debug/DebugLines.cs | refs 33
+R Core/Debug/IDebugDrawable.cs | refs 31
+R Core/Debug/NoiseListenerDebug.cs | refs 5
+R Core/Debug/SoundEmitterDebug.cs | refs 2 (SoundDebug,SoundTestArea)
+E Core/Editor/ColliderFlattener.cs | refs 0
+E Core/Editor/ColliderRemover.cs | refs 0
+E Core/Editor/EnvironmentVariants.cs | refs 1 (PrefabCatalogueScanner)
+E Core/Editor/LightProbePlacer.cs | refs 0
+E Core/Editor/LodMeshBuilder.cs | refs 0
+E Core/Editor/ShadowFloor.cs | refs 1 (Moonlight)
+E Core/Editor/SoundPortalEditor.cs | refs 0
+E Interaction/Editor/HandPoseWindow.cs | refs 0
+E LevelGen/Editor/Backing.cs | refs 3 (FacadeBacking,GeneratorSettings,LevelGenerator)
+E LevelGen/Editor/BuildingProxies.cs | refs 4
+E LevelGen/Editor/BuildingStyle.cs | refs 11
+E LevelGen/Editor/ColourVariants.cs | refs 2 (FacadeRoofs,GapFiller)
+E LevelGen/Editor/FacadeBacking.cs | refs 0
+E LevelGen/Editor/FacadeBuilder.cs | refs 11
+E LevelGen/Editor/FacadeDressing.cs | refs 1 (MergedColliders)
+E LevelGen/Editor/FacadeRoofs.cs | refs 1 (MergedColliders)
+E LevelGen/Editor/FloorColliders.cs | refs 1 (StreetGround)
+E LevelGen/Editor/GapFiller.cs | refs 3 (FacadeBuilder,GeneratedReport,LevelGenerator)
+E LevelGen/Editor/GeneratedReport.cs | refs 4
+E LevelGen/Editor/GeneratorSettings.cs | refs 29
+E LevelGen/Editor/GroundMesh.cs | refs 1 (StreetGround)
+E LevelGen/Editor/LayoutSpec.cs | refs 13
+E LevelGen/Editor/LayoutSpecValidator.cs | refs 3 (GeneratedReport,LevelGenerator,OpenWindowInteriors)
+E LevelGen/Editor/LevelGenerator.cs | refs 6
+E LevelGen/Editor/MergedColliders.cs | refs 3 (LevelGenerator,OpenWindowInteriors,StreetFoliage)
+E LevelGen/Editor/MoonShafts.cs | refs 2 (LevelGenerator,SoundRooms)
+E LevelGen/Editor/OpenWindowInteriors.cs | refs 6
+E LevelGen/Editor/PieceAnnotations.cs | refs 12
+E LevelGen/Editor/PiecePlacer.cs | refs 12
+E LevelGen/Editor/PieceReviewWindow.cs | refs 1 (PieceAnnotations)
+E LevelGen/Editor/PieceShape.cs | refs 3 (PrefabCatalogue,PrefabCatalogueScanner,WallOrientation)
+E LevelGen/Editor/PipeEnds.cs | refs 2 (FacadeDressing,PieceReviewWindow)
+E LevelGen/Editor/PrefabCatalogue.cs | refs 8
+E LevelGen/Editor/PrefabCatalogueScanner.cs | refs 8
+E LevelGen/Editor/ProxyAtlas.cs | refs 1 (BuildingProxies)
+E LevelGen/Editor/RoofEdgeColliders.cs | refs 1 (LevelGenerator)
+E LevelGen/Editor/ShearedMeshes.cs | refs 1 (FacadeBuilder)
+E LevelGen/Editor/SoundRooms.cs | refs 5
+E LevelGen/Editor/StoreyPlan.cs | refs 5
+E LevelGen/Editor/StreetClearance.cs | refs 3 (FacadeBuilder,GapFiller,PiecePlacer)
+E LevelGen/Editor/StreetFoliage.cs | refs 2 (LevelGenerator,StreetGround)
+E LevelGen/Editor/StreetGround.cs | refs 6
+E LevelGen/Editor/StreetHeights.cs | refs 8
+E LevelGen/Editor/StreetNavMesh.cs | refs 1 (LevelGenerator)
+E LevelGen/Editor/StreetSlopes.cs | refs 6
+E LevelGen/Editor/StreetSteps.cs | refs 6
+E LevelGen/Editor/StreetTest.cs | refs 2 (LevelGenerator,VisibilityCull)
+E LevelGen/Editor/StyleRules.cs | refs 3 (LayoutSpecValidator,PieceAnnotations,PieceReviewWindow)
+E LevelGen/Editor/VisibilityCull.cs | refs 1 (LevelGenerator)
+E LevelGen/Editor/WalkSurface.cs | refs 2 (PieceShape,PrefabCatalogueScanner)
+E LevelGen/Editor/WallOrientation.cs | refs 4
+E LevelGen/Editor/WallProbe.cs | refs 2 (FacadeBuilder,FacadeDressing)
+R Player/Debug/HandRayDebug.cs | refs 1 (PlayerHandInteraction)
+R Player/Debug/HandStateDebug.cs | refs 0
+R Player/Debug/InputTest.cs | refs 0
+R Player/Debug/LocomotionInputTest.cs | refs 0
+R Player/Debug/MovementStateDebug.cs | refs 0
+R Player/Debug/TrackingTest.cs | refs 0
+R Player/Debug/TurnActionTest.cs | refs 0
+R Player/Debug/TurnInputTest.cs | refs 0
+R Player/Debug/VRDebugInput.cs | refs 0
+E AI/Debug/Editor/GuardTestsArea.cs | refs 0
+E AI/Debug/Editor/GuardTestSetup.cs | refs 0
+E Core/Debug/Editor/NoiseTestListeners.cs | refs 0
+E Core/Debug/Editor/PlaceholderSounds.cs | refs 7
+E Core/Debug/Editor/SoundTestArea.cs | refs 2 (SoundTestHouse,DoorTestArea)
+E Core/Debug/Editor/SoundTestHouse.cs | refs 0
+E Interaction/Debug/Editor/BuildingMesh.cs | refs 1 (SmithyBuilding)
+E Interaction/Debug/Editor/ChestTestArea.cs | refs 0
+E Interaction/Debug/Editor/DoorTestArea.cs | refs 1 (ChestTestArea)
+E Interaction/Debug/Editor/SmithyBuilding.cs | refs 2 (BuildingMesh,SmithyTextures)
+E Interaction/Debug/Editor/SmithyTextures.cs | refs 1 (SmithyBuilding)
+E Inventory/Debug/Editor/LootTestProps.cs | refs 1 (DoorTestArea)
+E Player/Debug/Editor/GrabbableTestProps.cs | refs 3 (ChestTestArea,DoorTestArea,LootTestProps)
+E Player/Debug/Editor/LocomotionTestCourse.cs | refs 1 (TestGeometry)
+E Player/Debug/Editor/PhysicalHandsTestArea.cs | refs 1 (TestGeometry)
+E Player/Debug/Editor/PlayerHandTools.cs | refs 1 (GuardTestSetup)
+E Player/Debug/Editor/TestGeometry.cs | refs 11
+E Player/Debug/Editor/TownTestArea.cs | refs 1 (TestGeometry)

@@ -24,7 +24,7 @@ namespace AI
     /// </summary>
     public static class GuardRagdollBuilder
     {
-        private const string PrefabPath = "Assets/Prefabs/Characters/Guard.prefab";
+        private const string PrefabPath = "Assets/Prefabs/Actors/Guard.prefab";
         private const string LayerName = "Ragdoll";
 
         // The share of a limb's vertices its capsule's radius takes in,
@@ -39,8 +39,11 @@ namespace AI
 
         private enum Shape { Box, Capsule, Sphere }
 
+        // A part with no next bone (the hips, chest and head).
+        private const HumanBodyBones None = HumanBodyBones.LastBone;
+
         /// <summary>
-        /// One ragdoll bone: its name, parent body (by index; -1 for
+        /// One ragdoll bone: its Humanoid bone, parent body (by index; -1 for
         /// the hips), shape, mass in kg, the next bone along it (for a
         /// limb's length), and the joint's limits in degrees: bending
         /// about the body's right (low, high), sideways (swing) and
@@ -48,17 +51,17 @@ namespace AI
         /// </summary>
         private readonly struct Part
         {
-            public readonly string Bone;
+            public readonly HumanBodyBones Bone;
             public readonly int Parent;
             public readonly Shape Shape;
             public readonly float Mass;
-            public readonly string Next;
+            public readonly HumanBodyBones Next;
             public readonly float BendLow;
             public readonly float BendHigh;
             public readonly float Swing;
             public readonly float Twist;
 
-            public Part(string bone, int parent, Shape shape, float mass, string next, float bendLow, float bendHigh, float swing, float twist)
+            public Part(HumanBodyBones bone, int parent, Shape shape, float mass, HumanBodyBones next, float bendLow, float bendHigh, float swing, float twist)
             {
                 Bone = bone;
                 Parent = parent;
@@ -77,17 +80,17 @@ namespace AI
         // back). Hips first; parents before children.
         private static readonly Part[] _parts =
         {
-            new("Hips", -1, Shape.Box, 12f, null, 0f, 0f, 0f, 0f),
-            new("Chest", 0, Shape.Box, 18f, null, -30f, 20f, 15f, 20f),
-            new("Head", 1, Shape.Sphere, 5f, null, -40f, 40f, 30f, 40f),
-            new("Left_UpperLeg", 0, Shape.Capsule, 8f, "Left_LowerLeg", -100f, 20f, 30f, 20f),
-            new("Left_LowerLeg", 3, Shape.Capsule, 5f, "Left_Foot", 0f, 130f, 0f, 5f),
-            new("Right_UpperLeg", 0, Shape.Capsule, 8f, "Right_LowerLeg", -100f, 20f, 30f, 20f),
-            new("Right_LowerLeg", 5, Shape.Capsule, 5f, "Right_Foot", 0f, 130f, 0f, 5f),
-            new("Left_UpperArm", 1, Shape.Capsule, 3f, "Left_LowerArm", -120f, 40f, 70f, 30f),
-            new("Left_LowerArm", 7, Shape.Capsule, 2f, "Left_Hand", -130f, 0f, 0f, 20f),
-            new("Right_UpperArm", 1, Shape.Capsule, 3f, "Right_LowerArm", -120f, 40f, 70f, 30f),
-            new("Right_LowerArm", 9, Shape.Capsule, 2f, "Right_Hand", -130f, 0f, 0f, 20f),
+            new(HumanBodyBones.Hips, -1, Shape.Box, 12f, None, 0f, 0f, 0f, 0f),
+            new(HumanBodyBones.Chest, 0, Shape.Box, 18f, None, -30f, 20f, 15f, 20f),
+            new(HumanBodyBones.Head, 1, Shape.Sphere, 5f, None, -40f, 40f, 30f, 40f),
+            new(HumanBodyBones.LeftUpperLeg, 0, Shape.Capsule, 8f, HumanBodyBones.LeftLowerLeg, -100f, 20f, 30f, 20f),
+            new(HumanBodyBones.LeftLowerLeg, 3, Shape.Capsule, 5f, HumanBodyBones.LeftFoot, 0f, 130f, 0f, 5f),
+            new(HumanBodyBones.RightUpperLeg, 0, Shape.Capsule, 8f, HumanBodyBones.RightLowerLeg, -100f, 20f, 30f, 20f),
+            new(HumanBodyBones.RightLowerLeg, 5, Shape.Capsule, 5f, HumanBodyBones.RightFoot, 0f, 130f, 0f, 5f),
+            new(HumanBodyBones.LeftUpperArm, 1, Shape.Capsule, 3f, HumanBodyBones.LeftLowerArm, -120f, 40f, 70f, 30f),
+            new(HumanBodyBones.LeftLowerArm, 7, Shape.Capsule, 2f, HumanBodyBones.LeftHand, -130f, 0f, 0f, 20f),
+            new(HumanBodyBones.RightUpperArm, 1, Shape.Capsule, 3f, HumanBodyBones.RightLowerArm, -120f, 40f, 70f, 30f),
+            new(HumanBodyBones.RightLowerArm, 9, Shape.Capsule, 2f, HumanBodyBones.RightHand, -130f, 0f, 0f, 20f),
         };
 
         [MenuItem("TeaLeaf/Modify Prefab/Build Guard Ragdoll")]
@@ -128,10 +131,10 @@ namespace AI
             Transform[] bones = new Transform[_parts.Length];
 
             for (int i = 0; i < _parts.Length; i++) {
-                bones[i] = FindBone(skin.bones, _parts[i].Bone);
+                bones[i] = FindBone(root, skin.bones, _parts[i].Bone);
 
                 if (bones[i] == null) {
-                    Debug.LogError($"Build Guard Ragdoll: no bone '{_parts[i].Bone}' in the skin.");
+                    Debug.LogError($"Build Guard Ragdoll: no {_parts[i].Bone} bone in the skin (the model needs a Humanoid rig that maps it).");
                     return false;
                 }
             }
@@ -172,7 +175,7 @@ namespace AI
                 hitboxes[i] = part.Shape switch {
                     Shape.Box => AddBox(bone, points[i]),
                     Shape.Sphere => AddSphere(bone, points[i]),
-                    _ => AddCapsule(bone, points[i], FindBone(skin.bones, part.Next), part.Bone.EndsWith("LowerArm")),
+                    _ => AddCapsule(bone, points[i], FindBone(root, skin.bones, part.Next), part.Bone is HumanBodyBones.LeftLowerArm or HumanBodyBones.RightLowerArm),
                 };
 
                 Rigidbody body = bone.gameObject.AddComponent<Rigidbody>();
@@ -200,8 +203,30 @@ namespace AI
             return true;
         }
 
-        private static Transform FindBone(Transform[] bones, string name)
+        /// <summary>
+        /// Finds a Humanoid bone among the skin's bones: the model's
+        /// avatar names the bone it maps to it (read from the avatar, as
+        /// a prefab being edited has no running Animator to ask). Null
+        /// for None, or without a Humanoid avatar mapping it.
+        /// </summary>
+        private static Transform FindBone(GameObject root, Transform[] bones, HumanBodyBones humanBone)
         {
+            Animator animator = root.GetComponentInChildren<Animator>(true);
+
+            if (humanBone == None || animator == null || animator.avatar == null || !animator.avatar.isHuman) {
+                return null;
+            }
+
+            string humanName = HumanTrait.BoneName[(int)humanBone];
+            string name = null;
+
+            foreach (HumanBone mapped in animator.avatar.humanDescription.human) {
+                if (mapped.humanName == humanName) {
+                    name = mapped.boneName;
+                    break;
+                }
+            }
+
             if (name == null) {
                 return null;
             }

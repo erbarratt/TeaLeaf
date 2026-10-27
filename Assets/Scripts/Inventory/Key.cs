@@ -19,9 +19,11 @@ namespace Inventory
     public class Key : MonoBehaviour
     {
         // Which locks it opens: the same text as the door's Key Id.
+        [Tooltip("Which keyed locks this key opens: the same text as the door's or chest's Key Id, e.g. \"cellar\" opens every lock whose Key Id is \"cellar\". Case and spelling must match exactly.")]
         [SerializeField] private string keyId;
 
         // Its colour, which is also how it's shown on the keyring.
+        [Tooltip("The key's colour: the prop is tinted with it at load, and its bar on the keyring is drawn in it, e.g. red for the cellar key so the player can tell it from a blue one.")]
         [SerializeField] private Color color = Color.red;
 
         private static readonly int _baseColorId = Shader.PropertyToID("_BaseColor");

@@ -29,7 +29,9 @@ namespace LevelGen
 
         internal const string AnnotationsPath = PrefabCatalogueScanner.DataFolder + "/annotations.json";
 
+        [Tooltip("The annotations file's format number, e.g. 2 (the current format); format 1 is read and written back as 2, any other is left alone and not used.")]
         public int format = CurrentFormat;
+        [Tooltip("The annotated prefabs: one entry is one prefab's facts as judged in Review Pieces, keyed by its GUID, e.g. a plaster wall's category, front, size, points and styles. A prefab with no entry has not been looked at.")]
         public List<PieceAnnotation> pieces = new();
 
         /// <summary>
@@ -91,52 +93,71 @@ namespace LevelGen
             "grass", "nettle"
         };
 
+        [Tooltip("The prefab's GUID, the annotation's key: survives a rename or move of the prefab, e.g. the 32-hex-digit id from its .meta file.")]
         public string guid;
+        [Tooltip("The prefab's name, copied in only so the file can be read by hand, e.g. \"TL_PlasterWalls_A_Cross\". Not used to find the prefab.")]
         public string name;
+        [Tooltip("The prefab's asset path, copied in so the file can be read by hand and sorted, e.g. Assets/Prefabs/Environment/Walls/TL_PlasterWalls_A_Cross.prefab. Not used to find the prefab.")]
         public string path;
 
+        [Tooltip("What kind of piece it is, which decides where the generator uses it, e.g. \"wall\", \"door-wall\", \"foundation\", \"roof-end\", \"lamp-post\". Empty = not yet chosen: never placed, and can't be verified.")]
         public string category = "";
         // The way(s) the piece faces, each a level axis (+X, -X, +Z, -Z): one
         // for a wall, two for a corner, none for a floor or ground tile.
+        [Tooltip("The way(s) the piece faces, each a level axis of its root (+X, -X, +Z, -Z): one entry per front, e.g. one (0, 0, 1) for a wall facing +Z, two for an outer corner, none for a floor or steps.")]
         public List<Vector3> fronts = new();
         // The module's size in metres: width along the piece's right (as seen
         // from in front), height, and depth along its front. For a piece with
         // no front, width is along X and depth along Z.
+        [Tooltip("The piece's module width in metres, along its right as seen from in front (along X with no front), e.g. 3 for a full plaster wall's back plane. Compared with its style's module to decide whether it fits.")]
         public float width;
+        [Tooltip("The piece's module height in metres, e.g. 3 for a plaster wall, 4.5 for a wall-tall one. Compared with its style's module height and storeys' heights.")]
         public float height;
+        [Tooltip("The piece's depth in metres along its front (along Z with no front), e.g. 0.6 for a wall. Used to set facade depth lines and interior wall thickness.")]
         public float depth;
+        [Tooltip("The piece's named points in its root's space: one entry is one point (name, position, way out), e.g. \"left\" at a wall's base left end, \"a\"/\"b\" at a pipe's flanges, \"window\" for a blind-window insert spot. The generator places pieces by these.")]
         public List<ConnectionPoint> connections = new();
         // The building styles the piece belongs to (e.g. "plaster"), which a
         // layout spec names per storey or street. A piece can be in several:
         // a foundation is tagged with every style that stands on it.
+        [Tooltip("The building styles the piece belongs to, which a layout spec names per storey or street: one entry is one style, lower case with hyphens, e.g. \"plaster\", \"masonry-cellar\". A foundation is tagged with every style that stands on it; none = used by no style.")]
         public List<string> styles = new();
 
         // Placed only on a building's ground storey (a wall too heavy or
         // grand for an upper one), whatever its style allows.
+        [Tooltip("On: placed only on a building's ground storey, whatever its style allows (a wall too heavy or grand for an upper one), e.g. WallTall_StoneWindowBase. Off: any storey its style is on.")]
         public bool groundStoreyOnly;
         // A plain wall that shows a window or door (a blind window, framed but
         // not see through, or half a door): never used where a wall must be
         // plain, such as a side wall.
+        [Tooltip("On: a plain wall that shows a window or door (a blind window, or half a door), never used where a wall must be plain, such as a side wall, while another will do, e.g. PlasterWalls_A_WindowBase. Off: a truly plain wall.")]
         public bool showsOpening;
         // A plain wall that, on a storey whose style offers it, stands at
         // every module but the spec's door (e.g. the masonry ground storey's
         // MasonaryWall).
+        [Tooltip("On: a plain wall that, on a storey whose style offers it, stands at every module but the spec's door, with no random doors or windows there, e.g. the masonry ground storey's MasonaryWall. Off: mixed with the style's other walls.")]
         public bool fillsStorey;
         // A plain wall that never mixes on a storey with another so marked:
         // each storey draws one of them and every plain wall on it - its
         // modules, corner fillers and side walls - is that one (e.g.
         // wall-tall's WindowBase and StoneWindowBase).
+        [Tooltip("On: a plain wall that never mixes on a storey with another so marked - each storey draws one, and every plain wall on it (modules, corner fillers, side walls) is that one, e.g. wall-tall's WindowBase and StoneWindowBase. Off: mixes freely.")]
         public bool onePerStorey;
         // A window insert whose panes glow as if lit from behind (a lit
         // material): put into a share of the window holes filled
         // (GeneratorSettings.LitWindowShare), the unlit inserts in the rest.
+        [Tooltip("On: a window insert whose panes glow as if lit from behind, put into Lit Window Share of the filled holes, e.g. TL_Window_A_Lit. Off: an unlit insert, used in the rest.")]
         public bool lit;
         // A plain wall the open window interiors may build their rooms from
         // (OpenWindowInteriors), scaled thin; any style it is tagged with
         // matches a building's, "default" stands in where none does.
+        [Tooltip("On: a plain wall the open window interiors may build their rooms from, scaled thin; its styles match a building's, and \"default\" stands in where none does (still needs Verified). Off: never used inside.")]
         public bool openWindowInterior;
+        [Tooltip("On: the piece is never placed by the generator, e.g. a piece with gameplay scripts, an assembly or one with gaps. Off: placed if verified.")]
         public bool excluded;
+        [Tooltip("On: the maintainer has confirmed its front, pivot, footprint and points, so the generator may place it (unless Excluded). Off: never placed.")]
         public bool verified;
+        [Tooltip("A free note about the piece for the maintainer, e.g. \"pivot mid-height, check by eye\". Not read by the generator.")]
         public string note = "";
 
         /// <summary>

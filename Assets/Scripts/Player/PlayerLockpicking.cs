@@ -74,25 +74,32 @@ namespace Player
             public bool wasInReach;
         }
 
+        [Tooltip("The input system on the Player root: grips take the picks and hold them, and its handedness picks the wearing hand (right-handed: worn on the left, taken by the right), e.g. drag the Player root's PlayerInputXR here (filled in when the component is added).")]
         [SerializeField] private PlayerInputXR playerInput;
+        [Tooltip("The tracking on the Player root: the controllers turn the picks and the head decides which face of a lock is used and when the player has walked away, e.g. drag the Player root's PlayerTracking here (filled in when the component is added).")]
         [SerializeField] private PlayerTracking playerTracking;
+        [Tooltip("The hand visuals on Hands: the picks are worn and carried on a visual, and a hand on a pick has its visual snapped onto it, e.g. drag the Hands object's PlayerHandVisuals here (filled in when the component is added).")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         // What each hand is busy with: a hand climbing, carrying a prop,
         // on a door handle or using the keys can't take a pick. Found
         // (or made) in Awake() if not wired (it's on this same object).
+        [Tooltip("What each hand is busy with, asked before a hand takes the picks or a pick, e.g. a hand on a door handle can't take them. Found (or added) on this object if empty.")]
         [SerializeField] private PlayerHandState playerHandState;
 
         // Optional: a rig with no haptics still picks locks.
+        [Tooltip("The haptics on the Player root, for the taps, stops and pin feel below, e.g. the left hand's buzz growing as its pick nears the pin. Found on the Player root if empty; with none, picking works without vibration (but the pins can't be felt).")]
         [SerializeField] private PlayerHaptics playerHaptics;
 
         // The big lock in the scene. Optional: found in Awake() if not
         // wired, and made with its default settings if there is none.
+        [Tooltip("The big lock that runs the picking puzzle for every pickable lock, e.g. the Big Lock under Gameplay. Empty, the first in the scene is used, or one is made with default settings if there is none.")]
         [SerializeField] private BigLock bigLock;
 
         // Optional: the big lock's picks burn into being when the picks go
         // in, and away when the picking ends. Found in Awake() if not wired
         // (it's on this same object); none = it appears and goes at once.
+        [Tooltip("The tool burn on Hands: the big lock's picks burn in and out of the keyhole, and the worn picks burn away and back, e.g. putting the picks away burns them from the carrying hand into the wearing one. Found on this object if empty; with none they appear and go at once.")]
         [SerializeField] private ToolBurn toolBurn;
 
         [Header("The Picks")]
@@ -101,43 +108,51 @@ namespace Player
         // the hook and the tension wrench side by side, their tips at its
         // origin and their handles along its Z, 1 long. The big lock's
         // picks are large copies of the same two.
+        [Tooltip("The lockpicks model: the hook and tension wrench side by side, tips at its origin, handles along Z, 1 long; the big lock's picks are large copies of it. e.g. drag lockpicks.fbx (Assets/TripoModels/lockpicks) here. Empty, the picks are an invisible object (with a warning) and picking still works.")]
         [SerializeField] private GameObject picksModel;
 
         // How long the picks are, tip to handle end, in metres: the model
         // is scaled to it.
+        [Tooltip("How long the worn and carried picks are, tip to handle end, in metres; the model is scaled to it. e.g. 0.16875 = about 17cm. Higher makes them bigger in the hand, lower smaller.")]
         [SerializeField] private float pickLength = 0.16875f;
 
         // Where the picks sit on the back of the hand that wears them: the
         // hand's offset from their origin (the tips, Z to the handles),
-        // per hand (posed with TeaLeaf > Modify Prefab > Pose with Hand).
+        // per hand (posed with TeaLeaf > Player > Pose with Hand).
         // Its finger pose isn't played: the wearing hand keeps its input
         // curl. Empty: the picks' origin on the hand's.
+        [Tooltip("Where the picks sit on the back of the wearing hand: the hand's offset from the picks' tips, per hand (posed with Pose with Hand); its finger pose isn't played. e.g. LockpicksWorn.asset. Empty, the picks' origin sits on the hand's.")]
         [SerializeField] private HandSnapProfile wornProfile;
 
         // Where the other hand holds the picks while it carries them, from
         // their origin (the tips), and how its fingers close round them
-        // (posed with TeaLeaf > Modify Prefab > Pose with Hand). Empty:
+        // (posed with TeaLeaf > Player > Pose with Hand). Empty:
         // the picks' origin on the hand's.
+        [Tooltip("Where the other hand holds the picks while carrying them, from their tips, and how its fingers close round them (played while carried). e.g. LockpicksCarry.asset. Empty, the picks' origin sits on the hand's.")]
         [SerializeField] private HandSnapProfile carryProfile;
 
         // Where a hand sits on its pick on the big lock, from the pick's
         // grip frame (BigLock.GetGripFrame()), and its fingers (also
         // posed with Pose with Hand). Empty: the hand on the grip frame,
         // fingers keeping their input curl.
+        [Tooltip("Where a hand sits on its pick in the big lock, from the pick's grip frame, and its finger pose. e.g. LockpickHold.asset. Empty, the hand sits on the grip frame with the fingers keeping their input curl.")]
         [SerializeField] private HandSnapProfile pickProfile;
 
         // The other hand takes the picks from within this many metres of
         // them.
+        [Tooltip("How close the taking hand must reach to the worn picks to take them with a grip press, in metres, e.g. 0.12 = within 12cm of the picks on the other hand. Higher takes them from further off, lower needs the hands closer.")]
         [SerializeField] private float takeDistance = 0.12f;
 
         [Header("Locks")]
 
         // The carried picks go into a lock from within this many metres
         // of it.
+        [Tooltip("How close the carried picks must come to a pickable lock to go into it, in metres, e.g. 0.15 = within 15cm of the keyhole they go in. Higher goes in from further away, lower needs a closer aim.")]
         [SerializeField] private float insertDistance = 0.15f;
 
         // Further than this from the lock (metres, measured level from
         // the head), the picking is given up.
+        [Tooltip("How far the head may go from the lock, measured level, before the picking is given up and the picks return to the wearing hand, in metres, e.g. 1.5 = stepping back two paces ends it. Higher lets the player wander further, lower ends it sooner.")]
         [SerializeField] private float leaveDistance = 1.5f;
 
         [Header("Hands On The Big Lock")]
@@ -145,36 +160,51 @@ namespace Player
         // A hand takes its pick from within this many metres of where the
         // pick is gripped, and is let go when the real hand is further
         // than breakDistance from it.
+        [Tooltip("How close a hand must reach to where its own pick in the big lock is gripped to take it with grip, in metres, e.g. 0.1 = within 10cm. Higher takes it from further off, lower needs the hand right on it.")]
         [SerializeField] private float pickReach = 0.1f;
+        [Tooltip("How far the real controller may move from its pick's grip point before the hand is forced off it, in metres, e.g. 0.3 = pulling the hand 30cm away lets go (grip again to retake; the right hand letting go resets the lock). Higher holds on longer, lower lets go sooner.")]
         [SerializeField] private float breakDistance = 0.3f;
 
         [Header("Haptics")]
 
         // A hand coming within reach of something it can take.
+        [Tooltip("Strength (0-1) of the tap a hand feels on coming within reach of something it can take (the worn picks, or its pick in the big lock), e.g. 0.15 = a light tick. Higher is stronger; 0 = no tap.")]
         [SerializeField] private float reachAmplitude = 0.15f;
+        [Tooltip("Length of the reach tap, in seconds, e.g. 0.03 = a brief tick. Higher is longer; 0 = no tap.")]
         [SerializeField] private float reachDuration = 0.03f;
 
         // The picks going into a lock (the hand that carried them).
+        [Tooltip("Strength (0-1) of the pulse in the carrying hand as the picks go into a lock, e.g. 0.5 = a firm click. Higher is stronger; 0 = none.")]
         [SerializeField] private float insertAmplitude = 0.5f;
+        [Tooltip("Length of the pulse as the picks go into a lock, in seconds, e.g. 0.06 = a short click. Higher is longer; 0 = none.")]
         [SerializeField] private float insertDuration = 0.06f;
 
         // The right pick reaching a stop (right hand).
+        [Tooltip("Strength (0-1) of the pulse in the right hand as its pick reaches each stop, e.g. 0.6 = a clear notch. Higher is stronger; 0 = none.")]
         [SerializeField] private float stopAmplitude = 0.6f;
+        [Tooltip("Length of the pulse at each stop, in seconds, e.g. 0.06 = a short notch. Higher is longer; 0 = none.")]
         [SerializeField] private float stopDuration = 0.06f;
 
         // A pin being set (left hand).
+        [Tooltip("Strength (0-1) of the pulse in the left hand as a pin is set, e.g. 0.9 = a strong clunk, well above the pin feel. Higher is stronger; 0 = none.")]
         [SerializeField] private float pinSetAmplitude = 0.9f;
+        [Tooltip("Length of the pulse as a pin is set, in seconds, e.g. 0.12 = a solid clunk. Higher is longer; 0 = none.")]
         [SerializeField] private float pinSetDuration = 0.12f;
 
         // The lock opening (both hands).
+        [Tooltip("Strength (0-1) of the pulse in both hands as the lock opens, e.g. 1 = full strength. Higher is stronger; 0 = none.")]
         [SerializeField] private float unlockAmplitude = 1f;
+        [Tooltip("Length of the pulse as the lock opens, in seconds, e.g. 0.2 = a fifth of a second. Higher is longer; 0 = none.")]
         [SerializeField] private float unlockDuration = 0.2f;
 
         // The left hand feeling for the pin: from the weakest, where it
         // can first be felt, to the strongest, on it. Sent as a run of
         // short pulses, one every pinPulseInterval seconds.
+        [Tooltip("Strength (0-1) of the left hand's pin feel where the pin can first be felt, rising to Pin Max Amplitude on it, e.g. 0.08 = a faint hum at the edge. Higher makes the far edge easier to feel, lower fainter.")]
         [SerializeField] private float pinMinAmplitude = 0.08f;
+        [Tooltip("Strength (0-1) of the left hand's pin feel right on the pin, e.g. 0.7 = a strong buzz, still below the Pin Set Amplitude clunk. Higher makes the pin stand out more, lower less.")]
         [SerializeField] private float pinMaxAmplitude = 0.7f;
+        [Tooltip("Seconds between the short pulses making up the pin feel (each lasts 1.5 times this, so they join into one vibration), e.g. 0.05 = twenty a second. Higher updates the strength less often, lower more smoothly.")]
         [SerializeField] private float pinPulseInterval = 0.05f;
 
         private PickHand _left;

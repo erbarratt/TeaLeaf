@@ -44,6 +44,10 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 1677275405822969251, guid: 772d052526e5210459c116aa47ddd303, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 1862180315018092124, guid: 772d052526e5210459c116aa47ddd303, type: 3}
       propertyPath: m_LocalPosition.x
       value: -39.71
@@ -88,6 +92,10 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 2047853995459923663, guid: 772d052526e5210459c116aa47ddd303, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 2821542651421151261, guid: 772d052526e5210459c116aa47ddd303, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -100,6 +108,10 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 3029664794683893899, guid: 772d052526e5210459c116aa47ddd303, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 3076409062245809010, guid: 772d052526e5210459c116aa47ddd303, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -152,6 +164,10 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 4291746672650512435, guid: 772d052526e5210459c116aa47ddd303, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 4683551633420671884, guid: 772d052526e5210459c116aa47ddd303, type: 3}
       propertyPath: m_Name
       value: TL_Pipe_Section_Large
@@ -168,10 +184,18 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 4759589224959294442, guid: 772d052526e5210459c116aa47ddd303, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 4870131610232526240, guid: 772d052526e5210459c116aa47ddd303, type: 3}
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 4870131610232526240, guid: 772d052526e5210459c116aa47ddd303, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 5281399806807937336, guid: 772d052526e5210459c116aa47ddd303, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -208,6 +232,10 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 7343503648513924374, guid: 772d052526e5210459c116aa47ddd303, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 7937993792113700238, guid: 772d052526e5210459c116aa47ddd303, type: 3}
       propertyPath: m_FadeMode
       value: 1
@@ -272,6 +300,10 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 8389517129327222190, guid: 772d052526e5210459c116aa47ddd303, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 8419370424148512343, guid: 772d052526e5210459c116aa47ddd303, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -284,6 +316,10 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 8789651298116357310, guid: 772d052526e5210459c116aa47ddd303, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

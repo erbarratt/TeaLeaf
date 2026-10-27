@@ -12,10 +12,12 @@ namespace Core
     public class GameStateDebug : MonoBehaviour
     {
         // Get caught: fade out and restart.
+        [Tooltip("Key that gets the player caught: the level fades out and restarts. e.g. C = press C with the Game view focused.")]
         [SerializeField] private Key caughtKey = Key.C;
 
         // Pick up / put down the objective. While it's carried, walking into
         // an exit zone wins.
+        [Tooltip("Key that picks up or puts down the objective, without a real objective item. e.g. O = press O, then walk into an exit zone to win.")]
         [SerializeField] private Key objectiveKey = Key.O;
 
         // The manager subscribed to in Start(), kept so the same one is

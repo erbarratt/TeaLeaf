@@ -34,38 +34,38 @@ namespace Player
         [Serializable]
         private struct Gait
         {
-            [Tooltip("Metres travelled per step.")]
+            [Tooltip("Metres travelled per step, e.g. 1.4 = one step sound each 1.4m walked. Longer = fewer, further-apart steps.")]
             public float stride;
 
-            [Tooltip("Multiplies the surface cue's noise radius: what guards hear.")]
+            [Tooltip("Multiplies the surface cue's noise radius, what guards hear, e.g. 1.6 = heard 60% further than a walking step on the same floor; 0 = guards hear nothing.")]
             public float noiseScale;
 
-            [Tooltip("Multiplies the surface cue's volume (0-1): what the player hears.")]
+            [Tooltip("Multiplies the surface cue's volume (0-1), what the player hears, e.g. 0.5 = half as loud. 0 = silent to the player (guards may still hear it).")]
             [Range(0f, 1f)] public float volumeScale;
         }
 
-        [Tooltip("The locomotion on the Player root: its Movement State picks the gait, its speeds scale the steps and its Landed event makes a landing.")]
+        [Tooltip("The PlayerLocomotion on the Player root: its Movement State picks the gait, its speeds scale the steps and its Landed event makes a landing. Required; filled in when this component is added.")]
         [SerializeField] private PlayerLocomotion playerLocomotion;
-        [Tooltip("The CharacterController on the Player root: the feet are the bottom of its capsule.")]
+        [Tooltip("The CharacterController on the Player root: the feet are the bottom of its capsule, e.g. where each step's sound plays. Required; filled in when this component is added.")]
         [SerializeField] private CharacterController characterController;
-        [Tooltip("The Player root. The feet are measured in its space, and it is the source of every footstep noise.")]
+        [Tooltip("The Player root. The feet are measured in its space, and it is the source of every footstep noise (so guards and the compass know it is the player's). Required; filled in when this component is added.")]
         [SerializeField] private Transform playerTransform;
 
-        [Tooltip("The footstep cue for each surface type. Empty, the player is silent.")]
+        [Tooltip("The footstep cue for each surface type, e.g. Assets/Data/Sound/Shared/Footsteps/SurfaceFootstepSounds.asset. Empty = the player's steps and landings are silent, to the player and to guards.")]
         [SerializeField] private SurfaceSounds surfaceSounds;
 
-        [Tooltip("What counts as floor for the ray down from the feet that finds the surface: Environment and Interactable.")]
+        [Tooltip("What counts as floor for the ray down from the feet that finds the surface, e.g. Environment and Interactable (stone floor, a crate's wood top). A miss keeps the last surface found.")]
         [SerializeField] private LayerMask groundLayers;
 
-        [Tooltip("The bow's arrows (on Hands), asked whether the feet are on a moss patch. Found by itself if empty; without it there is no moss.")]
+        [Tooltip("The PlayerArrows on the Hands object, asked whether the feet are on a moss patch (silent steps). Empty finds it in children at load; none = no moss.")]
         [SerializeField] private PlayerArrows playerArrows;
 
         [Header("Steps")]
-        [Tooltip("The step taken while Walking: its stride, and how its noise and volume scale.")]
+        [Tooltip("The step taken while Walking: its stride (m), and how its noise and volume scale, e.g. stride 1.4, noise 1, volume 1 = the surface cue as it is, every 1.4m.")]
         [SerializeField] private Gait walking = new() { stride = 1.4f, noiseScale = 1f, volumeScale = 1f };
-        [Tooltip("The step taken while Sprinting.")]
+        [Tooltip("The step taken while Sprinting, e.g. stride 1.6, noise 1.6 = longer strides heard 60% further than walking.")]
         [SerializeField] private Gait sprinting = new() { stride = 1.6f, noiseScale = 1.6f, volumeScale = 1f };
-        [Tooltip("The step taken while Crouch Walking. Crouched movement is at walking speed.")]
+        [Tooltip("The step taken while Crouch Walking (crouched movement is at walking speed), e.g. stride 1.2, noise 0.4, volume 0.5 = shorter, much quieter steps.")]
         [SerializeField] private Gait crouching = new() { stride = 1.2f, noiseScale = 0.4f, volumeScale = 0.5f };
 
         // How loud a step is at the slowest creep, as a fraction of the
@@ -73,34 +73,34 @@ namespace Player
         // between this and 1 with the player's speed. Multiplies with the
         // gait's own scales, so a slow crouched creep is the quietest way
         // to move.
-        [Tooltip("How loud a step at the slowest creep is, as a fraction (0-1) of the same step at full stick: noise and volume both slide between this and 1 with the player's speed.")]
+        [Tooltip("How loud a step at the slowest creep is, as a fraction (0-1) of the same step at full stick: noise and volume both slide between this and 1 with the player's speed, e.g. 0.4 = a creeping step is 40% as loud. 1 = speed makes no difference.")]
         [SerializeField, Range(0f, 1f)] private float slowestStepScale = 0.4f;
 
-        [Tooltip("Crouched, a step taken slower than this fraction (0-1) of full speed, averaged over the stride, makes no sound and no noise. 0 means every crouched step sounds.")]
+        [Tooltip("Crouched, a step taken slower than this fraction (0-1) of full walking speed, averaged over the stride, makes no sound and no noise, e.g. 0.3 = a crouched creep under 30% speed is silent. 0 means every crouched step sounds.")]
         [SerializeField, Range(0f, 1f)] private float silentCrouchSpeed = 0.3f;
 
         [Header("Landing")]
 
-        [Tooltip("The fall speed of a standard landing, in metres per second: about what a jump on the flat lands at. A longer fall is louder and a short drop quieter, in proportion.")]
+        [Tooltip("The fall speed of a standard landing, in metres per second, e.g. 3 = about what a jump on the flat lands at. A faster fall is louder and a slower drop quieter, in proportion; raise it to make every landing quieter.")]
         [SerializeField] private float referenceLandingSpeed = 3f;
 
         // The least and most that proportion can be, however gentle or
         // hard the landing.
-        [Tooltip("The least a landing's loudness can be, as a multiple of a standard landing, however gentle the drop.")]
+        [Tooltip("The least a landing's loudness can be, as a multiple of a standard landing, however gentle the drop, e.g. 0.5 = a tiny hop still lands at half a standard landing.")]
         [SerializeField] private float minLandingScale = 0.5f;
-        [Tooltip("The most a landing's loudness can be, as a multiple of a standard landing, however hard the fall.")]
+        [Tooltip("The most a landing's loudness can be, as a multiple of a standard landing, however hard the fall, e.g. 2 = never more than twice a standard landing.")]
         [SerializeField] private float maxLandingScale = 2f;
 
         // A standard landing compared with a walking step on the same
         // surface: how many times as far its noise carries to guards, and
         // how many times the volume (Unity caps a voice at full volume, so
         // above that the loudness comes from the two feet overlapping).
-        [Tooltip("How many times further than a walking step's noise a standard landing's noise carries to guards.")]
+        [Tooltip("How many times further than a walking step's noise a standard landing's noise carries to guards, e.g. 1.5 = half as far again. 0 = guards never hear landings.")]
         [SerializeField] private float landingNoiseScale = 1.5f;
-        [Tooltip("How many times a walking step's volume a standard landing plays at. Each foot's voice is capped at full volume.")]
+        [Tooltip("How many times a walking step's volume a standard landing plays at, e.g. 1.25. Each foot's voice is capped at full volume, so above that the extra loudness comes from the two feet overlapping.")]
         [SerializeField] private float landingVolumeScale = 1.25f;
 
-        [Tooltip("Seconds between the first foot's landing sound and the second's.")]
+        [Tooltip("Seconds between the first foot's landing sound and the second's, e.g. 0.1. 0 = both feet at once.")]
         [SerializeField] private float secondFootDelay = 0.1f;
 
         // The surface ray starts this far above the feet (so it starts
@@ -171,9 +171,9 @@ namespace Player
         {
             Gait gait;
 
-            // The speed this gait moves at with the stick fully pushed.
-            // Crouching has no speed of its own: it moves at walking speed.
-            float fullSpeed = playerLocomotion.MoveSpeed;
+            // The speed the player's gait (walk, sprint, crouch or crouch
+            // sprint) moves at with the stick fully pushed forward.
+            float fullSpeed = playerLocomotion.GaitSpeed;
 
             switch (playerLocomotion.MovementState) {
                 case MovementState.Walking:
@@ -181,7 +181,6 @@ namespace Player
                     break;
                 case MovementState.Sprinting:
                     gait = sprinting;
-                    fullSpeed = playerLocomotion.SprintSpeed;
                     break;
                 case MovementState.CrouchWalking:
                     gait = crouching;

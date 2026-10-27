@@ -14,7 +14,7 @@ namespace AI
     {
         // Also log each time it starts and stops walking (a line or two
         // for every point of a patrol).
-        [Tooltip("Also log each time it starts and stops walking (a line or two for every point of a patrol).")]
+        [Tooltip("On: the Console log also gets a line each time the guard sets off or stops walking, e.g. a line or two for every point of a patrol. Off: only start position and state changes are logged.")]
         [SerializeField] private bool logMovement = true;
 
         // Faster than this, in metres a second, counts as walking.

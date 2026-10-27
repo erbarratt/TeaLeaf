@@ -7,13 +7,18 @@ namespace Core
 {
     /// <summary>
     /// Keeps deep shadow readable: after every lightmap bake (and from the
-    /// menu, TeaLeaf > Apply Shadow Floor) raises every lightmap texel and
-    /// every light probe to at least a floor light level, so no baked
-    /// surface, and nothing lit by the probes, ever receives less light
-    /// than the floor. The floor is the scene Moonlight's shadowFloor,
-    /// tuned there; with no Moonlight in the scene nothing is applied. The floor is a light level, not a pixel value: the
-    /// shader still multiplies it by the surface's albedo, so plaster
-    /// lifts more than black timber, as a minimum light should.
+    /// menu, TeaLeaf > Lighting > Apply Shadow Floor) lifts every lightmap
+    /// texel and every light probe darker than twice a floor light level,
+    /// so no baked surface, and nothing lit by the probes, ever receives
+    /// less light than the floor. A lift, not a clamp: black goes to the
+    /// floor and everything up to twice the floor is squeezed evenly in
+    /// above it (see Lift()), so dark corners keep half their variation
+    /// instead of going one flat level, and nothing darker ever ends up
+    /// brighter than something lighter. The floor is the scene
+    /// Moonlight's shadowFloor, tuned there; with no Moonlight in the
+    /// scene nothing is applied. The floor is a light level, not a pixel
+    /// value: the shader still multiplies it by the surface's albedo, so
+    /// plaster lifts more than black timber, as a minimum light should.
     ///
     /// Why in the data and not the bake: a flat sky ambient reaches an
     /// enclosed alley at about one thirtieth of what open shade gets, so
@@ -25,18 +30,16 @@ namespace Core
     /// The lightmaps are read back through the GPU (so the compressed
     /// BC6H textures need no importer changes), floored, written back
     /// over their EXR files and reimported; the probes get an ambient
-    /// term added where their darkest direction is below the floor. Both
-    /// steps are idempotent, so applying the floor twice changes nothing.
+    /// term added where their darkest direction is below twice the floor.
+    /// Not idempotent: each apply lifts the dark again (towards twice the
+    /// floor), so the menu item is for after a bake that skipped it, not
+    /// for running twice on one bake.
     ///
     /// In an Editor folder, so it never ends up in a build.
     /// </summary>
     [InitializeOnLoad]
     public static class ShadowFloor
     {
-        // A texel this close under the floor (BC6H rounding) counts as floored,
-        // so re-applying never rewrites a lightmap that is already done.
-        private const float Tolerance = 0.98f;
-
         // Directions a probe is evaluated in to find its darkest side.
         private static readonly Vector3[] _probeDirections = {
             Vector3.up, Vector3.down, Vector3.left, Vector3.right, Vector3.forward, Vector3.back
@@ -64,8 +67,9 @@ namespace Core
         }
 
         /// <summary>
-        /// Floors the open scene's lightmaps and light probes. Runs by itself
-        /// when a bake completes; the menu item re-applies it by hand.
+        /// Lifts the open scene's lightmaps and light probes. Runs by itself
+        /// when a bake completes; the menu item applies it by hand (again
+        /// on the same bake lifts the dark a second time).
         /// </summary>
         [MenuItem("TeaLeaf/Lighting/Apply Shadow Floor")]
         internal static void Apply()
@@ -102,7 +106,7 @@ namespace Core
                     }
                 }
                 int probesRaised = FloorProbes(floor);
-                Debug.Log($"ShadowFloor: raised {texelsRaised} texel(s) in {mapsFloored} of {lightmaps.Length} lightmap(s) and {probesRaised} light probe(s) to the floor {floor} (Moonlight.shadowFloor).");
+                Debug.Log($"ShadowFloor: raised {texelsRaised} texel(s) in {mapsFloored} of {lightmaps.Length} lightmap(s) and {probesRaised} light probe(s) onto the floor {floor} (Moonlight.shadowFloor).");
             } finally {
                 _applying = false;
             }
@@ -134,12 +138,12 @@ namespace Core
             long raised = 0;
             for (int i = 0; i < texels.Length; i++) {
                 Color texel = texels[i];
-                if (texel.r >= floor.r * Tolerance && texel.g >= floor.g * Tolerance && texel.b >= floor.b * Tolerance) {
+                if (texel.r >= floor.r * 2f && texel.g >= floor.g * 2f && texel.b >= floor.b * 2f) {
                     continue;
                 }
-                texel.r = Mathf.Max(texel.r, floor.r);
-                texel.g = Mathf.Max(texel.g, floor.g);
-                texel.b = Mathf.Max(texel.b, floor.b);
+                texel.r = Lift(texel.r, floor.r);
+                texel.g = Lift(texel.g, floor.g);
+                texel.b = Lift(texel.b, floor.b);
                 texels[i] = texel;
                 raised++;
             }
@@ -154,9 +158,21 @@ namespace Core
         }
 
         /// <summary>
+        /// One channel's light after the lift: everything from black up to
+        /// twice the floor is squeezed evenly into floor..twice the floor
+        /// (black lands on the floor, half the step between two darks is
+        /// kept, order never flips); from twice the floor up it is untouched.
+        /// </summary>
+        private static float Lift(float light, float floor)
+        {
+            return light >= floor * 2f ? light : floor + Mathf.Max(0f, light) * 0.5f;
+        }
+
+        /// <summary>
         /// Adds ambient light to every baked probe whose darkest direction is
-        /// below the floor, by just enough to reach it per channel, and saves
-        /// the lighting data. Returns how many probes were raised.
+        /// below twice the floor, by what Lift() gives that darkest direction
+        /// per channel, and saves the lighting data. Returns how many probes
+        /// were raised.
         /// </summary>
         private static int FloorProbes(Color floor)
         {
@@ -176,10 +192,12 @@ namespace Core
                     darkest.g = Mathf.Min(darkest.g, results[d].g);
                     darkest.b = Mathf.Min(darkest.b, results[d].b);
                 }
+                // The whole probe moves up by what its darkest side gains, so
+                // its own spread between sides is kept.
                 Color lift = new Color(
-                    Mathf.Max(0f, floor.r - darkest.r),
-                    Mathf.Max(0f, floor.g - darkest.g),
-                    Mathf.Max(0f, floor.b - darkest.b), 1f);
+                    Lift(darkest.r, floor.r) - darkest.r,
+                    Lift(darkest.g, floor.g) - darkest.g,
+                    Lift(darkest.b, floor.b) - darkest.b, 1f);
                 if (lift.r <= 0f && lift.g <= 0f && lift.b <= 0f) {
                     continue;
                 }

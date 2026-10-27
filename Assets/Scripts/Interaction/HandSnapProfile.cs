@@ -10,8 +10,8 @@ namespace Interaction
     /// visual's root actually goes, and how its fingers are posed. The
     /// offsets belong to the hand model and pose, not to any one ledge, so
     /// every ClimbableEdge references the same asset: tune it once and every
-    /// ledge updates. TeaLeaf > Modify Prefab > Pose with Hand poses a prop's
-    /// profile in the editor; the rest are tuned in the Inspector.
+    /// ledge updates. TeaLeaf > Player > Pose with Hand poses every profile
+    /// in the editor.
     ///
     /// Left and right offsets are separate because the right hand visual is
     /// the left hand mirrored (scale.x -1), so one set of numbers can't line
@@ -40,20 +40,20 @@ namespace Interaction
         // Offset of the hand visual's root from the grip frame, in the grip
         // frame's own axes (x along the edge, y up, z into the wall for a
         // ledge) - so it stays correct whichever way a ledge faces.
-        [Tooltip("Where the left hand visual's root sits relative to the target's grip frame, in metres along the frame's own axes (X along the edge, Y up, Z into the wall for a ledge). Zero puts the root exactly on the grip frame.")]
+        [Tooltip("Where the left hand visual's root sits relative to the target's grip frame, in metres along the frame's own axes (X along the edge, Y up, Z into the wall for a ledge). E.g. (0, -0.03, -0.02) = the hand 3cm below and 2cm out from a ledge's lip. Zero puts the root exactly on the grip frame. Best set with TeaLeaf > Player > Pose with Hand.")]
         [SerializeField] private Vector3 leftPositionOffset;
 
-        [Tooltip("How the left hand visual's root is turned from the grip frame, as Euler angles in degrees about the frame's own axes. Zero leaves it facing the way the frame does.")]
+        [Tooltip("How the left hand visual's root is turned from the grip frame, as Euler angles in degrees about the frame's own axes. E.g. (0, 0, 90) = the hand rolled a quarter turn about the frame's Z. Zero leaves it facing the way the frame does. Best set with Pose with Hand.")]
         [SerializeField] private Vector3 leftRotationOffset;
 
         [Header("Right Hand")]
-        [Tooltip("The same offset for the right hand visual, in metres along the grip frame's axes. Separate from the left hand's because the right hand visual is the left one mirrored, so one set of numbers can't line both up.")]
+        [Tooltip("The same offset for the right hand visual, in metres along the grip frame's axes. Separate from the left hand's because the right hand visual is the left one mirrored, so one set of numbers can't line both up. E.g. Pose with Hand's Mirror to other hand fills it from the left hand's (X negated). Zero puts the root exactly on the grip frame.")]
         [SerializeField] private Vector3 rightPositionOffset;
-        [Tooltip("The same rotation for the right hand visual, as Euler angles in degrees about the grip frame's axes. Separate from the left hand's because the right hand visual is mirrored.")]
+        [Tooltip("The same rotation for the right hand visual, as Euler angles in degrees about the grip frame's axes. Separate from the left hand's because the right hand visual is mirrored, e.g. a left (0, 0, 90) usually mirrors to (0, 0, -90). Zero leaves it facing the way the frame does.")]
         [SerializeField] private Vector3 rightRotationOffset;
 
         [Header("Fingers")]
-        [Tooltip("The finger pose, one local rotation per bone in FingerBoneNames order (thumb, index, middle, ring, pinky). Set by TeaLeaf > Modify Prefab > Pose with Hand. Empty leaves the fingers on their input curl.")]
+        [Tooltip("The finger pose, one local rotation per bone in FingerBoneNames order (thumb, index, middle, ring, pinky). One entry = one finger joint's local rotation, shared by both hands, e.g. entry 0 = the thumb's first joint. Set by TeaLeaf > Player > Pose with Hand rather than by hand. Empty leaves the fingers on their input curl (trigger and grip).")]
         [SerializeField] private Quaternion[] fingerRotations = new Quaternion[0];
 
         /// <summary>

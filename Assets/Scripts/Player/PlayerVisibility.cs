@@ -26,29 +26,29 @@ namespace Player
     /// </summary>
     public class PlayerVisibility : MonoBehaviour
     {
-        [Tooltip("The locomotion on the Player root: its Movement State sets the stance scale.")]
+        [Tooltip("The locomotion on the Player root: its Movement State sets the stance scale, e.g. Crouch Walking applies Crouch Scale. Drag the Player root's PlayerLocomotion here.")]
         [SerializeField] private PlayerLocomotion playerLocomotion;
-        [Tooltip("The CharacterController on the Player root: the body sample is taken at its centre.")]
+        [Tooltip("The CharacterController on the Player root: the body light sample and the waist sight point are taken at its centre, e.g. crouching lowers that centre with the capsule. Drag the Player root's CharacterController here.")]
         [SerializeField] private CharacterController characterController;
-        [Tooltip("The Player root. The feet are at its position.")]
+        [Tooltip("The Player root. The feet are at its position, e.g. guards search where its position was when they saw the player. Drag the Player root here.")]
         [SerializeField] private Transform playerTransform;
 
-        [Tooltip("The Main Camera: where the head is, one of the two points the light is sampled at.")]
+        [Tooltip("The Main Camera: where the head is, one of the two points the light is sampled at and the centre of the head sight points, e.g. leaning the head out of a shadow into a lit doorway raises Visibility. Drag the Main Camera here.")]
         [SerializeField] private Transform head;
 
         [Header("Light")]
-        [Tooltip("Seconds between light samples. Each sample is a few physics rays, so this is not every frame.")]
+        [Tooltip("Seconds between light samples. Each sample is a few physics rays, so this is not every frame. e.g. 0.1 = ten samples a second. Higher costs less but reacts later to stepping into light, lower reacts sooner but casts more rays.")]
         [SerializeField] private float sampleInterval = 0.1f;
 
         [Header("Stance")]
-        [Tooltip("Multiplies the light level while crouched, still or moving (0-1).")]
+        [Tooltip("Multiplies the light level while crouched, still or moving (0-1), e.g. 0.6 = crouched in 0.4 moonlight is 0.24, dark enough to be seen only from close. Lower makes crouching hide more, 1 makes it hide nothing.")]
         [SerializeField, Range(0f, 1f)] private float crouchScale = 0.6f;
 
-        [Tooltip("Multiplies the light level while sprinting (1-2).")]
+        [Tooltip("Multiplies the light level while sprinting (1-2), e.g. 1.3 = sprinting in 0.4 moonlight is 0.52. Higher makes sprinting more visible, 1 makes it no worse than walking; full shadow stays 0 whatever this is.")]
         [SerializeField, Range(1f, 2f)] private float sprintScale = 1.3f;
 
         [Header("Easing")]
-        [Tooltip("How fast Visibility moves towards its new value, per second: at 4, hidden to plain sight takes a quarter of a second.")]
+        [Tooltip("How fast Visibility moves towards its new value, per second: e.g. at 4, hidden to plain sight takes a quarter of a second. Higher follows the light more sharply, lower smooths it out more slowly.")]
         [SerializeField] private float changeSpeed = 4f;
 
         // The points guards test for a clear line to the player (Thief
@@ -57,19 +57,19 @@ namespace Player
         // of them showing (AI.GuardSight) - so a head peeking round a
         // corner isn't the player seen, the body is.
         [Header("Sight Points (what guards look for)")]
-        [Tooltip("How far either side of the head's middle the two side points are, in metres.")]
+        [Tooltip("How far either side of the head's middle the two side sight points are, in metres, e.g. 0.1 = a guard can see an ear poking past a corner the head's middle is behind. Higher makes the head a wider target, lower a narrower one.")]
         [SerializeField] private float headSideOffset = 0.1f;
-        [Tooltip("How far above the head's middle the top point is, in metres.")]
+        [Tooltip("How far above the head's middle the top sight point is, in metres, e.g. 0.12 = the top of the head can show over a crate the eyes are below. Higher makes the head a taller target, lower a shorter one.")]
         [SerializeField] private float headTopOffset = 0.12f;
-        [Tooltip("How far below the head's middle the point under the head is, in metres.")]
+        [Tooltip("How far below the head's middle the sight point under the head (about the neck) is, in metres, e.g. 0.15 = 15cm below the eyes. Higher moves it down towards the chest, lower up towards the face.")]
         [SerializeField] private float underHeadOffset = 0.15f;
-        [Tooltip("How far the waist point (the capsule's middle) is raised while crouched, in metres.")]
+        [Tooltip("How far the waist sight point (the capsule's middle) is raised while crouched, in metres, e.g. 0.15 = crouched, it sits 15cm above the short capsule's middle. Higher puts it nearer the shoulders, 0 leaves it at the middle.")]
         [SerializeField] private float crouchWaistRaise = 0.15f;
-        [Tooltip("Weight of each head side point and the top point.")]
+        [Tooltip("How much each head side point and the top point count when a guard can see them; the guard sees the player once the weights it can see add up to its sight's Seen Weight. e.g. 0.17 with Seen Weight 0.5 = all three head points must show. Higher makes a peeking head easier to spot, lower harder.")]
         [SerializeField] private float headPointWeight = 0.17f;
-        [Tooltip("Weight of the point under the head.")]
+        [Tooltip("How much the point under the head counts when a guard can see it (added to the other points seen, against the sight's Seen Weight). e.g. 0.5 with Seen Weight 0.5 = that point alone is enough to be seen. Higher makes it count for more, lower less.")]
         [SerializeField] private float underHeadWeight = 0.5f;
-        [Tooltip("Weight of the waist point.")]
+        [Tooltip("How much the waist point counts when a guard can see it (added to the other points seen, against the sight's Seen Weight). e.g. 0.8 = a visible body is seen even with the head hidden. Higher makes it count for more, lower less.")]
         [SerializeField] private float waistWeight = 0.8f;
 
         /// How many sight points there are (GetSightPoint()).
@@ -110,9 +110,20 @@ namespace Player
 
         /// <summary>
         /// How fast the body is moving, in metres a second: stick and
-        /// room-scale walking alike, measured each light sample.
+        /// room-scale walking alike, measured each light sample. Guards
+        /// read it for moving fast; whether the player is still is
+        /// IsStill.
         /// </summary>
         public float Speed { get; private set; }
+
+        /// <summary>
+        /// Whether the player is standing still, as guards see it: the
+        /// MovementState is Still or Crouch Still - the stick isn't moving
+        /// the body (room-scale steps and sway don't count). Sliding down
+        /// steep ground and falling are Airborne, climbing and mantling
+        /// their own states: all moving.
+        /// </summary>
+        public bool IsStill => playerLocomotion.MovementState is MovementState.Still or MovementState.CrouchStill;
 
         /// Whether the player is crouched.
         public bool IsCrouched => playerLocomotion.IsCrouching;

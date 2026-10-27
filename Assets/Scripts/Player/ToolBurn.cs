@@ -34,7 +34,7 @@ namespace Player
     {
         // How long a burn takes, either way. 0 = none: tools vanish and
         // appear at once, as with no ToolBurn at all.
-        [Tooltip("Seconds a tool takes to burn away when let go of, or back in when taken (0-2). 0 = no burn: tools vanish and appear at once.")]
+        [Tooltip("Seconds a tool takes to burn away when let go of, or back in when taken (0-2), e.g. 0.8 = a dropped bow burns to nothing in under a second. Higher burns slower, lower faster; 0 = no burn: tools vanish and appear at once.")]
         [SerializeField, Range(0f, 2f)] private float duration = 0.8f;
 
         /// Seconds a burn takes, either way (0 = none).
@@ -43,22 +43,25 @@ namespace Player
         [Header("Look")]
 
         // How many noise blobs to a metre: larger = smaller holes.
-        [Tooltip("Noise blobs per metre the holes open from: larger = smaller, more holes.")]
+        [Tooltip("Noise blobs per metre the burn holes open from, measured on the tool, e.g. 12 = about a dozen holes along a metre-long bow. Larger = smaller, more holes; smaller = fewer, bigger ones.")]
         [SerializeField] private float noiseScale = 12f;
 
         // How far ahead of a hole's edge the surface chars, and glows, in
         // noise (0-1). The glow is never wider than the char.
-        [Tooltip("How far ahead of a hole's edge the surface chars dark, in noise 0-1.")]
+        [Tooltip("How far ahead of a hole's edge the surface chars dark (to Char Color, losing its shine), in noise 0-1, e.g. 0.12 = a thin blackened rim round each hole. Higher gives a wider charred band, lower a narrower one.")]
         [SerializeField, Range(0.001f, 0.5f)] private float charWidth = 0.12f;
-        [Tooltip("How far ahead of a hole's edge the surface glows, in noise 0-1. No wider than Char Width.")]
+        [Tooltip("How far ahead of a hole's edge the surface glows, in noise 0-1. No wider than Char Width. e.g. 0.04 = a narrow ember line inside the charred rim. Higher gives a wider glow, lower a finer line.")]
         [SerializeField, Range(0.001f, 0.5f)] private float glowWidth = 0.04f;
 
+        [Tooltip("The colour the surface chars to just ahead of a hole (within Char Width), e.g. near-black brown for burnt wood and leather. Lighter reads as ash, darker as soot.")]
         [SerializeField] private Color charColor = new(0.05f, 0.03f, 0.02f, 1f);
 
         // The glow fading back from the edge, and right at it. Bright
         // (over 1) so it reads as burning in a dark level.
+        [Tooltip("HDR glow colour within Glow Width, fading back from a hole's edge, added after lighting so it shows in the dark, e.g. a deep orange at intensity 3. Brighter (over 1) glows harder; black turns the glow off away from the edge.")]
         [ColorUsage(false, true)]
         [SerializeField] private Color glowColor = new(3f, 0.6f, 0.05f, 1f);
+        [Tooltip("HDR glow colour right at a hole's edge, blending into Glow Color further back, e.g. a hot yellow-white at intensity 6. Brighter makes the burning line stand out more, darker softens it.")]
         [ColorUsage(false, true)]
         [SerializeField] private Color edgeColor = new(6f, 3.5f, 0.8f, 1f);
 

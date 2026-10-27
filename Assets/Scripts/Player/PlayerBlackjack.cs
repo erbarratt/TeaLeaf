@@ -28,35 +28,44 @@ namespace Player
     /// </summary>
     public class PlayerBlackjack : MonoBehaviour, IDebugDrawable
     {
+        [Tooltip("The input system on the Player root: grip, and the handedness setting that picks the blackjack's hand (the one without the lockpicks), e.g. drag the Player root here. Found on the Player root above if left empty.")]
         [SerializeField] private PlayerInputXR playerInput;
+        [Tooltip("The tracking on the Player root: the head's position is where a blow is struck from, which the guard uses to tell if it was hit from behind, e.g. drag the Player root here. Found on the Player root above if left empty.")]
         [SerializeField] private PlayerTracking playerTracking;
+        [Tooltip("The hand visuals on this Hands object: the blackjack is held by the drawing hand's visual, e.g. drag the Hands object here. Found on this object if left empty.")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         // What each hand is busy with. Found (or made) in Awake() if not
         // wired (it's on this same object).
+        [Tooltip("What each hand is busy with: only a free hand draws the blackjack, e.g. a hand on a ledge can't. Found (or added) on this object if left empty.")]
         [SerializeField] private PlayerHandState playerHandState;
 
         // Where the shoulders are. Found (or made) in Awake() if not
         // wired (it's on this same object).
+        [Tooltip("Where the shoulders are: the blackjack is drawn by the hand reaching over its own shoulder, e.g. the right shoulder for a right-handed player. Found (or added) on this object if left empty.")]
         [SerializeField] private PlayerBodyZones bodyZones;
 
         // Optional: a rig with no haptics still draws it.
+        [Tooltip("The controller vibration on the Player root, for the taps on reaching, drawing and landing a blow. Found on the Player root above if left empty; with none, the blackjack still works, just without buzzes.")]
         [SerializeField] private PlayerHaptics playerHaptics;
 
         // Burns the blackjack into being when drawn and away when put
         // away. Optional: found in Awake() if not wired (it's on this same
         // object); none = it appears and vanishes at once.
+        [Tooltip("The tool burn effect on this Hands object: burns the blackjack into being when drawn and away where it's let go of, e.g. drag the Hands object here. Found on this object if left empty; with none, it appears and vanishes at once.")]
         [SerializeField] private ToolBurn toolBurn;
 
         [Header("In The Hand")]
 
         // The blackjack's model (the leather-wrapped cudgel): lying along
         // its own X with the head at +X, at its real size.
+        [Tooltip("The blackjack's model, lying along its own X with the head at +X, at its real size, e.g. leather-wrapped_cudgel_3d_model.fbx (0.4 m). Left empty, a warning is logged and there is no blackjack.")]
         [SerializeField] private GameObject blackjackModel;
 
         // Where the hand holds it, from the model's origin, and how the
-        // fingers close round it (posed with TeaLeaf > Modify Prefab >
-        // Pose with Hand). Empty: the model's origin on the hand's.
+        // fingers close round it (posed with TeaLeaf > Player > Pose with
+        // Hand). Empty: the model's origin on the hand's.
+        [Tooltip("Where the hand holds the blackjack, from the model's origin, and how the fingers close round it (posed with TeaLeaf > Player > Pose with Hand), e.g. BlackjackGrip.asset. Left empty, the model's origin sits on the hand's and the fingers follow the controller.")]
         [SerializeField] private HandSnapProfile blackjackProfile;
 
         [Header("Hitting")]
@@ -64,6 +73,7 @@ namespace Player
         // How fast the blackjack's head must be moving, in metres a
         // second (measured against the player's body, so walking isn't a
         // swing), for a touch on a guard's head to count as a blow.
+        [Tooltip("How fast the blackjack's head must be moving, in metres per second relative to the player's body (walking or turning isn't a swing), for a touch on a guard's head to count as a blow, e.g. 1.5 = a brisk swing. Higher = needs a harder swing; lower = a gentle tap knocks out.")]
         [SerializeField] private float swingSpeed = 1.5f;
 
         // The blackjack's head as a capsule, in the blackjack's own space
@@ -72,28 +82,39 @@ namespace Player
         // mesh: the head runs from x 0.08 to 0.2 along a line a little
         // off the shaft's, 4cm round at its widest. Re-measure if the
         // model changes.
+        [Tooltip("One end of the blackjack's head (the hit capsule), the middle of that end, in the blackjack's own space in metres, e.g. (0.12, 0.038, -0.015) = 12 cm along the cudgel. Measured from the cudgel's mesh: re-measure if the model changes.")]
         [SerializeField] private Vector3 headStart = new(0.12f, 0.038f, -0.015f);
+        [Tooltip("The other end of the blackjack's head (the hit capsule), in the blackjack's own space in metres, e.g. (0.16, 0.038, -0.015) = 16 cm along the cudgel. Further from Head Start = a longer striking part.")]
         [SerializeField] private Vector3 headEnd = new(0.16f, 0.038f, -0.015f);
+        [Tooltip("Radius of the hit capsule round the blackjack's head, in metres, e.g. 0.04 = 4 cm. Higher = blows land more easily (and from further off); lower = must hit squarely.")]
         [SerializeField] private float hitRadius = 0.04f;
 
         // The layer guards' heads are on. Filled in from the layer name
         // if left empty.
+        [Tooltip("The layers guards' heads are on, which the blackjack's head is checked against, e.g. GuardHead. Set to GuardHead if left as Nothing.")]
         [SerializeField] private LayerMask guardHeadLayers;
 
         // The thud of a blow. Optional. Its noise is what other guards
         // hear.
+        [Tooltip("The thud of a blow, played at the blackjack's head; its noise is what other guards hear, e.g. a dull thump cue. Left empty, blows are silent.")]
         [SerializeField] private SoundCue hitCue;
 
         [Header("Haptics")]
 
         // A blow landing.
+        [Tooltip("Strength of the buzz when a blow lands, 0-1, e.g. 1 = as strong as the controller goes. 0 = no buzz.")]
         [SerializeField] private float hitAmplitude = 1f;
+        [Tooltip("Length of the buzz when a blow lands, in seconds, e.g. 0.1 = a solid jolt. Higher = longer buzz.")]
         [SerializeField] private float hitDuration = 0.1f;
 
         // A hand arriving where it can draw, and the draw itself.
+        [Tooltip("Strength of the tap when the hand arrives at its shoulder where it can draw, 0-1, e.g. 0.15 = a light tap. 0 = no tap.")]
         [SerializeField] private float reachAmplitude = 0.15f;
+        [Tooltip("Length of the arriving tap, in seconds, e.g. 0.03 = a very short tick. Higher = longer buzz.")]
         [SerializeField] private float reachDuration = 0.03f;
+        [Tooltip("Strength of the buzz when the blackjack is drawn, 0-1, e.g. 0.4 = a firm tap. 0 = no buzz.")]
         [SerializeField] private float drawAmplitude = 0.4f;
+        [Tooltip("Length of the draw buzz, in seconds, e.g. 0.05 = a short tap. Higher = longer buzz.")]
         [SerializeField] private float drawDuration = 0.05f;
 
         private bool _hasHaptics;

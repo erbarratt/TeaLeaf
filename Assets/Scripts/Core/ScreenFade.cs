@@ -23,20 +23,24 @@ namespace Core
     /// </summary>
     public class ScreenFade : MonoBehaviour
     {
+        [Tooltip("The colour the view fades to and from, e.g. black for the level start and for being caught. Its alpha is ignored: the fade's progress sets how much shows.")]
         [SerializeField] private Color fadeColor = Color.black;
 
         [Header("Level Start")]
 
         // Start the level black and fade to clear. Off, the level starts
         // clear and the fade only happens when something asks for it.
+        [Tooltip("On: the level starts black and fades to clear (hiding loading and tracking settling). Off: the level starts clear and the view only fades when something asks for it.")]
         [SerializeField] private bool fadeInOnStart = true;
 
         // How long the view stays fully black before the level-start fade
         // begins, in seconds - covers the first frames after loading, where
         // tracking settles and frame times are uneven.
+        [Tooltip("How long the view stays fully black before the level-start fade begins, in seconds, e.g. 0.3 = covers the uneven first frames after loading while tracking settles. Higher = a longer black wait; 0 = fades at once.")]
         [SerializeField] private float startHoldDuration = 0.3f;
 
         // How long the level-start fade from black to clear takes, in seconds.
+        [Tooltip("How long the level-start fade from black to clear takes, in seconds, e.g. 1.5 = a gentle fade in. Higher = slower; 0 = the view appears at once.")]
         [SerializeField] private float startFadeDuration = 1.5f;
 
         // Half the cube's width in metres: its faces are this far from the
@@ -55,7 +59,6 @@ namespace Core
         private const int RenderQueueOffset = 100;
 
         private static readonly int _colorId = Shader.PropertyToID("_Color");
-
         private MeshRenderer _meshRenderer;
         private Material _material;
 
@@ -123,8 +126,7 @@ namespace Core
             }
 
             // Made in code, so nothing else will free it.
-            Destroy(_material);
-        }
+            Destroy(_material);        }
 
         /// <summary>
         /// Fades from however covered the view is now to fully covered
@@ -253,8 +255,7 @@ namespace Core
 
             if (force || isVisible != wasVisible) {
                 _meshRenderer.enabled = isVisible;
-            }
-        }
+            }        }
 
         /// <summary>
         /// Play Mode test from the component's right-click menu: fade to

@@ -15,6 +15,7 @@ namespace Core
     /// </summary>
     public class SoundDebug : MonoBehaviour
     {
+        [Tooltip("Key that writes the Console report on how every SoundEmitterDebug reaches the player's ears (room, route, muffling, in range). e.g. L = press L with the Game view focused.")]
         [SerializeField] private Key reportKey = Key.L;
 
         // Reused for each report's text.

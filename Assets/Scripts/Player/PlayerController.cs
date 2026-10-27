@@ -27,57 +27,57 @@ namespace Player
     /// </summary>
     public class PlayerController : MonoBehaviour
     {
-        [Tooltip("The input system on the Player root, ticked first every frame so every other system reads this frame's controller input.")]
+        [Tooltip("The PlayerInputXR on the Player root, ticked first every frame so every other system reads this frame's controller input. Required; filled in when this component is added.")]
         [SerializeField] private PlayerInputXR playerInput;
-        [Tooltip("The tracking on the Player root: smooths the hands' poses and recalibrates the view after a recentre, ticked straight after input.")]
+        [Tooltip("The PlayerTracking on the Player root: smooths the hands' poses and recalibrates the view after a recentre, ticked straight after input. Empty finds it on this object at load.")]
         [SerializeField] private PlayerTracking playerTracking;
-        [Tooltip("The locomotion on the Player root: thumbstick movement, turning, gravity and crouch. Its movement is applied in this component's one Move() call.")]
+        [Tooltip("The PlayerLocomotion on the Player root: thumbstick movement, turning, gravity and crouch. Its movement is applied in this component's one Move() call. Required; filled in when this component is added.")]
         [SerializeField] private PlayerLocomotion playerLocomotion;
-        [Tooltip("The hand rays and targets, on the Hands object. Ticked before the grab systems, so their targets are this frame's.")]
+        [Tooltip("The PlayerHandInteraction on the Hands object: hand rays and targets, ticked before the grab systems so their targets are this frame's. Required; filled in when this component is added.")]
         [SerializeField] private PlayerHandInteraction playerHandInteraction;
-        [Tooltip("The climbing on the Player root. Its climb movement is added to the frame's movement while a hand grips a climbable.")]
+        [Tooltip("The PlayerClimbing on the Player root. Its climb movement is added to the frame's movement while a hand grips a climbable, e.g. a ledge or ladder. Required; filled in when this component is added.")]
         [SerializeField] private PlayerClimbing playerClimbing;
-        [Tooltip("The mantling on the Player root. While a mantle runs it positions the rig itself and the rest of the body tick is skipped.")]
+        [Tooltip("The PlayerMantling on the Player root. While a mantle runs it positions the rig itself and the rest of the body tick is skipped. Required; filled in when this component is added.")]
         [SerializeField] private PlayerMantling playerMantling;
-        [Tooltip("The footsteps on the Player root, ticked with this frame's real movement. Optional: a Player without one is silent.")]
+        [Tooltip("The PlayerFootsteps on the Player root, ticked with this frame's real movement. Empty finds it on this object at load; none = the player's steps are silent.")]
         [SerializeField] private PlayerFootsteps playerFootsteps;
-        [Tooltip("How visible the player is, on the Player root, ticked after the body has moved. Optional.")]
+        [Tooltip("The PlayerVisibility on the Player root (how lit the player is, for guards and the light gem), ticked after the body has moved. Empty finds it on this object at load; none = not ticked.")]
         [SerializeField] private PlayerVisibility playerVisibility;
-        [Tooltip("Looking through keyholes, on the Player root, ticked after the body has moved. Optional.")]
+        [Tooltip("The PlayerKeyholes on the Player root (looking through keyholes), ticked after the body has moved. Empty finds it on this object at load; none = keyholes never open.")]
         [SerializeField] private PlayerKeyholes playerKeyholes;
-        [Tooltip("Picking up and carrying props, on the Hands object. Optional: without it nothing is carried, thrown or put in the pack.")]
+        [Tooltip("The PlayerHandHolding on the Hands object: picking up and carrying props. Empty finds it in children at load; none = nothing is carried, thrown or put in the pack.")]
         [SerializeField] private PlayerHandHolding playerHandHolding;
-        [Tooltip("Aimed throwing, on the Hands object. Optional, and does nothing without Player Hand Holding.")]
+        [Tooltip("The PlayerHandThrowing on the Hands object: aimed throws with the trigger. Empty finds it in children at load; does nothing without Player Hand Holding.")]
         [SerializeField] private PlayerHandThrowing playerHandThrowing;
-        [Tooltip("The pack, on the Hands object. Optional, and does nothing without Player Hand Holding.")]
+        [Tooltip("The PlayerPack on the Hands object: the pack brought out at the chest. Empty finds it in children at load; does nothing without Player Hand Holding.")]
         [SerializeField] private PlayerPack playerPack;
-        [Tooltip("Door handles, bolts and chest lids, on the Hands object. Optional.")]
+        [Tooltip("The PlayerHandDoors on the Hands object: door handles, bolts and chest lids. Empty finds it in children at load; none = doors can't be taken by the hand.")]
         [SerializeField] private PlayerHandDoors playerHandDoors;
-        [Tooltip("The lockpicks, on the Hands object. Optional.")]
+        [Tooltip("The PlayerLockpicking on the Hands object. Empty finds it in children at load; none = no lockpicking.")]
         [SerializeField] private PlayerLockpicking playerLockpicking;
-        [Tooltip("The keyring and keys, on the Hands object. Optional.")]
+        [Tooltip("The PlayerKeys on the Hands object: the keyring and keys. Empty finds it in children at load; none = keys can't be used.")]
         [SerializeField] private PlayerKeys playerKeys;
-        [Tooltip("The blackjack, on the Hands object. Optional.")]
+        [Tooltip("The PlayerBlackjack on the Hands object. Empty finds it in children at load; none = no blackjack.")]
         [SerializeField] private PlayerBlackjack playerBlackjack;
-        [Tooltip("The bow, on the Hands object. Optional.")]
+        [Tooltip("The PlayerBow on the Hands object. Empty finds it in children at load; none (or no Player Arrows) = no bow.")]
         [SerializeField] private PlayerBow playerBow;
-        [Tooltip("The bow's arrows once shot, on the Hands object with the bow.")]
+        [Tooltip("The PlayerArrows on the Hands object with the bow: arrows once shot. Empty finds it in children at load; the bow is ticked only when both it and Player Bow are there.")]
         [SerializeField] private PlayerArrows playerArrows;
-        [Tooltip("The compass worn on the back of a hand, on the Hands object. Optional.")]
+        [Tooltip("The PlayerCompass on the Hands object, worn on the back of a hand. Empty finds it in children at load; none = no compass.")]
         [SerializeField] private PlayerCompass playerCompass;
-        [Tooltip("Held tools burning away when let go of and back in when taken, on the Hands object. Optional.")]
+        [Tooltip("The ToolBurn on the Hands object: held tools burning away when let go of and back in when taken. Empty finds it in children at load; none = tools appear and vanish at once.")]
         [SerializeField] private ToolBurn toolBurn;
-        [Tooltip("Places the hand visuals, on the Hands object. Ticked after the body has moved and turned.")]
+        [Tooltip("The PlayerHandVisuals on the Hands object: places the hand visuals, ticked after the body has moved and turned. Required; filled in when this component is added.")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
-        [Tooltip("The hands' finger animation, on the Hands object. Ticked last, so it reads this frame's snap weight.")]
+        [Tooltip("The PlayerHandAnimation on the Hands object: finger animation, ticked last so it reads this frame's snap weight. Required; filled in when this component is added.")]
         [SerializeField] private PlayerHandAnimation playerHandAnimation;
-        [Tooltip("The CharacterController on the Player root. This component makes its one Move() call a frame.")]
+        [Tooltip("The CharacterController on the Player root. This component makes its one Move() call a frame, e.g. stick walking and a climbing pull summed into one move. Required; filled in when this component is added.")]
         [SerializeField] private CharacterController characterController;
 
         // The rig root that characterController.Move() displaces. Read
         // before and after Move() to measure how far the player actually
         // moved, which PlayerClimbing needs - see ReportAppliedMovement().
-        [Tooltip("The Player root, the transform Move() displaces. Normally this object's own transform.")]
+        [Tooltip("The Player root, the transform Move() displaces, e.g. this object's own transform (filled in when this component is added). Read before and after Move() to measure how far the body really moved. Required.")]
         [SerializeField] private Transform playerTransform;
 
         // Everything the player should move by this frame, summed from each

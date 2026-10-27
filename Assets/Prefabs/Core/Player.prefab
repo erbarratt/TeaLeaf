@@ -1767,7 +1767,8 @@ MonoBehaviour:
   playerInput: {fileID: 5600711039981055178}
   playerHandVisuals: {fileID: 771281869691341920}
   playerVisibility: {fileID: 4833070662170678539}
-  onHandPosition: {x: -0.03, y: -0.045, z: 0}
+  onHandPosition: {x: -0.072, y: -0.037, z: 0}
+  onHandTilt: -27
   northAngle: 0
   radius: 0.05
   thickness: 0.01
@@ -2701,13 +2702,30 @@ MonoBehaviour:
   playerInput: {fileID: 5600711039981055178}
   playerTransform: {fileID: 8056790421196727847}
   useSmoothTurn: 1
-  smoothTurnSpeed: 90
+  smoothTurnSpeed: 120
   snapTurnAngle: 45
   snapTurnThreshold: 0.8
   turnDeadzone: 0.2
-  moveSpeed: 3
+  walk:
+    speed: 2.4
+    acceleration: 15
+    deceleration: 10
+  sprint:
+    speed: 3.8
+    acceleration: 20
+    deceleration: 10
+  crouch:
+    speed: 1.4
+    acceleration: 5
+    deceleration: 15
+  crouchSprint:
+    speed: 1.8
+    acceleration: 15
+    deceleration: 10
   moveDeadzone: 0.2
-  sprintSpeed: 4.5
+  fullSpeedAngle: 25
+  slowestAngle: 160
+  backwardSpeedScale: 0.5
   jumpHeight: 0.5
   coyoteTime: 0.1
   jumpBufferTime: 0.15
@@ -2762,8 +2780,8 @@ MonoBehaviour:
   headBelowTopAllowance: 0.3
   stickUpThreshold: 0.7
   duration: 0.4
-  riseEndsAt: 0.6
-  forwardStartsAt: 0.3
+  edgeClearance: 0.05
+  cornerRadius: 0.25
   landingLift: 0.02
 --- !u!114 &6949945007257655946
 MonoBehaviour:
@@ -2799,7 +2817,7 @@ MonoBehaviour:
   playerLocomotion: {fileID: 2155887008742276861}
   characterController: {fileID: 8261953644331748595}
   playerTransform: {fileID: 8056790421196727847}
-  surfaceSounds: {fileID: 11400000, guid: a8fea2e1a30a1b74bb32d021c0eb6be9, type: 2}
+  surfaceSounds: {fileID: 11400000, guid: e639127effb2dbf40925587c7fbb6d98, type: 2}
   groundLayers:
     serializedVersion: 2
     m_Bits: 576

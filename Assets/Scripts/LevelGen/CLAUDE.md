@@ -53,7 +53,7 @@ a closed post, may show, as a corner post.
   colliders`, `Walkway colliders`, `Wall colliders`, `Roof colliders`, `Nettles`, `Gaps`,
   `Visibility cull`, `Roof edge`, `Roof features`, `Roof railings`, `Pipes`, `Vents`, `Lamp
   posts`, `Building colours`, `Open windows`, `Backing`, `Moon shafts`, `Sound rooms`,
-  `NavMesh`. Then Build Open Window Interiors (if the sector has open windows) and Rebuild
+  `NavMesh`, `Sheared meshes`. Then Build Open Window Interiors (if the sector has open windows) and Rebuild
   Building Proxies, read their Console entries, save.
 - **Looking at the scene** (temporary camera rendering to PNG via `eval_file`): turn the camera's
   occlusion culling off (the scene's bake predates a regeneration) and render each view twice,
@@ -89,8 +89,10 @@ a closed post, may show, as a corner post.
   Never hand-edited.
 - `annotations.json` — maintainer's per-prefab facts (survive rescans), written by Review
   Pieces. No entry = not looked at; only `verified`, not `excluded` are placed.
-- `Sheared/*.asset` — sheared wall meshes for leaning facades (`ShearedMeshes`). Generated,
-  reused; folder deletable (remade).
+- `Sheared/<sector>/*.asset` — sheared wall meshes for leaning facades (`ShearedMeshes`), a
+  folder per sector. Reused within the sector; each generation ends by deleting the ones in
+  its sector's folder the new level doesn't use (`ClearUnused`); other sectors' folders
+  untouched. Deletable (remade at the next generation).
 - `Ground/*.asset` — street ground meshes (`GroundMesh`), one per region chunk, `<sector> -
   <area> <region> <x>_<z>`, the area's old ones deleted and rewritten each generation.
   Deletable; ground shows nothing until regenerated.
@@ -160,14 +162,16 @@ unless "asset". Meanings are in the sections that use them.
   full size); `sizeTolerance` 5cm (off module/tile and used as is); `wallScaleLimit` 0.12
   (share of module off and still scaled to fit; side walls vs storey height).
 - **Streets:** `streetWidth` 5m; `streetWidthVariance` ±1m/segment; `minStreetWidth` 2m;
-  `edgeWallProbe` 1.5m (walls looked for this far from an edge: moon shafts, sound rooms).
+  `edgeWallProbe` 1.5m (walls looked for this far from an edge: sound rooms).
 - **Storeys:** `minStoreys` 1, `maxStoreys` 3; `maxBuildingHeight` 13m (storeys stop where the
   next top passes this above the street - tames wall-tall's 4.5m; `StoreyLevels`);
   `storeyBias` -1..1, 0; `lotNeighbourDistance` 15m; `lotStoreyBias` -2..2, 0.
 - **Facades:** `groundStoreyHeight` 0 (-1..1.2; ground walls'/doors' base above street);
+  `wallThickness` 0.36 (share of their own depth every wall, beam and gable is scaled to,
+  open window interiors' walls too); `foundationScale` 0.5 (foundations' height and depth);
   `foundationHeight` 0.3m; `foundationFrontOffset` 0.1m; `foundationBury` 0.1m;
   `foundationColliderTolerance` 0.1m (walkways too); `wallColliderTolerance` 0.15m
-  (window-base sills stand 12-14cm proud, less merges little); `roofColliderTolerance` 0.1m;
+  (window-base sills stand ~5cm proud at 0.36 thickness); `roofColliderTolerance` 0.1m;
   `fillStretchShare` 0.3; `groundDoorShare` 0.1; `groundWindowShare` 0.3; `upperWindowShare`
   0.4; `storeyBeamOverlap` 4cm; `maxStoreyWidthMismatch` 0.3m.
 - **Corners:** `cornerAngleTolerance` 20° (counts as square: walls meet as right angle, roofs
@@ -180,7 +184,7 @@ unless "asset". Meanings are in the sections that use them.
 - **Doors:** `doorInsertMargin` 5cm; `doorSideMargin` 0.13m; `doorInsertDepth` 0. **Window
   inserts:** `windowInsertShare` 1; `windowInsertMaxMargin` 0.45m; `windowInsertDepth` 0;
   `litWindowShare` 0.3.
-- **Side walls:** `sideWallMultiplier` 0-5, 1; `sideWallTuck` 0.26m. **Gaps:** `gapBridgeMax`
+- **Side walls:** `sideWallMultiplier` 0-5, 1; `sideWallTuck` 0.12m (for walls of the pack's depth, x `wallThickness`; above ~0.16 a lower neighbour's gable on the join shows through). **Gaps:** `gapBridgeMax`
   3m; `gapStoreyTolerance` 0.3m. **Backing:** `backingMaterial` (asset:
   `Assets/Art/Materials/Environment/Backing.mat`; none = no boxes); `backingDepth` 3m;
   `backingBelow` 1m; `backingClearance` 2cm.
@@ -227,10 +231,12 @@ unless "asset". Meanings are in the sections that use them.
 - **Open window interiors:** `openWindowFloorTile` (asset: `TL_Platforms_Planks_Ground`);
   `openWindowTileOverlap` 3cm (floor and ceiling tiles, both ways); `openWindowFloorOffset` 0
   (floor surface above the window's base); `openWindowCeilingOffset` 0 (ceiling underside
-  above the walls' top); `openWindowWallThickness` 0.36 (share of a wall's depth);
-  `openWindowPortalSize` 1.2 x 1.3m.
-- **Moon shafts:** `moonShaftStreetMaxWidth` 4.5m (**asset 0: off**); `moonShaftMaxLength`
-  40m; `moonShaftInset` 0.3m; `moonShaftMinEaves` 2m.
+  above the walls' top); walls thinned by `wallThickness` (Facades);
+  `openWindowPortalSize` 1.2 x 1.3m; light `openWindowLightColour` FFD88A,
+  `openWindowLightIntensity` 1, `openWindowLightIndirect` 2, `openWindowLightBelowCeiling`
+  0.3m, `openWindowLightRangeShare` 1.674.
+- **Moon shafts:** `moonShaftStreetMaxWidth` 4.5m (**asset 6m**: every 5m street); `moonShaftSampleSpacing`
+  1m; `moonShaftInset` 0.3m; `moonShaftTopClearance` 1m.
 - **Sound rooms:** `soundAlleyMaxWidth` 4.5m; `soundStreetMuffle` 0.15; `soundSkyMuffle` 0.3;
   `soundRoomMinHeight` 3m; `soundStreetAmbience` / `Volume` (outdoor placeholder wind, 1).
 - **Decking:** `deckingOverlap` 3cm; `deckingQuarterTurn` off; `deckingSlideMin`/`Max` 0-0.
@@ -313,13 +319,17 @@ unless "asset". Meanings are in the sections that use them.
   module's level: foundations stacked down** (`StackFoundations`, also stacks beside steps;
   random, no repeat, each top overlapping the one above by `wallOverlap`) until the lowest's
   bottom is `foundationBury` below the lowest street in front (`LowestInFront`), centred and
-  scaled to the module. A foundation is ~1.1m tall standing 0.3m up, so no extra course until
-  ~0.7m drop; validator warns above `slopeDropMax` (specs keep slope buildings to 2-3 modules).
+  scaled to the module (height and depth `foundationScale`, courses measured scaled). A
+  foundation is ~0.55m tall at 0.5 standing 0.3m up, so an extra course from ~0.15m drop; validator warns above `slopeDropMax` (specs keep slope buildings to 2-3 modules).
   Doors at a building's low end stand up to that drop above the street.
 - **Walls** (`BuildingStyle.Modules`; `Fits`: within `sizeTolerance`, or within
   `wallScaleLimit` and **scaled in width and height to fit exactly** - `FitScale`,
   `PiecePlacer.PlaceAt` with scale, in the piece's own axes (roots unrotated, unit scale),
-  **depth never scaled**; `Modules(category, storey)` drops `groundStoreyOnly` above ground).
+  **depth scaled to `wallThickness`** about the pivot, every wall depth measured scaled with it
+  - `Reach`, `FrontPlane`, `DepthMiddle`, side wall thickness, via `_wallThickness` set at the
+  start of `Build` - so fronts stay on their lines and back lines come forward; beams thinned
+  alike; doors and window inserts unscaled, at the thin wall's mid depth (their depth
+  settings in metres); `Modules(category, storey)` drops `groundStoreyOnly` above ground).
   Placed by `left` point at the module's left end on the back line, front to street. **Two
   draws per storey and module, always** (sequence independent of styles): ground storey's spec
   door module, or door draw < `groundDoorShare`, -> `door-wall`; else window draw <
@@ -341,7 +351,9 @@ unless "asset". Meanings are in the sections that use them.
   - Ground style with no module: frontage stops (logged); module with no fitting wall: left,
     reported, storey continues; storey style with none ends the building.
 - **Foundations:** one per module from the ground style's `foundation` pieces (random, no
-  repeat), centred and width-scaled, top `foundationHeight` above street, front
+  repeat), centred and width-scaled, height and depth scaled to `foundationScale` (side and
+  corner-filler foundations too; depth used scaled by `FoundationBack`, `FoundationCarry`),
+  top `foundationHeight` above street, front
   `foundationFrontOffset` past the edge (walls' front line); a plinth above the ground base.
   No usable foundation: reported, walls built without. Steps up to raised doors: not planned.
 - **Merged colliders** (`MergedColliders`): pieces lose their upright box colliders, sorted
@@ -353,7 +365,7 @@ unless "asset". Meanings are in the sections that use them.
   pieces.
   - `RunFoundations`, right after `FacadeBuilder.Build`, before the street test (it checks the
     boxes): `foundation` / `foundation-corner`, `foundationColliderTolerance` (buried bottoms
-    differ ~9cm; less stops merging), `Foundation <n>` under `Generated/Foundation Colliders`,
+    differ ~9cm at full size, ~5cm at `foundationScale` 0.5; less stops merging), `Foundation <n>` under `Generated/Foundation Colliders`,
     Stone. Examples: 65-298 pieces to 9-96 boxes.
   - `RunWalls`, after cull and roof edge (no box where a piece was removed): pieces under
     `Storey <n>` / `Corner` groups, `wallColliderTolerance`, `Wall <n>` under `Generated/Wall
@@ -374,10 +386,15 @@ unless "asset". Meanings are in the sections that use them.
   repeat, centred, width-scaled, back at `SupportBack`, top at the deck. **Side walls per
   storey depth** (column + jetty): jettied beside unjettied = a step closed from the jettied
   side (a module, or depth + setback if longer); only ground-storey steps get a side
-  foundation. **Jettied storey at a run end with no neighbour column closes itself**
-  (`CloseJetty`, `Building <i>/End <n>/`): side walls facing out, against the front wall's end,
-  from behind its face back past the column line (module, or jetty + setback), beam band below.
-  Dead ends never jettied.
+  foundation. **An unjoined run end closes itself** (`CloseRunEnd`, `Building <i>/End <n>/`):
+  side walls facing out, against the front wall's end, from behind its face back past the
+  column line, beam band below. **Where the neighbouring run goes on nearly in line at the same
+  level** (an inside bend between segments of different widths: never a joint, edges offset)
+  `StepsInLine` compares the two end modules' fronts storey by storey; each storey standing
+  further into the street (> `sizeTolerance`) is closed (module, or step + setback), a ground
+  step on a side foundation; the other side closes its own. Elsewhere (no neighbour, a storey
+  above its top, or no step either way) a jettied building's upper storeys are closed (module,
+  or jetty + setback). Dead ends never jettied.
 - **Facade lean** (`facadeLean`, preview of the storybook lean): **on a leaning run** upper
   storeys' street walls, beam bands between and corner fillers carrying them lie on one plane
   tilted over the street, hinged at the first upper storey's base: each wall turned about its
@@ -402,12 +419,17 @@ unless "asset". Meanings are in the sections that use them.
     tan, base level, back edge plumb.
   - **`ShearedMeshes`** (side and corner end walls): mesh copy (every LOD) shifted along width
     by height above the connection point's base x tan, normals/tangents carried; mesh angle =
-    world angle x height scale / width scale, rounded 0.25°; one copy per shear, saved in
-    `Sheared/` as `<mesh>_<fbx guid>_<axis><+/-><angle>.asset` (three-levels ~106), set on the
-    instance MeshFilters as override (transform, colliders, prefab link unchanged). Colliders
-    stay unsheared (up to 0.26m off at a 3m storey's top).
-  - **Everything else upright** (ground storey, supports, roofs, dressing): at 5° a
-    three-storey top stands ~0.5m past its roof line.
+    world angle x height scale / width scale, rounded 0.25°; one copy per shear per sector
+    (`Begin(sector)` at the start of a generation), saved in `Sheared/<sector>/` as
+    `<mesh>_<fbx guid>_<axis><+/-><angle>.asset` (three-levels ~106), set on the instance
+    MeshFilters as override (transform, colliders, prefab link unchanged). After the NavMesh,
+    `ClearUnused` deletes the sector folder's copies no MeshFilter under the root uses (not
+    undoable, like the ground meshes). Colliders stay unsheared (up to 0.26m off at a 3m
+    storey's top).
+  - **Roofs follow the lean** (`RoofFace`: face at the top storey's walls' top, `LeanForward`
+    included), so the eave stands in front of the leaning walls as it would upright walls;
+    the roof itself stays unleaned.
+  - **Everything else upright** (ground storey, supports, dressing).
 - **Storey beams:** where both storeys' styles have `beam`s (`PlasterWalls_A_MidBeam`, the
   common-height plaster styles; wall-tall, woodlarge, cellar have none), **a band between the
   walls**, as tall as the lower style's tallest beam, overlapping each side by
@@ -448,6 +470,12 @@ unless "asset". Meanings are in the sections that use them.
     (gameplay ignores it); nothing at runtime. Only inserts can be lit (blind-window panes come
     from atlases without emission). Lit twins of the four verified inserts annotated alike
     (`C_Open`, `D_Open` unreviewed both forms).
+  - **TeaLeaf > Level Gen > Swap Window Light** (`WindowLightSwap.cs`): each selected
+    `TL_Window_*` instance (or anything inside one) replaced by its twin, `_Lit` <-> plain, from
+    the same folder: same parent, sibling slot, local transform; instance overrides not
+    carried; one Undo step. Outermost instances only (a window nested in a prefab, as in the
+    Open Window Wall, is skipped, logged). Under `Generated` a hand edit (regeneration asks,
+    then redraws); rebuild proxies and rebake after.
 - **Columns** (`SplitColumns`, after laying, before building; side walls `FillSides` after):
   **every building cut end to end into columns** of `columnWidthMin`-`Max` modules, never across
   a building end or bend (last takes the rest). Rolls, in order, always all: width, off the line
@@ -481,6 +509,13 @@ unless "asset". Meanings are in the sections that use them.
     `sideWallMultiplier` x column width in modules (min 1; 0 = none).
   - **Different depths:** forward column's other storeys get one module each; the step one
     `foundation`, front `foundationFrontOffset` past the ground side wall.
+  - **Under or beside a gable: back to its back foot** (`GableReach`: 2 x ridge back - where the
+    slope's underside meets the walls' top - eave overhang, behind the roof's face; ~7.1m at
+    the defaults; facades only, a lot's roofs have none). `FillSide`: the top storey's and every
+    storey above the other column (its own gable), and every storey above the other column
+    below the other's ridge (`RoofRise`; the other's gable), from the nearer roof face of the
+    two. `CloseRunEnd`: every storey it closes. Shorter, the gable's back half stands on
+    nothing and a gap shows under it.
   - **Column's right end (from street), plain front-wall end: side wall stands in the other
     column's space, backed onto its own column's end**: back plane on the join (`FaceClearance`
     1cm in), thickness in the other column, starting halfway between the main surface and the
@@ -489,7 +524,7 @@ unless "asset". Meanings are in the sections that use them.
     end, its face never on the end's; continues through the other column's front wall (hidden)
     and above its top through the roof like a party wall.
   - **Column's left end, trimmed front-wall end: side walls tuck behind** (`SideWallStart`,
-    column steps and jetty ends, not corners): join moved `sideWallTuck` into the column, street
+    column steps and jetty ends, not corners): join moved `sideWallTuck` x `wallThickness` into the column (so the thin side wall still stands out past the end it covers, and its face in front of a lower neighbour's gable centred on the join), street
     end on `FrontPlane`, trim covers them.
   - **Placed by render box end**, not connection point (some trims stand past it).
   - Under `Building <i>/Side <n>/` (`n` = join's module index). Corner-closed run ends get none;
@@ -609,7 +644,7 @@ unless "asset". Meanings are in the sections that use them.
   up, continuing at a run end as far as a corner carried the top storey
   (`ModuleSpot.CarriedStart`/`End`). **Roof end at the outer face of the top storey's end
   wall** (`ModuleSpot.SideFaceStart`/`End`, written by `BuildCornerSide`, `FillSide`,
-  `CloseJetty` as reach + thickness; `RoofStretches` via `EndOut`), verge `roofVergeOverhang`
+  `CloseRunEnd` as reach + thickness; `RoofStretches` via `EndOut`), verge `roofVergeOverhang`
   past.
 - **Slope:** `roofRows` rows at `roofPitch`, eave `roofEaveOverhang` before the top storey's
   face and `roofEaveDrop` below its walls' top, rows overlapping `roofRowOverlap`; panels =
@@ -656,7 +691,12 @@ unless "asset". Meanings are in the sections that use them.
 - **Gables** (`RoofGable`): one whole `roof-gable` per end, **pivot plane on the roof end** (the
   `RoofWall_*` faces are within 0.1m of the pivot plane, beam ends 0.45-0.6m in front, so
   placing by render front sinks the face ~0.5m), upright under the ridge, triangle 2 x
-  (ridgeBack - under) wide, ridge - walls' top + `roofGableSink` tall, pivot at base middle;
+  (ridgeBack - under) wide, depth `wallThickness` about the pivot plane (beam ends come in to
+  ~0.2m), pivot at base middle. **Its tie beam's underside, not its box bottom, sits
+  `roofGableSink` into the walls' top** (`GableTie`: lowest vertex in the middle half of the
+  width, read from the prefab once per build; the Med pieces' carved corner blocks hang 3.5%
+  of their height below the beam, else a ~16cm slot shows); height ridge - that base, so the
+  apex stays under the ridge;
   `GablePiece` = nearest height-to-width, random within `GableShapeTolerance` 0.1 (Med gables on
   60° two-row roofs), scaled. Not at corners, nor where a wider-than-`roofHipAngleMax` corner's
   other roof runs over (`ModuleSpot.GableStart`/`End`, by `BuildCornerSide`).
@@ -774,9 +814,14 @@ unless "asset". Meanings are in the sections that use them.
   5cm (merged boxes standing in for its colliders). Beyond `cullRange` not tried. Nearest eight
   looks one ray at a time until seen; the rest from all in-range looks as parallel
   `RaycastCommand` jobs.
+- **Side walls a seen gable stands on or against stay** (`KeepGableWalls`: under a `Side
+  `/`End ` group, middle within 0.5m of the gable's plane, across part of its width, top no
+  lower than 0.5m under its foot): seen only through the slot under a gable, their sample
+  points can all fail while the gap their removal opens shows. Logged `; n side wall(s) under
+  a gable kept`.
 - Removed with Undo, emptied groups too (groups holding merged colliders stay), then railings
   on removed ridges. Log `Visibility cull: n of m piece(s) removed ... (foliage, facades, lots,
-  roofs; looks; time)`. Three-streets: 342 of 2929 in ~2s, no hole visible.
+  roofs; looks; time)`. Three-streets: 320 of 3453 in ~5s (197 side walls under gables kept).
 
 ## Report (stage 6)
 
@@ -791,7 +836,10 @@ unless "asset". Meanings are in the sections that use them.
 - **Free wall ends** (`FreeEnds`): front walls (storeys, corner fillers, dead ends); side walls
   only cover (their front end is a real end at its step, back end open by design: no back
   walls). Both vertical end faces (across the longer horizontal side of the LOD0 render box,
-  own space) sampled 2cm out, 3 depths x 6 heights. **Bare** = no covering box holds it (all
+  own space) sampled 2cm out, 3 depths x 6 heights; a wall wearing a sheared mesh
+  (`ShearedMeshes.IsSheared`) is sampled along its slanting ends (`ShearedEnds`: its vertices'
+  reach each way within 5cm of its bottom and of its top), never its box's end (the furthest
+  either reaches), whose lower samples would hang in the air in front of a leaning storey. **Bare** = no covering box holds it (all
   but doors, inserts, roofs; grown 8cm) **and seen from a street**: line to one of up to six
   standing spots within 14m, >= 30° apart, at 1.6m, crossing no covering box (the wall's own
   included: end faces are seen only from in front). Spots: decking tiles or ground vertices
@@ -961,7 +1009,10 @@ unless "asset". Meanings are in the sections that use them.
 - **Open Window Wall** (`Assets/Prefabs/Environment/Walls/OpenWindowWall.prefab`: two
   `PlasterWalls_A_WindowBase_Hole` back to back, thin, `Window_D_Open` inserts both sides; root
   at the window's middle, +Z to the street) **placed by hand in place of one generated wall
-  module, upright facades only (no lean)**, under the sector's `Geometry` but **never inside
+  module, upright facades only (no lean)**, its outer wall's front flush with the generated
+  walls' fronts beside it (their depth follows `wallThickness`: a window placed against walls
+  of another thickness is moved to match, else it stands behind the facade and the cut misses
+  the module's window insert), under the sector's `Geometry` but **never inside
   `Generated`** (a regeneration replaces that whole). Its **`OpenWindowInterior`** holds
   `widthModules` (centred on the window), `depthModules`, and `built` (the room last built,
   replaced when built again).
@@ -972,8 +1023,7 @@ unless "asset". Meanings are in the sections that use them.
   piece stood in keeps its pieces' own colliders**: `RunWalls` leaves it out, so no merged box
   spans the window. Log `Open windows: n piece(s) taken out for m open window(s), s storey(s)
   left with their own colliders[; standing in place of nothing: ...]`. The report counts the window's pieces as
-  cover (neighbours' ends), never as walls of their own. The backing box behind is left as
-  built: moved and resized by hand.
+  cover (neighbours' ends), never as walls of their own.
 - **TeaLeaf > Level Gen > Build Open Window Interiors** (selected windows, else every one in the
   open scene; one Undo step): per window, under `Geometry/Open Window Interiors/<window>
   Interior` (never touched by a regeneration):
@@ -983,7 +1033,7 @@ unless "asset". Meanings are in the sections that use them.
     commonest height (within `sizeTolerance`); room height = that, walls never height-scaled.
     Laid by the fitting rule (`FitWidths`, normal = median full-size width; per width a wall
     within `wallScaleLimit`, else the nearest), random no repeat, seeded from the window's
-    position (rebuilt the same until it moves). **Scaled to `openWindowWallThickness` of their
+    position (rebuilt the same until it moves). **Scaled to `wallThickness` of their
     depth** and to their width.
   - **Box**: module = window box width - `wallOverlap`; room `widthModules` x module across,
     `depthModules` x module deep, from the window's inside face back, floor on the window's
@@ -1004,7 +1054,18 @@ unless "asset". Meanings are in the sections that use them.
     and `Portal Window` in it (`openWindowPortalSize`, probes past both window faces). **No
     NavMesh** (guards never go in). Light probes from Place Light Probes with the rest of the
     level (`Core.LightProbePlacer`).
-  - Log per window: size, height, walls and style, tiles; warns if a generated wall still
+  - **Light** (`AddLight`): `Room Light`, a **Baked** point light over the room's middle,
+    `openWindowLightBelowCeiling` under the ceiling's underside, `openWindowLightColour`,
+    `openWindowLightIntensity`, Indirect Multiplier `openWindowLightIndirect`, soft baked shadows
+    (the walls keep it in the room); **range = `openWindowLightRangeShare` x distance to the
+    furthest floor corner**, so it just lights the corners (a 9 x 6m room 3m high: 10m). Nothing
+    at runtime; no `LightSource` (gameplay ignores it).
+  - **Backing** (`RemoveBacking`): every `Generated/Backing` box reaching into the room's outline
+    (walls' backs, floor to walls' top) is taken out (whole). If the `Generated` root had no hand
+    edits before, its fingerprint is taken again (a regeneration doesn't count the removal as
+    one); a regeneration puts the boxes back, the rebuild takes them out again.
+  - Log per window: size, height, walls and style, tiles, light range, backing boxes taken
+    out; warns if a generated wall still
     stands in the window (regenerate first).
 - **Order**: place windows -> generate -> Build Open Window Interiors -> Rebuild Building
   Proxies -> Place Light Probes -> rebake.
@@ -1076,14 +1137,18 @@ unless "asset". Meanings are in the sections that use them.
   pointing out (`PlaceEffect`).
 - **Smoke/steam prefabs** (`Vent Steam`, `Chimney Smoke`, from Thief VR prologue's smoke):
   motion in a flipbook, not particles. Shuriken, max 5 particles, one 6 x 6 sheet of 36 looping
-  frames (`Assets/Art/Textures/SmokeFlipbook_REPLACEME.png`, 2048, stand-in) at 8 fps, URP
+  frames (`Assets/Art/Textures/SmokeFlipbook.png`, 2048, project's own, `Tools/TextureGen`, painted from looping
+  noise to the prologue sheet's coverage and softness; **wrap V Repeat**:
+  blending the last frame reaches one row below the sheet, which Repeat maps back onto frame 0,
+  where Clamp drew a near-empty smear, a blink once a loop) at 8 fps, URP
   Particles/Unlit, alpha blend, flipbook blending (UV2 + AnimBlend streams), no soft
   particles, camera fading (materials in `Assets/Art/Materials`: `Vent Steam` 0.5->2m,
   `Chimney Smoke` 3->7m). Life 10s, speed 0, dark blue tint (alpha vent 0.11, chimney 0.21),
   grows, fades in over the first fifth, holds to the middle, fades out; **vertical billboard**
   (never tilts seen from above). World space, prewarmed, pause-and-catch-up culling. Vent: 1-2
   quads 1-1.5m, 0.15/s, no shape/forces. Chimney: ~3 quads 5 x 8m, 0.3/s, 0.4m hemisphere above
-  the pot, gravity -0.25, world wind (2, 0, 1), drag 0.4 by size. Nothing else draws smoke.
+  the pot, **renderer pivot y 0.4** (the sheet's smoke sits low in each cell: a centred quad hung
+  its base inside the chimney; 0.4 puts it at the pot top), gravity -0.25, world wind (2, 0, 1), drag 0.4 by size. Nothing else draws smoke.
 - **Walkways** (`BuildWalkways`, `walkwayShare`): the jetty piece along a whole facade at the
   base of one non-jettied upper storey, max one per building, supports' backs at
   `SupportBack` in front of the storey below's back line, `Walkway` group per building.
@@ -1125,27 +1190,35 @@ unless "asset". Meanings are in the sections that use them.
 
 ## Moon shafts (`MoonShafts.cs`)
 
-- `Build` after the merged wall/roof colliders: a `Core.MoonShaft` per segment of each narrow
-  street, `Generated/Moon Shafts`, `Moon Shaft - <street> <from>-<to>`. **Off**
-  (`moonShaftStreetMaxWidth` 0 in asset, logs `Moon shafts: none`) until the look is right; set
-  4.5m and regenerate to see.
-- **Opening = sky strip between the two sides' eaves** (every reaching moon ray passes it, any
-  bearing; a slot across the street's mouth only works with the moon along it): level
-  rectangle at the lower side's eaves - highest wall top along each edge (`EdgeWallTop`,
-  `WallTop`: `Facades`/`Lots` renderer boxes within `edgeWallProbe` of samples every 2m,
-  ignoring boxes wholly below the street or > 20m above), lower side's minus `roofEaveDrop`;
-  length = segment less half the widest other street leaving each end (`JunctionWidth`; dead
-  end/unshared point: none); across edge to edge less `moonShaftInset` each side (rays never
-  start in a wall). **Local X along the street, Y across the way light travels** (foot edge on
-  the moon's side, so the shadow fit cuts the roof's shadow off), Z vertical.
-- **Narrow** = base width (own or `streetWidth`) <= `moonShaftStreetMaxWidth` (base, not rolled;
-  span uses rolled). None where an edge has no wall, eaves < `moonShaftMinEaves`, opening < 1m
-  long or 0.5m across, or unlit (`MoonShaft.IsLit` false after `Configure`: destroyed). Mesh
-  built by the component as placed (after `Physics.SyncTransforms()`) and at load; only
-  component + transform saved (fingerprinted). Log `Moon shafts: n over m narrow street
-  segment(s) (a in the moon's shadow, b without a building on both sides, c with eaves under
-  Xm, d too short)`. On: three-levels 7 over its two 4m alleys' 8 segments; at 45° the beams
-  cross a 3m alley in its top ~3m and land on the far wall, never the street - correct.
+- **One `Core.GodRayBox` per building casting a moon shadow onto a street**, beside that shadow:
+  bottom four corners on the street round the moonlit strip, top four straight up the
+  moonlight from each to the building's top + `moonShaftTopClearance` (sides run the way the
+  light comes; the side nearest the building grazes the edge casting the shadow). `Build` after
+  the merged wall/roof colliders, `Generated/Moon Shafts`, `Moon Shaft - <street> <from>-<to> -
+  <owner> Building <i>`; same component as a hand-placed shaft (corners adjustable by hand,
+  replaced by a regeneration); `Environment`, Occludee static only; only component (eight
+  local corners) and transform saved (fingerprinted), mesh built on enable. Object on the
+  street in the strip's middle, +Z across the street the way the light travels.
+- **Shadow found by physics rays** towards the moon (Environment + Interactable, as gameplay's
+  light rays; after `Physics.SyncTransforms()`; start `Clearance` 0.1m above `StreetHeights.
+  SurfaceAt`). Streets of base width <= `moonShaftStreetMaxWidth`; each segment less half the
+  widest street at each end (`JunctionWidth`: junctions belong to no segment) cut into even
+  samples about `moonShaftSampleSpacing` long; per sample a line across, `moonShaftInset` in
+  from both edges, from the edge on the moon's side (`Measure`): that edge lit = no shadow
+  (nothing); eight points across, then six halvings, find where the moon-side shadow ends
+  (strip start) and where a far-side shadow begins (strip end, else the far edge); none lit =
+  wholly in shadow (nothing). **Caster** = the building whose box (its `Facades`/`Lots`
+  group's renderers plus its `Roofs` group's, particles left out; grown 0.2m; smallest where
+  several) holds the hit of the ray from just inside the shadow's edge (`BuildingAt`); none =
+  skipped.
+- **Consecutive samples with one caster = one shaft** (`PlaceShaft`): run start = first
+  sample's strip at the start of its share, run end = last sample's at the end of its share
+  (four corners: start near, end near, end far, start far). The shadow's edge wanders along a
+  building (gables, jetties, roof ends), so a corner can sit a little inside the shadow.
+  Moon less than `MinThrough` 0.2 above level: none. Log `Moon shafts: n beside m building(s)
+  casting a moon shadow onto s street segment(s); of k sample(s) across, a lit at the moon's
+  side (no shadow), b wholly in shadow, c shaded by something not a building`. Three-streets
+  (moon ~75° up): 45 shafts beside 35 buildings, 11 segments, 227 samples (3 lit, 39 dark).
 
 ## Sound rooms (`SoundRooms.cs`)
 
@@ -1443,7 +1516,8 @@ unless "asset". Meanings are in the sections that use them.
   `OpenWindowInteriors.CutWalls` -> `RoofEdgeColliders` -> `RunWalls`, `RunRoofs` (after
   pieces/colliders are removed) -> `Backing` (cut clear of the pieces left; no colliders) ->
   `MoonShafts` (rays need every collider; the cull never sees them) -> `SoundRooms` (tops from
-  walls left) -> `StreetNavMesh` (bakes from colliders) -> `GeneratedReport` -> fingerprint.
+  walls left) -> `StreetNavMesh` (bakes from colliders) -> `ShearedMeshes.ClearUnused` (level
+  complete) -> `GeneratedReport` -> fingerprint.
   Then by hand: Build Open Window Interiors, Rebuild Building Proxies.
 - **`StoreyPlan`** (rolls next after widths; logged): **facade** = min + range x rand^(4^-
   `storeyBias`) (+1 high, -1 low). **Lot matches neighbours**: facades with an edge point

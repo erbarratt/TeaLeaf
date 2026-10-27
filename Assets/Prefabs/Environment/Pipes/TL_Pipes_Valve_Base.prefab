@@ -44,6 +44,10 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 6172201745305139079, guid: c65892375bd2df34eaef31db63b07ad8, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 6292411804959230046, guid: c65892375bd2df34eaef31db63b07ad8, type: 3}
       propertyPath: m_Name
       value: TL_Pipes_Valve_Base
@@ -60,6 +64,10 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 6389280768306517741, guid: c65892375bd2df34eaef31db63b07ad8, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 6636321911760589540, guid: c65892375bd2df34eaef31db63b07ad8, type: 3}
       propertyPath: m_LocalPosition.x
       value: -18.212141
@@ -112,6 +120,10 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 7886561414991585058, guid: c65892375bd2df34eaef31db63b07ad8, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 9074013061632229066, guid: c65892375bd2df34eaef31db63b07ad8, type: 3}
       propertyPath: m_Layer
       value: 6

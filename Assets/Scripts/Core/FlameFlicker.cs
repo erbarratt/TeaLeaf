@@ -23,14 +23,17 @@ namespace Core
     public class FlameFlicker : MonoBehaviour
     {
         // The light that flickers. Found on this object if left empty.
+        [Tooltip("The visible Light whose intensity flickers, e.g. the torch's point light. Left empty, the Light on this object is used. Only the visible light moves; the gameplay LightSource stays steady.")]
         [SerializeField] private Light flameLight;
 
         // How far the intensity swings either side of its set value, as a
         // fraction of it: 0.15 is a lantern in still air, 0.4 a torch in
         // the wind.
+        [Tooltip("How far the intensity swings either side of its editor value, as a fraction of it, e.g. 0.15 = a lantern in still air (up to 15% brighter or dimmer), 0.4 = a torch in the wind. Higher = a stronger flicker; 0 = steady.")]
         [SerializeField, Range(0f, 1f)] private float amount = 0.15f;
 
         // How quickly it wavers. Higher is a more nervous flame.
+        [Tooltip("How quickly the intensity wavers, in noise steps per second, e.g. 6 = a gently restless flame. Higher = a faster, more nervous flicker; lower = a slow breathing glow.")]
         [SerializeField] private float speed = 6f;
 
         // The intensity set in the editor, which the flicker is centred on.

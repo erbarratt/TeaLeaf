@@ -38,16 +38,23 @@ namespace LevelGen
         [System.Serializable]
         public struct Marker
         {
+            [Tooltip("What kind of problem the marker stands at, which sets its colour: Free End red (a wall end nothing stands against), Open Roof orange (a roof end left open), Refused magenta (a piece refused for standing in a street), Other yellow.")]
             public MarkerKind kind;
+            [Tooltip("Where the marker's wire box is drawn, in world space (metres), e.g. at the free end of a wall.")]
             public Vector3 position;
+            [Tooltip("The size of the marker's wire box, in metres, e.g. (0.5, 3, 0.5) for a tall thin box at a wall end. Bigger = easier to spot from far off.")]
             public Vector3 size;
+            [Tooltip("A line saying what the problem is, written by the generator's report, e.g. \"free end of Building 3's wall\".")]
             public string note;
         }
 
         private static readonly Color[] _colours = { Color.red, new(1f, 0.5f, 0f), Color.magenta, Color.yellow };
 
+        [Tooltip("The layout spec file this sector was built from, written by the generator, e.g. Assets/Data/LevelGen/Layouts/example-street.json. A regeneration from a different spec asks before replacing; the report re-reads it. Not for editing by hand.")]
         [SerializeField] private string specPath;
+        [Tooltip("A fingerprint of everything under this object as built, written by the generator. A regeneration compares it and warns first if anything inside was edited by hand; empty = never recorded, so no warning. Not for editing by hand.")]
         [SerializeField] private string fingerprint;
+        [Tooltip("The generator report's markers: one entry is one problem found (kind, where, box size, note), drawn as a wire box in the Scene view and headset so it can be walked to. Replaced by each report; empty = no problems found.")]
         [SerializeField] private List<Marker> markers = new();
 
         public string SpecPath => specPath;

@@ -12,6 +12,10 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 1066085572772782925, guid: 8f9fa5ce873cd784ab739bd38f95b90b, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 2517337692262544681, guid: 8f9fa5ce873cd784ab739bd38f95b90b, type: 3}
       propertyPath: m_FadeMode
       value: 1
@@ -32,6 +36,10 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 2967687066970146225, guid: 8f9fa5ce873cd784ab739bd38f95b90b, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 4040176143058245360, guid: 8f9fa5ce873cd784ab739bd38f95b90b, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -44,6 +52,10 @@ PrefabInstance:
       propertyPath: m_ReceiveGI
       value: 2
       objectReference: {fileID: 0}
+    - target: {fileID: 4083506341944575241, guid: 8f9fa5ce873cd784ab739bd38f95b90b, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 4339046574102287431, guid: 8f9fa5ce873cd784ab739bd38f95b90b, type: 3}
       propertyPath: m_Layer
       value: 6

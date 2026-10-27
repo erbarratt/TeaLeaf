@@ -25,7 +25,7 @@ namespace LevelGen
     /// </summary>
     internal static class Backing
     {
-        private const string GroupName = "Backing";
+        internal const string GroupName = "Backing";
         // How often the boxes are cut against every piece before giving up:
         // a cut can bring a box clear of one piece only to leave it in
         // another it was already clear of, never more than a few times.

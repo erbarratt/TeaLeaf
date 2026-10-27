@@ -56,25 +56,32 @@ namespace Player
     /// </summary>
     public class PlayerArrows : MonoBehaviour
     {
+        [Tooltip("The input system on the Player root: grip presses are read through it to pick a lying arrow up, e.g. drag the Player root here. Found on the Player root above if left empty.")]
         [SerializeField] private PlayerInputXR playerInput;
+        [Tooltip("The hand rays on this Hands object: a hand picks up the resting arrow its ray is on, e.g. drag the Hands object here. Found on this object if left empty.")]
         [SerializeField] private PlayerHandInteraction playerHandInteraction;
+        [Tooltip("The hand visuals on this Hands object, used to find the Player Hand State, e.g. drag the Hands object here. Found on this object if left empty.")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         // What each hand is busy with: only a free hand picks an arrow up.
         // Found (or made) in Awake() if not wired (it's on this same
         // object).
+        [Tooltip("What each hand is busy with: only a free hand picks an arrow up, e.g. a hand carrying a crate ignores arrows. Found (or added) on this object if left empty.")]
         [SerializeField] private PlayerHandState playerHandState;
 
         // Optional: a rig with no haptics still shoots.
+        [Tooltip("The controller vibration on the Player root, e.g. for the buzz when an arrow is picked up. Found on the Player root above if left empty; with none, arrows still work, just without buzzes.")]
         [SerializeField] private PlayerHaptics playerHaptics;
 
         // Optional: tells when a hand has taken hold of a rope that won't
         // bear weight, and makes it let go.
+        [Tooltip("The climbing on the Player root: tells when a hand has taken hold of a rope whose arrow won't bear weight, and makes it let go, e.g. a rope arrow in stone falls as soon as it's grabbed. Found on the Player root above if left empty; with none, such ropes never fall.")]
         [SerializeField] private PlayerClimbing playerClimbing;
 
         // Optional: an arrow picked up burns away where it lay. Without
         // one it just vanishes. Found in Awake() if not wired (it's on this
         // same object).
+        [Tooltip("The tool burn effect on this Hands object: an arrow picked up burns away where it lay, e.g. drag the Hands object here. Found on this object if left empty; with none, a picked-up arrow just vanishes.")]
         [SerializeField] private ToolBurn toolBurn;
 
         [Header("Shooting")]
@@ -83,17 +90,19 @@ namespace Player
         // (a real bow shoots at about 50-70). The draw alone sets a shot's
         // speed: one drawn half way leaves at half this, whatever the
         // angle it's shot at.
-        [Tooltip("Speed of an arrow shot at full draw, m/s (a real bow: about 50-70). A shot's speed is this times how far the string was drawn (0-1); the angle it's shot at doesn't change it.")]
+        [Tooltip("Speed of an arrow shot at full draw, in metres per second (a real bow: about 50-70). A shot's speed is this times how far the string was drawn (0-1), whatever the angle, e.g. 60 = an arrow drawn half way leaves at 30 m/s. Higher = flatter, longer shots; lower = more of a lob.")]
         [SerializeField] private float fullDrawSpeed = 60f;
 
         // Seconds an arrow may fly before it's taken to have gone into the
         // sky and is put away. Also how far ahead the arc looks, so it
         // bounds the arc's ray casts per frame.
-        [Tooltip("Seconds an arrow may fly before it's given up on (gone into the sky). Also how far ahead the arc is worked out each frame, so longer costs more casts.")]
+        [Tooltip("Seconds an arrow may fly before it's given up on (gone into the sky) and put away; also how far ahead the arc is worked out each frame, e.g. 4 = an arrow still flying after 4 s vanishes. Higher = longer shots can land, but more ray casts a frame while aiming; lower = cheaper, but long shots are lost. At least 0.5.")]
         [SerializeField] private float maxFlightTime = 4f;
 
         // The sound of a shot, and of an arrow landing. Optional.
+        [Tooltip("The sound played (and noise made for guards) where the arrow leaves the bow, e.g. a bowstring twang cue. Left empty, shots are silent.")]
         [SerializeField] private SoundCue shotCue;
+        [Tooltip("The sound played (and noise made for guards) where an arrow lands, e.g. a thud cue. Left empty, landings are silent.")]
         [SerializeField] private SoundCue impactCue;
 
         [Header("Arrow Kinds")]
@@ -101,82 +110,116 @@ namespace Player
         // Each kind's model: a mesh lying along its own Z with its tip at
         // +Z and its middle on its origin (the arrows_3d_model_* files),
         // and the one material they all share.
+        [Tooltip("The water arrow's mesh: along its own Z, tip at +Z, middle on its origin, e.g. the mesh in arrows_3d_model_water.fbx. Left empty, that kind can't be seen (a warning is logged).")]
         [SerializeField] private Mesh waterArrow;
+        [Tooltip("The noisemaker arrow's mesh: along its own Z, tip at +Z, middle on its origin, e.g. the mesh in arrows_3d_model_noisemaker.fbx. Left empty, that kind can't be seen (a warning is logged).")]
         [SerializeField] private Mesh noisemakerArrow;
+        [Tooltip("The rope arrow's mesh: along its own Z, tip at +Z, middle on its origin, e.g. the mesh in arrows_3d_model_rope.fbx. Left empty, that kind can't be seen (a warning is logged).")]
         [SerializeField] private Mesh ropeArrow;
+        [Tooltip("The stun arrow's mesh: along its own Z, tip at +Z, middle on its origin, e.g. the mesh in arrows_3d_model_stun.fbx. Left empty, that kind can't be seen (a warning is logged).")]
         [SerializeField] private Mesh stunArrow;
+        [Tooltip("The sleep dart's mesh: along its own Z, tip at +Z, middle on its origin, e.g. the mesh in arrows_3d_model_sleep.fbx. Left empty, that kind can't be seen (a warning is logged).")]
         [SerializeField] private Mesh sleepDart;
+        [Tooltip("The moss arrow's mesh: along its own Z, tip at +Z, middle on its origin, e.g. the mesh in arrows_3d_model_moss.fbx. Left empty, that kind can't be seen (a warning is logged).")]
         [SerializeField] private Mesh mossArrow;
+        [Tooltip("The one material every arrow kind is drawn with, e.g. arrows_3d_model.mat (URP Lit). Left empty, a warning is logged.")]
         [SerializeField] private Material arrowMaterial;
 
         // Stun: seconds a guard hit on the head stays stunned.
+        [Tooltip("Seconds a guard hit on the head by a stun arrow stays stunned before it comes round and searches, e.g. 10 = out for ten seconds. Higher = more time to slip past.")]
         [SerializeField] private float stunTime = 10f;
 
         // Sleep dart: seconds after it hits a guard before the guard is
         // knocked out.
+        [Tooltip("Seconds after a sleep dart hits a guard (anywhere) before the guard is knocked out, e.g. 10 = it walks on for ten seconds, then drops. Higher = a longer wait in which it may still raise the alarm; lower = it drops sooner.")]
         [SerializeField] private float sleepDelay = 10f;
 
         // Water: every fire within this many metres of where it lands goes
         // out.
+        [Tooltip("Metres round where a water arrow lands within which every fire goes out, e.g. 0.6 = it must hit within 60 cm of a torch's flame. Higher = easier to douse; lower = needs a closer hit.")]
         [SerializeField] private float waterRadius = 0.6f;
 
         // Noisemaker: how far its noise carries to guards (metres), how
         // often it sounds and for how long (seconds), and the sound it
         // makes (optional: with none it's a noise guards hear and the
         // player doesn't).
+        [Tooltip("Metres a noisemaker's noise carries to guards, used only when no Noise Cue is set (a cue makes its own noise), e.g. 12 = guards within 12 m come to look. Higher = draws guards from further away.")]
         [SerializeField] private float noiseRadius = 12f;
+        [Tooltip("Seconds between a landed noisemaker's sounds, e.g. 1.5 = it jingles every one and a half seconds. Lower = more often (more noise events).")]
         [SerializeField] private float noiseInterval = 1.5f;
+        [Tooltip("Seconds a landed noisemaker keeps sounding, e.g. 12 = it jingles for twelve seconds, then falls silent. Higher = holds guards' attention longer.")]
         [SerializeField] private float noiseDuration = 12f;
+        [Tooltip("The sound a landed noisemaker plays each time (its cue also tells the guards), e.g. a bells cue. Left empty, it makes a noise guards hear (Noise Radius) and the player doesn't.")]
         [SerializeField] private SoundCue noiseCue;
 
         // Rope: the longest a rope can be, how thick it's drawn and in
         // what colour, and how a hand grips it.
+        [Tooltip("The longest rope a rope arrow hangs, in metres; shorter if the ground is nearer, e.g. 8 = an arrow 12 m up a wall hangs a rope ending 4 m above the ground. Higher = reaches the ground from higher up.")]
         [SerializeField] private float ropeMaxLength = 8f;
+        [Tooltip("How thick a rope is drawn, in metres, e.g. 0.025 = 2.5 cm. Looks only: doesn't change how it's grabbed.")]
         [SerializeField] private float ropeThickness = 0.025f;
+        [Tooltip("The colour a rope is drawn in, e.g. a light hemp brown.")]
         [SerializeField] private Color ropeColor = new(0.75f, 0.62f, 0.4f, 1f);
+        [Tooltip("How a hand grips a rope (snap offset and finger pose), e.g. RopeGrip.asset in Assets/Data/Hand Poses.")]
         [SerializeField] private HandSnapProfile ropeProfile;
 
         // Moss: the radius of the patch an arrow lays, in metres, how far
         // below where it lands the floor may be for a patch to be laid
         // there, and the patch's colour.
+        [Tooltip("Radius of the moss patch a moss arrow lays, in metres; footsteps within it are silent, e.g. 0.75 = a patch 1.5 m across. Higher = more floor silenced per arrow.")]
         [SerializeField] private float mossRadius = 0.75f;
+        [Tooltip("How far below where a moss arrow lands the floor may be for a patch to be laid there, in metres, e.g. 4 = an arrow hitting a wall 3 m up still lays moss at its foot. Higher = moss from higher wall hits; no floor within it = no patch.")]
         [SerializeField] private float mossMaxDrop = 4f;
+        [Tooltip("The moss patch's colour (its edges are drawn a little darker), e.g. a dark mossy green.")]
         [SerializeField] private Color mossColor = new(0.22f, 0.32f, 0.12f, 1f);
 
         // What counts as the floor beneath a rope or a moss patch, and the
         // least light ropes and moss are ever shown in (0-1).
+        [Tooltip("The layers that count as the floor beneath a rope (where it ends) or a moss patch (where it's laid), e.g. Environment. Set to Environment if left as Nothing.")]
         [SerializeField, FormerlySerializedAs("ropeGroundLayers")] private LayerMask groundLayers;
+        [Tooltip("The least light ropes and moss patches are ever drawn in, 0-1, e.g. 0.35 = never darker than about a third lit, even in full shadow. Higher = easier to see in the dark; 0 = can go fully black.")]
         [SerializeField] private float minLight = 0.35f;
 
         [Header("Arc")]
 
         // What an arrow stops at. Filled in from the layer names if left
         // empty - see DefaultArcLayers().
+        [Tooltip("The layers an arrow (and the arc) stops at, e.g. Default, Environment, Interactable and Ragdoll (guards' limb hit boxes, never the Guard capsule). Filled in with those if left as Nothing.")]
         [SerializeField] private LayerMask arcLayers;
 
         // Finding where the arc lands: one physics ray per this many
         // seconds of flight. Drawing it: straight pieces about this long,
         // in metres.
+        [Tooltip("Seconds of flight covered by each physics ray when finding where the arc lands, e.g. 0.1 = one ray per tenth of a second of flight (40 rays for a 4 s arc). Lower = more exact landing on thin things, more rays; higher = cheaper, may cut corners.")]
         [SerializeField] private float arcCastTimeStep = 0.1f;
+        [Tooltip("Length of each straight piece the arc is drawn in at full draw, in metres (at least 0.05), e.g. 0.3 = a piece every 30 cm. Lower = a smoother curve with more points; higher = cheaper, more angular.")]
         [SerializeField] private float arcSegmentLength = 0.3f;
 
         // How the arc is drawn, as for an aimed throw. Every shot is a good
         // one, so there's one colour only.
+        [Tooltip("How the arc is drawn, as for an aimed throw, e.g. Line = one continuous line; Dots = a row of dots.")]
         [SerializeField] private ThrowArc.Style arcStyle = ThrowArc.Style.Line;
+        [Tooltip("The arc line's width in metres, for the Line style, e.g. 0.008 = 8 mm. Higher = bolder line.")]
         [SerializeField] private float arcWidth = 0.008f;
+        [Tooltip("Each dot's radius in metres, for the Dots style, e.g. 0.012 = dots 2.4 cm across. Higher = bigger dots.")]
         [SerializeField] private float dotRadius = 0.012f;
+        [Tooltip("Metres between dots, for the Dots style, e.g. 0.4 = a dot every 40 cm. Lower = denser dots.")]
         [SerializeField] private float dotSpacing = 0.4f;
+        [Tooltip("Radius of the disc shown where the arc lands, in metres, e.g. 0.08 = a disc 16 cm across. An arc landing on nothing shows no disc.")]
         [SerializeField] private float landingMarkerRadius = 0.08f;
+        [Tooltip("The arc's colour; its alpha is the arc's strength at full draw (it fades in from the least draw that shoots), e.g. white. Every shot is good, so there is no invalid colour.")]
         [SerializeField] private Color arcColor = Color.white;
 
         [Header("Arrows")]
 
         // How far a sticking arrow's tip goes in past the surface, in
         // metres.
+        [Tooltip("How far a sticking arrow's tip goes in past the surface, in metres, e.g. 0.03 = 3 cm buried in the wood. Higher = sunk deeper.")]
         [SerializeField] private float stickDepth = 0.03f;
 
         // Seconds an arrow that can't be picked up again (a rope arrow
         // with no rope on it) lies where it ended up before it's put away.
+        [Tooltip("Seconds an arrow that can't be picked up again (e.g. a rope arrow with no rope on it) lies where it ended up before it's put away, e.g. 30 = gone after half a minute. Higher = stays longer, but holds a pool slot.")]
         [SerializeField] private float arrowLifetime = 30f;
 
         [Header("Arrows That Bounce Off")]
@@ -184,13 +227,17 @@ namespace Player
         // How fast an arrow comes back off what it hit, level, in metres a
         // second, and how fast it turns end over end, in radians a second.
         // Small: it drops near where it struck.
+        [Tooltip("How fast a bounced arrow comes back off what it hit, level, in metres per second, e.g. 0.8 = it drops just short of the wall it struck. Higher = flies further back; 0 = drops straight down.")]
         [SerializeField] private float reboundSpeed = 0.8f;
+        [Tooltip("How fast a bounced arrow turns end over end, in radians per second, e.g. 3 = about half a turn a second. Higher = tumbles faster; 0 = no spin.")]
         [SerializeField] private float reboundSpin = 3f;
 
         // How hard a bounced arrow is slowed once it first touches
         // something on its way down - its movement and its turning. High,
         // so it stops where it comes down instead of skittering away.
+        [Tooltip("Rigidbody drag given to a bounced arrow once it first touches an upward-facing surface, e.g. 6 = it stops near where it comes down. Higher = stops sooner; lower = skitters further.")]
         [SerializeField] private float landedDamping = 6f;
+        [Tooltip("Rigidbody angular drag given to a bounced arrow once it first touches an upward-facing surface, e.g. 8 = it stops rolling almost at once. Higher = settles sooner; lower = rolls further.")]
         [SerializeField] private float landedAngularDamping = 8f;
 
         [Header("Picking Arrows Up")]
@@ -198,14 +245,19 @@ namespace Player
         // The radius of the ball round an arrow's middle that a hand ray
         // can target, in metres: bigger than the shaft, so it's easy to
         // aim at on the floor.
+        [Tooltip("Radius of the ball round a resting arrow's middle that a hand ray can target to pick it up, in metres, e.g. 0.1 = aim within 10 cm of the shaft's middle. Higher = easier to aim at; lower = more exact.")]
         [SerializeField] private float pickupRadius = 0.1f;
 
         [Header("Haptics")]
 
         // An arrow picked up, and a pick-up with no room for it.
+        [Tooltip("Strength of the buzz when an arrow is picked up, 0-1, e.g. 0.4 = a firm tap. 0 = no buzz.")]
         [SerializeField] private float pickupAmplitude = 0.4f;
+        [Tooltip("Length of the buzz when an arrow is picked up, in seconds, e.g. 0.04 = a short tap. Higher = longer buzz.")]
         [SerializeField] private float pickupDuration = 0.04f;
+        [Tooltip("Strength of the buzz when an arrow can't be picked up because the inventory has no room for it, 0-1, e.g. 0.2 = a faint tap. 0 = no buzz.")]
         [SerializeField] private float noRoomAmplitude = 0.2f;
+        [Tooltip("Length of the no-room buzz, in seconds, e.g. 0.03 = a very short tap. Higher = longer buzz.")]
         [SerializeField] private float noRoomDuration = 0.03f;
 
         // Where a pooled arrow is in its life.

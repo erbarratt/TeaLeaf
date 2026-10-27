@@ -40,22 +40,22 @@ using UnityEngine.XR.Management;
 [DefaultExecutionOrder(-100)]
 public class PcPlay : MonoBehaviour
 {
-    [Tooltip("The tracking on the Player root, for the head and controller transforms it owns, and to disable it.")]
+    [Tooltip("The tracking on the Player root: its head and controller transforms are moved by the mouse instead, and it is disabled while PC Play is on, e.g. drag the Player root here. Filled in from this object when the component is added.")]
     [SerializeField] private PlayerTracking playerTracking;
 
     [Header("Mouse Look")]
 
     // Degrees turned per pixel the mouse moves. The Input System's mouse
     // delta is in pixels for the frame, not per second, so no deltaTime.
-    [Tooltip("Degrees turned per pixel the mouse moves, for both turning the body and tilting the view.")]
+    [Tooltip("Degrees turned per pixel the mouse moves, for both turning the body and tilting the view, e.g. 0.1 = moving the mouse 900 pixels sideways turns a full 90°. Higher = faster look; lower = slower, finer aim.")]
     [SerializeField] private float mouseSensitivity = 0.1f;
 
-    [Tooltip("How far the view can tilt up or down, in degrees.")]
+    [Tooltip("How far the view can tilt up or down from level, in degrees, e.g. 85 = nearly straight up or down. Higher = can look further up and down; lower = a narrower tilt.")]
     [SerializeField, Range(0f, 89f)] private float maxPitch = 85f;
 
     [Header("Hands")]
 
-    [Tooltip("Where the right controller is placed relative to the camera, in metres (x right, y up, z forward). The left mirrors x.")]
+    [Tooltip("Where the right controller is placed relative to the camera, in metres (x right, y up, z forward), facing the way the camera looks; the left mirrors x, e.g. (0.2, -0.25, 0.35) = hands just below and in front of the view. Larger z = hands further ahead.")]
     [SerializeField] private Vector3 handOffset = new(0.2f, -0.25f, 0.35f);
 
     // The camera's current tilt, degrees above (negative) or below the

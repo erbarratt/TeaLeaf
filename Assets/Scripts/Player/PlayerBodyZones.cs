@@ -29,23 +29,28 @@ namespace Player
     /// </summary>
     public class PlayerBodyZones : MonoBehaviour, IDebugDrawable
     {
+        [Tooltip("The tracking on the Player root: head and controller positions the zones are measured from, e.g. drag the Player root here. Found on the Player root above if left empty.")]
         [SerializeField] private PlayerTracking playerTracking;
+        [Tooltip("The hand visuals on this Hands object: which way each palm faces, for the chest check, e.g. drag the Hands object here. Found on this object if left empty.")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         [Header("Chest")]
 
         // The middle of the chest from the head, in metres: to the
         // player's right, up, and ahead - with the head's tilt ignored.
+        [Tooltip("The middle of the chest from the head, in metres: x to the player's right, y up, z ahead, head tilt ignored, e.g. (0, -0.36, -0.12) = 36 cm below the eyes and 12 cm back. Where a hand brings the pack out.")]
         [SerializeField] private Vector3 chestOffset = new(0f, -0.36f, -0.12f);
 
         // The box round that point a hand must be in, in metres: its
         // width (side to side), height and depth (front to back). It
         // turns with the head, tilt ignored, so it stays square to the
         // body.
+        [Tooltip("The box round the chest's middle a hand must be in, in metres: width (side to side), height, depth (front to back); turns with the head's facing, e.g. (0.4, 0.35, 0.4). Bigger = easier to reach the pack, but more often by accident.")]
         [SerializeField] private Vector3 chestSize = new(0.4f, 0.35f, 0.4f);
 
         // How far the palm may be turned away from pointing straight at
         // the chest, in degrees, and still count as facing it.
+        [Tooltip("How far, in degrees, the palm may be turned away from pointing straight at the chest's middle and still count as facing it, e.g. 60 = a palm turned up to 60° off still brings the pack out. Higher = more forgiving; lower = the palm must face the chest squarely.")]
         [SerializeField] private float palmAngle = 60f;
 
         [Header("Shoulders")]
@@ -54,9 +59,11 @@ namespace Player
         // metres - x to the right, y up, z ahead (so a negative z is
         // behind), with the head's tilt ignored. The left shoulder's is
         // the mirror image.
+        [Tooltip("The middle of the ball over the right shoulder, from the head in metres: x to the right, y up, z ahead (negative = behind), head tilt ignored; the left shoulder's is its mirror, e.g. (0.2, -0.05, -0.12) = 20 cm right, just below and behind the eyes. Where the bow, blackjack and arrows are taken.")]
         [SerializeField] private Vector3 shoulderOffset = new(0.2f, -0.05f, -0.12f);
 
         // The ball's radius, in metres.
+        [Tooltip("Radius of each shoulder ball, in metres, e.g. 0.2 = the hand must be within 20 cm of the shoulder point. Higher = easier to draw, but more often by accident; lower = a more exact reach.")]
         [SerializeField] private float shoulderRadius = 0.2f;
 
         /// <summary>

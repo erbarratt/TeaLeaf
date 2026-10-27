@@ -13,7 +13,7 @@ namespace Player
     /// </summary>
     public class HandStateDebug : MonoBehaviour
     {
-        [Tooltip("The hand state on this object. Found here at start if empty.")]
+        [Tooltip("The hand state whose changes are logged, e.g. \"Left: None -> Climbing\"; drag the Hands object here. Found on this object at start if left empty; a warning is logged if there's none.")]
         [SerializeField] private PlayerHandState playerHandState;
 
         private HandUse _lastLeft = HandUse.None;

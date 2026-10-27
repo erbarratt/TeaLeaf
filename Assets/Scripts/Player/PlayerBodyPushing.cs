@@ -27,13 +27,13 @@ namespace Player
         // when walking straight into it. About walking pace: the door
         // then stays just ahead of a walking player, and swings on a
         // little by itself when they stop.
-        [Tooltip("How fast the body pushes something away when walking straight into it, in metres per second.")]
+        [Tooltip("How fast the body pushes something (an open door) away when walking straight into it, in metres per second; less when walking into it at an angle, e.g. 1.5 = about walking pace, so the door stays just ahead. Higher = doors fly open ahead of the player; lower = the body is held up against them.")]
         [SerializeField] private float pushSpeed = 1.5f;
 
         // A surface the body is walking this squarely into or more (0-1:
         // 1 = head on) is pushed. Lower, and brushing past a door's edge
         // would move it.
-        [Tooltip("How squarely (0-1, 1 = head on) the body must be walking into a surface for it to be pushed.")]
+        [Tooltip("How squarely (0-1, 1 = head on) the body must be walking into a surface for it to be pushed, e.g. 0.2 = walking into a door at a shallow glancing angle still pushes it. Lower = brushing past a door's edge moves it; higher = only walking nearly straight into it does.")]
         [SerializeField] private float minSquareness = 0.2f;
 
         /// <summary>

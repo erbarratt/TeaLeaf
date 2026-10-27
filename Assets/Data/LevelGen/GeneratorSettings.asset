@@ -28,6 +28,8 @@ MonoBehaviour:
   lotNeighbourDistance: 15
   lotStoreyBias: 0
   groundStoreyHeight: 0.163
+  wallThickness: 0.36
+  foundationScale: 0.5
   foundationHeight: 0.3
   foundationFrontOffset: 0.1
   foundationBury: 0.1
@@ -85,13 +87,13 @@ MonoBehaviour:
   ventSteamPrefab: {fileID: 2570943823478510014, guid: b4d70fd2ee466b1478e3cca8a3024296, type: 3}
   ventSteamShare: 0.5
   sideWallMultiplier: 1
-  sideWallTuck: 0.26
+  sideWallTuck: 0.12
   gapBridgeMax: 3
   gapStoreyTolerance: 0.3
   backingMaterial: {fileID: 2100000, guid: 78960c0f94809c54a8e920aef47ed989, type: 2}
-  backingDepth: 3
+  backingDepth: 1
   backingBelow: 1
-  backingClearance: 0.02
+  backingClearance: 0
   maxStoreyWidthMismatch: 0.3
   overlapTolerance: 0.05
   minSegmentLength: 0.1
@@ -113,9 +115,9 @@ MonoBehaviour:
   groundCobbleShare: 0.8
   groundPaintWobble: 0.8
   groundPaintScale: 4
-  groundPaintFade: 1
-  groundPuddleCover: 0.2
-  groundPuddleScale: 5
+  groundPaintFade: 0.68
+  groundPuddleCover: 0.425
+  groundPuddleScale: 3.1
   grassCover: 0
   grassPatch: 3
   grassClusterMin: 2
@@ -178,12 +180,16 @@ MonoBehaviour:
   openWindowTileOverlap: 0.1
   openWindowFloorOffset: 0.06
   openWindowCeilingOffset: -0.06
-  openWindowWallThickness: 0.36
   openWindowPortalSize: {x: 1.2, y: 1.3}
-  moonShaftStreetMaxWidth: 0
-  moonShaftMaxLength: 40
+  openWindowLightColour: {r: 1, g: 0.847, b: 0.541, a: 1}
+  openWindowLightIntensity: 1
+  openWindowLightIndirect: 2
+  openWindowLightBelowCeiling: 0.3
+  openWindowLightRangeShare: 1.674
+  moonShaftStreetMaxWidth: 6
+  moonShaftSampleSpacing: 1
   moonShaftInset: 0.3
-  moonShaftMinEaves: 2
+  moonShaftTopClearance: 100
   soundAlleyMaxWidth: 4.5
   soundStreetMuffle: 0.15
   soundSkyMuffle: 0.3

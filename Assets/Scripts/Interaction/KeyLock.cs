@@ -21,16 +21,16 @@ namespace Interaction
     /// </summary>
     public class KeyLock : MonoBehaviour, IDebugDrawable
     {
-        [Tooltip("The door this lock holds shut, which must have a Keyed lock. Its Key Id says which key fits.")]
+        [Tooltip("The door this lock holds shut, which must have a Keyed lock; its Key Id says which key fits, e.g. a door with Key Id 'red' opens with the red key. Filled from a parent Door when the component is added. Left empty along with Chest, a Chest on a parent object is used; with neither, the lock locks nothing (warned in the Console).")]
         [SerializeField] private Door door;
 
-        [Tooltip("The chest this lock holds shut, for a lock on a chest rather than a door. Left empty along with Door, a Chest on a parent object is used.")]
+        [Tooltip("The chest this lock holds shut, for a lock on a chest rather than a door, e.g. drag the chest body with the Chest component here; it must have a Keyed lock. Ignored when Door is set. Left empty along with Door, a Chest on a parent object is used.")]
         [SerializeField] private Chest chest;
 
-        [Tooltip("How far the lock's face is from this object along its Z, in metres: half the door's thickness plus however far the lock plate stands out. The key sits here once it is in, on whichever face the player is on.")]
+        [Tooltip("How far the lock's face is from this object along its Z, in metres: half the door's thickness plus however far the lock plate stands out. The key sits here once it is in, on whichever face the player is on. E.g. 0.031 = a 5cm-thick door (0.025) with a plate standing 6mm proud. Higher = the key sits further out from the door; lower = sunk into it.")]
         [SerializeField] private float faceOffset = 0.031f;
 
-        [Tooltip("The sound of the lock opening, played from the lock so guards hear it too. Optional: empty is silent.")]
+        [Tooltip("The sound of the lock opening as the key turns, played from the lock so guards hear it too, e.g. a lock-click SoundCue. Optional: left empty, unlocking is silent and makes no noise.")]
         [SerializeField] private SoundCue unlockCue;
 
         // The radius the gizmo draws the lock's face at, in metres.

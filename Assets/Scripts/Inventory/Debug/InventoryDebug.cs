@@ -13,6 +13,7 @@ namespace Inventory
     /// </summary>
     public class InventoryDebug : MonoBehaviour
     {
+        [Tooltip("The PlayerInventory whose changes are logged to the Console, e.g. the one on this Player root (filled in automatically when the component is added). Left empty, nothing is logged.")]
         [SerializeField] private PlayerInventory playerInventory;
 
         /// <summary>

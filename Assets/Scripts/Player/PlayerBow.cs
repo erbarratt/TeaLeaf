@@ -51,27 +51,35 @@ namespace Player
     [RequireComponent(typeof(PlayerArrows))]
     public class PlayerBow : MonoBehaviour
     {
+        [Tooltip("The PlayerInputXR on the Player root: grip, trigger and the arrow-kind button are read through it. Empty finds it on a parent at load.")]
         [SerializeField] private PlayerInputXR playerInput;
+        [Tooltip("The PlayerTracking on the Player root: where the controllers are, for nocking and drawing. Empty finds it on a parent at load.")]
         [SerializeField] private PlayerTracking playerTracking;
+        [Tooltip("The PlayerHandVisuals on this Hands object: the hand visuals the bow and arrow sit on, and the snap that holds the drawing hand on the string. Empty finds it on this object at load.")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         // What each hand is busy with. Found (or made) in Awake() if not
         // wired (it's on this same object).
+        [Tooltip("The PlayerHandState on this Hands object, asked before the bow or an arrow takes a hand, e.g. a hand climbing can't draw the bow. Empty finds or adds one at load.")]
         [SerializeField] private PlayerHandState playerHandState;
 
         // Where the shoulders are. Found (or made) in Awake() if not
         // wired (it's on this same object).
+        [Tooltip("The PlayerBodyZones on this Hands object: where each shoulder is, reached over to draw the bow and take an arrow. Empty finds or adds one at load.")]
         [SerializeField] private PlayerBodyZones bodyZones;
 
         // The arrows once shot, and their meshes. On this same object.
+        [Tooltip("The PlayerArrows on this Hands object: the arrows once shot, the arc, and each kind's mesh for the arrow in hand. Empty finds it on this object at load.")]
         [SerializeField] private PlayerArrows playerArrows;
 
         // Optional: a rig with no haptics still shoots.
+        [Tooltip("The PlayerHaptics on the Player root, for the taps and pulses below. Empty finds it on a parent at load; none at all = no vibration, the bow still works.")]
         [SerializeField] private PlayerHaptics playerHaptics;
 
         // Optional: the bow and an arrow let go of burn away, and the bow
         // burns into being when drawn. Found in Awake() if not wired (it's
         // on this same object); none = they vanish and appear at once.
+        [Tooltip("The ToolBurn on this Hands object: the bow burns into being when drawn, and the bow or an arrow let go of burns away where it was. Empty finds it on this object at load; none = they appear and vanish at once.")]
         [SerializeField] private ToolBurn toolBurn;
 
         [Header("The Bow")]
@@ -81,18 +89,18 @@ namespace Player
         // Made once at load; with no model there is no bow. Its handle is
         // to the right of the arrow, as a bow held in the left hand: a
         // right-handed player's.
-        [Tooltip("The bow held in the left hand (right-handed player): handle to the right of the arrow. A mesh with a \"Drawn\" blend shape and String_Rest, Draw_Full and Arrow_Rest children.")]
+        [Tooltip("The bow held in the left hand (right-handed player), e.g. bow_rigged_right_handed.fbx: handle to the right of the arrow. A mesh with a \"Drawn\" blend shape and String_Rest, Draw_Full and Arrow_Rest children; empty, or missing any of these, = no bow (a warning).")]
         [SerializeField] private GameObject bowModel;
 
         // The same bow mirrored, handle to the left of the arrow, for a
         // left-handed player holding it in the right hand.
-        [Tooltip("The bow held in the right hand (left-handed player): Bow Model mirrored, handle to the left of the arrow. Empty uses Bow Model.")]
+        [Tooltip("The bow held in the right hand (left-handed player), e.g. bow_rigged_left_handed.fbx: Bow Model mirrored, handle to the left of the arrow. Empty uses Bow Model with a warning (the arrow then runs through the handle).")]
         [SerializeField] private GameObject leftHandedBowModel;
 
         // How the bow hand holds the bow: the hand's offset from the bow's
         // own origin and axes (its grip), and the fingers. Posed with
-        // TeaLeaf > Modify Prefab > Pose with Hand.
-        [Tooltip("How the bow hand holds the bow (Assets/Data/Hand Poses/BowGrip.asset): each hand's offset from the bow's origin and axes, and the finger pose. Posed with TeaLeaf > Modify Prefab > Pose with Hand. Empty puts the bow's origin on the hand visual's, fingers on their input curl.")]
+        // TeaLeaf > Player > Pose with Hand.
+        [Tooltip("How the bow hand holds the bow (Assets/Data/Hand Poses/BowGrip.asset): each hand's offset from the bow's origin and axes, and the finger pose. Posed with TeaLeaf > Player > Pose with Hand. Empty puts the bow's origin on the hand visual's, fingers on their input curl.")]
         [SerializeField] private HandSnapProfile bowProfile;
 
         [Header("An Arrow In Hand")]
@@ -100,26 +108,29 @@ namespace Player
         // How the drawing hand holds an arrow off the string: the hand's
         // offset from the nock (the arrow's back end, its Z pointing to
         // the tip), and the fingers.
-        [Tooltip("How the drawing hand holds an arrow before it's on the string (Assets/Data/Hand Poses/ArrowHold.asset): each hand's offset from the nock (Z along the arrow to its tip), and the finger pose. Posed with TeaLeaf > Modify Prefab > Pose with Hand.")]
+        [Tooltip("How the drawing hand holds an arrow before it's on the string (Assets/Data/Hand Poses/ArrowHold.asset): each hand's offset from the nock (Z along the arrow to its tip), and the finger pose. Posed with TeaLeaf > Player > Pose with Hand. Empty puts the nock on the hand visual's origin, fingers on their input curl.")]
         [SerializeField] private HandSnapProfile arrowProfile;
 
         // How the drawing hand holds a nocked arrow on the string: the
         // hand's offset (place and turn) from the nock, and the fingers.
         // The hand is held in this pose on the string, whatever its
         // controller's turn.
-        [Tooltip("How the drawing hand holds the string (Assets/Data/Hand Poses/BowString.asset): each hand's offset (place and turn) from the nocked arrow's nock, and the finger pose. The hand is held in this pose on the string, whatever its controller's turn. Posed with TeaLeaf > Modify Prefab > Pose with Hand.")]
+        [Tooltip("How the drawing hand holds the string (Assets/Data/Hand Poses/BowString.asset): each hand's offset (place and turn) from the nocked arrow's nock, and the finger pose. The hand is held in this pose on the string, whatever its controller's turn. Posed with TeaLeaf > Player > Pose with Hand. Empty puts the hand visual's origin on the nock, turned along the arrow.")]
         [SerializeField] private HandSnapProfile stringProfile;
 
         // How far the trigger must be pulled to take an arrow, and how far
         // let out to let go of it (0-1). A gap between, so a trigger held
         // near one point can't take and let go over and over.
+        [Tooltip("How far (0-1) the drawing hand's trigger must be pulled to take an arrow at its shoulder, e.g. 0.6 = a bit over half way. Raise it for a firmer pull; keep it above Release Trigger.")]
         [SerializeField] private float takeTrigger = 0.6f;
+        [Tooltip("How far (0-1) the trigger must be let out to let go of the arrow (shooting it if drawn), e.g. 0.3. Lower = the trigger must come further out; the gap to Take Trigger stops a trigger held near one point taking and letting go over and over.")]
         [SerializeField] private float releaseTrigger = 0.3f;
 
         [Header("Nocking And Drawing")]
 
         // How near the string's middle an arrow's nock must come to be
         // nocked, in metres.
+        [Tooltip("How near the string's middle (String_Rest) an arrow's nock must come to be nocked, in metres, e.g. 0.08 = 8cm. Larger nocks more easily from further off; keep it below Break Distance.")]
         [SerializeField] private float nockRadius = 0.08f;
 
         // How far back from its rest the string can be drawn, in metres:
@@ -127,53 +138,70 @@ namespace Player
         // the string stays on the nock (the model's own full draw,
         // String_Rest to Draw_Full, is 0.5m; much further than that
         // bends the limbs past what the shape was made for).
-        [Tooltip("How far back from rest the string can be drawn (full draw), m. The Drawn blend shape is scaled so the string follows the nock; the model's own Draw_Full is 0.5m back.")]
+        [Tooltip("How far back from rest the string can be drawn for full draw, in metres, e.g. 0.35 = full draw (fastest shot) with the hand 35cm back. Larger needs a longer pull for the same speed; the Drawn blend shape is scaled so the string follows the nock (the model's own Draw_Full is 0.5m back, and much beyond that bends the limbs too far).")]
         [SerializeField] private float maxDrawDistance = 0.5f;
 
         // How far the drawing hand may stray from the line it draws along
         // before the arrow comes off the string, in metres. Larger than
         // nockRadius, so a nocked arrow doesn't come straight off again.
+        [Tooltip("How far the drawing hand may stray from the draw line, below Lock Draw, before the arrow comes off the string (still in the hand, no shot), in metres, e.g. 0.15 = 15cm. Larger keeps it on more easily; keep it above Nock Radius so a nocked arrow doesn't come straight off again.")]
         [SerializeField] private float breakDistance = 0.15f;
 
         // The draw (0-1) from which the arrow stays on the string however
         // far the hand strays from the line: it comes off again only once
         // the string is let back below this.
-        [Tooltip("Draw (0-1) at and beyond which straying more than Break Distance off the line no longer takes the arrow off the string; let the string back below it first.")]
+        [Tooltip("Draw (0-1) from which the drawing hand stays locked on the string however far it strays off the line, e.g. 0.5 = from half draw on; let the string back below it and Break Distance applies again. Lower locks it on sooner; 0 = never comes off the string once nocked.")]
         [SerializeField] private float lockDraw = 0.5f;
 
         // The least draw (0-1) that shoots when the trigger is let go.
         // Less, and the arrow goes back into the inventory.
+        [Tooltip("The least draw (0-1) that shoots when the trigger is let go, e.g. 0.15 = 15% of Max Draw Distance; less and the arrow goes back into the inventory. Also where the arc starts to show. Raise it to make a weak accidental shot less likely.")]
         [SerializeField] private float minShotDraw = 0.15f;
 
         // Seconds the drawing hand takes to snap onto the string.
+        [Tooltip("Seconds the drawing hand takes to blend onto the string when the arrow is nocked, e.g. 0.06. Longer = a softer, slower snap; shorter = snappier.")]
         [SerializeField] private float nockBlendDuration = 0.06f;
 
         [Header("Haptics")]
 
         // A hand arriving where it can draw the bow or take an arrow.
+        [Tooltip("Strength (0-1) of the tap when a hand arrives at its shoulder where it can draw the bow or take an arrow, e.g. 0.15 = a light tap. 0 = none.")]
         [SerializeField] private float reachAmplitude = 0.15f;
+        [Tooltip("Length of the reach tap (see Reach Amplitude), in seconds, e.g. 0.03.")]
         [SerializeField] private float reachDuration = 0.03f;
 
         // The bow drawn, an arrow taken or changed, and a try with no
         // arrows left.
+        [Tooltip("Strength (0-1) of the pulse when the bow is drawn or an arrow taken or changed, e.g. 0.4. 0 = none.")]
         [SerializeField] private float takeAmplitude = 0.4f;
+        [Tooltip("Length of the take pulse (see Take Amplitude), in seconds, e.g. 0.05.")]
         [SerializeField] private float takeDuration = 0.05f;
+        [Tooltip("Strength (0-1) of the faint tap when an arrow is reached for, or the kind changed, with no other arrow to have, e.g. 0.2. 0 = none.")]
         [SerializeField] private float emptyAmplitude = 0.2f;
+        [Tooltip("Length of the no-arrows tap (see Empty Amplitude), in seconds, e.g. 0.03.")]
         [SerializeField] private float emptyDuration = 0.03f;
 
         // The arrow clicking onto the string, felt in both hands.
+        [Tooltip("Strength (0-1) of the click felt in both hands when the arrow goes onto the string, e.g. 0.5. 0 = none.")]
         [SerializeField] private float nockAmplitude = 0.5f;
+        [Tooltip("Length of the nock click (see Nock Amplitude), in seconds, e.g. 0.04.")]
         [SerializeField] private float nockDuration = 0.04f;
 
         // The string creaking as it's drawn: one tick each of this many
         // steps from rest to full draw, stronger the further drawn.
+        [Tooltip("How many creak ticks the drawing hand feels from rest to full draw, one each time the draw passes the next step, e.g. 8 = a tick every eighth of Max Draw Distance. More = finer, busier ticks; 0 counts as 1.")]
         [SerializeField] private int drawSteps = 8;
+        [Tooltip("Strength (0-1) of a creak tick at no draw, rising to Draw Step Max Amplitude at full draw, e.g. 0.05.")]
         [SerializeField] private float drawStepMinAmplitude = 0.05f;
+        [Tooltip("Strength (0-1) of a creak tick at full draw, e.g. 0.3; ticks between are blended from Draw Step Min Amplitude by draw.")]
         [SerializeField] private float drawStepMaxAmplitude = 0.3f;
+        [Tooltip("Length of each creak tick, in seconds, e.g. 0.02.")]
         [SerializeField] private float drawStepDuration = 0.02f;
 
         // A shot, felt in both hands.
+        [Tooltip("Strength (0-1) of the pulse felt in both hands when an arrow is shot, e.g. 0.9 = strong. 0 = none.")]
         [SerializeField] private float shotAmplitude = 0.9f;
+        [Tooltip("Length of the shot pulse (see Shot Amplitude), in seconds, e.g. 0.08.")]
         [SerializeField] private float shotDuration = 0.08f;
 
         // Where the arrow is.

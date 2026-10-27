@@ -50,8 +50,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bde9eb24ea348ce428de8662edc4e801, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LevelGen.OpenWindowInterior
-  widthModules: 1
-  depthModules: 1
+  widthModules: 3
+  depthModules: 2
   built: {fileID: 0}
 --- !u!1 &2252733319041758359
 GameObject:
@@ -70,7 +70,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &7292119062958357558
 Transform:
   m_ObjectHideFlags: 0
@@ -79,8 +79,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2252733319041758359}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 1, z: 0, w: -0.00000004371139}
-  m_LocalPosition: {x: 0.08, y: -0.53, z: 0.341}
+  m_LocalRotation: {x: -0, y: -0.00000008940697, z: -0, w: 1}
+  m_LocalPosition: {x: -0.073, y: -0.5591, z: 0.086}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -123,7 +123,8 @@ MonoBehaviour:
   grabbableFromBothSides: 0
   isMantleable: 1
   mantleEndsCrouched: 1
-  mantlePoint: {x: 0, y: -0.83, z: 0.91}
+  mantlePoint: {x: 0, y: -0.83, z: -0.86}
+  backMantlePoint: {x: 0, y: 0.1, z: 0.2}
   moveHorizontallyToPoint: 1
 --- !u!1 &5409098953948153017
 GameObject:
@@ -151,13 +152,13 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5409098953948153017}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.075, y: -0.53, z: -0.193}
+  m_LocalRotation: {x: -0, y: 1, z: -0, w: -0.00000049173826}
+  m_LocalPosition: {x: 0.081, y: -0.5585, z: 0.075}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4393602336817713579}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
 --- !u!65 &83566584532196941
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -177,8 +178,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 1.613, y: 0.313, z: 0.232}
-  m_Center: {x: 0.078, y: -0.15, z: 0.122}
+  m_Size: {x: 1.613, y: 0.31300002, z: 0.48555386}
+  m_Center: {x: 0.07800001, y: -0.15, z: -0.0047769174}
 --- !u!114 &520372885411820388
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -191,11 +192,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: db902c2e628cdfe4c93a855ad4074de2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Interaction.ClimbableEdge
-  snapProfile: {fileID: 0}
-  grabbableFromBothSides: 0
+  snapProfile: {fileID: 11400000, guid: ddf39a4096efe364b846c7c7d22b8e50, type: 2}
+  grabbableFromBothSides: 1
   isMantleable: 1
   mantleEndsCrouched: 1
-  mantlePoint: {x: 0, y: -0.83, z: 0.91}
+  mantlePoint: {x: 0, y: -0.83, z: -0.86}
+  backMantlePoint: {x: 0, y: -0.83, z: 0.86}
   moveHorizontallyToPoint: 1
 --- !u!1001 &107903574598329493
 PrefabInstance:
@@ -208,6 +210,14 @@ PrefabInstance:
     - target: {fileID: 74387413771947531, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
       propertyPath: m_Name
       value: TL_Window_D_Open (1)
+      objectReference: {fileID: 0}
+    - target: {fileID: 263375527962592423, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2182713942463391546, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
+      propertyPath: m_Enabled
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8792159524713595761, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
       propertyPath: m_LocalScale.x
@@ -261,7 +271,32 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    - target: {fileID: 9099630945407172277, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
+      propertyPath: m_Size.x
+      value: 1.7256008
+      objectReference: {fileID: 0}
+    - target: {fileID: 9099630945407172277, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
+      propertyPath: m_Size.y
+      value: 0.33611482
+      objectReference: {fileID: 0}
+    - target: {fileID: 9099630945407172277, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
+      propertyPath: m_Size.z
+      value: 0.33408013
+      objectReference: {fileID: 0}
+    - target: {fileID: 9099630945407172277, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
+      propertyPath: m_Center.x
+      value: 0.0051330402
+      objectReference: {fileID: 0}
+    - target: {fileID: 9099630945407172277, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
+      propertyPath: m_Center.y
+      value: -0.7697542
+      objectReference: {fileID: 0}
+    - target: {fileID: 9099630945407172277, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
+      propertyPath: m_Center.z
+      value: -0.006299172
+      objectReference: {fileID: 0}
+    m_RemovedComponents:
+    - {fileID: 2562810350620916683, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
@@ -282,6 +317,14 @@ PrefabInstance:
     - target: {fileID: 74387413771947531, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
       propertyPath: m_Name
       value: TL_Window_D_Open
+      objectReference: {fileID: 0}
+    - target: {fileID: 263375527962592423, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2182713942463391546, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
+      propertyPath: m_Enabled
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8792159524713595761, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
       propertyPath: m_LocalScale.x
@@ -335,7 +378,32 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    - target: {fileID: 9099630945407172277, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
+      propertyPath: m_Size.x
+      value: 1.717742
+      objectReference: {fileID: 0}
+    - target: {fileID: 9099630945407172277, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
+      propertyPath: m_Size.y
+      value: 0.3379984
+      objectReference: {fileID: 0}
+    - target: {fileID: 9099630945407172277, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
+      propertyPath: m_Size.z
+      value: 0.33326516
+      objectReference: {fileID: 0}
+    - target: {fileID: 9099630945407172277, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
+      propertyPath: m_Center.x
+      value: 0.004346914
+      objectReference: {fileID: 0}
+    - target: {fileID: 9099630945407172277, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
+      propertyPath: m_Center.y
+      value: -0.7688148
+      objectReference: {fileID: 0}
+    - target: {fileID: 9099630945407172277, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
+      propertyPath: m_Center.z
+      value: -0.0067066103
+      objectReference: {fileID: 0}
+    m_RemovedComponents:
+    - {fileID: 2562810350620916683, guid: 3d2ef5baf9d159f4fbd7ff1fff363011, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
@@ -353,6 +421,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4393602336817713579}
     m_Modifications:
+    - target: {fileID: 769354274391096382, guid: 54020ed6a9537d04e94651bd2956de53, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2871749875621201894, guid: 54020ed6a9537d04e94651bd2956de53, type: 3}
       propertyPath: m_Name
       value: TL_PlasterWalls_A_WindowBase_Hole
@@ -401,7 +473,8 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 2871749875621201895, guid: 54020ed6a9537d04e94651bd2956de53, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
@@ -419,6 +492,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 4393602336817713579}
     m_Modifications:
+    - target: {fileID: 769354274391096382, guid: 54020ed6a9537d04e94651bd2956de53, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 2871749875621201894, guid: 54020ed6a9537d04e94651bd2956de53, type: 3}
       propertyPath: m_Name
       value: TL_PlasterWalls_A_WindowBase_Hole (1)
@@ -467,7 +544,8 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 2871749875621201895, guid: 54020ed6a9537d04e94651bd2956de53, type: 3}
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []

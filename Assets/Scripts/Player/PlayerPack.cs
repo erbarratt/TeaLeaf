@@ -67,26 +67,35 @@ namespace Player
             public bool wasAtChest;
         }
 
+        [Tooltip("The input system on the Player root: a grip press at the chest brings the pack out, holding grip keeps it out, e.g. drag the Player root's PlayerInputXR here (filled in when the component is added).")]
         [SerializeField] private PlayerInputXR playerInput;
+        [Tooltip("The tracking on the Player root: the head, which the loot-worth coins face, e.g. drag the Player root's PlayerTracking here (filled in when the component is added).")]
         [SerializeField] private PlayerTracking playerTracking;
+        [Tooltip("The prop carrying on Hands: loot let go of at the pack goes in, and loot taken out is put in the hand through it, e.g. drag the Hands object's PlayerHandHolding here (filled in when the component is added).")]
         [SerializeField] private PlayerHandHolding playerHandHolding;
+        [Tooltip("The hand rays on Hands: a hand whose ray is on a pack space takes out what is in it, e.g. drag the Hands object's PlayerHandInteraction here (filled in when the component is added).")]
         [SerializeField] private PlayerHandInteraction playerHandInteraction;
+        [Tooltip("The hand visuals on Hands: the pack rides on the visual of the hand that brought it out, e.g. drag the Hands object's PlayerHandVisuals here (filled in when the component is added).")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         // What each hand is busy with: a hand climbing, carrying or on a
         // door can't bring the pack out. Found (or made) in Awake() if not
         // wired (it's on this same object).
+        [Tooltip("What each hand is busy with, asked before a hand brings the pack out, e.g. a hand carrying a prop can't. Found (or added) on this object if empty.")]
         [SerializeField] private PlayerHandState playerHandState;
 
         // Where the chest is, which the pack is reached for. Found (or
         // made) in Awake() if not wired (it's on this same object).
+        [Tooltip("Where the chest is, which a hand reaches for (palm towards it) to bring the pack out, e.g. the Hands object's PlayerBodyZones. Found (or added) on this object if empty.")]
         [SerializeField] private PlayerBodyZones bodyZones;
 
         // Optional: a rig with no haptics still uses the pack.
+        [Tooltip("The haptics on the Player root, for the taps and pulses below, e.g. the tap when a free hand reaches the chest. Found on the Player root if empty; with none, the pack works without vibration.")]
         [SerializeField] private PlayerHaptics playerHaptics;
 
         // The pack in the scene. Optional: found in Awake() if not wired,
         // and made with its default settings if there is none.
+        [Tooltip("The pack (Inventory.Pack) the player stores loot and keys in, e.g. the Pack saved as a child of the Player root. Empty, the first in the scene is used, or one is made with default settings if there is none.")]
         [SerializeField] private Pack pack;
 
         [Header("Where The Pack Rides")]
@@ -94,7 +103,7 @@ namespace Player
         // How a hand holds the pack by the chest's handle: each hand's
         // offset from the pack's own origin and axes (the middle of the
         // spaces, Z away from the player), and the fingers.
-        [Tooltip("How a hand holds the pack by its handle (Assets/Data/Hand Poses/PackHold.asset): each hand's offset from the pack's origin and axes (middle of the spaces, X right, Y up, Z away from the player), and the finger pose. Posed with TeaLeaf > Modify Prefab > Pose with Hand. Empty puts the pack's origin on the hand visual's.")]
+        [Tooltip("How a hand holds the pack by its handle (Assets/Data/Hand Poses/PackHold.asset): each hand's offset from the pack's origin and axes (middle of the spaces, X right, Y up, Z away from the player), and the finger pose. Posed with TeaLeaf > Player > Pose with Hand. e.g. with PackHold, the hand grips the chest's end handle with the spaces facing the player. Empty puts the pack's origin on the hand visual's.")]
         [SerializeField] private HandSnapProfile packProfile;
 
         [Header("Loot Worth Coins")]
@@ -102,35 +111,52 @@ namespace Player
         // Each coin's radius, the distance between coins' middles, and
         // how far above the loot (beyond its own size) they hover, in
         // metres.
+        [Tooltip("Radius of each worth coin shown over carried loot, in metres, e.g. 0.012 = a 2.4cm coin. Higher makes the coins bigger, lower smaller.")]
         [SerializeField] private float coinRadius = 0.012f;
+        [Tooltip("Distance between neighbouring worth coins' middles, in metres, e.g. 0.03 = three coins span about 8cm. Higher spreads them out, lower bunches them (below twice Coin Radius they overlap).")]
         [SerializeField] private float coinSpacing = 0.03f;
+        [Tooltip("How far above carried loot (beyond its own hold radius) the worth coins hover, in metres, e.g. 0.05 = 5cm over the top of the loot. Higher floats them further up, lower closer.")]
         [SerializeField] private float coinHeight = 0.05f;
+        [Tooltip("Colour of the worth coins (drawn on top of everything), e.g. gold. Its alpha sets how see-through they are.")]
         [SerializeField] private Color coinColor = new(1f, 0.8f, 0.2f, 1f);
 
         [Header("Feedback")]
 
         // The sound of something going into the pack. Optional. Quiet,
         // and it barely carries to guards.
+        [Tooltip("The sound of loot or a key going into the pack, e.g. a soft rustle cue. Empty, storing is silent and makes no noise.")]
         [SerializeField] private SoundCue storeCue;
+        [Tooltip("Multiplies the store cue's volume (what the player hears), e.g. 0.5 = half the cue's own volume. Higher is louder, lower quieter; 0 silent.")]
         [SerializeField] private float storeVolume = 0.5f;
+        [Tooltip("Multiplies the store cue's noise radius (what guards hear), e.g. 0.2 = a fifth of the cue's radius, so it barely carries. Higher lets guards hear it from further, 0 makes it no noise.")]
         [SerializeField] private float storeNoiseScale = 0.2f;
 
         // A free hand reaching the chest, and the pack coming out.
+        [Tooltip("Strength (0-1) of the tap a free hand feels on reaching the chest, where the pack can be brought out, e.g. 0.15 = a light tick. Higher is stronger; 0 = no tap.")]
         [SerializeField] private float reachAmplitude = 0.15f;
+        [Tooltip("Length of the tap on reaching the chest, in seconds, e.g. 0.03 = a brief tick. Higher is longer; 0 = no tap.")]
         [SerializeField] private float reachDuration = 0.03f;
+        [Tooltip("Strength (0-1) of the pulse as the pack comes out into the hand, e.g. 0.5 = a firm bump. Higher is stronger; 0 = none.")]
         [SerializeField] private float summonAmplitude = 0.5f;
+        [Tooltip("Length of the pulse as the pack comes out, in seconds, e.g. 0.06 = a short bump. Higher is longer; 0 = none.")]
         [SerializeField] private float summonDuration = 0.06f;
 
         // Carried loot lighting up a space in the pack.
+        [Tooltip("Strength (0-1) of the tap as carried loot lights up a new space in the pack, e.g. 0.15 = a light tick per space. Higher is stronger; 0 = no tap.")]
         [SerializeField] private float hoverAmplitude = 0.15f;
+        [Tooltip("Length of the tap as carried loot lights up a new space, in seconds, e.g. 0.03 = a brief tick. Higher is longer; 0 = no tap.")]
         [SerializeField] private float hoverDuration = 0.03f;
 
         // Loot going into the pack.
+        [Tooltip("Strength (0-1) of the pulse as loot or a key goes into the pack, e.g. 0.6 = a clear thud. Higher is stronger; 0 = none.")]
         [SerializeField] private float storeAmplitude = 0.6f;
+        [Tooltip("Length of the pulse as loot or a key goes into the pack, in seconds, e.g. 0.08 = a short thud. Higher is longer; 0 = none.")]
         [SerializeField] private float storeDuration = 0.08f;
 
         // Loot the pack had no room for: longer and rougher.
+        [Tooltip("Strength (0-1) of the buzz when the pack has no room for the loot let go of (it drops), e.g. 0.9 = a strong refusal. Higher is stronger; 0 = none.")]
         [SerializeField] private float refuseAmplitude = 0.9f;
+        [Tooltip("Length of the no-room buzz, in seconds, e.g. 0.25 = a long rough buzz, unlike the short store thud. Higher is longer; 0 = none.")]
         [SerializeField] private float refuseDuration = 0.25f;
 
         // How many straight pieces a coin's round edge is made of.

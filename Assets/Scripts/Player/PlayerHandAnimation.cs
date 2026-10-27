@@ -27,26 +27,35 @@ namespace Player
     /// </summary>
     public class PlayerHandAnimation : MonoBehaviour
     {
+        [Tooltip("The PlayerInputXR on the Player root: each hand's trigger curls its index finger and grip the other three, e.g. grip 0.5 = half a fist. Must be set; it isn't looked up.")]
         [SerializeField] private PlayerInputXR playerInput;
+        [Tooltip("The PlayerHandVisuals on this Hands object: each hand's snap, whose weight blends in the snapped thing's finger pose (e.g. fingers closing round a ledge as the hand lands). Must be set; it isn't looked up.")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         // Read to keep a carried prop's finger pose on while it's in the
         // hand. Optional: found in Awake() if not wired (it's on this same
         // object).
+        [Tooltip("The PlayerHandHolding on this Hands object: keeps a carried prop's finger pose on while it's in the hand (e.g. round a bottle's neck). Empty finds it on this object at load; none = fingers open to their input curl once the pick-up snap lets go.")]
         [SerializeField] private PlayerHandHolding playerHandHolding;
 
         // Read for the finger pose of the bow, an arrow, the pack, the
         // blackjack or the lockpicks in a hand. Optional: found in Awake()
         // if not wired (on this same object).
+        [Tooltip("The PlayerBow on this Hands object: the finger pose of a hand holding the bow or an arrow. Empty finds it on this object at load; none = no bow poses.")]
         [SerializeField] private PlayerBow playerBow;
+        [Tooltip("The PlayerPack on this Hands object: the finger pose of the hand holding the pack by its handle. Empty finds it on this object at load; none = no pack pose.")]
         [SerializeField] private PlayerPack playerPack;
+        [Tooltip("The PlayerBlackjack on this Hands object: the finger pose of the hand holding the blackjack. Empty finds it on this object at load; none = no blackjack pose.")]
         [SerializeField] private PlayerBlackjack playerBlackjack;
+        [Tooltip("The PlayerLockpicking on this Hands object: the finger pose of the hand carrying the lockpicks. Empty finds it on this object at load; none = no carrying pose.")]
         [SerializeField] private PlayerLockpicking playerLockpicking;
 
         [Header("Left Hand")]
+        [Tooltip("The Animator on the Left Hand Visual (Left Hand Visual.controller, with TriggerCurl and GripCurl parameters); its bones are also posed for snaps. Must be set.")]
         [SerializeField] private Animator leftHandAnimator;
 
         [Header("Right Hand")]
+        [Tooltip("The Animator on the Right Hand Visual (the same controller as the left, mirrored visual); its bones are also posed for snaps. Must be set.")]
         [SerializeField] private Animator rightHandAnimator;
 
         // Cached parameter hashes rather than calling Animator.SetFloat with

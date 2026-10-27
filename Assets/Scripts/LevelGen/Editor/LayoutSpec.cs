@@ -23,15 +23,20 @@ namespace LevelGen
 
         internal const string LayoutsFolder = PrefabCatalogueScanner.DataFolder + "/Layouts";
 
+        [Tooltip("The spec file's format number, e.g. 2 (the current format); a spec in any other format is refused.")]
         public int format;
         // Every random choice the generator makes comes from one
         // System.Random made from this, in a fixed order.
+        [Tooltip("The seed every random choice the generator makes comes from, in a fixed order, so the same spec and catalogue always build the same level, e.g. 1234. Change it for a different roll of the same layout.")]
         public int seed;
         // The sector the area is built in: its pieces go under
         // Environment/Sectors/<sector>/Geometry/Generated, which a
         // regeneration replaces whole.
+        [Tooltip("The sector the area is built in: its pieces go under Environment/Sectors/<sector>/Geometry/Generated, which a regeneration replaces whole, e.g. \"Example Street\". Empty is an error.")]
         public string sector;
+        [Tooltip("The area's streets: one entry is one street, a polyline along its middle with its width, ground style and the frontages lining it.")]
         public List<StreetSpec> streets = new();
+        [Tooltip("The area's lots: one entry is one whole building inside a loop of streets, seen from every side, e.g. a guild hall in the middle of a block. Empty = facades only.")]
         public List<LotSpec> lots = new();
 
         /// <summary>
@@ -312,14 +317,19 @@ namespace LevelGen
     [Serializable]
     public class StreetSpec
     {
+        [Tooltip("The street's name, unique in the spec, used in the generated objects' and log's names, e.g. \"high-street\". Missing or repeated is an error.")]
         public string id;
         // The style its ground (or plank decking) comes from.
+        [Tooltip("The style its ground comes from: a style without floor pieces gets the generated ground mesh, one with floor tiles is decked, e.g. \"cobbles\" for a painted cobbled street, \"wood-floor\" for plank decking.")]
         public string style;
         // Width from edge to edge, in metres; 0 uses GeneratorSettings.StreetWidth.
         // Each segment is varied from it (LayoutSpec.ResolveWidths).
+        [Tooltip("The street's width from edge to edge, in metres, each segment varied from it at random (Street Width Variance), e.g. 4 for an alley. 0 uses the settings' Street Width; negative is an error.")]
         public float width;
         // The middle line, each point with its ground height in y.
+        [Tooltip("The street's middle line in world metres: one entry is one point, its ground height in y, e.g. (10, 0, 25); at least two. Streets meet only at shared points; a height change between points climbs by slope if gentle enough, else steps.")]
         public List<Vector3> points = new();
+        [Tooltip("The sides of the street lined with buildings: one entry is one frontage, a run of facades on one side between two of its points.")]
         public List<FrontageSpec> frontages = new();
 
         // Each segment's width once resolved (segment i runs from point i to
@@ -357,10 +367,14 @@ namespace LevelGen
     public class FrontageSpec
     {
         // "left" or "right", looking along the street from its first point.
+        [Tooltip("Which side of the street the frontage lines, \"left\" or \"right\", looking along the street from its first point, e.g. \"left\". Anything else is an error.")]
         public string side;
         // The point indices the frontage runs between (from < to).
+        [Tooltip("The index of the street point the frontage starts at, from 0 and less than To, e.g. 0 = the street's first point. Buildings are laid from here.")]
         public int from;
+        [Tooltip("The index of the street point the frontage ends at, more than From, e.g. 3 = runs past the bends at points 1 and 2 to point 3.")]
         public int to;
+        [Tooltip("The buildings along the frontage, in order from From: one entry is one facade building, e.g. three entries for three houses side by side. Empty is an error.")]
         public List<BuildingSpec> buildings = new();
     }
 
@@ -371,13 +385,16 @@ namespace LevelGen
     public class BuildingSpec
     {
         // Modules along the street.
+        [Tooltip("The building's width in wall modules along the street, e.g. 3 = about 9m of plaster facade. Less than 1 is an error.")]
         public int widthModules;
         // Styles from the ground storey up; the last repeats for every storey
         // above the list, and storeys past the count rolled are dropped
         // (the count comes from GeneratorSettings, StoreyPlan).
+        [Tooltip("The building's storey styles from the ground up: one entry is one storey's style; the last repeats above the list and storeys past the rolled count are dropped, e.g. [\"plaster-masonry\", \"plaster\"] = a masonry ground floor under plaster storeys.")]
         public List<string> storeys = new();
         // Which module along the front holds the door, counted from the left
         // as seen from the street, from 0; -1 for none.
+        [Tooltip("Which module along the front holds the building's door, counted from the left as seen from the street, from 0, e.g. 1 = the second module. -1 = no set door (random doors may still come).")]
         public int doorModule = -1;
     }
 
@@ -390,20 +407,27 @@ namespace LevelGen
     [Serializable]
     public class LotSpec
     {
+        [Tooltip("The lot's name, unique in the spec, used in the generated objects' names, e.g. \"guild-hall\". Missing or repeated is an error.")]
         public string id;
         // The middle of the footprint, at the height of the ground storey's floor.
+        [Tooltip("The middle of the lot's footprint in world metres, at the height of its ground storey's floor (street level plus Ground Storey Height), e.g. (40, 0, 60). With no outline or modules, the block round this point becomes the footprint.")]
         public Vector3 origin;
         // The way the front faces, in degrees clockwise from +Z.
+        [Tooltip("The way the lot's front faces, in degrees clockwise from +Z (north), e.g. 90 = front to the east. With a block footprint the side facing nearest this is the front; unused with an outline.")]
         public float yaw;
         // Modules along the front, and from the front to the back.
+        [Tooltip("The lot's footprint in wall modules along its front, e.g. 4. With Depth Modules it makes a rectangle round Origin; 0 with Depth Modules 0 and no outline = take the block its streets enclose.")]
         public int widthModules;
+        [Tooltip("The lot's footprint in wall modules from front to back, e.g. 3. With Width Modules it makes a rectangle round Origin; 0 with Width Modules 0 and no outline = take the block its streets enclose.")]
         public int depthModules;
         // Styles from the ground storey up; the last repeats for every storey
         // above the list, and storeys past the count rolled are dropped
         // (the count comes from GeneratorSettings, StoreyPlan).
+        [Tooltip("The lot building's storey styles from the ground up: one entry is one storey's style; the last repeats above the list and storeys past the count (matched to its neighbours) are dropped, e.g. [\"masonry-cellar\", \"plaster\"].")]
         public List<string> storeys = new();
         // Which module along the front holds the door, counted from the left
         // as seen from in front, from 0; -1 for none.
+        [Tooltip("Which module along the lot's front holds its door, counted from the left as seen from in front, from 0, e.g. 2 = the third module. -1 = no set door.")]
         public int doorModule = -1;
         // A footprint of any shape: its corners (world x and z; y unused),
         // three or more, in order round it, convex; the side from the first
@@ -412,6 +436,7 @@ namespace LevelGen
         // With neither an outline nor modules, the lot takes the block its
         // streets enclose round origin, its front the side facing nearest
         // yaw (LayoutSpec.ResolveLots).
+        [Tooltip("A footprint of any convex shape: one entry is one corner (world x and z; y unused), three or more in order round it, the side from the first corner to the second being the front, e.g. five corners for a five-sided hall. When given, Width Modules, Depth Modules and Yaw are not used; empty = a rectangle or the enclosed block.")]
         public List<Vector3> outline = new();
         // Whether the outline was found from the streets round the lot
         // (LayoutSpec.ResolveLots), not given in the spec.

@@ -22,10 +22,12 @@ namespace Core
     {
         // The opening's width and height, in metres (before the object's
         // scale).
+        [Tooltip("The opening's width (local X) and height (local Y), in metres before the object's scale, e.g. (1, 2.1) = an ordinary doorway. A sound coming through is heard from where its line crosses this rectangle, so match it to the real opening.")]
         [SerializeField] private Vector2 size = new(1f, 2.1f);
 
         // How far out from each face to look for the room on that side, in
         // metres. More than half the wall's thickness.
+        [Tooltip("How far out from each face (along local Z) to look for the sound room on that side, in metres, e.g. 0.25 = fine for walls up to 0.5m thick. Must be more than half the wall's thickness; too far may reach past a small room. Yellow gizmo = both sides found the same room.")]
         [SerializeField] private float probeDistance = 0.25f;
 
         // How much sound is muffled just by coming through the opening while
@@ -33,17 +35,21 @@ namespace Core
         // sound from three rooms away is duller than one from next door.
         // Not applied to a sound heard in a straight line through the
         // opening from the room next door.
+        [Tooltip("How much sound is muffled (high end rolled off, a little quieter) just by coming through the opening while open, 0-1, e.g. 0.3 = mildly duller. It adds up per portal, so a sound three rooms away is duller than one next door; a sound heard straight through from the next room stays clear. 0 = no muffling.")]
         [SerializeField, Range(0f, 1f)] private float openMuffle = 0.3f;
 
         [Header("Closed (a shut door, or a thin wall)")]
+        [Tooltip("On: the portal starts open (a doorway, or an open door). Off: it starts closed (a shut door, which opens it when it opens; or, never opened, a thin wall or window that leaks a little sound).")]
         [SerializeField] private bool startsOpen = true;
 
         // How much the sound is muffled passing through while closed: 0 =
         // not at all, 1 = fully.
+        [Tooltip("How much sound is muffled passing through while closed, 0-1, e.g. 0.6 = clearly dull behind a shut door. Higher = more muffled; 1 = fully.")]
         [SerializeField, Range(0f, 1f)] private float closedMuffle = 0.6f;
 
         // Passing through while closed counts as this many extra metres
         // travelled, so the sound is quieter and reaches less far.
+        [Tooltip("Passing through while closed counts as this many extra metres travelled, for player and guards alike, e.g. 4 = a sound 6m beyond a shut door is as quiet as one 10m away. Higher = a closed door blocks more; 0 = only muffles.")]
         [SerializeField] private float closedExtraDistance = 4f;
 
         // Every enabled portal in the scene (self-registering, like the

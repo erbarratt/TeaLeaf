@@ -1,0 +1,28 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 04ff625d5778d754bbf6d310c617c42a, type: 3}
+  m_Name: Footstep_Stone_Player
+  m_EditorClassIdentifier: Assembly-CSharp::Core.SoundCue
+  clips:
+  - {fileID: 8300000, guid: 26d948ec8077ae5459ef2fac0c81c4a3, type: 3}
+  - {fileID: 8300000, guid: dbc5ae25c5bb57a4c8cb5a51d82625d5, type: 3}
+  - {fileID: 8300000, guid: 2657d9f12e7f4ca4089e5f4445a6021b, type: 3}
+  - {fileID: 8300000, guid: a2a3ce6fbc1d31f4381ea4c67b1a98d8, type: 3}
+  - {fileID: 8300000, guid: d9f17944cb41ba8469af303c98d9736d, type: 3}
+  - {fileID: 8300000, guid: ea63dda2919c94046bb8b47cea9d8ed8, type: 3}
+  - {fileID: 8300000, guid: a56b486e16ec80a4683df462e4ff5e01, type: 3}
+  - {fileID: 8300000, guid: eaa044cf61eeea14fa9ea85853b2399d, type: 3}
+  volume: 0.8
+  pitchVariation: 0.05
+  audibleRange: 35
+  noiseType: 0
+  noiseRadius: 6

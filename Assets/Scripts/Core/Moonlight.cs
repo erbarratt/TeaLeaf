@@ -19,11 +19,13 @@ namespace Core
     public class Moonlight : MonoBehaviour
     {
         // How bright moonlight is, where 1 is standing next to a torch.
+        [Tooltip("Gameplay brightness of moonlight (0-1), where 1 = standing next to a torch, e.g. 0.4 = a player standing in moonlight is fairly visible, crouched less so. Higher makes moonlit ground more dangerous; 0 makes it as safe as shadow.")]
         [SerializeField, Range(0f, 1f)] private float level = 0.4f;
 
         // How far towards the moon to look for something in the way, in
         // metres. Long enough to clear the tallest building from anywhere
         // in the level.
+        [Tooltip("How far the ray towards the moon looks for something in the way, in metres, e.g. 200 = clears the tallest building from anywhere in the level. Too low and points under a distant roof read as moonlit; higher costs a little more per ray.")]
         [SerializeField] private float maxDistance = 200f;
 
         // The least light any baked surface receives, so deep shadow keeps
@@ -32,6 +34,7 @@ namespace Core
         // to the lightmaps and light probes after every bake by the editor's
         // ShadowFloor, which reads it from here; the rendered look only, the
         // gameplay light above is unaffected.
+        [Tooltip("The least light any baked surface or light probe gets (linear, before the surface's colour), e.g. (0.045, 0.05, 0.06) = deep shadow stays a faint moon blue-grey instead of black. Applied by Apply Shadow Floor after every bake; brighter lifts the darkest shade, black turns it off. Rendered look only, not gameplay light.")]
         [SerializeField, ColorUsage(false, true)] private Color shadowFloor = new Color(0.045f, 0.05f, 0.06f, 1f);
 
         /// The scene's moon, or null if there isn't one (then nothing is

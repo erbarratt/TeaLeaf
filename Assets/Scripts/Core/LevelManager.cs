@@ -32,12 +32,15 @@ namespace Core
         // The Player root (its position is the player's feet) - checked
         // against the exit zones. A plain Transform, so Core doesn't need to
         // know anything about the Player namespace.
+        [Tooltip("The Player root (its position is the player's feet), checked against the exit zones, e.g. drag the Player object here. Empty = the player can never reach an exit.")]
         [SerializeField] private Transform player;
 
         // How long the fade to black takes after being caught, in seconds.
+        [Tooltip("How long the fade to black takes after being caught before the level restarts, in seconds, e.g. 1 = a quick cut. Higher = a slower fade.")]
         [SerializeField] private float caughtFadeDuration = 1f;
 
         // How long the fade to black takes after winning, in seconds.
+        [Tooltip("How long the fade to black takes after escaping with the objective before the level restarts, in seconds, e.g. 2 = an unhurried fade out. Higher = a slower fade.")]
         [SerializeField] private float wonFadeDuration = 2f;
 
         [Header("Development")]
@@ -45,6 +48,7 @@ namespace Core
         // headset: WASD walks, the mouse looks. Movement only - nothing is
         // grabbed. Read once at start by PcPlay (on the Player root), which
         // does the switching; this is only the switch. Off for a build.
+        [Tooltip("On: Play Mode at the desk with no headset - WASD walks, the mouse looks, Space jumps, C crouches, Left Shift toggles sprint; movement only, nothing is grabbed (PcPlay on the Player root does the switching, read once at start). Off: normal VR play. Keep off for a build.")]
         [SerializeField] private bool pcPlay;
 
         /// The scene's level manager, so other systems (guards, loot, exit

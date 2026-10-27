@@ -73,19 +73,26 @@ namespace Player
             public Quaternion grabRotation;
         }
 
+        [Tooltip("The input system on the Player root: each hand's grip takes and holds the keyring and the key, e.g. drag the Player root's PlayerInputXR here (filled in when the component is added).")]
         [SerializeField] private PlayerInputXR playerInput;
+        [Tooltip("The tracking on the Player root: the controllers turn the key and the head decides when the player has walked away, e.g. drag the Player root's PlayerTracking here (filled in when the component is added).")]
         [SerializeField] private PlayerTracking playerTracking;
+        [Tooltip("The hand rays on Hands: a hand whose ray is on the keyring's space in the pack takes it, e.g. drag the Hands object's PlayerHandInteraction here (filled in when the component is added).")]
         [SerializeField] private PlayerHandInteraction playerHandInteraction;
+        [Tooltip("The hand visuals on Hands: the carried keyring rides on a visual, and a hand on the key has its visual snapped onto it, e.g. drag the Hands object's PlayerHandVisuals here (filled in when the component is added).")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
+        [Tooltip("The pack on Hands, which holds the keyring, e.g. drag the Hands object's PlayerPack here. Found on this object if empty; with no PlayerPack at all keys can't be used and this component switches itself off.")]
         [SerializeField] private PlayerPack playerPack;
 
         // What each hand is busy with: a hand climbing, carrying a prop,
         // on a door handle or using the lockpicks can't take the keyring
         // or the key. Found (or made) in Awake() if not wired (it's on
         // this same object).
+        [Tooltip("What each hand is busy with, asked before a hand takes the keyring or the key, e.g. a hand on a ledge can't take the key. Found (or added) on this object if empty.")]
         [SerializeField] private PlayerHandState playerHandState;
 
         // Optional: a rig with no haptics still uses keys.
+        [Tooltip("The haptics on the Player root, for the taps and buzzes below, e.g. the buzz when the ring has no key for a lock. Found on the Player root if empty; with none, keys work without vibration.")]
         [SerializeField] private PlayerHaptics playerHaptics;
 
         [Header("Carrying The Keyring")]
@@ -95,55 +102,73 @@ namespace Player
         // side is +Z), and which way it's turned. The right hand visual
         // is the left one mirrored, so the same numbers put it at the
         // mirror-image place in either hand.
+        [Tooltip("Where the carried keyring sits in the hand, in metres in the hand visual's own space (fingers along -Y, thumb side +Z); the same numbers mirror for the right hand. e.g. (0.02, -0.13, 0.03) = 13cm down the fingers from the wrist. Untuned.")]
         [SerializeField] private Vector3 inHandPosition = new(0.02f, -0.13f, 0.03f);
+        [Tooltip("Which way the carried keyring is turned in the hand, as Euler angles in degrees in the hand visual's space, e.g. (90, 0, 0) tips it a quarter turn about the visual's X. Untuned.")]
         [SerializeField] private Vector3 inHandRotation = new(90f, 0f, 0f);
 
         [Header("Locks")]
 
         // The carried keyring goes into a lock from within this many
         // metres of it.
+        [Tooltip("How close the carried keyring must come to a keyed lock to go into it, in metres, e.g. 0.15 = within 15cm of the keyhole it snaps in. Higher goes in from further away, lower needs a closer aim.")]
         [SerializeField] private float insertDistance = 0.15f;
 
         // Further than this from the lock (metres, measured level from
         // the head), the keyring goes back to the pack.
+        [Tooltip("How far the head may go from the lock, measured level, before the keyring leaves the lock and goes back to the pack, in metres, e.g. 1.5 = stepping back two paces sends it home. Higher lets the player wander further, lower recalls it sooner.")]
         [SerializeField] private float leaveDistance = 1.5f;
 
         [Header("Turning The Key")]
 
         // How far the key has to be turned to unlock, in degrees.
+        [Tooltip("How far the wrist must turn the key to unlock, in degrees, e.g. 90 = a quarter turn. Higher needs a bigger twist, lower a smaller one.")]
         [SerializeField] private float unlockTurn = 90f;
 
         // A hand takes the key from within this many metres of it, and
         // is let go when the real hand is further than breakDistance.
+        [Tooltip("How close a hand must reach to the key in a lock to take it with grip, in metres, e.g. 0.1 = within 10cm. Higher takes it from further off, lower needs the hand right on it.")]
         [SerializeField] private float keyReach = 0.1f;
+        [Tooltip("How far the real controller may move from the key's grip point before the hand is forced off it, in metres, e.g. 0.3 = pulling the hand 30cm away lets go (grip again to retake). Higher holds on longer, lower lets go sooner.")]
         [SerializeField] private float breakDistance = 0.3f;
 
         // How far out from the lock's face the hand grips the key, in
         // metres, and the hand snap profile for it. With no profile the
         // hand sits exactly on the grip frame.
+        [Tooltip("How far out from the lock's face the hand grips the key, in metres, e.g. 0.04 = the grip point is 4cm in front of the face. Higher holds it further out, lower closer to the door.")]
         [SerializeField] private float gripStandOff = 0.04f;
+        [Tooltip("The hand snap profile (offset and finger pose) for a hand holding the key, e.g. the door handle's profile as a stand-in. Empty, the hand sits exactly on the grip frame with no finger pose.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
         // How fast a key let go of part way springs back, in degrees a
         // second.
+        [Tooltip("How fast a key let go of part way springs back, in degrees per second, e.g. 360 = a key turned 90 degrees springs back in a quarter of a second. Higher snaps back faster, lower slower.")]
         [SerializeField] private float returnSpeed = 360f;
 
         [Header("Haptics")]
 
         // A hand coming within reach of the key.
+        [Tooltip("Strength (0-1) of the tap a hand feels on coming within reach of the key, e.g. 0.15 = a light tick. Higher is stronger; 0 = no tap.")]
         [SerializeField] private float reachAmplitude = 0.15f;
+        [Tooltip("Length of the tap on coming within reach of the key, in seconds, e.g. 0.03 = a brief tick. Higher is longer; 0 = no tap.")]
         [SerializeField] private float reachDuration = 0.03f;
 
         // The key going into a lock (the carrying hand).
+        [Tooltip("Strength (0-1) of the pulse in the carrying hand as the keyring goes into a lock, e.g. 0.5 = a firm clunk. Higher is stronger; 0 = none.")]
         [SerializeField] private float insertAmplitude = 0.5f;
+        [Tooltip("Length of the pulse as the keyring goes into a lock, in seconds, e.g. 0.06 = a short clunk. Higher is longer; 0 = none.")]
         [SerializeField] private float insertDuration = 0.06f;
 
         // A lock the ring has no key for (the carrying hand): long and rough.
+        [Tooltip("Strength (0-1) of the buzz in the carrying hand at a lock the ring has no key for, e.g. 0.9 = a strong refusal. Higher is stronger; 0 = none.")]
         [SerializeField] private float refuseAmplitude = 0.9f;
+        [Tooltip("Length of the buzz at a lock the ring has no key for, in seconds, e.g. 0.25 = a long rough buzz, unlike the short clunk of a fitting key. Higher is longer; 0 = none.")]
         [SerializeField] private float refuseDuration = 0.25f;
 
         // The lock opening (the turning hand).
+        [Tooltip("Strength (0-1) of the pulse in the turning hand as the lock opens, e.g. 1 = full strength. Higher is stronger; 0 = none.")]
         [SerializeField] private float unlockAmplitude = 1f;
+        [Tooltip("Length of the pulse as the lock opens, in seconds, e.g. 0.15 = a solid thunk. Higher is longer; 0 = none.")]
         [SerializeField] private float unlockDuration = 0.15f;
 
         private KeyHand _left;

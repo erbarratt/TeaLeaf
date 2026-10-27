@@ -43,21 +43,21 @@ namespace Interaction
             Cylinder
         }
 
-        [Tooltip("How the hand takes hold. Point: always at the Grip Point, so the prop is held one way, right for something with a handle. Cylinder: anywhere round a cylinder on the player's side, at the height the hand reached for, as a hand grips a hanging rope, right for a bottle or candlestick with no front.")]
+        [Tooltip("How the hand takes hold. Point: always at the Grip Point, so the prop is held one way, e.g. a tankard or lantern by its handle. Cylinder: anywhere round a cylinder on the player's side, at the height the hand reached for, as a hand grips a hanging rope, e.g. a bottle or candlestick with no front.")]
         [SerializeField] private GripShape gripShape;
 
-        [Tooltip("A child placed where the hand holds the prop: the grip frame. Left empty, the prop's own origin and rotation are used. For a cylinder it is the middle of the part that can be gripped, with its Y axis along the cylinder pointing to the prop's top.")]
+        [Tooltip("A child placed where the hand holds the prop: the grip frame, e.g. an empty 'Grip Point' child on a tankard's handle. For a cylinder it is the middle of the part that can be gripped, with its Y axis along the cylinder pointing to the prop's top, e.g. halfway up a bottle's body. Left empty, the prop's own origin and rotation are used.")]
         [SerializeField] private Transform gripPoint;
 
         [Header("Cylinder")]
 
-        [Tooltip("The cylinder's radius, in metres. The grip frame sits on the cylinder's surface, so one profile fits cylinders of different widths.")]
+        [Tooltip("The cylinder's radius, in metres (Cylinder grip only). The grip frame sits on the cylinder's surface, so one profile fits cylinders of different widths. E.g. 0.04 = an 8cm-wide bottle. Higher = the hand sits further out from the axis; lower = closer in.")]
         [SerializeField] private float cylinderRadius = 0.04f;
 
-        [Tooltip("How much of the cylinder's length can be gripped, in metres, centred on the grip point. The hand grips level with where it aimed, kept within this. 0 always grips at the grip point's height.")]
+        [Tooltip("How much of the cylinder's length can be gripped, in metres, centred on the grip point (Cylinder grip only). The hand grips level with where it aimed, kept within this. E.g. 0.1 = anywhere 5cm above or below the grip point. Higher = more freedom up and down the prop; 0 always grips at the grip point's height.")]
         [SerializeField] private float cylinderGripLength = 0.1f;
 
-        [Tooltip("How far round the cylinder each hand's grip is turned from pointing its wrist straight at the player's head, in degrees, so the wrist points at that hand's shoulder instead, as for a hanging rope. 0 points both wrists straight at the head.")]
+        [Tooltip("How far round the cylinder each hand's grip is turned from pointing its wrist straight at the player's head, in degrees, so the wrist points at that hand's shoulder instead, as for a hanging rope (Cylinder grip only). E.g. 20 = each hand grips a little to its own side. Higher = hands further round to the sides; 0 points both wrists straight at the head.")]
         [SerializeField] private float shoulderAngle = 20f;
 
         // Gizmo colour for the cylinder's grippable part.
@@ -65,10 +65,10 @@ namespace Interaction
 
         [Header("Holding")]
 
-        [Tooltip("The per-hand offsets from the grip frame to the hand visual and the finger pose, shared by every prop held the same way. Left empty, the hand sits exactly on the grip frame and the fingers keep their input curl. Posed with TeaLeaf > Modify Prefab > Pose with Hand.")]
+        [Tooltip("The per-hand offsets from the grip frame to the hand visual and the finger pose, shared by every prop held the same way, e.g. the BottleHold asset for a bottle. Posed with TeaLeaf > Player > Pose with Hand. Left empty, the hand sits exactly on the grip frame and the fingers keep their input curl.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
-        [Tooltip("How far the prop reaches from its middle, in metres: how small it shrinks to fit a pack space, where its worth coins float, and how far the hand that let go of it must be before hands touch it again. Guessed from the colliders when the component is added. Carried, it collides with its own colliders.")]
+        [Tooltip("How far the prop reaches from its middle, in metres: how small it shrinks to fit a pack space, where its worth coins float, and how far the hand that let go of it must be before hands touch it again. E.g. 0.15 for a bottle 30cm tall. Higher = shrinks more in the pack, coins float further out, the hand must move further off after letting go. Guessed from the colliders when the component is added; carried, it collides with its own colliders, not this.")]
         [SerializeField] private float holdRadius = 0.15f;
 
         // How far beyond the prop's bounds WakeNeighbours() looks, in

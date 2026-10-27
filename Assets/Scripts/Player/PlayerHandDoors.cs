@@ -90,31 +90,42 @@ namespace Player
             public bool hasLidRattled;
         }
 
+        [Tooltip("The input system on the Player root: each hand's grip takes and lets go of a handle. Required; filled in when this component is added (e.g. the Player's PlayerInputXR).")]
         [SerializeField] private PlayerInputXR playerInput;
+        [Tooltip("The smoothed controller poses on the Player root: where each real hand is, to turn the lever and swing the door with it. Required; filled in when this component is added.")]
         [SerializeField] private PlayerTracking playerTracking;
+        [Tooltip("The hand rays on this Hands object: a hand takes the DoorHandle its ray is pointing at when grip is pressed. Required; filled in when this component is added.")]
         [SerializeField] private PlayerHandInteraction playerHandInteraction;
+        [Tooltip("The hand visuals on this Hands object: a hand on a handle is snapped onto it where the door now is, e.g. staying on the lever as the door swings. Required; filled in when this component is added.")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         // What each hand is busy with: a hand climbing, carrying a prop
         // or using the lockpicks or keys can't take a handle. Found (or
         // made) in Awake() if not wired (it's on this same object).
+        [Tooltip("Who owns each hand: a hand climbing, carrying or holding picks or keys can't take a handle, e.g. a hand holding a crate ignores the door. Empty finds it on this object at load, adding one if there is none.")]
         [SerializeField] private PlayerHandState playerHandState;
 
         // Optional: a rig with no haptics still opens doors.
+        [Tooltip("The controller rumble on the Player root, for the latch click and locked knock. Empty looks for it on a parent at load; a rig with none still opens doors, just without the buzz.")]
         [SerializeField] private PlayerHaptics playerHaptics;
 
         // The hand is let go of the handle when the real hand is further
         // than this from it, in metres.
+        [Tooltip("How far the real hand can move from the handle before the hand lets go of it, in metres. e.g. 0.4 = pulling the controller 40cm off a stuck door drops the handle. Higher = the hand stays on through bigger stretches; lower = it lets go sooner.")]
         [SerializeField] private float breakDistance = 0.4f;
 
         [Header("Haptics")]
 
         // The click as the latch frees.
+        [Tooltip("Strength (0-1) of the buzz as the lever frees the latch. e.g. 0.4 = a light click. Higher = a stronger buzz; 0 = none.")]
         [SerializeField] private float unlatchAmplitude = 0.4f;
+        [Tooltip("How long the latch click buzzes, in seconds. e.g. 0.05 = a short tick. Higher = a longer buzz; 0 = none.")]
         [SerializeField] private float unlatchDuration = 0.05f;
 
         // The knock of a locked lever reaching its stop.
+        [Tooltip("Strength (0-1) of the knock when a locked door's lever hits its stop. e.g. 0.7 = a firm thud that says the door won't open. Higher = stronger; 0 = none.")]
         [SerializeField] private float lockedAmplitude = 0.7f;
+        [Tooltip("How long the locked knock buzzes, in seconds. e.g. 0.08 = a short thud. Higher = a longer buzz; 0 = none.")]
         [SerializeField] private float lockedDuration = 0.08f;
 
         // How far past the door's limit the angle the hand asks for is

@@ -26,18 +26,18 @@ namespace Interaction
     [RequireComponent(typeof(BoxCollider))]
     public class Ladder : MonoBehaviour, IHandTarget, IClimbable, IMantleable, IDebugDrawable
     {
-        [Tooltip("The hand offsets and finger pose for a hand on a rung, shared by every ladder. Empty, the hand sits exactly on the grip frame and the fingers keep their input curl.")]
+        [Tooltip("The hand offsets and finger pose for a hand on a rung, shared by every ladder, e.g. the LadderRung asset. Left empty, the hand sits exactly on the grip frame and the fingers keep their input curl.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
-        [Tooltip("Whether the ladder can also be grabbed from behind (its -Z side), for an open ladder standing free in a room. Unticked, hand rays from behind find nothing to grab and show no reticle.")]
+        [Tooltip("Whether the ladder can also be grabbed from behind (its -Z side), for an open ladder standing free in a room. On: grabbed from behind, the hand faces the other way and the player climbs on the back. Off, e.g. a ladder against a wall: hand rays from behind find nothing to grab and show no reticle.")]
         [SerializeField] private bool climbableFromBack;
 
         [Header("Rungs")]
 
-        [Tooltip("The height of the lowest rung above the bottom of the box, in real metres whatever the object's scale.")]
+        [Tooltip("The height of the lowest rung above the bottom of the box, in real metres whatever the object's scale. E.g. 0.3 = first rung 30cm off the floor. Higher = rungs start further up (and fewer fit); 0 = a rung right at the bottom.")]
         [SerializeField] private float firstRungHeight = 0.3f;
 
-        [Tooltip("The distance from one rung to the next, in real metres whatever the object's scale. Real ladders are about 0.25 to 0.3. The rung count is however many fit in the box above the first rung.")]
+        [Tooltip("The distance from one rung to the next, in real metres whatever the object's scale. Real ladders are about 0.25 to 0.3, e.g. 0.3 gives a 3m box ten rungs. The rung count is however many fit in the box above the first rung: higher = fewer rungs further apart, lower = more, closer together (never below 0.05).")]
         [SerializeField] private float rungSpacing = 0.3f;
 
         [Header("Mantling")]
@@ -48,10 +48,10 @@ namespace Interaction
         // default - every ladder is mantleable unless unticked (e.g. one
         // that tops out under a ceiling, or whose top exit is a separate
         // mantleable ClimbableEdge on the lip above).
-        [Tooltip("Whether the player can mantle off the top of the ladder: with a hand on the top rung the mantle arrow shows, and a stick push lands them on the Mantle Point. Untick it for a ladder that tops out under a ceiling, or whose top exit is a mantleable Climbable Edge on the lip above.")]
+        [Tooltip("Whether the player can mantle off the top of the ladder: with a hand on the top rung the mantle arrow shows, and a stick push lands them on the Mantle Point. On, e.g. a ladder up to a loft floor. Off: no mantle off this ladder - for one that tops out under a ceiling, or whose top exit is a mantleable Climbable Edge on the lip above.")]
         [SerializeField] private bool isMantleable = true;
 
-        [Tooltip("Whether a mantle off the top ends with the player crouched. Tick it where there is no room to stand at the top.")]
+        [Tooltip("Whether a mantle off the top ends with the player crouched. On: the player lands crouched, e.g. a ladder up through a hatch into a low attic. Off: the player lands standing.")]
         [SerializeField] private bool mantleEndsCrouched;
 
         // Where the mantle lands the bottom of the player's capsule (their
@@ -62,7 +62,7 @@ namespace Interaction
         // with the top of the box, DefaultMantleInset behind its back face -
         // on top of whatever the ladder leans against. Move it if the ladder
         // tops out somewhere else.
-        [Tooltip("Where a mantle lands the player's feet, in real metres along the ladder's own axes from its origin (X across, Y up, Z out towards the climber); the object's scale is ignored. The right-click 'Reset Mantle Point' puts it level with the top of the box, 0.4m behind its back face. Move it if the ladder tops out somewhere else.")]
+        [Tooltip("Where a mantle lands the player's feet, in real metres along the ladder's own axes from its origin (X across, Y up, Z out towards the climber); the object's scale is ignored. The right-click 'Reset Mantle Point' puts it level with the top of the box, 0.4m behind its back face. E.g. (0, 3, -0.6) on a 3m ladder = landing on the floor at its top, 0.6m back from the ladder. Move it if the ladder tops out somewhere else.")]
         [SerializeField] private Vector3 mantlePoint = new(0f, 2f, -0.5f);
 
         // How far behind the box's back face the default mantle point is, in

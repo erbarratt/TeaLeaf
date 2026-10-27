@@ -15,7 +15,7 @@ using UnityEngine;
 /// </summary>
 public class PhysicalHandsTrace : MonoBehaviour
 {
-    [Tooltip("Only hits on colliders whose name contains this are logged, for example 'Gap' for the test area's gap blocks. Empty logs every hit.")]
+    [Tooltip("Only sweep hits on colliders whose name contains this are logged, e.g. 'Gap' for the physical hands test area's gap blocks. Empty logs every hit. Read when this is enabled.")]
     [SerializeField] private string colliderNameFilter = "Gap";
 
     private void OnEnable()

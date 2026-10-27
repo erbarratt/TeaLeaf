@@ -12,12 +12,12 @@ using Player;
 /// </summary>
 public class HandRayDebug : MonoBehaviour
 {
-    [Tooltip("The hand rays on the Hands object that are drawn.")]
+    [Tooltip("The hand rays whose rays are drawn in the Scene view (Ray Length long), e.g. drag the Hands object here. Must be set: it isn't looked for.")]
     [SerializeField] private PlayerHandInteraction playerHandInteraction;
 
-    [Tooltip("The colour the left hand's ray is drawn in.")]
+    [Tooltip("The colour the left hand's ray is drawn in, in the Scene view only, e.g. red.")]
     [SerializeField] private Color leftRayColor = Color.red;
-    [Tooltip("The colour the right hand's ray is drawn in.")]
+    [Tooltip("The colour the right hand's ray is drawn in, in the Scene view only, e.g. blue.")]
     [SerializeField] private Color rightRayColor = Color.blue;
 
     private void Update()

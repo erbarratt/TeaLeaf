@@ -33,7 +33,7 @@ namespace Interaction
     [RequireComponent(typeof(CapsuleCollider))]
     public class ClimbableRope : MonoBehaviour, IHandTarget, IClimbable, IZipLine, IDebugDrawable
     {
-        [Tooltip("The hand offsets and finger pose for a hand on the rope, shared by every rope. Empty, the hand sits exactly on the grip frame and the fingers keep their input curl.")]
+        [Tooltip("The HandSnapProfile giving the hand offsets and finger pose for a hand on the rope, shared by every rope. e.g. drag Assets/Data/Hand Poses/RopeGrip.asset here. Empty = the hand sits exactly on the grip frame and the fingers keep their input curl.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
         // How far the rope runs from this object's position along its local
@@ -41,13 +41,13 @@ namespace Interaction
         // CapsuleCollider. The top stays put: the object's position is the
         // top (start) of the rope. For a sagging rope this is the straight
         // distance between its two ends, not the length of the curve.
-        [Tooltip("How far the rope runs from this object's position down its local -Y, in metres; the object's position is the rope's top. The only size control: the capsule collider is sized from it and locked. Ignored when an End Point is set.")]
+        [Tooltip("How far the rope runs from this object's position down its local -Y, in metres; the object's position is the rope's top, which stays put when this changes. The only size control: the capsule collider is sized from it and locked. e.g. 4 = a rope hanging 4m down. Minimum 0.1. Ignored when an End Point is set.")]
         [SerializeField] private float length = 4f;
 
-        [Tooltip("The radius of the grab volume round the rope, in metres. Much thicker than a real rope on purpose: a 2cm target is almost impossible to land a hand ray on. Any solid rope inside it must be thinner than this.")]
+        [Tooltip("The radius of the grab volume round the rope, in metres. Much thicker than a real rope on purpose: a 2cm target is almost impossible to land a hand ray on. e.g. 0.08 = a hand ray within 8cm of the rope's line hits it. Higher = easier to aim at, but grabs from further off; lower = must aim closer. Any solid rope inside it must be thinner than this. Minimum 0.01.")]
         [SerializeField] private float grabRadius = 0.08f;
 
-        [Tooltip("On a hanging rope, how far round the rope each hand's grip is turned from pointing its wrist straight at the player, in degrees, so the wrist points at that hand's shoulder instead. No effect on a strung rope.")]
+        [Tooltip("On a hanging rope, how far round the rope each hand's grip is turned from pointing its wrist straight at the player's head, in degrees, so the wrist points at that hand's shoulder instead (right hand anticlockwise from above, left clockwise). e.g. 20 = a natural two-handed hold; 0 = both hands grip from dead in front. No effect on a strung rope.")]
         [SerializeField] private float shoulderAngle = 20f;
 
         [Header("Strung Ropes (between two points)")]
@@ -60,7 +60,7 @@ namespace Interaction
         // empty child of the rope, or an object on the other building. Like
         // sag, it's read when Play starts - the rope doesn't follow an end
         // point that moves afterwards.
-        [Tooltip("Optional: where the rope ends. Set, the rope runs from this object's position straight to this transform's, and the object's rotation and Length are ignored. Read when Play starts: the rope doesn't follow an end point that moves afterwards.")]
+        [Tooltip("Optional: where the rope ends. Set, the rope runs from this object's position straight to this transform's, and the object's rotation and Length are ignored, e.g. drag an empty on the far building here to string a rope across a street. Empty = the rope runs down its local -Y for Length. Read when Play starts: the rope doesn't follow an end point that moves afterwards.")]
         [SerializeField] private Transform endPoint;
 
         // How far the middle of the rope droops below the straight line
@@ -69,21 +69,21 @@ namespace Interaction
         // ropes strung sideways - leave it at 0 on a hanging rope. Set
         // before Play: the grab volumes of a sagging rope are made in
         // Awake(). A sagging rope's object should be left at scale 1.
-        [Tooltip("How far the middle of the rope droops below the straight line between its ends, in metres, straight down in the world. 0 is a perfectly straight rope (hanging ropes, zip lines). Only for ropes strung sideways; set it before Play and keep the object at scale 1.")]
+        [Tooltip("How far the middle of the rope droops below the straight line between its ends, in metres, straight down in the world. e.g. 0.5 = a washing-line droop of half a metre at the middle. Higher = a deeper curve; 0 = perfectly straight (hanging ropes, zip lines). Only for ropes strung sideways; set it before Play and keep the object at scale 1.")]
         [SerializeField] private float sag;
 
-        [Tooltip("How many straight pieces a sagging rope's curve is made of: its grab volumes, its gizmo and where hands snap. More is smoother; 8 is within about a centimetre of the true curve for a 0.5m sag. No effect with Sag at 0.")]
+        [Tooltip("How many straight pieces a sagging rope's curve is made of: its grab volumes, its gizmo and where hands snap. e.g. 8 is within about a centimetre of the true curve for a 0.5m sag. Higher = smoother but more colliders; lower = a coarser curve. Minimum 2. No effect with Sag at 0.")]
         [SerializeField] private int sagSegments = 8;
 
         [Header("Zip Line")]
 
-        [Tooltip("Ticked, the rope is a zip wire: a hand that grabs it anywhere slides along it, carrying the player, until they let go or reach the end, then they drop. It slides downhill, or on a level rope the way the player faced when they grabbed it. A zip line can't be climbed hand over hand.")]
+        [Tooltip("On: the rope is a zip wire: a hand that grabs it anywhere slides along it, carrying the player, until they let go or reach the end, then they drop. It slides downhill, or on a level rope the way the player faced when they grabbed it, and can't be climbed hand over hand. Off: an ordinary rope, climbed hand over hand. e.g. on for a wire strung down from a rooftop to the street.")]
         [SerializeField] private bool isZipLine;
 
-        [Tooltip("The top speed of a slide along a zip line, in metres a second.")]
+        [Tooltip("The top speed of a slide along a zip line, in metres a second. e.g. 6 = a fast run's pace. Higher = quicker, more dramatic slides; lower = a gentle glide. Minimum 0.1. Only used with Is Zip Line on.")]
         [SerializeField] private float zipSpeed = 6f;
 
-        [Tooltip("How quickly a slide gets up to Zip Speed, in metres a second per second: a short run-up rather than an instant jerk to full speed.")]
+        [Tooltip("How quickly a slide gets up to Zip Speed, in metres a second per second: a short run-up rather than an instant jerk to full speed. e.g. 8 with a Zip Speed of 6 = full speed in 0.75s. Higher = reaches top speed sooner; lower = a longer, gentler start. Minimum 0.1. Only used with Is Zip Line on.")]
         [SerializeField] private float zipAcceleration = 8f;
 
         // Smallest allowed length - keeps the capsule valid.

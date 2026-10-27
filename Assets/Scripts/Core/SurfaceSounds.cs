@@ -23,12 +23,15 @@ namespace Core
         [Serializable]
         private struct Entry
         {
+            [Tooltip("The floor material this entry is for, e.g. Wood. Keep one entry per surface: if two name the same surface, the later one is used.")]
             public SurfaceType surface;
+            [Tooltip("The footstep cue played for one step on this surface (landings play it loud, twice), e.g. a wooden-boards step cue. Its Noise Radius sets how loud the surface is to guards. Empty = Stone's cue is used.")]
             public SoundCue footstep;
         }
 
         // One entry per surface, in any order. A surface with no entry (or
         // no cue) is played as Stone.
+        [Tooltip("One entry per floor surface, in any order, each pairing a Surface Type with its footstep cue, e.g. Carpet with a soft step. A surface with no entry (or no cue) is played as Stone.")]
         [SerializeField] private Entry[] entries;
 
         // The entries rearranged so a surface's is found by using the

@@ -14,12 +14,14 @@ namespace Core
     /// </summary>
     public class SurfaceTag : MonoBehaviour
     {
+        [Tooltip("What this collider and everything beneath it is made of (a nearer tag overrides), e.g. Wood = wooden footsteps, and stun, sleep and rope arrows stick in it. Untagged colliders count as Stone.")]
         [SerializeField] private SurfaceType surface = SurfaceType.Wood;
 
         // Whether a rope bolt stuck in this holds a climber's weight.
         // Only matters on a surface bolts stick into (HoldsBolt()). Off,
         // the bolt still sticks and the rope still hangs, but both come
         // away as soon as the player takes hold of the rope.
+        [Tooltip("On: a rope arrow stuck here holds the player's weight, e.g. a solid timber beam. Off: the arrow still sticks and the rope hangs, but both come away as soon as the player takes hold. Only matters on surfaces arrows stick into (Wood, Carpet, Grass, Plaster).")]
         [SerializeField] private bool supportsRopeBolt;
 
         public SurfaceType Surface => surface;

@@ -105,8 +105,9 @@ namespace Player
         /// something free-standing that thick (a wall, parapet, railing,
         /// sill): one grab volume across the whole top, EdgeOverhang past
         /// both faces, with grabbableFromBothSides ticked so a hand snaps
-        /// onto whichever side the player is on. Use a top-centre landing
-        /// with it, so a mantle from either side lands in the same place.
+        /// onto whichever side the player is on. Each side lands landingInset
+        /// in from its own lip; a top-centre inset (TopCentreInset()) puts
+        /// both landings in the middle of the top.
         ///
         /// overhang is how far the grab volume sticks out past the solid's
         /// top and face(s) - EdgeOverhang by default, TightOverhang to follow
@@ -154,6 +155,10 @@ namespace Player
             settings.FindProperty("isMantleable").boolValue = isMantleable;
             settings.FindProperty("mantleEndsCrouched").boolValue = endsCrouched;
             settings.FindProperty("mantlePoint").vector3Value = new Vector3(0f, overhang, overhang - landingInset);
+
+            // The back lip's landing, the same inset in from the back lip
+            // (at Z overhang - depth); unused on a one-sided edge.
+            settings.FindProperty("backMantlePoint").vector3Value = new Vector3(0f, overhang, overhang - depth + landingInset);
             settings.FindProperty("moveHorizontallyToPoint").boolValue = moveHorizontallyToPoint;
             settings.FindProperty("grabbableFromBothSides").boolValue = isTwoSided;
             settings.ApplyModifiedPropertiesWithoutUndo();

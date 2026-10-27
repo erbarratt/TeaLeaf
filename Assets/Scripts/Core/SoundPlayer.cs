@@ -37,9 +37,11 @@ namespace Core
     public class SoundPlayer : MonoBehaviour
     {
         // The player's ears: the Main Camera (it has the AudioListener).
+        [Tooltip("The player's ears: the Main Camera's transform (it has the AudioListener), e.g. drag the Main Camera here; filled in when the component is added. Empty = an error and no sound at all.")]
         [SerializeField] private Transform listener;
 
         // How many one-off sounds can play at once.
+        [Tooltip("How many one-off sounds can play at once (the pool of voices made at load), e.g. 16. When every voice is busy the oldest sound is cut off for the new one. Higher = fewer cut-offs but more audio processing.")]
         [SerializeField] private int voiceCount = 16;
 
         // The shape of the fade from full volume at the sound to silence at
@@ -47,74 +49,93 @@ namespace Core
         // quickly close up and slowly far away, closer to real hearing:
         // distant sounds change little as the player moves. Read once in
         // Awake().
+        [Tooltip("Shape of the fade from full volume at the sound to silence at the cue's Audible Range, e.g. 2 = half way out a sound is at a quarter volume. 1 = a straight line; higher = drops quickly close up and slowly far away, closer to real hearing. Read once at start.")]
         [SerializeField, Range(1f, 4f)] private float falloffSharpness = 2f;
 
         [Header("Muffling (sound that came through portals)")]
         // Frequencies above this are rolled off when fully muffled, in Hz.
+        [Tooltip("Low-pass cutoff when a sound is fully muffled, in Hz, e.g. 1200 = a fully muffled sound keeps only its low thud. Partly muffled sounds sit between this and 22000 Hz (clear). Lower = more muffled behind doors.")]
         [SerializeField] private float muffledCutoff = 1200f;
 
         // Volume multiplier when fully muffled.
+        [Tooltip("Volume multiplier when a sound is fully muffled, 0-1, e.g. 0.5 = half as loud. Partly muffled sounds sit between this and 1. Lower = doors and portals quieten more.")]
         [SerializeField, Range(0f, 1f)] private float muffledVolume = 0.5f;
 
         [Header("Spatialiser (direction by ear)")]
         // How voices are given a direction: Unity's left/right panning,
         // the project's own spatialiser, or a plugin. Read once in
         // Awake(), so change it before pressing Play to compare them.
+        [Tooltip("How voices are given a direction: Unity Panning (Unity's own left/right), Built In (the project's spatialiser: time difference, head shadow, duller from behind) or Plugin (the spatialiser plugin chosen in the project's audio settings). Read once at start, so change it before pressing Play to compare.")]
         [SerializeField] private SpatialiserMode spatialiserMode = SpatialiserMode.BuiltIn;
 
         // The project's own spatialiser's numbers. Read every frame: tune
         // them by ear while playing.
+        [Tooltip("The Built In spatialiser's numbers (head size, head shadow, behind), shared by every voice, e.g. lower Far Ear Volume for a stronger left/right. Read every frame, so tune them by ear while playing.")]
         [SerializeField] private SpatialiserSettings spatialiser = new();
 
         // Plugin only: run it after a voice's muffling filter rather than
         // before it. Read once in Awake().
+        [Tooltip("Plugin mode only. On: the plugin spatialises after a voice's muffling filter. Off: before it. Read once at start.")]
         [SerializeField] private bool spatialiseAfterMuffle;
 
         [Header("Loops (SoundLoop: torches, fires)")]
         // How many loops can be heard at once. With more in earshot than
         // this, the loudest get the voices.
+        [Tooltip("How many looping sounds (torches, fires) can be heard at once, from their own pool separate from one-offs, e.g. 8. With more in earshot the loudest get the voices. Higher = more loops heard but more audio processing.")]
         [SerializeField] private int loopVoiceCount = 8;
 
         // Seconds between working a loop's route out again while it's
         // within earshot, and while it's too far to hear at all.
+        [Tooltip("Seconds between working out a loop's route again while it is within straight-line earshot, e.g. 0.2 = five times a second (each loop staggered by up to 10%). Lower = loops react faster to doors and moving, at more CPU.")]
         [SerializeField] private float loopCheckInterval = 0.2f;
+        [Tooltip("Seconds between checking a loop that is too far away to hear at all, e.g. 1 = once a second. Lower = a far loop starts sooner as the player approaches, at more CPU.")]
         [SerializeField] private float loopFarCheckInterval = 1f;
 
         // About how long a loop takes to glide to a new place or a new
         // muffle when its route changes, in seconds.
+        [Tooltip("About how long a loop takes to glide to a new direction or muffle when its route changes, in seconds, e.g. 0.25 = a quick smooth slide as a door opens. Lower = snappier but may jump; higher = smoother but lags.")]
         [SerializeField] private float loopEaseTime = 0.25f;
 
         // How long a loop takes to fade in when it comes into earshot, and
         // out when it's switched off, in seconds.
+        [Tooltip("How long a loop takes to fade in when it comes into earshot, and out when it is switched off (a torch put out), in seconds, e.g. 0.4. Higher = softer starts and stops.")]
         [SerializeField] private float loopFadeTime = 0.4f;
 
         [Header("Reverb (set by the room the player is in)")]
         // Off = no reverb at all. Read once in Awake().
+        [Tooltip("On: one shared reverb on the listener, set by the room the player is in. Off: no reverb at all (no filter is added). Read once at start.")]
         [SerializeField] private bool reverb = true;
 
         // The reverb while the player is in no SoundRoom.
+        [Tooltip("The reverb while the player is in no SoundRoom, e.g. the Outdoors preset: faint, long and far. Tuned like a room's Reverb.")]
         [SerializeField] private ReverbSettings outsideReverb = ReverbSettings.Outdoors;
 
         // How long the reverb takes to change from one room's to the
         // next's, in seconds.
+        [Tooltip("How long the reverb takes to change from one room's to the next's, in seconds, e.g. 0.6 = a smooth change stepping through a doorway. Lower = a more sudden change.")]
         [SerializeField] private float reverbBlendTime = 0.6f;
 
         // Multiplies every room's reverb level: one knob for "all the
         // reverb is too much" without retuning each room.
+        [Tooltip("Multiplies every room's reverb Level, e.g. 0.5 = all reverb half as loud, without retuning each room. Higher = more reverb everywhere; 0 = none. Live while playing.")]
         [SerializeField, FormerlySerializedAs("reverbSend"), Range(0f, 2f)] private float reverbAmount = 1f;
 
         [Header("Ambience (set by the room the player is in)")]
         // The background loop while the player is in no SoundRoom (wind,
         // the harbour at night). Empty = silence.
+        [Tooltip("The background loop while the player is in no SoundRoom (its first clip), e.g. wind or the harbour at night. Empty = silence outside.")]
         [SerializeField] private SoundCue outsideAmbience;
+        [Tooltip("Multiplies the Outside Ambience cue's volume, 0-1, e.g. 0.5 = half as loud. Lower = quieter; 0 = silent.")]
         [SerializeField, Range(0f, 1f)] private float outsideAmbienceVolume = 1f;
 
         // How long one room's ambience takes to fade over to the next's,
         // in seconds.
+        [Tooltip("How long one room's ambience takes to crossfade to the next's, in seconds, e.g. 1.5 = a slow blend walking between rooms. Lower = a sharper change.")]
         [SerializeField] private float ambienceFadeTime = 1.5f;
 
         // Seconds between looking up which room the player is in, for the
         // reverb and the ambience.
+        [Tooltip("Seconds between looking up which room the player is in, for the reverb and ambience, e.g. 0.2 = five times a second. Lower = reacts sooner after stepping through a doorway, at a little more CPU.")]
         [SerializeField] private float listenerCheckInterval = 0.2f;
 
         // The top of human hearing, in Hz: a cutoff this high removes

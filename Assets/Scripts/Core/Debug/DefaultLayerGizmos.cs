@@ -26,6 +26,7 @@ namespace Core
         // Seconds between scene searches - objects added, removed or moved
         // to another layer show up within this long. Positions are read
         // every draw, so moving objects are always outlined where they are.
+        [Tooltip("Seconds between searches of the scene for colliders on the Default layer: one added, removed or moved to another layer shows up within this long. e.g. 1 = once a second. Lower = notices changes sooner but allocates more often; outlines always follow moving objects.")]
         [SerializeField] private float rescanInterval = 1f;
 
         // Layer 0 is always Default - it can't be renamed or removed.

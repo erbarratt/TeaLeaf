@@ -18,12 +18,12 @@ namespace AI
     public class PatrolRoute : MonoBehaviour, IDebugDrawable
     {
         // Seconds the guard stands at each point before walking on.
-        [Tooltip("Seconds the guard stands at each point before walking on.")]
+        [Tooltip("Seconds the guard stands at each point (a child of this object) before walking on to the next. e.g. 2 = a short pause at each corner. Higher = longer pauses; 0 = walks straight on.")]
         [SerializeField] private float waitTime = 2f;
 
         // On = from the last point straight to the first. Off = there
         // and back along the same points.
-        [Tooltip("On: from the last point straight back to the first. Off: there and back along the same points.")]
+        [Tooltip("On: a loop, from the last point straight back to the first (A, B, C, A...), e.g. round a courtyard. Off: there and back along the same points (A, B, C, B, A...), e.g. up and down a corridor.")]
         [SerializeField] private bool loops;
 
         private static readonly Color _routeColor = new(0.3f, 0.9f, 1f, 1f);

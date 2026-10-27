@@ -17,22 +17,22 @@ namespace Player
     /// </summary>
     public class VisibilityDebug : MonoBehaviour, IDebugDrawable
     {
-        [Tooltip("The visibility on the Player root that the gauge shows.")]
+        [Tooltip("The visibility on the Player root that the gauge shows (bar = Visibility, tick = raw light level), e.g. drag the Player root here. Left empty, no gauge is drawn.")]
         [SerializeField] private PlayerVisibility playerVisibility;
 
-        [Tooltip("The Main Camera: the gauge is placed relative to it, so it stays in view.")]
+        [Tooltip("The Main Camera: the gauge is placed relative to it, so it stays in view, e.g. drag Player > Camera Offset > Main Camera here. Left empty, no gauge is drawn.")]
         [SerializeField] private Transform head;
 
         // Where the gauge sits in the head's own space, and how big it is,
         // in metres.
-        [Tooltip("Where the gauge's centre sits in the head's own space, in metres (x right, y up, z ahead).")]
+        [Tooltip("Where the gauge's centre sits in the head's own space, in metres (x right, y up, z ahead), e.g. (0, -0.12, 0.6) = 60 cm ahead, a little below the centre of view.")]
         [SerializeField] private Vector3 offset = new(0f, -0.12f, 0.6f);
-        [Tooltip("The gauge's width, in metres.")]
+        [Tooltip("The gauge's width, in metres, e.g. 0.16 = 16 cm, full when Visibility is 1. Higher = wider, easier to read small changes.")]
         [SerializeField] private float width = 0.16f;
-        [Tooltip("The gauge's height, in metres. The light-level tick below it is the same height.")]
+        [Tooltip("The gauge's height, in metres; the light-level tick below it is the same height, e.g. 0.015 = 1.5 cm. Higher = a taller bar.")]
         [SerializeField] private float height = 0.015f;
 
-        [Tooltip("On, logs to the Console each time Visibility crosses into a different tenth.")]
+        [Tooltip("On: logs to the Console each time Visibility crosses into a different tenth, e.g. \"[Visibility] 0.4 (light 0.4)\"; off: no logging, gauge only.")]
         [SerializeField] private bool logChanges = true;
 
         private static readonly Color _frameColor = new(1f, 1f, 1f, 0.5f);

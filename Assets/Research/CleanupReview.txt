@@ -1,0 +1,187 @@
+TeaLeaf clean-up review - unused packages, scripts and assets
+=============================================================
+
+Written 2026-10-26, to go through with the maintainer before deleting anything.
+Nothing has been deleted. Full file-by-file list: CleanupReview_FullList.txt (same folder).
+
+How "used" was decided
+----------------------
+- Root: the Intro scene only (Assets/Scenes/Intro.unity), plus everything in a Resources
+  folder (loaded by name in builds), Assets/Settings, Assets/XR, the input actions and
+  TextMesh Pro. Everything those reference, followed all the way down
+  (AssetDatabase.GetDependencies, recursive), counts as used.
+- Assets a script or the level generator's JSON names by path or GUID are NOT counted as
+  used, but are tagged in the full list ([path in code], [folder in code], [in level-gen
+  data]): they are what the Dev Room builders, Pose with Hand, the generator and the
+  variants tool reach for. Deleting one of those breaks that tool, not the game.
+- A Unity build only ever contains what its scenes and Resources reference, so nothing
+  below makes the game bigger or slower. The gain is repo size, Dropbox sync, import and
+  domain-reload time, and less to read.
+
+Already happening in the working tree (not by this session)
+-----------------------------------------------------------
+git status shows these deleted or renamed since the last commit, by the maintainer or
+another session: Assets/Art/Models/Smithy/* (6 mesh assets), Art/Textures/hands.png,
+Art/hand_sheet.psd, Art/Textures/SmokeFlipbook_REPLACEME.png (-> SmokeFlipbook.png),
+and new Art/Textures/Sky/. They are not repeated below.
+
+
+1. PACKAGES (Packages/manifest.json)
+====================================
+Keep - used:
+- com.unity.render-pipelines.universal, com.unity.inputsystem, com.unity.xr.management,
+  com.unity.xr.openxr, com.unity.ai.navigation (NavMesh), com.unity.ugui (TextMesh Pro:
+  pack gold), com.unity.ide.rider (editor), com.unity.pipeline (Unity CLI, editor-only,
+  wanted), Packages/Tripo3d_Unity_Bridge (embedded, editor-only, wanted).
+DONE 2026-10-26 - removed from the manifest (project resolves and compiles clean).
+Built-in modules nobody uses and no installed package depends on:
+- com.unity.modules.cloth, .vehicles, .wind, .tilemap, .video, .vectorgraphics,
+  .unityanalytics, .director (Timeline/PlayableDirector), .accessibility,
+  .terrainphysics, .unitywebrequestwww, .unitywebrequesttexture.
+Built-in modules unused by TeaLeaf code but depended on by a package (leave; the
+Package Manager would put them back): terrain (URP), physics2d, screencapture,
+unitywebrequest, unitywebrequestaudio, unitywebrequestassetbundle, assetbundle,
+imageconversion, uielements, subsystems, hierarchycore.
+Keep for the Quest option even though PC doesn't need them: androidjni.
+Ask first: adaptiveperformance - the URP asset has "Use Adaptive Performance" ticked but
+the Adaptive Performance package isn't installed, so it does nothing; untick it and drop
+the module, or install the package for the Quest option.
+
+2. SCENES
+=========
+- Assets/Scenes/Main.unity (3.7 MB) + Main/OcclusionCullingData.asset (1.1 MB) +
+  Main-NavMesh.asset (0.1 MB). **Main is the only scene in Build Settings; Intro isn't in
+  it at all.** Either way Build Settings needs Intro added (and Main removed if it goes).
+- Assets/Scenes/Level Gen Test.unity (30 MB) + its folder (22 files, 43 MB: lightmaps,
+  LightingData, reflection probes).
+- Assets/_Recovery/0.unity and 0 (1).unity (12.6 MB each): Unity crash-recovery copies
+  of an unsaved scene. Untracked in git. Delete once checked nothing is in them that
+  Intro lacks.
+Note: deleting Main and Level Gen Test makes the generator's proxies for them and much of
+section 4 unused for certain; do this first, then rerun the scan.
+
+3. SCRIPTS
+==========
+3.1 Debug scripts on nothing (no scene, no prefab, no other code names them):
+- Player/Debug: InputTest, LocomotionInputTest, TrackingTest, TurnActionTest,
+  TurnInputTest, VRDebugInput, MovementStateDebug, HandStateDebug.
+  The first six look like early input/tracking checks (my reading of them, not checked
+  against the devlog); MovementStateDebug and HandStateDebug are still documented in
+  Player/CLAUDE.md as tools to drop on an object. Proposal: delete the six, keep the two
+  (or delete them too and their CLAUDE.md lines).
+3.2 Runtime scripts on nothing in Intro but used: every other entry in the full list's
+script section is a plain class, enum, interface or static helper used from code
+(HandVisualSnap, NoiseSystem, BallisticArc...), or a component the Dev Room builders add
+(ImpactNoise, Chest, Ladder, DoorBolt, ClimbableRope, KeyLock...). Keep.
+3.3 Core/FoveatedRendering.cs: named by nothing, but runs itself at start-up
+(RuntimeInitializeOnLoadMethod) on Android only. Keep for the Quest option.
+3.4 Editor scripts: all are menu items or inspector editors (TeaLeaf menu, Dev Room,
+Pose with Hand, generator). None dead. FacadeBacking.cs is part of the partial
+FacadeBuilder class.
+
+4. LEVEL GENERATOR DATA (Assets/Data/LevelGen)
+==============================================
+- Proxies/ (69 files, 141 MB, git-ignored): "Three Streets" building proxy meshes and
+  atlas. Intro uses the three-streets layout, but **no proxy renderer is in the scene
+  now** (0 found), so these are left over from an earlier generation. Either rebuild
+  proxies for Intro (the generator's building proxies step) or delete the folder. The generator
+  should arguably delete its own stale proxies when it rebuilds (a generator change, ask).
+- Sheared/ (99 of 134 sheared mesh assets unused, ~4 MB): sheared wall meshes from earlier
+  generations, no longer referenced by Intro. The generator makes them on demand; delete
+  the unused ones (or the whole folder and regenerate Intro). Same "clean up its own old
+  output" question as Proxies.
+- Layouts/: example-block, example-quarter, example-slope, example-street,
+  example-three-levels, example-two-lots (6 specs, 115 KB). Named in LevelGen/CLAUDE.md
+  and GeneratedRoot.cs as examples. Tiny; keep unless the examples are retired.
+- catalogue.json, annotations.json, GeneratorSettings.asset, ProxyLightmapParameters.asset:
+  used by the generator. Keep.
+
+5. PREFABS
+==========
+- Prefabs/Environment/Building_Exteriors (24) and Building_Layers (51), 10 MB: variants of
+  the pack's ready-made buildings and storeys. The generator excludes both folders by
+  design (LevelGen/CLAUDE.md) and nothing hand-placed uses them. Includes DEMO_House and
+  a duplicate "TL_Building_House_Floor_2x2_D 1". Proposal: delete both folders (the pack
+  originals stay in ASTROFISH_GAMES), and drop the exclusion from the catalogue scanner.
+- 207 other Environment variants aren't in Intro but are in the catalogue: the generator
+  can place them. Keep.
+- Prefabs/Dressing: Chair_1, Chair_2, Table, WardrobeShelfBody, Broom - not placed anywhere
+  in Intro. Keep if they are for interiors to come; they are what makes the five
+  wooden_* Tripo folders in section 7 "used" by a prefab.
+- Prefabs/Interactive: Lock Plate, Doors/Rectangle Door, Doors/Curved Top Door - not in
+  Intro. Lock Plate is built from by code; the two doors are spares. Keep or delete by
+  plan.
+
+6. ART
+======
+- Shaders: Water, Cobblestone, BrickWall (procedural, no material uses them; BrickWall
+  "not yet compiled or seen" in Core/CLAUDE.md) and MoonShaft (moon shafts off for now).
+  The generator's GroundBlend replaced Cobblestone for streets. Proposal: delete Water,
+  Cobblestone, BrickWall and their CLAUDE.md sections, plus Materials/TeaLeaf_Water.mat;
+  keep MoonShaft (planned, off).
+- Materials: VR_Hands_M.mat (old hands, before the gauntlet), Environment/Ground/
+  MudGround.mat - named nowhere. Delete.
+  Environment/Roofs: Medieval_RoofPeaked_4k_brown/_orange.mat and their two albedo
+  textures (23 MB, a 17.7 MB .tif) - colour variants the generator could draw on but
+  Intro doesn't. Keep if wanted as variety; else delete (biggest single item here).
+  LootGold, TestGeometry, MoonShaft, LockPlate: made/used by builders by path. Keep.
+- Animations: Guard_Fall.anim (3.7 MB, unused: the ragdoll plays the fall) and
+  Guard_Idle.anim (2.7 MB, unused: LookAround is the idle). AI/CLAUDE.md already says
+  both are unused. Delete and drop the mention.
+- Colliders/BarrelCollider.asset: made by a builder, named in code. Keep.
+
+7. TRIPO MODELS (Assets/TripoModels)
+====================================
+Every Tripo import keeps its source textures in a .fbm folder. The ones a material
+actually uses count as used; the rest are Tripo's extra maps (separate metallic,
+roughness, "_rm" packed and "metallic_Smoothness" maps the URP material doesn't read).
+- Unused extra maps in used models (about 70 MB): guard_1 (6 files, 16 MB, incl. an
+  older rgb/normal pair), wooden_door (rm 6 MB, roughness, metallic), rusted_kettle
+  (rm 11.9 MB, roughness, metallic, and the unused rusted_kettle_3d_model.fbx - the scene
+  uses kettle.fbx), wooden_barrel (rm 7 MB, roughness, metallic_Smoothness, the unused
+  wooden_barrel_3d_model.fbx, and ladder.fbx + ladder_LOD1/2.asset filed in the barrel's
+  folder), lock, lockpicks, cudgel, armored_gauntlet (its .fbx too: the hand uses
+  Art/Models/hand.fbx), arrows (the combined arrows_3d_model.fbx: the game uses the six
+  split ones), treasure_chest (metallic, roughness).
+  Deleting an .fbm texture Tripo Bridge would re-download on a re-import is harmless.
+- bow_3d_model: bow_3d_model.fbx (Tripo source), bow_rigged.fbx (the script's output,
+  the handed copies are made from it), bow_rigged_hole.fbx (an older try). Delete
+  bow_rigged_hole; keep the other two as the pipeline's sources (Player/CLAUDE.md
+  describes both).
+- Whole models in no scene and no prefab: blue_floral_porcelain (12 MB),
+  coin_with_raven (23 MB), green_glass_bottle (24 MB), wooden_bed (4 MB),
+  wooden_chest (18 MB - the Chest uses treasure_chest). About 81 MB. Loot candidates?
+  Keep the ones meant to become loot props, delete the rest.
+- Models used only by Prefabs/Dressing (section 5): wooden_bench, wooden_broom,
+  wooden_chair, wooden_chair_2, wooden_shelf (~83 MB with their unused extra maps).
+  Decide with the Dressing prefabs.
+
+8. AUDIO
+========
+- Audio/footsteps/bones (10), dog (8), mech (1): 19 small .ogg files from a footstep
+  pack, named nowhere. Delete.
+- Audio/Placeholder (21 .wav) and Data/Sound's three placeholder cues (TorchLoop,
+  AmbienceIndoor, Creak): not in Intro, but Core.PlaceholderSounds builds cues from that
+  folder for the Dev Room areas. Keep until real sounds replace them.
+
+9. OTHER
+========
+- Assets/ThirdParty: an empty folder. Delete (with its .meta).
+- Assets/Unity.gitignore: a stray copy of a Unity .gitignore inside Assets (the real one
+  is at the repo root). Delete.
+- Data/Hand Poses/LadderRung.asset and BottleHold.asset: not in Intro, used by builders
+  and ladders by path. Keep.
+- ASTROFISH_GAMES (git-ignored bought packs): 169 files (1.3 GB) used by Intro or the
+  catalogue, 1,044 files (2.7 GB) not. CLAUDE.md says the pack folder stays untouched and
+  a fresh clone re-imports it, so deleting unused pack content only saves local disk and
+  import time, and a re-import brings it back. Recommendation: leave it.
+
+Suggested order
+---------------
+1. Scenes (2): decide Main and Level Gen Test, add Intro to Build Settings, clear _Recovery.
+2. Rerun the scan (the editor script is in the session scratchpad; can be added as a
+   TeaLeaf > Report Unused Assets menu item if wanted - ask).
+3. Generator output (4): rebuild or delete Proxies, clear unused Sheared.
+4. Packages (1), scripts (3.1), shaders/materials/animations (6), audio (8), other (9).
+5. Tripo extras (7) and Building_* prefabs (5) last, as they need a decision per model.
+Every deletion of something a CLAUDE.md names also removes or rewrites that line.

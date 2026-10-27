@@ -38,31 +38,31 @@ namespace AI
     [RequireComponent(typeof(Guard))]
     public class GuardShadow : MonoBehaviour
     {
-        // The bones the patches follow, found under the guard by name if
-        // not assigned.
-        [Tooltip("Hips bone: the body's patch is centred under it. Found by name (Hips) if not assigned.")]
+        // The bones the patches follow, found through the model's Humanoid
+        // rig if not assigned.
+        [Tooltip("Hips bone: the body's shadow is centred under it. Left empty, the Humanoid rig's hips are found; with none, the shadows log an error and switch off.")]
         [SerializeField] private Transform hips;
-        [Tooltip("Left foot bone (the ankle). Found by name (Left_Foot) if not assigned.")]
+        [Tooltip("Left foot bone (the ankle): the heel end of the left foot's shadow, and its height fades it. Left empty, the Humanoid rig's left foot is found; with none, the shadows log an error and switch off.")]
         [SerializeField] private Transform leftFoot;
-        [Tooltip("Tip of the left toes. Found by name (Left_ToesEnd) if not assigned.")]
+        [Tooltip("Tip of the left toes: the toe end of the left foot's shadow. Left empty, the end bone under the Humanoid rig's left toes is found; with none, the shadows log an error and switch off.")]
         [SerializeField] private Transform leftToesEnd;
-        [Tooltip("Right foot bone (the ankle). Found by name (Right_Foot) if not assigned.")]
+        [Tooltip("Right foot bone (the ankle): the heel end of the right foot's shadow, and its height fades it. Left empty, the Humanoid rig's right foot is found; with none, the shadows log an error and switch off.")]
         [SerializeField] private Transform rightFoot;
-        [Tooltip("Tip of the right toes. Found by name (Right_ToesEnd) if not assigned.")]
+        [Tooltip("Tip of the right toes: the toe end of the right foot's shadow. Left empty, the end bone under the Humanoid rig's right toes is found; with none, the shadows log an error and switch off.")]
         [SerializeField] private Transform rightToesEnd;
 
         // The model's skinned mesh: patches are moved only while it is
         // drawn. Found in the children if not assigned.
-        [Tooltip("The model's skinned mesh: shadows are updated only while it is drawn. Found in the children if not assigned.")]
+        [Tooltip("The model's skinned mesh, e.g. the guard_1 SkinnedMeshRenderer: shadows are updated only while it is drawn. Left empty, it is found in the children; with none, the shadows log an error and switch off.")]
         [SerializeField] private Renderer bodyRenderer;
 
         [Header("Body")]
         // Width of the body's patch, in metres (and its length when round).
-        [Tooltip("Width of the body's shadow, in metres; its length too when round.")]
+        [Tooltip("Width of the body's shadow, in metres; its length too when round (out of moonlight). e.g. 0.8 = a soft patch a little wider than the shoulders. Higher = bigger, softer-looking patch.")]
         [SerializeField] private float bodyWidth = 0.8f;
 
         // How dark the middle of the body's patch is, 0-1.
-        [Tooltip("How dark the middle of the body's shadow is, 0-1.")]
+        [Tooltip("How dark the middle of the body's shadow is, 0-1. e.g. 0.5 = the ground there is half as bright. Higher = darker; 0 = no body shadow.")]
         [Range(0f, 1f)]
         [SerializeField] private float bodyStrength = 0.5f;
 
@@ -70,55 +70,55 @@ namespace AI
         // How tall a thing the stretched shadow is cast by, in metres. Not
         // the guard's full height: a blurred patch as long as a real moon
         // shadow reads as a stain, so only the part near the feet is drawn.
-        [Tooltip("Height of what casts the moon-stretched shadow, in metres. Less than the guard's height: only the part of the shadow near the feet is drawn.")]
+        [Tooltip("Height of what casts the moon-stretched shadow, in metres; with the moon's elevation it sets how long the shadow is. Less than the guard's height: only the part near the feet is drawn (a full-length blur reads as a stain). e.g. 0.8 with the moon at 45 degrees = 0.8m beyond the body patch. Higher = longer shadow.")]
         [SerializeField] private float castHeight = 0.8f;
 
         // The longest the stretched patch gets, however low the moon.
-        [Tooltip("Longest the moon-stretched shadow gets, in metres, however low the moon.")]
+        [Tooltip("Longest the moon-stretched shadow gets, in metres, however low the moon. e.g. 2.2 = never much more than a body length. Higher = longer shadows under a low moon.")]
         [SerializeField] private float maxLength = 2.2f;
 
         // How much thinner the far end of a stretched patch is, 0-1.
-        [Tooltip("How much the far end of the moon-stretched shadow fades, 0-1.")]
+        [Tooltip("How much sooner the far end of the moon-stretched shadow fades, 0-1. e.g. 0.7 = darkest at the feet, fading well before the tip. Higher = shorter-looking, softer tail; 0 = fades evenly like the round patch.")]
         [Range(0f, 1f)]
         [SerializeField] private float stretchTaper = 0.7f;
 
         // Seconds between looks at the moon and the floor.
-        [Tooltip("Seconds between checks for moonlight and the floor height (one ray each).")]
+        [Tooltip("Seconds between checks for moonlight and the floor under the guard (a ray towards the moon, one down, and four more to fit the floor's slope), each guard on its own offset. e.g. 0.25 = four times a second. Lower = follows steps and shadow edges sooner, costs more rays.")]
         [SerializeField] private float checkInterval = 0.25f;
 
         // Seconds to ease between round and stretched on entering or
         // leaving the moon's shadow.
-        [Tooltip("Seconds to ease between round and stretched when the guard walks in or out of moonlight.")]
+        [Tooltip("Seconds to ease between round and stretched when the guard walks in or out of moonlight. e.g. 0.4 = the shadow grows out over a stride. Higher = slower change; 0 = snaps.")]
         [SerializeField] private float moonEaseTime = 0.4f;
 
         [Header("Feet")]
         // Width of a foot's patch, in metres.
-        [Tooltip("Width of a foot's shadow, in metres.")]
+        [Tooltip("Width of a foot's shadow, in metres. e.g. 0.16 = a little wider than a boot. Higher = broader foot patches.")]
         [SerializeField] private float footWidth = 0.16f;
 
         // A foot's patch length as a multiple of the ankle-to-toe length.
-        [Tooltip("Length of a foot's shadow as a multiple of ankle-to-toe length.")]
+        [Tooltip("Length of a foot's shadow as a multiple of the ankle-to-toe length. e.g. 1.6 = covers heel to toe with soft ends. Higher = longer foot patches.")]
         [SerializeField] private float footLengthScale = 1.6f;
 
         // How dark the middle of a planted foot's patch is, 0-1.
-        [Tooltip("How dark the middle of a planted foot's shadow is, 0-1.")]
+        [Tooltip("How dark the middle of a planted foot's shadow is, 0-1. e.g. 0.6 = a little darker than the body's. Higher = darker; 0 = no foot shadows.")]
         [Range(0f, 1f)]
         [SerializeField] private float footStrength = 0.6f;
 
         // Ankle heights above the floor between which a foot's patch
         // fades out. The clips' planted ankles sit at 0.11-0.13m.
-        [Tooltip("Ankle height above the floor (m) up to which a foot's shadow is full strength. The clips' planted ankles sit at 0.11-0.13m.")]
+        [Tooltip("Ankle height above the floor, in metres, up to which a foot's shadow is full strength. e.g. 0.14: the clips' planted ankles sit at 0.11-0.13m. Higher = the shadow stays full as the heel lifts.")]
         [SerializeField] private float plantedHeight = 0.14f;
-        [Tooltip("Ankle height above the floor (m) at which a foot's shadow has faded out.")]
+        [Tooltip("Ankle height above the floor, in metres, at which a foot's shadow has faded out. e.g. 0.35 = gone at the top of a running stride. Higher = fades more slowly as the foot lifts; nearer Planted Height = a sharper fade.")]
         [SerializeField] private float liftedHeight = 0.35f;
 
         [Header("Floor")]
         // How far above the floor the patches lie, in metres.
-        [Tooltip("How far above the floor the shadows lie, in metres.")]
+        [Tooltip("How far above the floor the shadows lie, in metres, so they don't flicker into it. e.g. 0.015 = 1.5cm. Higher = less flicker on bumpy ground but may float visibly; lower = may cut into the floor.")]
         [SerializeField] private float floorClearance = 0.015f;
 
         // Furthest above or below the root to look for the floor.
-        [Tooltip("Furthest above or below the guard's root the floor is looked for, in metres.")]
+        [Tooltip("Furthest above or below the guard's root the floor is looked for, in metres (the ray starts this far above it). e.g. 0.4 = about one stair step. Higher = finds floors further off the root (e.g. on steep steps), but may land on a ledge overhead.")]
         [SerializeField] private float floorSearch = 0.4f;
 
         // Shared by every guard: one quad, one material, made once.
@@ -180,11 +180,11 @@ namespace AI
             _guard = GetComponent<Guard>();
             _ragdoll = GetComponent<GuardRagdoll>();
 
-            if (hips == null) hips = FindBone("Hips");
-            if (leftFoot == null) leftFoot = FindBone("Left_Foot");
-            if (leftToesEnd == null) leftToesEnd = FindBone("Left_ToesEnd");
-            if (rightFoot == null) rightFoot = FindBone("Right_Foot");
-            if (rightToesEnd == null) rightToesEnd = FindBone("Right_ToesEnd");
+            if (hips == null) hips = FindBone(HumanBodyBones.Hips);
+            if (leftFoot == null) leftFoot = FindBone(HumanBodyBones.LeftFoot);
+            if (leftToesEnd == null) leftToesEnd = FindToesEnd(HumanBodyBones.LeftToes);
+            if (rightFoot == null) rightFoot = FindBone(HumanBodyBones.RightFoot);
+            if (rightToesEnd == null) rightToesEnd = FindToesEnd(HumanBodyBones.RightToes);
 
             if (bodyRenderer == null) {
                 bodyRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
@@ -521,19 +521,30 @@ namespace AI
         }
 
         /// <summary>
-        /// Finds a bone under the guard by name.
+        /// Finds a bone of the model's Humanoid rig (any model whose avatar
+        /// maps it, whatever its bones are called); null without a
+        /// Humanoid Animator under the guard.
         /// </summary>
-        private Transform FindBone(string boneName)
+        private Transform FindBone(HumanBodyBones bone)
         {
-            Transform[] children = GetComponentsInChildren<Transform>(true);
+            Animator animator = GetComponentInChildren<Animator>(true);
+            return animator != null && animator.isHuman ? animator.GetBoneTransform(bone) : null;
+        }
 
-            foreach (Transform child in children) {
-                if (child.name == boneName) {
-                    return child;
-                }
+        /// <summary>
+        /// Finds the tip of the toes: the end bone under the Humanoid toe
+        /// bone (a rig has no Humanoid bone for it), or the toe bone itself
+        /// if it has no child.
+        /// </summary>
+        private Transform FindToesEnd(HumanBodyBones toes)
+        {
+            Transform toeBone = FindBone(toes);
+
+            if (toeBone == null) {
+                return null;
             }
 
-            return null;
+            return toeBone.childCount > 0 ? toeBone.GetChild(0) : toeBone;
         }
     }
 }

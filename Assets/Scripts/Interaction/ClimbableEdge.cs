@@ -22,7 +22,7 @@ namespace Interaction
     [RequireComponent(typeof(BoxCollider))]
     public class ClimbableEdge : MonoBehaviour, IHandTarget, IClimbable, IMantleable, IDebugDrawable
     {
-        [Tooltip("The hand offsets and finger pose for a hand on the lip, shared by every ledge. Empty, the hand sits exactly on the grip frame and the fingers keep their input curl.")]
+        [Tooltip("The HandSnapProfile giving the hand offsets and finger pose for a hand on the lip, shared by every ledge. e.g. drag Assets/Data/Hand Poses/LedgeGrip.asset here. Empty = the hand sits exactly on the grip frame and the fingers keep their input curl.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
         // For edges on something free-standing that can be gripped from
@@ -33,16 +33,17 @@ namespace Interaction
         // onto the front lip - right for a ledge set into a wall, which only
         // has a front. The box must then span the whole thickness of the
         // thing, so its back face lines up with the real back face the same
-        // way its front does.
-        [Tooltip("Tick for the top of something free-standing gripped from either side (a wall top, parapet, railing or window sill): the hand snaps onto the lip on the side the player's head is, facing in from there. Unticked, it always snaps onto the front lip, right for a ledge set into a wall. Ticked, the box must span the thing's whole thickness, overhanging both faces alike.")]
+        // way its front does. Each side has its own mantle landing:
+        // mantlePoint for the front, backMantlePoint for the back.
+        [Tooltip("On: for the top of something free-standing gripped from either side (e.g. a wall top, parapet, railing or window sill): the hand snaps onto the lip on the side the player's head is, facing in from there, and a mantle from the front lands on the Mantle Point, from the back on the Back Mantle Point; the box must then span the thing's whole thickness, overhanging both faces alike. Off: it always snaps onto the front lip and lands on the Mantle Point, right for a ledge set into a wall. Use one two-sided edge, never two back to back.")]
         [SerializeField] private bool grabbableFromBothSides;
 
         [Header("Mantling")]
 
-        [Tooltip("Whether the player can mantle up onto this edge, landing on the Mantle Point. Only tick it on level edges: mantling assumes the edge and its top face are horizontal.")]
+        [Tooltip("On: the player can mantle up onto this edge (push the right stick up while hanging with the head near the top), landing on the Mantle Point. Off: it can only be hung from and climbed along. e.g. on for a roof edge, off for a sloping beam. Only tick it on level edges: mantling assumes the edge and its top face are horizontal.")]
         [SerializeField] private bool isMantleable;
 
-        [Tooltip("Whether a mantle onto this edge ends with the player crouched. Tick it for low shelves and vents with no room to stand.")]
+        [Tooltip("On: a mantle onto this edge ends with the player crouched, e.g. for low shelves, vents or window sills with no room to stand. Off: the player stands up on landing.")]
         [SerializeField] private bool mantleEndsCrouched;
 
         // Where a mantle always lands the bottom of the player's capsule
@@ -51,9 +52,16 @@ namespace Interaction
         // from its origin - position and rotation apply, scale doesn't, so
         // the numbers stay real distances on a stretched cube. Filled in by
         // Reset() / the "Reset Mantle Point" context menu to sit on the top
-        // face, DefaultMantleInset in from the lip.
-        [Tooltip("Where a mantle lands the player's feet, in real metres along the edge's own axes from its origin (X along the edge, Y up, Z out from the wall); the object's scale is ignored. The right-click 'Reset Mantle Point' puts it on the box's top face, 0.4m in from the lip. With Move Horizontally To Point unticked only its height and its distance back from the lip are used.")]
+        // face, DefaultMantleInset in from the lip. On a two-sided edge this
+        // is the front lip's landing; backMantlePoint is the back lip's.
+        [Tooltip("Where a mantle lands the player's feet, in real metres along the edge's own axes from its origin (X along the edge, Y up, Z out from the wall); the object's scale is ignored. e.g. (0, 0.1, -0.4) = on a top face 0.1m above the origin, 0.4m back from the lip. With Grabbable From Both Sides on, this is the landing for a mantle from the front lip (both drawn blue). The right-click 'Reset Mantle Point' puts it on the box's top face, 0.4m in from the lip. With Move Horizontally To Point unticked only its height and its distance back from the lip are used.")]
         [SerializeField] private Vector3 mantlePoint = new(0f, 0.1f, -0.2f);
+
+        // A two-sided edge's second landing, for a mantle from behind (the
+        // hand on the top-back lip): in the same unscaled frame as
+        // mantlePoint. Unused unless grabbableFromBothSides is ticked.
+        [Tooltip("Only with Grabbable From Both Sides on: where a mantle from the back lip lands the player's feet, in the same real metres along the edge's axes as the Mantle Point (both drawn green). e.g. (0, 0.1, 0.4) = on a top face 0.1m above the origin, 0.4m forward of a back lip at Z 0. The right-click 'Reset Mantle Point' puts it on the box's top face, 0.4m in from the back lip (no further than the middle).")]
+        [SerializeField] private Vector3 backMantlePoint = new(0f, 0.1f, 0.2f);
 
         // Ticked (the default, and how every mantle worked before this
         // option): a mantle always lands exactly on mantlePoint. Unticked:
@@ -62,7 +70,7 @@ namespace Interaction
         // the player is (see GetMantleLanding()). For long ledges like roof
         // parapets and walls, where being carried sideways to one fixed spot
         // would feel wrong.
-        [Tooltip("Ticked, a mantle always lands exactly on the Mantle Point. Unticked, it lands straight ahead of the player instead, at the Mantle Point's height and distance back from the lip but wherever along the edge the player is, never past either end. Untick it for long ledges such as roof parapets and walls, where being carried sideways to one fixed spot would feel wrong.")]
+        [Tooltip("On: a mantle always lands exactly on the Mantle Point, e.g. a short sill where the landing spot is fixed. Off: it lands straight ahead of the player instead, at the Mantle Point's height and distance back from the lip but wherever along the edge the player is, never past either end. Untick it for long ledges such as roof parapets and walls, where being carried sideways to one fixed spot would feel wrong.")]
         [SerializeField] private bool moveHorizontallyToPoint = true;
 
         // How far in from the lip the default mantle point is, in metres.
@@ -73,8 +81,13 @@ namespace Interaction
 
         // Gizmo colours: the box faint, its lip (the top-front line a hand
         // curls over) bright, so which way round the edge faces is obvious.
+        // A two-sided edge draws each lip in the colour of its own landing
+        // instead - front blue, back green - so which mantle point goes
+        // with which side is obvious.
         private static readonly Color _gizmoBoxColor = new(1f, 0.6f, 0.1f, 0.35f);
         private static readonly Color _gizmoLipColor = new(1f, 0.6f, 0.1f, 1f);
+        private static readonly Color _gizmoFrontSideColor = new(0.2f, 0.5f, 1f, 1f);
+        private static readonly Color _gizmoBackSideColor = Color.green;
 
         private BoxCollider _boxCollider;
 
@@ -101,10 +114,28 @@ namespace Interaction
         /// Whether a mantle onto this edge ends crouched.
         public bool MantleEndsCrouched => mantleEndsCrouched;
 
-        /// World position a mantle lands the player's feet at - mantlePoint
+        /// <summary>
+        /// A point in mantlePoint's frame (unscaled local) in world space:
         /// rotated and offset by this edge's transform, but not scaled (see
         /// mantlePoint), which is why this isn't TransformPoint().
-        public Vector3 MantlePointWorld => transform.position + transform.rotation * mantlePoint;
+        /// </summary>
+        private Vector3 UnscaledToWorld(Vector3 point)
+        {
+            return transform.position + transform.rotation * point;
+        }
+
+        /// <summary>
+        /// The landing for a mantle that starts with the feet at
+        /// feetPosition: backMantlePoint when the edge is two-sided and the
+        /// feet are behind it, else mantlePoint. The feet decide it, as the
+        /// head decides which lip a hand snaps to (GetSnapPose()): a hand
+        /// grips the lip on the side the player hangs, and the feet hang on
+        /// that same side however far the head is pulled up over the top.
+        /// </summary>
+        private Vector3 LandingPointFor(Vector3 feetPosition)
+        {
+            return grabbableFromBothSides && IsBehind(feetPosition) ? backMantlePoint : mantlePoint;
+        }
 
         /// <summary>
         /// A mantle is possible on a mantleable edge once the head has been
@@ -125,23 +156,26 @@ namespace Interaction
 
         /// <summary>
         /// World position a mantle lands the feet at, when it starts with
-        /// them at feetPosition. With moveHorizontallyToPoint ticked, always
-        /// MantlePointWorld. Unticked, the same height and distance back from
-        /// the lip, but slid along the edge to straight in front of
+        /// them at feetPosition: on the landing for the side the player is
+        /// on (LandingPointFor()). With moveHorizontallyToPoint ticked,
+        /// exactly that point. Unticked, the same height and distance back
+        /// from the lip, but slid along the edge to straight in front of
         /// feetPosition (where it is along the edge, measured square-on),
         /// never past either end. Only called when a mantle starts.
         /// </summary>
         public Vector3 GetMantleLanding(Vector3 feetPosition)
         {
+            Vector3 point = LandingPointFor(feetPosition);
+
             if (moveHorizontallyToPoint) {
-                return MantlePointWorld;
+                return UnscaledToWorld(point);
             }
 
             // mantlePoint's frame: position and rotation, not scale.
             Vector3 local = Quaternion.Inverse(transform.rotation) * (feetPosition - transform.position);
             GetLipExtent(_boxCollider, out float lipStart, out float lipEnd);
             float along = Mathf.Clamp(local.x, lipStart, lipEnd);
-            return transform.position + transform.rotation * new Vector3(along, mantlePoint.y, mantlePoint.z);
+            return UnscaledToWorld(new Vector3(along, point.y, point.z));
         }
 
         /// <summary>
@@ -208,11 +242,14 @@ namespace Interaction
 
         /// <summary>
         /// Puts the mantle point on this box's top face, DefaultMantleInset
-        /// in from the lip, centred along the edge. The box's collider size
-        /// is multiplied by the transform's scale here to get real metres,
-        /// since mantlePoint itself is unscaled. Also available from the
-        /// component's right-click menu, for edges placed before this
-        /// existed or after resizing one.
+        /// in from the lip, centred along the edge, and the back mantle
+        /// point the same distance in from the back lip. A two-sided box
+        /// is the thing's whole thickness, so there the inset stops at the
+        /// middle of the top: a landing never goes past it towards the far
+        /// side. The box's collider size is multiplied by the transform's
+        /// scale here to get real metres, since mantlePoint itself is
+        /// unscaled. Also available from the component's right-click menu,
+        /// for edges placed before this existed or after resizing one.
         /// </summary>
         [ContextMenu("Reset Mantle Point")]
         private void ResetMantlePoint()
@@ -223,6 +260,15 @@ namespace Interaction
             float along = box.center.x * scale.x;
             float top = (box.center.y + box.size.y * 0.5f) * scale.y;
             float lip = (box.center.z + box.size.z * 0.5f) * scale.z;
+            float backLip = (box.center.z - box.size.z * 0.5f) * scale.z;
+
+            // A one-sided box is only a grab strip, with the floor going on
+            // behind it, so its landing may be past the box.
+            float inset = DefaultMantleInset;
+
+            if (grabbableFromBothSides) {
+                inset = Mathf.Min(inset, Mathf.Abs(lip - backLip) * 0.5f);
+            }
 
 #if UNITY_EDITOR
             // Lets the change be undone, and marks the object dirty so it's
@@ -230,7 +276,8 @@ namespace Interaction
             UnityEditor.Undo.RecordObject(this, "Reset Mantle Point");
 #endif
 
-            mantlePoint = new Vector3(along, top, lip - DefaultMantleInset);
+            mantlePoint = new Vector3(along, top, lip - inset);
+            backMantlePoint = new Vector3(along, top, backLip + inset);
         }
 
         /// <summary>
@@ -257,11 +304,10 @@ namespace Interaction
         /// is on, in the headset: the box's outline faintly and its lip
         /// brightly, in the box's own (scaled) local space so it matches the
         /// collider exactly. With detailed on (selected), a mantleable edge
-        /// also marks where a mantle lands: a sphere at the feet and a line
-        /// up to roughly head height (lower when the mantle ends crouched) -
-        /// or, when it lands straight ahead of the player
-        /// (moveHorizontallyToPoint off), a line along the edge where the
-        /// feet can land, with a head-height line at each end.
+        /// also marks where a mantle lands (DrawLanding()). A two-sided edge
+        /// draws its front lip and that lip's landing blue, its back lip and
+        /// that lip's landing green; a one-sided edge's lip is orange and
+        /// its landing green (yellow when the mantle ends crouched).
         /// </summary>
         public void DrawDebug(DebugLines lines, bool detailed)
         {
@@ -281,13 +327,14 @@ namespace Interaction
             lines.Color = _gizmoBoxColor;
             lines.WireCube(centre, box.size);
 
-            lines.Color = _gizmoLipColor;
+            lines.Color = grabbableFromBothSides ? _gizmoFrontSideColor : _gizmoLipColor;
             Vector3 lipCentre = new(centre.x, centre.y + halfSize.y, centre.z + halfSize.z);
             Vector3 alongLip = new(halfSize.x, 0f, 0f);
             lines.Line(lipCentre - alongLip, lipCentre + alongLip);
 
             // A two-sided edge has a second lip along the top-back line.
             if (grabbableFromBothSides) {
+                lines.Color = _gizmoBackSideColor;
                 Vector3 backLipCentre = new(centre.x, centre.y + halfSize.y, centre.z - halfSize.z);
                 lines.Line(backLipCentre - alongLip, backLipCentre + alongLip);
             }
@@ -298,21 +345,38 @@ namespace Interaction
                 return;
             }
 
+            if (grabbableFromBothSides) {
+                DrawLanding(lines, box, mantlePoint, _gizmoFrontSideColor);
+                DrawLanding(lines, box, backMantlePoint, _gizmoBackSideColor);
+                return;
+            }
+
+            DrawLanding(lines, box, mantlePoint, mantleEndsCrouched ? Color.yellow : Color.green);
+        }
+
+        /// <summary>
+        /// Marks where a mantle onto one landing point (in mantlePoint's
+        /// unscaled frame) puts the player: a sphere at the feet and a line
+        /// up to roughly head height (lower when the mantle ends crouched) -
+        /// or, when it lands straight ahead of the player
+        /// (moveHorizontallyToPoint off), a line along the edge where the
+        /// feet can land, with a head-height line at each end.
+        /// </summary>
+        private void DrawLanding(DebugLines lines, BoxCollider box, Vector3 point, Color color)
+        {
             float headHeight = mantleEndsCrouched ? 1f : 1.8f;
-            lines.Color = mantleEndsCrouched ? Color.yellow : Color.green;
+            lines.Color = color;
 
             if (moveHorizontallyToPoint) {
-                Vector3 feet = MantlePointWorld;
+                Vector3 feet = UnscaledToWorld(point);
                 lines.WireSphere(feet, 0.1f);
                 lines.Line(feet, feet + Vector3.up * headHeight);
                 return;
             }
 
-            // Lands anywhere along the edge: a line where the feet can land,
-            // with the head-height marker at each end.
             GetLipExtent(box, out float lipStart, out float lipEnd);
-            Vector3 startFeet = transform.position + transform.rotation * new Vector3(lipStart, mantlePoint.y, mantlePoint.z);
-            Vector3 endFeet = transform.position + transform.rotation * new Vector3(lipEnd, mantlePoint.y, mantlePoint.z);
+            Vector3 startFeet = UnscaledToWorld(new Vector3(lipStart, point.y, point.z));
+            Vector3 endFeet = UnscaledToWorld(new Vector3(lipEnd, point.y, point.z));
             lines.Line(startFeet, endFeet);
             lines.Line(startFeet, startFeet + Vector3.up * headHeight);
             lines.Line(endFeet, endFeet + Vector3.up * headHeight);

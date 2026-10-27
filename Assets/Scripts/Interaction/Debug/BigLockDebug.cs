@@ -15,18 +15,18 @@ namespace Interaction
     /// </summary>
     public class BigLockDebug : MonoBehaviour, IDebugDrawable
     {
-        [Tooltip("The big lock to show the readout for. Filled in from this object when the component is added.")]
+        [Tooltip("The big lock to show the readout for. e.g. the BigLock on this same object, filled in when the component is added. Empty = nothing is drawn or logged.")]
         [SerializeField] private BigLock bigLock;
 
         // How far out from the lock's middle the lines reach, and how far
         // in front of its middle they're drawn (towards the player), in
         // metres - clear of the face, so they aren't buried in it.
-        [Tooltip("How far out from the lock's middle the readout's lines reach, in metres. The pin squares and the hold bar are placed above and below the lock by the same amount.")]
+        [Tooltip("How far out from the lock's middle the readout's lines reach, in metres; the pin squares and the hold bar sit above and below the lock by about the same amount. e.g. 0.16 = lines 16cm long, reaching past the picks. Higher = a bigger readout; lower = a smaller one, closer in.")]
         [SerializeField] private float radius = 0.16f;
-        [Tooltip("How far in front of the lock's middle the readout is drawn (towards the player), in metres, so it stands clear of the face instead of being buried in it.")]
+        [Tooltip("How far in front of the lock's middle the readout is drawn (towards the player), in metres, so it stands clear of the face instead of being buried in it. e.g. 0.04 = 4cm out from the door. Higher = floats further off the lock; lower = closer to it, and may hide behind the face.")]
         [SerializeField] private float standOff = 0.04f;
 
-        [Tooltip("Whether each change of stage (the lock shown or hidden, a stop reached, a pin set) is written to the Console.")]
+        [Tooltip("On: each change of stage (the lock shown or hidden, a stop reached, a pin set) is written to the Console, e.g. \"[Lockpick] stage 2 of 3: searching, pin at -75 degrees\". Off: nothing is logged; the drawn readout still shows.")]
         [SerializeField] private bool logChanges = true;
 
         private static readonly Color _pickColor = new(1f, 1f, 1f, 1f);

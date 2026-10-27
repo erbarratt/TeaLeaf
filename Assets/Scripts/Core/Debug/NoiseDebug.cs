@@ -14,23 +14,30 @@ namespace Core
     public class NoiseDebug : MonoBehaviour, IDebugDrawable
     {
         // How long a noise stays drawn, in seconds, fading as it goes.
+        [Tooltip("Seconds each noise's wire sphere stays drawn, fading as it goes. e.g. 2 = a footstep's circle lingers two seconds. Higher = noises linger longer (busier view).")]
         [SerializeField] private float showDuration = 2f;
 
         // Also write each noise to the Console.
+        [Tooltip("On: each noise is also written to the Console, e.g. its type, radius and position. Off: noises are only drawn.")]
         [SerializeField] private bool logNoises = true;
 
         [Header("Test noise")]
+        [Tooltip("Key that makes a test noise of Test Radius and Test Type at Emit From. e.g. N = press N with the Game view focused.")]
         [SerializeField] private Key emitKey = Key.N;
 
         // Where the test noise is made (e.g. the Main Camera, to make it at
         // the player). This object's own position if empty.
+        [Tooltip("Where the test noise is made, e.g. drag the Main Camera here to make it at the player. Left empty, it is made at this object.")]
         [SerializeField] private Transform emitFrom;
 
+        [Tooltip("Radius of the test noise, in metres: how far it carries before guards stop hearing it. e.g. 8 = heard across a large room. Higher = heard further off.")]
         [SerializeField] private float testRadius = 8f;
+        [Tooltip("What kind of noise the test noise is, e.g. Impact = something thrown or dropped; Footstep = someone walking. Listeners may treat kinds differently.")]
         [SerializeField] private NoiseType testType = NoiseType.Impact;
 
         // After the test noise, write one Console entry listing what every
         // NoiseListenerDebug made of it.
+        [Tooltip("On: after each test noise, one Console entry lists what every NoiseListenerDebug made of it (e.g. heard or not, and how loud). Off: no report.")]
         [SerializeField] private bool logReport = true;
 
         // Reused for each report's text.

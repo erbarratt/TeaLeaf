@@ -32,27 +32,27 @@ namespace Interaction
     [RequireComponent(typeof(BoxCollider))]
     public class DoorHandle : MonoBehaviour, IHandTarget, IHandSnapTarget, IDebugDrawable
     {
-        [Tooltip("The door this handle opens. Left empty, the Door on a parent object is used.")]
+        [Tooltip("The door this handle opens and swings, e.g. drag the door leaf with the Door component here. Left empty, the Door on a parent object is used (the usual set-up: the handle is a child of its door).")]
         [SerializeField] private Door door;
 
-        [Tooltip("The part shown turning with the hand: the levers on both faces, as children of one object on the spindle, turned about its local Z. Optional: empty, nothing visible turns.")]
+        [Tooltip("The part shown turning with the hand: the levers on both faces, as children of one object on the spindle, turned about its local Z, e.g. drag the 'Levers' child here and it dips as the wrist turns. Optional: left empty, the latch still frees but nothing visible turns.")]
         [SerializeField] private Transform lever;
 
-        [Tooltip("On: a lever turned by the wrist to free the latch. Off: a fixed pull, an upright bar that doesn't turn - taking hold of it frees the latch at once, and the hand grips it thumb up.")]
+        [Tooltip("On: a lever turned by the wrist to free the latch, e.g. a house door's lever handle. Off: a fixed pull, an upright bar that doesn't turn, e.g. a barn door's iron pull - taking hold of it frees the latch at once, and the hand grips it thumb up.")]
         [SerializeField] private bool turns = true;
 
         [Header("Grip")]
 
-        [Tooltip("The hand offsets and finger pose for a hand on the lever, shared by every door handle. Empty, the hand sits exactly on the grip frame with the default pose.")]
+        [Tooltip("The hand offsets and finger pose for a hand on the lever, shared by every door handle, e.g. drag the door handle HandSnapProfile asset here so the fingers wrap the lever. Left empty, the hand sits exactly on the grip frame with the default pose.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
-        [Tooltip("How far the lever's own axis stands out from this object (the middle of the door's thickness) along Z, in metres. The same on both faces.")]
+        [Tooltip("How far the lever's own axis stands out from this object (the middle of the door's thickness) along Z, in metres, the same on both faces. E.g. 0.075 = the lever's axis 7.5cm out from the door's middle on each side. Higher = the hand grips further out from the door; lower = closer in. Match it to the lever model.")]
         [SerializeField] private float standOff = 0.075f;
 
-        [Tooltip("Where along the lever the hand grips, in metres along local X from the spindle. Negative is towards the hinge, the way a lever normally points.")]
+        [Tooltip("Where along the lever the hand grips, in metres along local X from the spindle. Negative is towards the hinge, the way a lever normally points, e.g. -0.07 = 7cm from the spindle towards the hinge. Further from 0 = the hand grips nearer the lever's tip; 0 = on the spindle itself.")]
         [SerializeField] private float gripAlong = -0.07f;
 
-        [Tooltip("The lever's radius, in metres. The grip frame sits on the lever's surface, this far out from its axis on the player's side.")]
+        [Tooltip("The lever's radius, in metres: the grip frame sits on the lever's surface, this far out from its axis on the player's side. E.g. 0.011 = a 22mm-thick lever. Higher = the hand sits further off the lever's axis (a fatter lever); lower = closer to it.")]
         [SerializeField] private float gripRadius = 0.011f;
 
         // The layer the handle must be on - see OnValidate().

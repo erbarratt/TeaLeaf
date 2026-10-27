@@ -19,9 +19,9 @@ namespace Player
     /// </summary>
     public class MantleIndicator : MonoBehaviour
     {
-        [Tooltip("The arrow's height, in metres. Its width is three quarters of it.")]
+        [Tooltip("The mantle arrow's height, in metres; its width is three quarters of it, e.g. 0.04 = an arrow 4 cm tall, about half a metre ahead of the eyes. Higher = bigger and more noticeable. Read once at load.")]
         [SerializeField] private float size = 0.04f;
-        [Tooltip("The arrow's colour. It is drawn on top of everything, with no depth test.")]
+        [Tooltip("The mantle arrow's colour (alpha included); drawn on top of everything, with no depth test, e.g. white. Read once at load.")]
         [SerializeField] private Color color = Color.white;
 
         private MeshRenderer _meshRenderer;

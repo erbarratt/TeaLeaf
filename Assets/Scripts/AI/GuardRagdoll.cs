@@ -29,28 +29,28 @@ namespace AI
     {
         // The model's Animator, stopped while limp. Found in the children
         // if not assigned.
-        [Tooltip("The model's Animator, stopped while the guard lies limp. Found in the children if not assigned.")]
+        [Tooltip("The model's Animator, stopped while the guard lies limp and started again as it stands up, e.g. the Animator on the prefab's Model object. Left empty, it is found in the children.")]
         [SerializeField] private Animator animator;
 
         // The bone bodies, the hips first; their colliders, in the same
         // order; and the head's, what a stun bolt must hit. Filled in by
         // the builder.
-        [Tooltip("The ragdoll's bone Rigidbodies, the hips first. Filled in by TeaLeaf > Modify Prefab > Build Guard Ragdoll.")]
+        [Tooltip("One entry per ragdoll bone's Rigidbody, the hips first, e.g. Hips, Chest, Head, then the limbs: kinematic riding the animation, dynamic while limp. Filled in by TeaLeaf > Modify Prefab > Build Guard Ragdoll; rerun it rather than editing by hand.")]
         [SerializeField] private Rigidbody[] bodies;
-        [Tooltip("The bone colliders, in the same order as the bodies: the guard's hit boxes for bolts.")]
+        [Tooltip("One entry per bone collider, in the same order as Bodies: the guard's hit boxes for bolts, e.g. the hips' box or a forearm's capsule. Filled in by Build Guard Ragdoll.")]
         [SerializeField] private Collider[] hitboxes;
-        [Tooltip("The head bone's collider: what a stun bolt must hit.")]
+        [Tooltip("The head bone's hit box collider, e.g. the sphere on the Head bone: a stun arrow only stuns when it hits this one. Filled in by Build Guard Ragdoll.")]
         [SerializeField] private Collider headHitbox;
 
         // Seconds the guard takes to rise from where it lay into the
         // animated pose.
-        [Tooltip("Seconds the guard takes to rise from where it lay into its standing pose.")]
+        [Tooltip("Seconds the guard takes to rise from where it lay into its standing pose, blending each bone from lying to animated. e.g. 0.8 = a quick scramble up. Higher = slower, gentler rise.")]
         [SerializeField] private float standUpTime = 0.8f;
 
         // Going limp, the chest and head are given this much extra speed
         // forwards, in metres a second, so a guard knocked out standing
         // topples over instead of folding up onto its knees.
-        [Tooltip("Extra forward speed given to the chest and head on going limp, in metres a second, so a standing guard topples over rather than folding onto its knees.")]
+        [Tooltip("Extra forward speed given to the chest and head on going limp, in metres a second, so a standing guard topples over rather than folding onto its knees. e.g. 1.5 = falls face down. Higher = pitches forward harder; 0 = slumps straight down.")]
         [SerializeField] private float topplePush = 1.5f;
 
         // How far from where the hips lie the root may be put back on the

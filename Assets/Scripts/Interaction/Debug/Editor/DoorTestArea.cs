@@ -48,6 +48,11 @@ namespace Interaction
         private const string HandleProfilePath = "Assets/Data/Hand Poses/DoorHandle.asset";
         private const string BottleProfilePath = "Assets/Data/Hand Poses/BottleHold.asset";
 
+        // The bolt's and a chest lid's own hand poses, made by Pose with
+        // Hand; until they exist both use the door handle's.
+        private const string BoltProfilePath = "Assets/Data/Hand Poses/DoorBolt.asset";
+        internal const string ChestLidProfilePath = "Assets/Data/Hand Poses/ChestLid.asset";
+
         // The wall, in metres.
         private const float WallHeight = 2.5f;
         private const float WallThickness = 0.15f;
@@ -168,7 +173,7 @@ namespace Interaction
 
             // A sliding bolt on the door with no lock, on the side the
             // area is built facing (the door's back, -Z).
-            BuildBolt(plainDoor, false, profile, cue, interactable);
+            BuildBolt(plainDoor, false, ProfileOr(BoltProfilePath, profile), cue, interactable);
 
             BuildSound(parent, cue);
             BuildKeys(parent, environment, interactable);
@@ -632,6 +637,16 @@ namespace Interaction
             MeshRenderer renderer = part.GetComponent<MeshRenderer>();
             renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
             renderer.receiveShadows = false;
+        }
+
+        /// <summary>
+        /// The hand snap profile at path, or fallback if there's none
+        /// there yet.
+        /// </summary>
+        internal static HandSnapProfile ProfileOr(string path, HandSnapProfile fallback)
+        {
+            HandSnapProfile profile = AssetDatabase.LoadAssetAtPath<HandSnapProfile>(path);
+            return profile != null ? profile : fallback;
         }
 
         /// <summary>

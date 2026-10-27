@@ -28,12 +28,15 @@ namespace Core
     {
         // How far the ramp runs along local Z, from the foot of the first
         // step to the back of the top one.
+        [Tooltip("How far the ramp runs along local Z, from the foot of the first step to the back of the top one, in metres (keep scale 1), e.g. 1.8 = six 0.3m treads. Longer = a gentler slope for the same Height.")]
         [SerializeField] private float length = 1.8f;
 
         // How high the back of the ramp is: the height of the top step.
+        [Tooltip("How high the back of the ramp is, i.e. the top step's height, in metres, e.g. 1.08 = six 0.18m risers. Higher = a steeper slope for the same Length (over 45 degrees the player slides).")]
         [SerializeField] private float height = 1.08f;
 
         // How wide the ramp is along local X, centred on the object.
+        [Tooltip("How wide the ramp is along local X, centred on this object, in metres, e.g. 2 = the steps' full width. Match it to the steps so the player can't walk off the side onto nothing.")]
         [SerializeField] private float width = 2f;
 
         // Smallest allowed size - a wedge with no length, height or width has

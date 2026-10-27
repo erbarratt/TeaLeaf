@@ -37,91 +37,125 @@ namespace Player
     /// </summary>
     public class PlayerCompass : MonoBehaviour
     {
+        [Tooltip("The PlayerInputXR on the Player root: its Left Handed setting picks the hand the compass is worn on (off = right hand), and its object is the Player root whose own sounds are never shown. Empty finds it on a parent at load.")]
         [SerializeField] private PlayerInputXR playerInput;
+        [Tooltip("The PlayerHandVisuals on this Hands object: the hand visual the compass is placed on each frame. Empty finds it on this object at load.")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         // How well lit the player is, for the gem. Optional: without it
         // the gem stays dark.
+        [Tooltip("The PlayerVisibility on the Player root: how well lit the player is, shown by the light gem. Empty finds it on a parent at load; none = the gem stays dark.")]
         [SerializeField] private PlayerVisibility playerVisibility;
 
         [Header("Where It Sits")]
 
-        // The middle of the compass in the hand visual's own space (its
-        // fingers point along -Y, the back of the hand is -X): on the
-        // back of the hand, over the middle of where the lockpicks lie on
-        // the other hand (their tips at about y -0.09, handles ending at
-        // about y 0). The right hand visual is the left one mirrored, so
+        // The middle of the compass in the hand visual's own space: on
+        // the gauntlet's back plate, halfway from the wrist to the
+        // knuckles, its back just clear of the plate (measured from the
+        // gauntlet mesh: the plate is about 4cm out from the hand's middle
+        // line there). The right hand visual is the left one mirrored, so
         // the same numbers put it on either hand.
-        [SerializeField] private Vector3 onHandPosition = new(-0.03f, -0.045f, 0f);
+        [Tooltip("Where the compass's middle sits in the hand visual's own space, in metres (wrist at about the origin, fingers along -Y, back of the hand towards -X), e.g. (-0.072, -0.037, 0) = on the gauntlet's back plate halfway to the knuckles. Move it further along the Back Of Hand Tilt's back direction if the hand shows through it. The same numbers work for either hand (the right visual is the left mirrored).")]
+        [SerializeField] private Vector3 onHandPosition = new(-0.072f, -0.037f, 0f);
+
+        // The hand visual's own axes aren't square to the hand: the back
+        // of the hand faces -X turned about Z (towards +Y), the fingers
+        // run down -Y turned the same way. Measured from the gauntlet:
+        // wrist to middle knuckle runs about 27 degrees off -Y.
+        [Tooltip("How far the back of the hand is turned from the hand visual's -X about its Z axis, in degrees, e.g. -27 = the gauntlet's back plate (the compass's face lies flat on it, its top towards the knuckles). Raise towards 0 to tip the face towards the wrist; lower to tip it towards the fingers.")]
+        [SerializeField] private float onHandTilt = -27f;
 
         [Header("North")]
 
         // Which way north is, in degrees round the world's vertical from
         // its +Z axis (0 = +Z is north and +X is east, the way a level
         // is seen from above in the editor).
+        [Tooltip("Which way north is, in degrees round the world's vertical from +Z, e.g. 0 = world +Z is north and +X east; 90 = north turned a quarter round. Changes only where the dial points.")]
         [SerializeField] private float northAngle;
 
         [Header("Its Shape (greybox)")]
 
         // The rim's radius and thickness, in metres. The dial and gem
         // are sized from them.
+        [Tooltip("The rim's radius, in metres, e.g. 0.05 = a 10cm-wide compass. The dial, gem and marks scale with it. Built once at load.")]
         [SerializeField] private float radius = 0.05f;
+        [Tooltip("The rim's thickness (how far it stands off the hand), in metres, e.g. 0.01 = 1cm. Built once at load.")]
         [SerializeField] private float thickness = 0.01f;
 
         // The dial's radius as a fraction of the rim's ("only slightly
         // smaller"), and the gem's.
+        [Tooltip("The turning dial's radius as a fraction of Radius, e.g. 0.88 = only slightly smaller than the rim. Lower shows more of the fixed rim.")]
         [SerializeField] private float dialSize = 0.88f;
+        [Tooltip("The light gem's radius as a fraction of Radius, e.g. 0.3 = a gem about a third of the compass across. Raise it for a bigger, easier-to-read gem.")]
         [SerializeField] private float gemSize = 0.3f;
 
         // How big the east, south and west triangles are (the distance
         // from a triangle's middle to its corners, as a fraction of the
         // rim's radius), and how much bigger north's is.
+        [Tooltip("Size of the east, south and west triangles on the dial (middle to corner) as a fraction of Radius, e.g. 0.14.")]
         [SerializeField] private float markSize = 0.14f;
+        [Tooltip("How much bigger the north triangle is than the others, as a multiple of Mark Size, e.g. 1.6 = 60% bigger. 1 = same size.")]
         [SerializeField] private float northMarkScale = 1.6f;
 
+        [Tooltip("Colour of the fixed outer rim, e.g. a brass brown.")]
         [SerializeField] private Color rimColor = new(0.45f, 0.36f, 0.2f, 1f);
+        [Tooltip("Colour of the turning dial's face, e.g. an off-white parchment.")]
         [SerializeField] private Color dialColor = new(0.85f, 0.82f, 0.72f, 1f);
+        [Tooltip("Colour of the east, south and west triangles, e.g. near black.")]
         [SerializeField] private Color markColor = new(0.2f, 0.2f, 0.22f, 1f);
+        [Tooltip("Colour of the north triangle, e.g. red.")]
         [SerializeField] private Color northColor = new(0.85f, 0.15f, 0.1f, 1f);
 
         // The least light the compass is ever shown in, 0-1.
+        [Tooltip("The least light (0-1) the compass is ever drawn in, however dark the spot, e.g. 0.5 = never darker than half lit, so it can be read in shadow. 0 = as dark as the scene; 1 = always fully lit. Set at load.")]
         [SerializeField] private float minLight = 0.5f;
 
         [Header("Light Gem")]
 
         // The gem's colour when the player is hidden and when they're in
         // plain sight; in between, a mix.
+        [Tooltip("The gem's colour when the player is fully hidden (Visibility 0), e.g. a dark blue-black; it blends towards Gem Light Color as they become visible.")]
         [SerializeField] private Color gemDarkColor = new(0.05f, 0.07f, 0.12f, 1f);
+        [Tooltip("The gem's colour when the player is in plain sight (Visibility 1), e.g. a warm yellow.")]
         [SerializeField] private Color gemLightColor = new(1f, 0.95f, 0.6f, 1f);
 
         [Header("Sound Arrows")]
 
         // How many sounds can show at once. With all in use, a new sound
         // takes the faintest one's place if it's louder.
+        [Tooltip("How many sound arrows can show at once, e.g. 4. With all in use, a new sound takes the faintest one's place if it's louder. Made once at load.")]
         [SerializeField] private int arrowCount = 4;
 
         // Seconds an arrow shows at full strength, then how long it
         // takes to fade away.
+        [Tooltip("Seconds an arrow shows at full strength after its sound, e.g. 0.5, before it starts to fade.")]
         [SerializeField] private float arrowHoldTime = 0.5f;
+        [Tooltip("Seconds an arrow takes to fade away after Arrow Hold Time, e.g. 2. Longer keeps a sound's direction on show for longer.")]
         [SerializeField] private float arrowFadeTime = 2f;
 
         // An arrow's size (middle to corner, metres) for the faintest
         // sound and for the loudest.
+        [Tooltip("An arrow's size (middle to corner) for the faintest sound shown, in metres, e.g. 0.008 = 8mm; it grows towards Arrow Max Size with loudness.")]
         [SerializeField] private float arrowMinSize = 0.008f;
+        [Tooltip("An arrow's size (middle to corner) for a sound at full loudness, in metres, e.g. 0.024 = 2.4cm.")]
         [SerializeField] private float arrowMaxSize = 0.024f;
 
         // Sounds quieter than this at the ears (0-1) aren't shown.
+        [Tooltip("Footsteps and voices quieter than this at the ears (0-1) get no arrow, e.g. 0.02. Raise it to show only nearer, louder sounds; 0 = every one.")]
         [SerializeField] private float minLoudness = 0.02f;
 
         // The gap between the rim and an arrow, in metres.
+        [Tooltip("The gap between the rim and an arrow, in metres, e.g. 0.006 = 6mm.")]
         [SerializeField] private float arrowGap = 0.006f;
 
         // A sound within this many metres of one already showing is
         // taken as the same thing sounding again (a guard's next
         // footstep): its arrow is moved and renewed, rather than a
         // second one shown.
+        [Tooltip("A sound heard within this many metres of one already showing counts as the same thing again (e.g. a guard's next footstep), so its arrow is moved and renewed instead of a second shown, e.g. 1.5. 0 = every sound gets its own arrow.")]
         [SerializeField] private float sameSourceDistance = 1.5f;
 
+        [Tooltip("Colour of the sound arrows, e.g. white; they fade out through their own transparency. Set at load.")]
         [SerializeField] private Color arrowColor = new(1f, 1f, 1f, 1f);
 
         // How far the gem's brightness must change before its colour is
@@ -462,16 +496,19 @@ namespace Player
             Vector3 position = visual.TransformPoint(onHandPosition);
 
             // Which way the palm faces, in the world: the hand visual's
-            // own +X - the way into the hand, for someone looking at the
-            // compass's face. TransformVector(), not TransformDirection():
-            // the right visual is the left one mirrored, and only
-            // TransformVector() takes the mirroring into account.
-            Vector3 palm = visual.TransformVector(Vector3.right).normalized;
+            // own +X turned by the tilt - the way into the hand, for
+            // someone looking at the compass's face. Turned in the
+            // visual's own space first, then TransformVector(), not
+            // TransformDirection(): the right visual is the left one
+            // mirrored, and only TransformVector() takes the mirroring
+            // into account.
+            Quaternion tilt = Quaternion.Euler(0f, 0f, onHandTilt);
+            Vector3 palm = visual.TransformVector(tilt * Vector3.right).normalized;
 
             // The rim rides the hand: its face out of the back of it
             // (the compass's own Z points into the hand), its top
-            // towards the fingers (the visual's -Y).
-            Vector3 fingers = Vector3.ProjectOnPlane(visual.TransformVector(Vector3.down), palm);
+            // towards the fingers (the visual's -Y, turned likewise).
+            Vector3 fingers = Vector3.ProjectOnPlane(visual.TransformVector(tilt * Vector3.down), palm);
 
             if (fingers.sqrMagnitude > 0.000001f) {
                 _compass.SetPositionAndRotation(position, Quaternion.LookRotation(palm, fingers));

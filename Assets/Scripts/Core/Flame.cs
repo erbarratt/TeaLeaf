@@ -18,26 +18,33 @@ namespace Core
     {
         // The light guards and the player's visibility go by. Found on
         // this object if left empty.
+        [Tooltip("The gameplay light guards and the player's visibility go by, e.g. this torch's LightSource; disabled while the fire is out. Left empty, the one on this object is used; none = no gameplay light to switch.")]
         [SerializeField] private LightSource lightSource;
 
         // The light the player sees. Found on this object if left empty.
+        [Tooltip("The visible Light the player sees, e.g. the torch's point light; switched off while the fire is out. Left empty, the Light on this object is used.")]
         [SerializeField] private Light visibleLight;
 
         // What makes that light waver. Found on this object if left empty;
         // optional. Paused while the fire is out.
+        [Tooltip("The FlameFlicker making the visible light waver, paused while the fire is out. Left empty, the one on this object is used; none = nothing to pause.")]
         [SerializeField] private FlameFlicker flicker;
 
         // The fire's sound. Found on this object if left empty.
+        [Tooltip("The fire's crackle (a SoundLoop), faded out while the fire is out. Left empty, the one on this object is used; none = a silent fire.")]
         [SerializeField] private SoundLoop soundLoop;
 
         // The flame the player sees (a mesh, particles), switched off with
         // the rest. Optional.
+        [Tooltip("The object drawing the flame itself, e.g. the Flame Visual child quad; switched off with the rest. Optional: empty = no flame object to hide.")]
         [SerializeField] private GameObject flameVisual;
 
         // Off = it starts the level already out.
+        [Tooltip("On: the fire is burning when the level starts. Off: it starts the level already out (dark and silent until relit).")]
         [SerializeField] private bool startsLit = true;
 
         // The hiss of it going out. Optional.
+        [Tooltip("Sound played where the fire is when it is put out, e.g. a water hiss when a water arrow lands. Optional: empty = it goes out silently.")]
         [SerializeField] private SoundCue extinguishCue;
 
         // Every enabled flame in the scene. They add and remove

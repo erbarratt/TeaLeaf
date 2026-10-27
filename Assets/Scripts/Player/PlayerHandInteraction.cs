@@ -17,6 +17,7 @@ namespace Player
     /// </summary>
     public class PlayerHandInteraction : MonoBehaviour
     {
+        [Tooltip("The smoothed controller poses on the Player root, which the hand rays are cast along. Must be set; it isn't looked up (e.g. drag the Player here).")]
         [SerializeField] private PlayerTracking playerTracking;
 
         [Header("Hand Rays")]
@@ -24,12 +25,14 @@ namespace Player
         // How far each hand's ray reaches, in metres. Shared by both hands -
         // if one hand ever needs a different reach, split this into
         // leftHandRayLength/rightHandRayLength.
+        [Tooltip("How far each hand's ray reaches for ledges, handles and locks, in metres. e.g. 0.5 = the hand must be about half a metre from a ledge to grab it. Higher = targets further away light up; lower = the hand must be closer.")]
         [SerializeField] private float rayLength = 0.5f;
 
         // How far each hand's ray reaches for targets with a long reach
         // (IHandTarget.HasLongReach - props to pick up), in metres. Longer
         // than rayLength: the hand goes out to a prop and brings it back,
         // so it needn't be within arm's reach as a ledge must.
+        [Tooltip("How far each hand's ray reaches for props to pick up, in metres; longer than Ray Length since the hand reaches out to a prop and brings it back. e.g. 1 = a tankard a metre away can be taken. Higher = props further away can be grabbed; lower = the player must lean closer.")]
         [SerializeField] private float pickUpRayLength = 1f;
 
         // Layers hand rays can hit. Defaults to everything so behaviour is
@@ -37,6 +40,7 @@ namespace Player
         // it to just an "Interactable"-style layer avoids an unrelated
         // trigger volume (AI perception, item pickup, etc.) silently
         // blocking the ray before it reaches the intended IHandTarget.
+        [Tooltip("Layers the hand rays can hit. e.g. Environment + Interactable + Climbable: walls block the ray so nothing is grabbed through them, and props, doors and ledges are found. Leaving a layer out lets the ray pass through it; never include PlayerBlocker.")]
         [SerializeField] private LayerMask interactableLayers = ~0;
 
         // Euler angle applied on top of the left hand's own rotation before
@@ -44,25 +48,31 @@ namespace Player
         // straight out of the controller model (e.g. angled down along a
         // pointing finger). Tune per hand since the two controller models
         // are mirrored.
+        [Tooltip("Turn added to the left hand's rotation before casting its ray, in degrees (x pitch, y yaw, z roll). e.g. (20, 0, 0) angles the ray down along a pointing finger. Larger values point the ray further from straight out of the controller.")]
         [SerializeField] private Vector3 leftHandRayAngleOffset;
 
         // Same as leftHandRayAngleOffset, for the right hand.
+        [Tooltip("Turn added to the right hand's rotation before casting its ray, in degrees, as Left Hand Ray Angle Offset. e.g. (20, 0, 0) angles it down along the finger; tuned separately since the hands are mirrored.")]
         [SerializeField] private Vector3 rightHandRayAngleOffset;
 
         [Header("Reticles")]
 
         // Small billboard markers shown wherever each hand's ray currently
         // hits an IHandTarget - see HandRayReticle.
+        [Tooltip("The marker shown where the left hand's ray hits something it can use, e.g. a dot on a ledge the left hand can grab. Must be set.")]
         [SerializeField] private HandRayReticle leftReticle;
+        [Tooltip("The marker shown where the right hand's ray hits something it can use, e.g. a dot on a door handle. Must be set.")]
         [SerializeField] private HandRayReticle rightReticle;
 
         // Where each hand ray is cast from (the hand visual, not the
         // controller - see Tick()), and read to hide a hand's reticle while
         // that hand is holding something - see TickReticles().
+        [Tooltip("The hand visuals on this Hands object: rays are cast from the visual (so a hand stopped by a wall aims from where it is), and a hand holding something hides its marker. Must be set (e.g. this object's PlayerHandVisuals).")]
         [SerializeField] private PlayerHandVisuals playerHandVisuals;
 
         // Read to hide a hand's reticle while it carries a prop. Optional:
         // found in Awake() if not wired (it's on this same object).
+        [Tooltip("The prop carrying on this Hands object: a hand carrying a prop hides its marker, e.g. no dot while holding a crate. Empty finds it on this object at load; a rig without one never hides it for carrying.")]
         [SerializeField] private PlayerHandHolding playerHandHolding;
 
         // Each hand's ray direction in its own local space - the angle

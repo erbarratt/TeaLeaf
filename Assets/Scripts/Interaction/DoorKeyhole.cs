@@ -44,29 +44,29 @@ namespace Interaction
     /// </summary>
     public class DoorKeyhole : MonoBehaviour, IDebugDrawable
     {
-        [Tooltip("The door the keyhole is in: the opening only grows while the door is latched shut. Optional: with none, it opens whenever the head is near.")]
+        [Tooltip("The door the keyhole is in: the opening only grows while the door is latched shut, e.g. the Door on the parent leaf (filled in when the component is added). Optional: left empty, it opens whenever the head is near.")]
         [SerializeField] private Door door;
 
-        [Tooltip("The door leaf's renderer, whose material must use the TeaLeaf/DoorLeaf shader: that is what cuts the opening. Required; without it nothing is cut.")]
+        [Tooltip("The door leaf's renderer, whose material must use the TeaLeaf/DoorLeaf shader: that is what cuts the opening, e.g. the door's LOD0 MeshRenderer (filled with the door's first renderer when the component is added). Required: left empty, nothing is cut and a warning is logged.")]
         [SerializeField] private MeshRenderer leafRenderer;
 
-        [Tooltip("Anything else on the door the opening has to go through as well, such as a lock plate standing on each face. Each must use a TeaLeaf/DoorLeaf material of its own. Optional.")]
+        [Tooltip("Anything else on the door the opening has to go through as well, such as a lock plate standing on each face. One entry = one renderer to cut, e.g. the lock.fbx on each face. Each must use a TeaLeaf/DoorLeaf material of its own. Optional: left empty, only the leaf is cut.")]
         [SerializeField] private MeshRenderer[] plateRenderers;
 
-        [Tooltip("The lock picked through this keyhole, so the big lock's picks can find it (DoorKeyhole.ForLock()). Optional; empty uses a PickableLock on this object, if there is one.")]
+        [Tooltip("The lock picked through this keyhole, so the big lock's picks can find it (DoorKeyhole.ForLock()) and the keyhole goes black while it is picked, e.g. the Pickable Lock on the same object. Optional: left empty, a PickableLock on this object is used, if there is one.")]
         [SerializeField] private PickableLock pickableLock;
 
         [Header("Size")]
 
         // The circle's radius in metres: at rest, and with the head right
         // up to it. The wedge below is sized in these.
-        [Tooltip("The circle's radius at rest, with the head away from the door, in metres. The wedge is sized in radii, so it scales with this. 0.008 is the Lock Plate prefab's own keyhole (1.6 by 3.5cm).")]
+        [Tooltip("The circle's radius at rest, with the head away from the door, in metres. The wedge is sized in radii, so it scales with this. E.g. 0.008 is the Lock Plate prefab's own keyhole (1.6 by 3.5cm). Higher = a bigger keyhole at rest; it should match the lock model's keyhole, which the big lock's picks fit.")]
         [SerializeField] private float restRadius = 0.008f;
-        [Tooltip("The circle's radius with the head right up to the keyhole, in metres: big enough to see the room behind with both eyes. The wedge is sized in radii, so it scales with this.")]
+        [Tooltip("The circle's radius with the head right up to the keyhole, in metres: big enough to see the room behind with both eyes. The wedge is sized in radii, so it scales with this. E.g. 0.05 = a 10cm-wide circle. Higher = more of the room behind is seen; lower = a narrower peep.")]
         [SerializeField] private float openRadius = 0.05f;
-        [Tooltip("How far the circle's centre rises (along this object's Y) when fully open, in metres; partly open, that share of it. Negative lowers it. 0 grows the opening evenly round the lock's keyhole.")]
+        [Tooltip("How far the circle's centre rises (along this object's Y) when fully open, in metres; partly open, that share of it. E.g. 0.02 = the open circle sits 2cm higher than at rest. Positive raises it, negative lowers it; 0 grows the opening evenly round the lock's keyhole.")]
         [SerializeField] private float openOffset;
-        [Tooltip("How much further the opening's walls reach out of each face of the door when fully open, in metres; partly open, that share of it. Negative shortens them. 0 keeps them at Thickness.")]
+        [Tooltip("How much further the opening's walls reach out of each face of the door when fully open, in metres; partly open, that share of it. E.g. 0.01 = fully open, the walls reach 1cm further out of each face. Positive lengthens them, negative shortens them; 0 keeps them at Thickness.")]
         [SerializeField] private float openDepth;
 
         [Header("Wedge (in circle radii)")]
@@ -74,34 +74,34 @@ namespace Interaction
         // The slot below the circle, in radii, so it grows with the
         // circle. It starts half a radius below the circle's centre.
         // Defaults: the Lock Plate prefab's keyhole.
-        [Tooltip("The wedge's gap width at its top, half a radius below the circle's centre (inside the circle), in circle radii. Up to 1.7: wider would start outside the circle. Lock Plate: 1.")]
+        [Tooltip("The wedge's gap width at its top, half a radius below the circle's centre (inside the circle), in circle radii. E.g. 1 (the Lock Plate's) = as wide as the circle's radius. Higher = a wider slot top, up to 1.7 (wider would start outside the circle); lower = a narrower one.")]
         [Range(0.05f, 1.7f)]
         [SerializeField] private float wedgeTopWidth = 1f;
-        [Tooltip("The wedge's gap width at its bottom, in circle radii. Lock Plate: 1.46.")]
+        [Tooltip("The wedge's gap width at its bottom, in circle radii. E.g. 1.46 (the Lock Plate's) = a slot widening downwards from 1 at its top. Higher = a wider flare at the bottom; equal to Wedge Top Width = straight sides.")]
         [Range(0.05f, 4f)]
         [SerializeField] private float wedgeBottomWidth = 1.46f;
-        [Tooltip("How long the wedge is, from its top (half a radius below the circle's centre) to its bottom, in circle radii. Lock Plate: 2.9 (bottom 3.4 radii below the centre).")]
+        [Tooltip("How long the wedge is, from its top (half a radius below the circle's centre) to its bottom, in circle radii. E.g. 2.9 (the Lock Plate's) = bottom 3.4 radii below the centre, 2.7cm at an 8mm radius. Higher = a longer slot; lower = a shorter one.")]
         [Range(0.6f, 8f)]
         [SerializeField] private float wedgeLength = 2.9f;
 
         [Header("Depth")]
 
-        [Tooltip("How thick the door is at the keyhole, in metres: how deep the opening's walls run. 0 measures it from the leaf renderer's bounds, which is right for a plain slab; with lock plates, set it to the plates' whole depth so the walls reach their faces.")]
+        [Tooltip("How thick the door is at the keyhole, in metres: how deep the opening's walls run. 0 measures it from the leaf renderer's bounds, which is right for a plain slab; with lock plates, set it to the plates' whole depth so the walls reach their faces, e.g. 0.062 for a 5cm door with a 6mm plate on each face. Higher = longer walls; too low leaves a see-through gap at the faces.")]
         [SerializeField] private float thickness;
 
-        [Tooltip("The colour of the opening's walls, inside the door. Lit like the door itself, so black stays black.")]
+        [Tooltip("The colour of the opening's walls, inside the door, lit like the door itself. E.g. black (the default) stays black in any light; a dark brown shows as bare wood where a lamp shines on it.")]
         [SerializeField] private Color wallColor = Color.black;
 
         [Header("Opening")]
 
         // How far the head is from the keyhole (metres) when it starts to
         // open, and when it's fully open.
-        [Tooltip("How far the head is from the keyhole when it starts to open, in metres. Further away than this the keyhole stays at rest, and nearer it grows towards Open Full Distance.")]
+        [Tooltip("How far the head is from the keyhole when it starts to open, in metres. Further away than this the keyhole stays at rest, and nearer it grows towards Open Full Distance. E.g. 0.6 = it starts opening as the player leans within 60cm. Higher = opens from further off; lower = only when right up close.")]
         [SerializeField] private float openStartDistance = 0.6f;
-        [Tooltip("How far the head is from the keyhole when it is fully open, in metres. Must be less than Open Start Distance.")]
+        [Tooltip("How far the head is from the keyhole when it is fully open, in metres. Must be less than Open Start Distance. E.g. 0.25 = fully open with the eyes 25cm away. Higher = fully open sooner as the head nears; lower = the head must come closer.")]
         [SerializeField] private float openFullDistance = 0.25f;
 
-        [Tooltip("The fastest the opening grows or shrinks, as a share of the whole a second: 6 is fully open in a sixth of a second. Only noticed when the door is opened with the head at the keyhole; otherwise the head's own movement is slower.")]
+        [Tooltip("The fastest the opening grows or shrinks, as a share of the whole a second: 6 is fully open in a sixth of a second. Only noticed when the door is opened with the head at the keyhole; otherwise the head's own movement is slower. Higher = snaps open and shut faster; lower = eases more slowly.")]
         [SerializeField] private float openSpeed = 6f;
 
         // How far the gizmo's outlines stand out from each face of the

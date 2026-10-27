@@ -31,12 +31,15 @@ namespace Player
     {
         // The hand model transforms (children of the tracked Left/Right Hand
         // controllers), NOT the controllers themselves.
+        [Tooltip("The left hand model (Left Hand Visual, a child of the tracked Left Hand), not the controller itself. e.g. Hands/Left Hand/Left Hand Visual. Filled in by name when this component is added; must be set.")]
         [SerializeField] private Transform leftHandVisual;
+        [Tooltip("The right hand model (Right Hand Visual, the mirrored copy), not the controller itself. e.g. Hands/Right Hand/Right Hand Visual. Filled in by name when this component is added; must be set.")]
         [SerializeField] private Transform rightHandVisual;
 
         // Seconds for a hand visual to blend onto its snap pose when grabbing
         // (and back to the controller on release) - short enough to feel
         // instant, long enough not to pop.
+        [Tooltip("Seconds for a hand to blend onto what it grabs (a ledge, a handle) and back to the controller on release. e.g. 0.08 = feels instant without popping. Higher = a slower, visible slide onto the grip; 0 = jumps straight there.")]
         [SerializeField] private float snapBlendDuration = 0.08f;
 
         [Header("Physical Hands")]
@@ -45,35 +48,42 @@ namespace Player
         // never Player (the hands start inside the body's capsule) or
         // Climbable (grab volumes, not surfaces). Nothing is selected by
         // default, which simply turns hand collision off.
+        [Tooltip("Layers the hands stop at instead of passing through. Should be Environment + Interactable: the hand stops on a wall and pushes an open door. Never Player, Climbable or PlayerHands; Nothing turns hand collision off.")]
         [SerializeField] private LayerMask collisionLayers;
 
         // Sizes of the pieces each hand collides with (palm box, thumb and
         // finger capsules) that the bones don't give - see HandShapeFitter.
         // Read once, in Awake().
+        [Tooltip("Sizes of each hand's collision pieces the bones don't give (palm thickness, finger radii), read once at load. e.g. a bigger finger radius makes the fingers stop further from a wall.")]
         [SerializeField] private HandShapeSizes handShapes = new();
 
         // Where the trigger and grip that curl the fingers come from: the
         // fingers' collision switches between open and fist with them. Found
         // on the Player root if empty.
+        [Tooltip("The input system on the Player root: the trigger and grip switch each finger's collision between open and fist. Empty looks for it on a parent; none = fingers always collide open.")]
         [SerializeField] private PlayerInputXR playerInput;
 
         // Gap kept between the hand and a surface, in metres, so the next
         // frame's sweep doesn't start already touching it.
+        [Tooltip("Gap kept between a hand and the surface it stops at, in metres, so the next sweep doesn't start touching it. e.g. 0.005 = 5mm. Higher = hands stop visibly short of walls; lower = they may catch and stutter.")]
         [SerializeField] private float skinWidth = 0.005f;
 
         // Seconds for a hand visual to ease back onto its controller once a
         // surface stops holding it (the "elastic band"). Short enough to feel
         // attached, long enough that the return doesn't pop. 0 = instant.
+        [Tooltip("Seconds for a hand to ease back onto its controller once a surface stops holding it (the elastic band). e.g. 0.1 = a quick catch-up. Higher = a lazier return; 0 = instant.")]
         [SerializeField] private float catchUpDuration = 0.1f;
 
         // How far, in metres, a surface may hold a hand visual away from its
         // controller before it gives up and snaps straight back - reaching
         // well into or through something. 0 = never snap back.
+        [Tooltip("How far a surface may hold a hand away from its controller before it gives up and goes straight back through, in metres. e.g. 0.4 = reaching 40cm into a wall snaps the hand back to the controller. Higher = the hand stays held longer; 0 = never.")]
         [SerializeField] private float maxSeparation = 0.4f;
 
         // Seconds a hand must have gone without pushing anything (an open
         // door) before its next push counts as a new touch - see
         // HandContactStarted.
+        [Tooltip("Seconds a hand must go without pushing anything (an open door) before its next push counts as a new touch with a haptic tap. e.g. 0.5 = pushing a door along steadily taps once. Lower = more taps.")]
         [SerializeField] private float pushRestTime = 0.5f;
 
         [Header("Ghost Hands")]
@@ -81,14 +91,17 @@ namespace Player
         // Whether a faint ghost hand shows at the real controller while a
         // surface holds the hand visual away from it (see HandGhost). A
         // likely player setting later, like PlayerHaptics.HapticsEnabled.
+        [Tooltip("On: a faint ghost hand shows where the real controller is while a wall holds the hand visual off it. Off: no ghost.")]
         [SerializeField] private bool showGhostHands = true;
 
         // How far, in metres, the visual must be held from the controller
         // before the ghost appears (it hides again within half this), so
         // just brushing a surface doesn't flash it up.
+        [Tooltip("How far the hand must be held off its controller before the ghost shows, in metres (it hides again within half this). e.g. 0.03 = brushing a wall shows no ghost, pressing into it does. Higher = only deep pushes show it.")]
         [SerializeField] private float ghostShowDistance = 0.03f;
 
         // The ghost's flat colour; keep the alpha low. Read once, in Awake().
+        [Tooltip("The ghost hand's flat colour, read once at load; keep the alpha low. e.g. white at 0.2 alpha = a faint outline. Higher alpha = a more solid ghost.")]
         [SerializeField] private Color ghostColor = new(1f, 1f, 1f, 0.2f);
 
         // Debug shape colours (gizmos and in-headset): where the controller

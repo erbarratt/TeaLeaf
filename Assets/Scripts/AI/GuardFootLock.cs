@@ -53,56 +53,57 @@ namespace AI
     [RequireComponent(typeof(NavMeshAgent))]
     public class GuardFootLock : MonoBehaviour, IDebugDrawable
     {
-        // The leg bones, found under the guard by name if not assigned.
-        [Tooltip("Left thigh bone. Found by name (Left_UpperLeg) if not assigned.")]
+        // The leg bones, found through the model's Humanoid rig if not
+        // assigned.
+        [Tooltip("Left thigh bone, the top of the leg the IK bends. Left empty, the Humanoid rig's left upper leg is found; with none, foot locking logs an error and switches off.")]
         [SerializeField] private Transform leftUpperLeg;
-        [Tooltip("Left shin bone. Found by name (Left_LowerLeg) if not assigned.")]
+        [Tooltip("Left shin bone (the knee is its pivot). Left empty, the Humanoid rig's left lower leg is found; with none, foot locking logs an error and switches off.")]
         [SerializeField] private Transform leftLowerLeg;
-        [Tooltip("Left foot bone (the ankle). Found by name (Left_Foot) if not assigned.")]
+        [Tooltip("Left foot bone (the ankle): the point held still while planted. Left empty, the Humanoid rig's left foot is found; with none, foot locking logs an error and switches off.")]
         [SerializeField] private Transform leftFoot;
-        [Tooltip("Right thigh bone. Found by name (Right_UpperLeg) if not assigned.")]
+        [Tooltip("Right thigh bone, the top of the leg the IK bends. Left empty, the Humanoid rig's right upper leg is found; with none, foot locking logs an error and switches off.")]
         [SerializeField] private Transform rightUpperLeg;
-        [Tooltip("Right shin bone. Found by name (Right_LowerLeg) if not assigned.")]
+        [Tooltip("Right shin bone (the knee is its pivot). Left empty, the Humanoid rig's right lower leg is found; with none, foot locking logs an error and switches off.")]
         [SerializeField] private Transform rightLowerLeg;
-        [Tooltip("Right foot bone (the ankle). Found by name (Right_Foot) if not assigned.")]
+        [Tooltip("Right foot bone (the ankle): the point held still while planted. Left empty, the Humanoid rig's right foot is found; with none, foot locking logs an error and switches off.")]
         [SerializeField] private Transform rightFoot;
 
         // The model's skinned mesh: the lock only runs while it is drawn.
         // Found in the children if not assigned.
-        [Tooltip("The model's skinned mesh: feet are locked only while it is drawn. Found in the children if not assigned.")]
+        [Tooltip("The model's skinned mesh, e.g. the guard_1 SkinnedMeshRenderer: feet are locked only while it is drawn (a culled model isn't re-posed). Left empty, it is found in the children; with none, foot locking logs an error and switches off.")]
         [SerializeField] private Renderer bodyRenderer;
 
         // An animated ankle lower than this above the root is planted.
         // The clips' planted ankles sit at 0.11-0.13m; a lifted one is
         // above 0.135 within a frame or two.
-        [Tooltip("An animated ankle lower than this above the root, in metres, is planted. The clips' planted ankles sit at 0.11-0.13m.")]
+        [Tooltip("An animated ankle lower than this above the root, in metres, is planted and held still in the world. e.g. 0.135: the clips' planted ankles sit at 0.11-0.13m. Higher = feet plant earlier and lift later (may drag); lower = some planted feet never lock and slide.")]
         [SerializeField] private float plantHeight = 0.135f;
 
         // How long a lifted foot takes to blend back to the animation.
-        [Tooltip("Seconds a lifted foot takes to blend back to the animation.")]
+        [Tooltip("Seconds a lifted foot takes to blend from where it was held back to the animation. e.g. 0.12 = a couple of frames' worth of easing. Higher = smoother but the foot lags its stride; 0 = snaps back.")]
         [SerializeField] private float releaseTime = 0.12f;
 
         // How far a locked foot may be from the animated one before the
         // lock lets go.
-        [Tooltip("How far, in metres, a locked foot may be from the animated one before the lock lets go.")]
+        [Tooltip("How far, in metres, a locked foot may be from the animated one before the lock lets go at once (e.g. on a change between walk and run), not relocking until the foot lifts. e.g. 0.15. Higher = holds through bigger gaps (legs may stretch); lower = lets go sooner.")]
         [SerializeField] private float maxSlip = 0.15f;
 
         // Beyond this distance from the camera the feet aren't locked.
-        [Tooltip("Beyond this distance from the camera, in metres, the feet aren't locked.")]
+        [Tooltip("Beyond this distance from the camera, in metres, the feet aren't locked (the animation plays as it is, saving the IK). e.g. 20 = across a street. Higher = locked further off, more CPU.")]
         [SerializeField] private float maxDistance = 20f;
 
         // Standing: how far (m, along the ground) and how far round
         // (degrees) a held foot may get from its home before it steps.
-        [Tooltip("Standing: how far, in metres along the ground, a held foot may get from where the animation draws it before it steps.")]
+        [Tooltip("Standing: how far, in metres along the ground, a held foot may get from where the animation draws it (its home) before it steps there. e.g. 0.12 = a short shuffle. Higher = fewer, bigger steps (more twisted legs); lower = more fidgety steps.")]
         [SerializeField] private float stepDistance = 0.12f;
-        [Tooltip("Standing: how far round, in degrees, a held foot may turn from where the animation draws it before it steps.")]
+        [Tooltip("Standing: how far round, in degrees, a held foot may turn from its home before it steps; unseen, a quiet step sounds every half this turned. e.g. 25 = a half turn takes several steps. Higher = fewer steps while turning; lower = more.")]
         [SerializeField] private float stepAngle = 25f;
 
         // How long a step takes, and how high the ankle lifts at its
         // middle.
-        [Tooltip("Seconds a standing step takes.")]
+        [Tooltip("Seconds a standing step takes, eased; also the least time between two standing steps. e.g. 0.25 = a brisk shuffle. Higher = slower steps that may fall behind a fast turn; lower = quicker, twitchier.")]
         [SerializeField] private float stepTime = 0.25f;
-        [Tooltip("How high the ankle lifts at the middle of a standing step, in metres.")]
+        [Tooltip("How high the ankle lifts at the middle of a standing step, in metres. e.g. 0.08 = a low shuffle. Higher = a more marked step; 0 = the foot slides along the ground.")]
         [SerializeField] private float stepHeight = 0.08f;
 
         private class Leg
@@ -163,12 +164,12 @@ namespace AI
             _guard = GetComponent<Guard>();
             _agent = GetComponent<NavMeshAgent>();
 
-            if (leftUpperLeg == null) leftUpperLeg = FindBone("Left_UpperLeg");
-            if (leftLowerLeg == null) leftLowerLeg = FindBone("Left_LowerLeg");
-            if (leftFoot == null) leftFoot = FindBone("Left_Foot");
-            if (rightUpperLeg == null) rightUpperLeg = FindBone("Right_UpperLeg");
-            if (rightLowerLeg == null) rightLowerLeg = FindBone("Right_LowerLeg");
-            if (rightFoot == null) rightFoot = FindBone("Right_Foot");
+            if (leftUpperLeg == null) leftUpperLeg = FindBone(HumanBodyBones.LeftUpperLeg);
+            if (leftLowerLeg == null) leftLowerLeg = FindBone(HumanBodyBones.LeftLowerLeg);
+            if (leftFoot == null) leftFoot = FindBone(HumanBodyBones.LeftFoot);
+            if (rightUpperLeg == null) rightUpperLeg = FindBone(HumanBodyBones.RightUpperLeg);
+            if (rightLowerLeg == null) rightLowerLeg = FindBone(HumanBodyBones.RightLowerLeg);
+            if (rightFoot == null) rightFoot = FindBone(HumanBodyBones.RightFoot);
 
             if (bodyRenderer == null) {
                 bodyRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
@@ -608,19 +609,14 @@ namespace AI
         }
 
         /// <summary>
-        /// Finds a bone under the guard by name.
+        /// Finds a bone of the model's Humanoid rig (any model whose avatar
+        /// maps it, whatever its bones are called); null without a
+        /// Humanoid Animator under the guard.
         /// </summary>
-        private Transform FindBone(string boneName)
+        private Transform FindBone(HumanBodyBones bone)
         {
-            Transform[] children = GetComponentsInChildren<Transform>(true);
-
-            foreach (Transform child in children) {
-                if (child.name == boneName) {
-                    return child;
-                }
-            }
-
-            return null;
+            Animator animator = GetComponentInChildren<Animator>(true);
+            return animator != null && animator.isHuman ? animator.GetBoneTransform(bone) : null;
         }
     }
 }

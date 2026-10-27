@@ -21,19 +21,28 @@ namespace Inventory
     public class PlayerInventory : MonoBehaviour
     {
         [Header("Tools Owned At The Start")]
+        [Tooltip("On: the player starts the level owning the blackjack and can draw it over the shoulder of the hand without the lockpicks. Off: not owned until given during play.")]
         [SerializeField] private bool ownsBlackjack;
+        [Tooltip("On: the player starts the level owning the bow and can draw it over the shoulder of the lockpicks' hand. Off: not owned until given during play.")]
         [SerializeField, FormerlySerializedAs("ownsCrossbow")] private bool ownsBow;
 
         [Header("Bolts At The Start")]
+        [Tooltip("Water arrows carried at the start (put out flames where they land), e.g. 2 = two shots. Cut down to Max Bolts Per Kind; 0 = none.")]
         [SerializeField] private int waterBolts;
+        [Tooltip("Noisemaker arrows carried at the start (make noise where they land for a while), e.g. 1 = one shot. Cut down to Max Bolts Per Kind; 0 = none.")]
         [SerializeField] private int noisemakerBolts;
+        [Tooltip("Rope arrows carried at the start (hang a climbable rope where they stick), e.g. 2 = two ropes. Cut down to Max Bolts Per Kind; 0 = none.")]
         [SerializeField] private int ropeBolts;
+        [Tooltip("Stun arrows carried at the start (a head hit stuns a guard), e.g. 3 = three shots. Cut down to Max Bolts Per Kind; 0 = none.")]
         [SerializeField] private int stunBolts;
+        [Tooltip("Sleep darts carried at the start (a hit knocks a guard out a little later), e.g. 1 = one shot. Cut down to Max Bolts Per Kind; 0 = none.")]
         [SerializeField] private int sleepBolts;
+        [Tooltip("Moss arrows carried at the start (lay a patch that silences footsteps), e.g. 2 = two patches. Cut down to Max Bolts Per Kind; 0 = none.")]
         [SerializeField] private int mossBolts;
 
         // The most bolts of any one kind the player can carry. The
         // starting counts above are cut down to it.
+        [Tooltip("The most arrows of any one kind the player can carry; starting counts and arrows added or picked up are cut down to it, e.g. 3 = a fourth water arrow can't be picked up. Higher = more of each kind carried.")]
         [SerializeField] private int maxBoltsPerKind = 3;
 
         // How many kinds of tool and bolt there are, counted once from the

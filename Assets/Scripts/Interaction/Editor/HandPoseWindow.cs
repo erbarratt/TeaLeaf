@@ -8,22 +8,26 @@ using UnityEngine;
 namespace Interaction
 {
     /// <summary>
-    /// Editor window (TeaLeaf > Modify Prefab > Pose with Hand) for posing
-    /// how a hand holds something without going into Play Mode: where the
-    /// hand sits on it and how its five digits are bent. Save writes both
-    /// into a HandSnapProfile (made in Assets/Data/Hand Poses if there is
-    /// none), exactly as the game reads them.
+    /// Editor window (TeaLeaf > Player > Pose with Hand) for posing how a
+    /// hand holds something without going into Play Mode: where the hand
+    /// sits on it and how its five digits are bent. Save writes both into
+    /// a HandSnapProfile (made in Assets/Data/Hand Poses if there is none),
+    /// exactly as the game reads them.
     ///
     /// What can be posed: every prefab under Assets/Prefabs with a
     /// Grabbable (the profile goes on its Grabbable, read by
     /// PlayerHandHolding), every door prefab there with a DoorHandle (the
-    /// profile goes on the handle, read by PlayerHandDoors), and the
-    /// things the player holds that aren't props - the bow, an arrow, the
-    /// bow string, the pack, the blackjack, the lockpicks worn on the back
-    /// of the hand and carried, and a pick on the big lock (the profile
-    /// goes on PlayerBow, PlayerPack, PlayerBlackjack or PlayerLockpicking
-    /// in the Player prefab). Opened on a selected Grabbable or door
-    /// prefab, it starts on that.
+    /// profile goes on the handle, read by PlayerHandDoors), the things
+    /// the player holds that aren't props - the bow, an arrow, the bow
+    /// string, the pack, the blackjack, the lockpicks worn on the back of
+    /// the hand and carried, a pick on the big lock and the key in a lock
+    /// (the profile goes on PlayerBow, PlayerPack, PlayerBlackjack,
+    /// PlayerLockpicking or PlayerKeys in the Player prefab) - and the
+    /// shared holds on level fixtures: a ledge, a ladder rung, a rope, a
+    /// chest lid and a door bolt. Those have one profile asset each (e.g.
+    /// LedgeGrip), set on the scene's ClimbableEdges, Ladders and so on by
+    /// whoever builds them, so Save only writes the asset. Opened on a
+    /// selected Grabbable or door prefab, it starts on that.
     ///
     /// What's posed is copied into the open scene high above the level,
     /// with a copy of the Player prefab's left or right hand visual placed
@@ -36,7 +40,8 @@ namespace Interaction
     /// door handle's on the door's front (DoorHandle.GetGripFrame()), or
     /// for the held things the frame they're placed by (the bow's origin,
     /// an arrow's nock, the pack's origin, the blackjack model's origin,
-    /// the lockpicks' tips, a big lock pick's grip frame).
+    /// the lockpicks' tips, a big lock pick's grip frame); a fixture or the
+    /// key is shown as a stand-in shape round its grip frame.
     ///
     /// The pose being edited is kept in the window, so it survives a script
     /// reload or Play Mode; the copies are plain Instantiates marked
@@ -50,6 +55,14 @@ namespace Interaction
         private const string ProfileFolder = "Assets/Data/Hand Poses";
         private const string PrefabFolder = "Assets/Prefabs";
         private const string PreviewName = "[Hand Pose Preview]";
+
+        // The pose a chest lid or door bolt with no profile of its own yet
+        // starts from: the door handle's, their stand-in.
+        private const string StandInProfilePath = "Assets/Data/Hand Poses/DoorHandle.asset";
+
+        // How far out from the door's face a bolt's grip point is, in
+        // metres: DoorBolt's default standOff.
+        private const float BoltStandOff = 0.03f;
 
         // What a held thing's subject key starts with (the rest is its
         // Held name); a prop's key is its prefab's GUID.
@@ -77,8 +90,10 @@ namespace Interaction
         private static readonly int[] _fingerJoints = { 4, 3, 3, 3, 3 };
 
         /// <summary>
-        /// The things a player holds that aren't Grabbable props, each
-        /// with its profile on a component in the Player prefab.
+        /// The holds that aren't on a prefab: things a player holds, each
+        /// with its profile on a component in the Player prefab (Bow to
+        /// Key), then the shared holds on level fixtures, each with one
+        /// profile asset (Ledge to DoorBolt, IsSharedPose()).
         /// </summary>
         private enum Held
         {
@@ -89,7 +104,13 @@ namespace Interaction
             Blackjack,
             LockpicksWorn,
             Lockpicks,
-            Lockpick
+            Lockpick,
+            Key,
+            Ledge,
+            Ladder,
+            Rope,
+            ChestLid,
+            DoorBolt
         }
 
         /// <summary>
@@ -99,20 +120,25 @@ namespace Interaction
         [Serializable]
         private class HoldPose
         {
+            [Tooltip("The left hand visual's root offset from the grip frame, in metres along the frame's axes, e.g. (0, -0.03, -0.02). Saved as the profile's Left Position Offset; zero puts the hand on the grip frame.")]
             public Vector3 leftPosition;
+            [Tooltip("The left hand visual's root rotation from the grip frame, e.g. identity = facing the way the frame does. Saved as the profile's Left Rotation Offset.")]
             public Quaternion leftRotation = Quaternion.identity;
+            [Tooltip("The right hand visual's root offset from the grip frame, in metres along the frame's axes; Mirror to other hand sets it from the left's with X negated. Saved as the profile's Right Position Offset.")]
             public Vector3 rightPosition;
+            [Tooltip("The right hand visual's root rotation from the grip frame, e.g. identity = facing the way the frame does. Saved as the profile's Right Rotation Offset.")]
             public Quaternion rightRotation = Quaternion.identity;
+            [Tooltip("The finger pose shared by both hands: one entry = one finger joint's local rotation in FingerBoneNames order, e.g. entry 0 = the thumb's first joint. Saved as the profile's Finger Rotations; empty leaves the fingers on their input curl.")]
             public Quaternion[] fingers = new Quaternion[0];
         }
 
-        [Tooltip("What's being posed: a prop prefab's GUID, or \"tool:\" and a held thing's name, so the same one is shown again after a script reload.")]
+        [Tooltip("What's being posed: a prop prefab's GUID, or \"tool:\" and a held thing's name (e.g. \"tool:Bow\"), so the same one is shown again after a script reload. Empty = nothing chosen yet, so nothing is shown.")]
         [SerializeField] private string subject;
-        [Tooltip("The profile being edited: the subject's own, or one chosen here (given to it on Save).")]
+        [Tooltip("The profile being edited: the subject's own, or one chosen here (given to it on Save), e.g. BottleHold for a bottle. Empty: Save makes a new profile asset in Assets/Data/Hand Poses.")]
         [SerializeField] private HandSnapProfile profile;
-        [Tooltip("Which hand is shown and posed.")]
+        [Tooltip("Which hand is shown and posed. On: the left hand visual (the Left toolbar button). Off: the right one.")]
         [SerializeField] private bool isLeftHand = true;
-        [Tooltip("The pose being edited, not yet saved.")]
+        [Tooltip("The pose being edited, not yet saved: both hands' offsets and the finger pose, e.g. a hand moved with the Move tool is held here until Save writes it to the profile or Revert drops it. Kept across script reloads and Play Mode.")]
         [SerializeField] private HoldPose working;
 
         // Everything that can be posed - held things first, then every
@@ -143,7 +169,7 @@ namespace Interaction
         private Vector2 _scroll;
         private static GUIStyle _sceneLabelStyle;
 
-        [MenuItem("TeaLeaf/Modify Prefab/Pose with Hand")]
+        [MenuItem("TeaLeaf/Player/Pose with Hand")]
         private static void Open()
         {
             HandPoseWindow window = GetWindow<HandPoseWindow>("Pose with Hand");
@@ -213,9 +239,10 @@ namespace Interaction
 
         /// <summary>
         /// Lists everything that can be posed, with its profile: the held
-        /// things whose component the Player prefab has, then every prefab
-        /// under Assets/Prefabs whose root has a Grabbable or that has a
-        /// DoorHandle, by path.
+        /// things whose component the Player prefab has, the shared
+        /// fixture holds (profile: their asset, null until saved), then
+        /// every prefab under Assets/Prefabs whose root has a Grabbable or
+        /// that has a DoorHandle, by path.
         /// </summary>
         private void FindSubjects()
         {
@@ -224,6 +251,13 @@ namespace Interaction
             _subjectProfiles.Clear();
 
             foreach (Held tool in Enum.GetValues(typeof(Held))) {
+                if (IsSharedPose(tool)) {
+                    _subjectKeys.Add(ToolKeyPrefix + tool);
+                    _subjectNames.Add(ToolName(tool));
+                    _subjectProfiles.Add(AssetDatabase.LoadAssetAtPath<HandSnapProfile>(SharedProfilePath(tool)));
+                    continue;
+                }
+
                 SerializedProperty field = ToolField(tool);
 
                 if (field != null) {
@@ -359,19 +393,32 @@ namespace Interaction
         private void DrawProfile()
         {
             EditorGUILayout.LabelField("Profile", EditorStyles.boldLabel);
-            EditorGUI.BeginChangeCheck();
-            HandSnapProfile chosen = (HandSnapProfile)EditorGUILayout.ObjectField("Hand Snap Profile", profile, typeof(HandSnapProfile), false);
 
-            if (EditorGUI.EndChangeCheck()) {
-                // Another profile's pose replaces this one's: the hand and
-                // fingers show what it holds, saved to it on Save.
-                profile = chosen;
-                working = ReadProfile(profile);
-                PlaceHand();
+            // A shared fixture hold always edits its own asset: nothing
+            // here could give it another.
+            bool isShared = TryGetTool(out Held tool) && IsSharedPose(tool);
+
+            using (new EditorGUI.DisabledScope(isShared)) {
+                EditorGUI.BeginChangeCheck();
+                HandSnapProfile chosen = (HandSnapProfile)EditorGUILayout.ObjectField("Hand Snap Profile", profile, typeof(HandSnapProfile), false);
+
+                if (EditorGUI.EndChangeCheck()) {
+                    // Another profile's pose replaces this one's: the hand
+                    // and fingers show what it holds, saved to it on Save.
+                    profile = chosen;
+                    working = ReadProfile(profile);
+                    PlaceHand();
+                }
             }
 
-            if (profile == null) {
+            if (profile == null && isShared) {
+                HandSnapProfile start = StartingProfile();
+                string from = start != null ? $", starting from {start.name}'s pose" : "";
+                EditorGUILayout.HelpBox($"No profile yet: Save makes {SharedProfilePath(tool)}{from}. Set it as the Snap Profile of the scene's {ToolName(tool).ToLowerInvariant()}s.", MessageType.None);
+            } else if (profile == null) {
                 EditorGUILayout.HelpBox($"No profile yet: Save makes {ProfileFolder}/{SubjectName()}.asset and gives it to {OwnerDescription()}.", MessageType.None);
+            } else if (isShared) {
+                EditorGUILayout.HelpBox($"Shared by every {ToolName(tool).ToLowerInvariant()} whose Snap Profile is {profile.name}: saving changes them all.", MessageType.None);
             } else {
                 List<string> sharing = new();
 
@@ -560,7 +607,7 @@ namespace Interaction
             }
 
             if (GUILayout.Button(new GUIContent("Revert", "Throw away the changes and show the saved pose again."))) {
-                working = ReadProfile(profile);
+                working = ReadProfile(StartingProfile());
                 PlaceHand();
             }
 
@@ -623,7 +670,13 @@ namespace Interaction
             data.ApplyModifiedProperties();
 
             if (isNew) {
-                AssetDatabase.CreateAsset(profile, AssetDatabase.GenerateUniqueAssetPath($"{ProfileFolder}/{SubjectName()}.asset"));
+                // A shared fixture hold's asset has a fixed path (it's
+                // missing, or it wouldn't be new); anything else's is
+                // named after it, never over another.
+                string path = TryGetTool(out Held tool) && IsSharedPose(tool)
+                    ? SharedProfilePath(tool)
+                    : AssetDatabase.GenerateUniqueAssetPath($"{ProfileFolder}/{SubjectName()}.asset");
+                AssetDatabase.CreateAsset(profile, path);
             }
 
             AssetDatabase.SaveAssets();
@@ -641,7 +694,8 @@ namespace Interaction
         /// <summary>
         /// The subject takes the profile, if it holds another (or none):
         /// the prop's Grabbable, the door's handle, or the held thing's
-        /// field in the Player prefab. Its prefab is saved.
+        /// field in the Player prefab. Its prefab is saved. A shared
+        /// fixture hold is its asset: nothing to give.
         /// </summary>
         private void GiveProfile()
         {
@@ -649,6 +703,10 @@ namespace Interaction
             GameObject prefab;
 
             if (TryGetTool(out Held tool)) {
+                if (IsSharedPose(tool)) {
+                    return;
+                }
+
                 prefab = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
                 field = ToolField(tool);
             } else {
@@ -694,6 +752,23 @@ namespace Interaction
         }
 
         /// <summary>
+        /// The profile whose pose the subject shows until changed: its
+        /// own, or with none yet, for a chest lid or door bolt the door
+        /// handle's (their stand-in), so posing starts from what play
+        /// showed.
+        /// </summary>
+        private HandSnapProfile StartingProfile()
+        {
+            if (profile != null) {
+                return profile;
+            }
+
+            return TryGetTool(out Held tool) && (tool == Held.ChestLid || tool == Held.DoorBolt)
+                ? AssetDatabase.LoadAssetAtPath<HandSnapProfile>(StandInProfilePath)
+                : null;
+        }
+
+        /// <summary>
         /// True if the pose being edited differs from what the profile holds
         /// (by more than a tenth of a millimetre or a fiftieth of a degree).
         /// </summary>
@@ -704,7 +779,7 @@ namespace Interaction
             }
 
             Capture();
-            HoldPose saved = ReadProfile(profile);
+            HoldPose saved = ReadProfile(StartingProfile());
 
             bool same = Vector3.Distance(saved.leftPosition, working.leftPosition) < 0.0001f
                 && Vector3.Distance(saved.rightPosition, working.rightPosition) < 0.0001f
@@ -899,6 +974,11 @@ namespace Interaction
                 return;
             }
 
+            if (tool == Held.Key || IsSharedPose(tool)) {
+                BuildFixturePreview(tool, player);
+                return;
+            }
+
             if (tool == Held.LockpicksWorn || tool == Held.Lockpicks || tool == Held.Lockpick) {
                 BuildLockpickPreview(player, tool == Held.Lockpick);
                 return;
@@ -1048,6 +1128,75 @@ namespace Interaction
         }
 
         /// <summary>
+        /// Stand-in shapes for the key and the fixture holds, the grip
+        /// frame on the copy's origin (Z into what's held, Y up, the player
+        /// at -Z), sized as the Dev Room test pieces: the keyring in a lock
+        /// whose face is PlayerKeys' gripStandOff in (frame: where the hand
+        /// takes the key), a wall top whose front lip is the frame
+        /// (ClimbableEdge), three rungs and rails with the frame on the
+        /// middle rung's centre line (Ladder), a hanging rope through the
+        /// frame (ClimbableRope), a chest whose lid's front edge is the
+        /// frame (ChestLid), and a door bolt's knob (DoorBolt; it slides
+        /// towards +X).
+        /// </summary>
+        private void BuildFixturePreview(Held tool, GameObject player)
+        {
+            switch (tool) {
+                case Held.Key:
+                    PlayerKeys keys = player.GetComponentInChildren<PlayerKeys>(true);
+                    float face = keys != null ? new SerializedObject(keys).FindProperty("gripStandOff").floatValue : 0.04f;
+                    AddBlock("Door", new Vector3(0f, 0f, face + 0.02f), new Vector3(0.5f, 0.5f, 0.04f));
+                    AddBlock("Keyring", new Vector3(0f, 0f, face - 0.0025f), new Vector3(0.032f, 0.032f, 0.005f));
+                    break;
+                case Held.Ledge:
+                    AddBlock("Wall", new Vector3(0f, -0.3f, 0.2f), new Vector3(1.2f, 0.6f, 0.4f));
+                    break;
+                case Held.Ladder:
+                    for (int rung = -1; rung <= 1; rung++) {
+                        AddBlock("Rung", new Vector3(0f, rung * 0.3f, 0f), new Vector3(0.44f, 0.03f, 0.03f));
+                    }
+
+                    for (int side = -1; side <= 1; side += 2) {
+                        AddBlock("Rail", new Vector3(side * 0.22f, 0f, 0f), new Vector3(0.04f, 1f, 0.04f));
+                    }
+
+                    break;
+                case Held.Rope:
+                    // A cylinder primitive is 2 units tall, 1 across.
+                    GameObject rope = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                    DestroyImmediate(rope.GetComponent<Collider>());
+                    rope.name = "Rope";
+                    rope.transform.SetParent(_prop.transform, false);
+                    rope.transform.localScale = new Vector3(0.04f, 0.6f, 0.04f);
+                    break;
+                case Held.ChestLid:
+                    AddBlock("Lid", new Vector3(0f, 0f, 0.225f), new Vector3(0.7f, 0.06f, 0.45f));
+                    AddBlock("Body", new Vector3(0f, -0.23f, 0.225f), new Vector3(0.7f, 0.4f, 0.45f));
+                    break;
+                case Held.DoorBolt:
+                    AddBlock("Door", new Vector3(0.2f, 0f, BoltStandOff + 0.02f), new Vector3(0.9f, 0.8f, 0.04f));
+                    AddBlock("Plate", new Vector3(0.025f, 0f, BoltStandOff - 0.004f), new Vector3(0.14f, 0.05f, 0.008f));
+                    AddBlock("Bar", new Vector3(0.025f, 0f, BoltStandOff - 0.014f), new Vector3(0.12f, 0.012f, 0.012f));
+                    AddBlock("Knob", new Vector3(0f, 0f, BoltStandOff - 0.034f), new Vector3(0.016f, 0.016f, 0.03f));
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// A plain box under the posed copy, without a collider: centre
+        /// and size in metres in the copy's (grip frame's) space.
+        /// </summary>
+        private void AddBlock(string partName, Vector3 centre, Vector3 size)
+        {
+            GameObject block = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            DestroyImmediate(block.GetComponent<Collider>());
+            block.name = partName;
+            block.transform.SetParent(_prop.transform, false);
+            block.transform.localPosition = centre;
+            block.transform.localScale = size;
+        }
+
+        /// <summary>
         /// The pack: its chest where Pack puts it (mirrored for the left
         /// hand, see PlaceChest()), and a thin block covering its spaces on
         /// the back wall, so the pose can be checked against both.
@@ -1147,7 +1296,7 @@ namespace Interaction
                 _restRotations[i] = _bones[i] != null ? _bones[i].localRotation : Quaternion.identity;
             }
 
-            working ??= ReadProfile(profile);
+            working ??= ReadProfile(StartingProfile());
 
             if (working.fingers.Length != _bones.Length) {
                 working.fingers = (Quaternion[])_restRotations.Clone();
@@ -1286,6 +1435,12 @@ namespace Interaction
                     Held.LockpicksWorn => "The picks' tips (Z along them to the handles). The hand wearing them on its back (right-handed: the left). Only where they sit is used: the hand keeps its input curl.",
                     Held.Lockpicks => "The picks' tips (Z along them to the handles). The hand without the lockpicks carrying both to a lock.",
                     Held.Lockpick => "The grip frame on this hand's big lock pick (left the hook, right the wrench): Y along the pick away from the keyway, Z into the lock. In play the pick leans out of the lock's face and turns with the hand.",
+                    Held.Key => "Where the hand takes the key in a lock, PlayerKeys' grip stand-off out from the lock's face (Z into the door, Y the lock's up). In play the hand turns with the key.",
+                    Held.Ledge => "A ledge's lip, where the hand snaps along it (Z into the wall, Y up). A two-sided edge gripped from behind uses the back lip, turned round.",
+                    Held.Ladder => "A rung's centre line, where the hand snaps along it (Z into the ladder, Y up). From behind (climbable from back) it's turned round.",
+                    Held.Rope => "The rope's middle, from the player's side (Z into the rope, Y up along it). In play a hanging rope's frame is turned round it towards that hand's shoulder; a strung rope's is from below, Y back towards the player. Rope arrows' ropes too.",
+                    Held.ChestLid => "The middle of the lid's front edge, mid-thickness (Z into the chest, Y up). In play it turns with the lid.",
+                    Held.DoorBolt => "The bolt's knob, its stand-off out from the door (Z into the door, Y up; the bolt slides towards +X). In play it moves with the bolt.",
                     _ => "The pack's origin: the middle of its spaces on the chest's back wall (X right, Y up, Z away from the player). The chest's handle is on the shown hand's side, as in play."
                 };
             }
@@ -1309,16 +1464,7 @@ namespace Interaction
         private string SubjectName()
         {
             if (TryGetTool(out Held tool)) {
-                return tool switch {
-                    Held.Bow => "BowGrip",
-                    Held.Arrow => "ArrowHold",
-                    Held.BowString => "BowString",
-                    Held.Blackjack => "BlackjackGrip",
-                    Held.LockpicksWorn => "LockpicksWorn",
-                    Held.Lockpicks => "LockpicksCarry",
-                    Held.Lockpick => "LockpickHold",
-                    _ => "PackHold"
-                };
+                return ProfileName(tool);
             }
 
             GameObject asset = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(subject));
@@ -1343,10 +1489,53 @@ namespace Interaction
                 Held.Pack => "PlayerPack",
                 Held.Blackjack => "PlayerBlackjack",
                 Held.LockpicksWorn or Held.Lockpicks or Held.Lockpick => "PlayerLockpicking",
+                Held.Key => "PlayerKeys",
                 _ => "PlayerBow"
             };
 
             return $"{owner} in the Player prefab";
+        }
+
+        /// <summary>
+        /// A held thing's or fixture hold's profile name: what a new one
+        /// is called, and a fixture hold's asset.
+        /// </summary>
+        private static string ProfileName(Held tool)
+        {
+            return tool switch {
+                Held.Bow => "BowGrip",
+                Held.Arrow => "ArrowHold",
+                Held.BowString => "BowString",
+                Held.Blackjack => "BlackjackGrip",
+                Held.LockpicksWorn => "LockpicksWorn",
+                Held.Lockpicks => "LockpicksCarry",
+                Held.Lockpick => "LockpickHold",
+                Held.Key => "KeyHold",
+                Held.Ledge => "LedgeGrip",
+                Held.Ladder => "LadderRung",
+                Held.Rope => "RopeGrip",
+                Held.ChestLid => "ChestLid",
+                Held.DoorBolt => "DoorBolt",
+                _ => "PackHold"
+            };
+        }
+
+        /// <summary>
+        /// True for a shared fixture hold: one profile asset, given to the
+        /// scene's fixtures by whoever builds them, not by this window.
+        /// </summary>
+        private static bool IsSharedPose(Held tool)
+        {
+            return tool is Held.Ledge or Held.Ladder or Held.Rope or Held.ChestLid or Held.DoorBolt;
+        }
+
+        /// <summary>
+        /// A shared fixture hold's profile asset path, e.g.
+        /// Assets/Data/Hand Poses/LedgeGrip.asset.
+        /// </summary>
+        private static string SharedProfilePath(Held tool)
+        {
+            return $"{ProfileFolder}/{ProfileName(tool)}.asset";
         }
 
         /// <summary>
@@ -1372,19 +1561,26 @@ namespace Interaction
                 Held.LockpicksWorn => "Lockpicks (on the back of the hand)",
                 Held.Lockpicks => "Lockpicks (carried)",
                 Held.Lockpick => "Lockpick (on the big lock)",
+                Held.Key => "Key (in a lock)",
+                Held.Ledge => "Ledge",
+                Held.Ladder => "Ladder Rung",
+                Held.Rope => "Rope",
+                Held.ChestLid => "Chest Lid",
+                Held.DoorBolt => "Door Bolt",
                 _ => "Pack (held)"
             };
         }
 
         /// <summary>
         /// The profile field of a held thing, on its component in the Player
-        /// prefab; null if the prefab hasn't that component.
+        /// prefab; null if the prefab hasn't that component, or for a
+        /// shared fixture hold.
         /// </summary>
         private static SerializedProperty ToolField(Held tool)
         {
             GameObject player = AssetDatabase.LoadAssetAtPath<GameObject>(PlayerPrefabPath);
 
-            if (player == null) {
+            if (player == null || IsSharedPose(tool)) {
                 return null;
             }
 
@@ -1392,6 +1588,7 @@ namespace Interaction
                 Held.Pack => player.GetComponentInChildren<PlayerPack>(true),
                 Held.Blackjack => player.GetComponentInChildren<PlayerBlackjack>(true),
                 Held.LockpicksWorn or Held.Lockpicks or Held.Lockpick => player.GetComponentInChildren<PlayerLockpicking>(true),
+                Held.Key => player.GetComponentInChildren<PlayerKeys>(true),
                 _ => player.GetComponentInChildren<PlayerBow>(true)
             };
 
@@ -1407,6 +1604,7 @@ namespace Interaction
                 Held.LockpicksWorn => "wornProfile",
                 Held.Lockpicks => "carryProfile",
                 Held.Lockpick => "pickProfile",
+                Held.Key => "snapProfile",
                 _ => "packProfile"
             };
 

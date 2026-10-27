@@ -35,52 +35,52 @@ namespace Player
     /// </summary>
     public class PlayerMantling : MonoBehaviour
     {
-        [Tooltip("The input system on the Player root: a mantle starts when either stick is pushed up.")]
+        [Tooltip("The input system on the Player root: a mantle starts when either stick is pushed up, e.g. gripping a ledge and pushing the right stick up climbs onto it. Drag the Player root's PlayerInputXR here.")]
         [SerializeField] private PlayerInputXR playerInput;
-        [Tooltip("The climbing on the Player root: what each hand grips, let go of as a mantle starts.")]
+        [Tooltip("The climbing on the Player root: what each hand grips, let go of as a mantle starts, e.g. a hand on a ledge offers that ledge's mantle. Drag the Player root's PlayerClimbing here.")]
         [SerializeField] private PlayerClimbing playerClimbing;
-        [Tooltip("The locomotion on the Player root: told when a mantle starts and ends, so it drops its momentum and sets the crouch.")]
+        [Tooltip("The locomotion on the Player root: told when a mantle starts and ends, so it drops its momentum and sets the crouch, e.g. a mantle onto a low shelf ends crouched. Drag the Player root's PlayerLocomotion here.")]
         [SerializeField] private PlayerLocomotion playerLocomotion;
-        [Tooltip("The tracking on the Player root: the head's height decides whether a ledge can be mantled yet.")]
+        [Tooltip("The tracking on the Player root: the head's height decides whether a ledge can be mantled yet, e.g. hanging with the head well below the lip offers no mantle until pulled up. Drag the Player root's PlayerTracking here.")]
         [SerializeField] private PlayerTracking playerTracking;
-        [Tooltip("The CharacterController on the Player root, disabled for the mantle's move and re-enabled at the end.")]
+        [Tooltip("The CharacterController on the Player root, disabled for the mantle's move and re-enabled at the end, e.g. so the capsule passes over the ledge's lip without catching. Drag the Player root's CharacterController here.")]
         [SerializeField] private CharacterController characterController;
 
-        [Tooltip("The Player root: the transform the CharacterController is on, and the one the mantle moves.")]
+        [Tooltip("The Player root: the transform the CharacterController is on, and the one the mantle moves, e.g. it is carried up and over onto the ledge's top. Drag the Player root here.")]
         [SerializeField] private Transform playerTransform;
 
-        [Tooltip("The head-locked arrow under the Main Camera, shown while a mantle is possible.")]
+        [Tooltip("The head-locked arrow under the Main Camera, shown while a mantle is possible, e.g. drag the Mantle Indicator object here.")]
         [SerializeField] private MantleIndicator mantleIndicator;
 
         [Header("Mantle Position")]
 
-        [Tooltip("How far below a ledge's top the head may be for a mantle to be offered, in metres. Smaller means pulling yourself up further first.")]
+        [Tooltip("How far below a ledge's top the head may be for a mantle to be offered, in metres. e.g. 0.3 = the mantle is offered once the head is within 30cm of the ledge's top. Smaller means pulling yourself up further first, larger offers it from lower down.")]
         [SerializeField] private float headBelowTopAllowance = 0.3f;
 
         [Header("Trigger")]
 
-        [Tooltip("How far up (0-1) either thumbstick must be pushed to start a mantle.")]
+        [Tooltip("How far up (0-1) either thumbstick must be pushed to start a mantle, e.g. 0.7 = most of the way up. Higher needs a firmer push (fewer accidental mantles), lower starts on a lighter one.")]
         [SerializeField] private float stickUpThreshold = 0.7f;
 
         [Header("Movement")]
 
-        [Tooltip("How long the whole mantle takes, in seconds.")]
+        [Tooltip("How long the whole mantle takes, in seconds, e.g. 0.4 = up and onto the ledge in under half a second. Higher is slower and gentler, lower quicker.")]
         [SerializeField] private float duration = 0.4f;
 
         // How far above the edge the feet rise before moving across it.
-        [Tooltip("How far above the edge (a ledge's lip, a ladder's top) the feet rise before moving across it, in metres.")]
+        [Tooltip("How far above the edge (a ledge's lip, a ladder's top) the feet rise before moving across it, in metres, e.g. 0.05 = the feet pass 5cm over the lip. Higher lifts the body further before crossing, lower skims the edge.")]
         [SerializeField] private float edgeClearance = 0.05f;
 
         // How far before and after each corner of the path (up, across,
         // down) the curve round it starts and ends. Never more than half
         // of either leg it joins, so the two curves can't overlap.
-        [Tooltip("How far before and after each corner of the path (up, across, down) the curve round it starts and ends, in metres. Capped at half of the shorter leg it joins; 0 = sharp corners.")]
+        [Tooltip("How far before and after each corner of the path (up, across, down) the curve round it starts and ends, in metres. Capped at half of the shorter leg it joins. e.g. 0.25 = the turn from rising to moving across starts 25cm before the corner. Higher rounds the path more, lower tighter; 0 = sharp corners.")]
         [SerializeField] private float cornerRadius = 0.25f;
 
         // Extra height added to the landing, in metres, so the re-enabled
         // CharacterController never starts slightly inside the floor.
         // Gravity settles the last couple of centimetres on the next frame.
-        [Tooltip("Extra height added to the landing, in metres, so the re-enabled CharacterController never starts inside the floor.")]
+        [Tooltip("Extra height added to the landing, in metres, so the re-enabled CharacterController never starts inside the floor, e.g. 0.02 = the capsule lands 2cm up and drops onto the floor. Higher gives a small fall at the end, 0 lands exactly on it.")]
         [SerializeField] private float landingLift = 0.02f;
 
         /// <summary>

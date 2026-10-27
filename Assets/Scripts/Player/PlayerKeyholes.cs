@@ -18,10 +18,10 @@ namespace Player
     /// </summary>
     public class PlayerKeyholes : MonoBehaviour
     {
-        [Tooltip("The tracking on the Player root: where the head is.")]
+        [Tooltip("The tracking on the Player root: where the head is, e.g. putting the head up to a door's keyhole opens it to look through. Drag the Player root's PlayerTracking here.")]
         [SerializeField] private PlayerTracking playerTracking;
 
-        [Tooltip("Seconds between searches for the keyhole nearest the head. The keyhole found is then updated every frame.")]
+        [Tooltip("Seconds between searches for the keyhole nearest the head. The keyhole found is then updated every frame. e.g. 0.2 = five searches a second, so a keyhole starts opening at most a fifth of a second after the head arrives. Higher searches less often (cheaper, slower to notice), lower more often.")]
         [SerializeField] private float searchInterval = 0.2f;
 
         // Counts down to the next search. Starts at zero, so the first

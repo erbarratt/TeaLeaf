@@ -20,7 +20,7 @@ namespace LevelGen
     /// window (Build), under Geometry/Open Window Interiors, where a
     /// regeneration never reaches: a box of thin walls (plain walls marked
     /// Open Window Interior in Review Pieces, of the building's style, else
-    /// of the "default" style, scaled to OpenWindowWallThickness of their
+    /// of the "default" style, scaled to WallThickness of their
     /// depth) the window's module wide times WidthModules, centred on it,
     /// and times DepthModules deep; its own front wall either side of the
     /// window; the settings' floor tile scaled to cover floor and ceiling
@@ -268,7 +268,7 @@ namespace LevelGen
             float thickness = 0f;
 
             foreach (PieceAnnotation wall in walls) {
-                thickness = Mathf.Max(thickness, Reach(wall, placer.Entry(wall)) * settings.OpenWindowWallThickness);
+                thickness = Mathf.Max(thickness, Reach(wall, placer.Entry(wall)) * settings.WallThickness);
             }
 
             if (window.Built != null) {
@@ -346,9 +346,12 @@ namespace LevelGen
             removed += MergeFace(frame, ceiling, "Ceiling", SurfaceType.Wood, colliders);
 
             AddSound(window.transform, box, frame, width, depth, height, settings, room.transform);
+            float range = AddLight(frame, width, depth, height, settings, room.transform);
+            int backings = root != null ? RemoveBacking(root, frame, width + 2f * t, depth + 2f * t, height) : 0;
 
-            return $"    {window.name}: {width:0.##} x {depth:0.##}m, {height:0.##}m high, {placed} wall(s) of style \"{style}\" at {settings.OpenWindowWallThickness:0.##} depth, "
-                + $"{floor.Count + ceiling.Count} tile(s), {removed} collider(s) replaced by {colliders.childCount} box(es), sound room and portal"
+            return $"    {window.name}: {width:0.##} x {depth:0.##}m, {height:0.##}m high, {placed} wall(s) of style \"{style}\" at {settings.WallThickness:0.##} depth, "
+                + $"{floor.Count + ceiling.Count} tile(s), {removed} collider(s) replaced by {colliders.childCount} box(es), sound room and portal, light of range {range:0.##}m, "
+                + $"{backings} backing box(es) taken out"
                 + (stillWalled ? "; a generated wall still stands in the window: regenerate the level to open it." : ".");
         }
 
@@ -387,7 +390,7 @@ namespace LevelGen
                 PieceAnnotation piece = PiecePlacer.Pick(ForWidth(walls, width, settings), previous, random);
                 Vector3 front = piece.fronts[0];
                 Vector3 pieceRight = Vector3.Cross(Vector3.up, -front);
-                Vector3 scale = Vector3.one + (settings.OpenWindowWallThickness - 1f) * Abs(front) + (width / piece.width - 1f) * Abs(pieceRight);
+                Vector3 scale = Vector3.one + (settings.WallThickness - 1f) * Abs(front) + (width / piece.width - 1f) * Abs(pieceRight);
                 Quaternion rotation = frame.Turn * Quaternion.LookRotation(inward) * Quaternion.Inverse(Quaternion.LookRotation(front));
                 Vector3 left = piece.connections.Find(c => c.name == "left").position;
 
@@ -543,6 +546,97 @@ namespace LevelGen
             serializedPortal.FindProperty("size").vector2Value = settings.OpenWindowPortalSize;
             serializedPortal.FindProperty("probeDistance").floatValue = box.extents.z + PortalProbeOut;
             serializedPortal.ApplyModifiedPropertiesWithoutUndo();
+        }
+
+        /// <summary>
+        /// A Baked point light over the room's middle, the settings' distance
+        /// below its ceiling, its range the settings' share of the distance to
+        /// the furthest floor corner so it just lights the corners. Soft baked
+        /// shadows, so the walls keep it in the room. Baked only: nothing at
+        /// runtime, and gameplay light (Core.LightSource) never sees it.
+        /// Gives back its range.
+        /// </summary>
+        private static float AddLight(Frame frame, float width, float depth, float height, GeneratorSettings settings, Transform parent)
+        {
+            float lightHeight = height + settings.OpenWindowCeilingOffset - settings.OpenWindowLightBelowCeiling;
+            float corner = new Vector3(width * 0.5f, lightHeight - settings.OpenWindowFloorOffset, depth * 0.5f).magnitude;
+            float range = corner * settings.OpenWindowLightRangeShare;
+
+            GameObject lightObject = new("Room Light") {
+                layer = EnvironmentLayer
+            };
+            Undo.RegisterCreatedObjectUndo(lightObject, "Build Open Window Interiors");
+            lightObject.transform.SetParent(parent, false);
+            lightObject.transform.SetPositionAndRotation(frame.Point(new Vector3(0f, lightHeight, -depth * 0.5f)), frame.Turn);
+            Light light = lightObject.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.lightmapBakeType = LightmapBakeType.Baked;
+            light.color = settings.OpenWindowLightColour;
+            light.intensity = settings.OpenWindowLightIntensity;
+            light.bounceIntensity = settings.OpenWindowLightIndirect;
+            light.range = range;
+            light.shadows = LightShadows.Soft;
+            return range;
+        }
+
+        /// <summary>
+        /// Takes out every backing box (Generated/Backing) reaching into the
+        /// room's outline (walls' backs, floor to walls' top): the boxes stood
+        /// behind the facade where the room now is. If the Generated root had
+        /// no hand edits before, its fingerprint is taken again, so a
+        /// regeneration doesn't take the removal for one. Gives back how many
+        /// were taken out.
+        /// </summary>
+        private static int RemoveBacking(Transform root, Frame frame, float across, float deep, float height)
+        {
+            Transform group = root.Find(Backing.GroupName);
+
+            if (group == null) {
+                return 0;
+            }
+
+            GeneratedRoot generated = root.GetComponent<GeneratedRoot>();
+            bool unedited = generated != null && generated.Fingerprint == LevelGenerator.Fingerprint(root);
+            // Boxes only touching the room's outline stay.
+            const float margin = 0.01f;
+            Vector3 roomMin = new(-across * 0.5f + margin, margin, -deep + margin);
+            Vector3 roomMax = new(across * 0.5f - margin, height - margin, -margin);
+            Quaternion inverse = Quaternion.Inverse(frame.Turn);
+            List<GameObject> inside = new();
+
+            foreach (MeshFilter filter in group.GetComponentsInChildren<MeshFilter>(true)) {
+                if (filter.sharedMesh == null) {
+                    continue;
+                }
+
+                // The box's corners in the room's frame, the window's inside
+                // face at z 0 (the room's front walls stand just in front).
+                Bounds mesh = filter.sharedMesh.bounds;
+                Vector3 min = Vector3.positiveInfinity;
+                Vector3 max = Vector3.negativeInfinity;
+
+                for (int c = 0; c < 8; c++) {
+                    Vector3 local = mesh.center + Vector3.Scale(mesh.extents, new Vector3((c & 1) == 0 ? -1f : 1f, (c & 2) == 0 ? -1f : 1f, (c & 4) == 0 ? -1f : 1f));
+                    Vector3 inRoom = inverse * (filter.transform.TransformPoint(local) - frame.Origin);
+                    min = Vector3.Min(min, inRoom);
+                    max = Vector3.Max(max, inRoom);
+                }
+
+                if (min.x < roomMax.x && max.x > roomMin.x && min.y < roomMax.y && max.y > roomMin.y && min.z < roomMax.z && max.z > roomMin.z) {
+                    inside.Add(filter.gameObject);
+                }
+            }
+
+            foreach (GameObject box in inside) {
+                Undo.DestroyObjectImmediate(box);
+            }
+
+            if (inside.Count > 0 && unedited) {
+                Undo.RecordObject(generated, "Build Open Window Interiors");
+                generated.Record(generated.SpecPath, LevelGenerator.Fingerprint(root));
+            }
+
+            return inside.Count;
         }
 
         /// <summary>

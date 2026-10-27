@@ -85,19 +85,25 @@ namespace Inventory
 
         // How many spaces across and down. The top left one is the gold
         // space.
+        [Tooltip("How many spaces across the pack's grid, the top left one being the gold space, e.g. 3 with 3 Rows = the gold space plus eight spaces for loot. More = more loot carried, but the grid must still fit inside the chest.")]
         [SerializeField, Min(1)] private int columns = 3;
+        [Tooltip("How many spaces down the pack's grid, under the objective and keyring row, e.g. 3 with 3 Columns = nine spaces, one of them gold. More = more loot carried, but the grid must still fit inside the chest.")]
         [SerializeField, Min(1)] private int rows = 3;
 
         // Each space's size and the gap between spaces, in metres. All of
         // them must fit inside the chest.
+        [Tooltip("The width and height of one pack space, in metres, e.g. 0.07 = 7cm squares. Bigger = stored items shown bigger and easier to aim at, but the grid must fit inside the chest.")]
         [SerializeField] private float cellSize = 0.07f;
+        [Tooltip("The gap between pack spaces and round the grid's edge, in metres, e.g. 0.012 = 12mm between spaces. Bigger = spaces easier to tell apart, grid wider.")]
         [SerializeField] private float cellGap = 0.012f;
 
         // How much of its space a stored item fills, 0-1.
+        [Tooltip("How much of its space a stored item fills once shrunk, 0-1, e.g. 0.8 = the item's size is 80% of Cell Size. Higher = items fill their space, lower = more room round them. Items are never made bigger than they are.")]
         [SerializeField] private float fit = 0.8f;
 
         // Seconds an item takes to shrink into its space, or to grow back
         // to full size when it's taken out.
+        [Tooltip("Seconds an item takes to shrink into its space when put in, or grow back to full size before a hand takes it out, e.g. 0.12 = about a tenth of a second. Higher = slower, more visible shrink; 0 = instant.")]
         [SerializeField] private float shrinkDuration = 0.12f;
 
         [Header("Chest")]
@@ -108,42 +114,53 @@ namespace Inventory
         // its open side faces the player (-Z), scaled to a hand-held size,
         // the middle of the inside of its back wall on the origin. Made
         // once at load; with no model the spaces float on their own.
-        [Tooltip("The chest model the spaces sit in (Assets/TripoModels/treasure_chest_3d_model). Open side towards the player, handle on one end.")]
+        [Tooltip("The chest model the spaces sit in, open side towards the player and a handle on one end, e.g. drag in Assets/TripoModels/treasure_chest_3d_model. Made once at load, without colliders or shadows; left empty, the spaces float on their own.")]
         [SerializeField] private GameObject chestModel;
-        [Tooltip("Where the chest model sits in the pack's space with its handle on the left (X right, Y up, Z away from the player): the middle of the inside of its back wall on the origin. With the handle on the right, mirrored across X.")]
+        [Tooltip("Where the chest model sits in the pack's space with its handle on the left, in metres (X right, Y up, Z away from the player), placing the middle of the inside of its back wall on the origin, e.g. Y -0.22 lowers the model 22cm. With the handle on the right it is mirrored across X.")]
         [SerializeField] private Vector3 chestPosition = new(-0.011f, -0.22f, -0.063f);
-        [Tooltip("How the chest model is turned in the pack's space (degrees), its open side towards the player.")]
+        [Tooltip("How the chest model is turned in the pack's space, in degrees, e.g. (0, 180, 0) turns the model's open side towards the player.")]
         [SerializeField] private Vector3 chestRotation = new(0f, 180f, 0f);
-        [Tooltip("How much the chest model is scaled down from its file.")]
+        [Tooltip("How much the chest model is scaled from its file, e.g. 0.5 = half size (about 0.5 x 0.43 x 0.23m). Bigger = a bigger chest; the spaces must still fit inside it.")]
         [SerializeField] private float chestScale = 0.5f;
 
         [Header("Putting Things In")]
 
         // Loot let go of within this many metres of the pack's middle
         // goes into it.
+        [Tooltip("Loot or a key held within this many metres of the middle of the spaces can go into the pack, e.g. 0.24 = within 24cm. Higher = easier to put things in from further off; lower = loot has to be held right over the spaces.")]
         [SerializeField] private float storeRadius = 0.24f;
 
         [Header("Gold")]
 
         // The gold space shows a pile that grows with the gold in it:
         // this much gold is a full pile.
+        [Tooltip("How much gold makes the gold space's pile full height, in gold pieces, e.g. 20 = ten gold shows a half pile. Lower = the pile fills quicker; more gold than this still counts but the pile grows no more.")]
         [SerializeField] private int goldForFullPile = 20;
 
         // The number of gold pieces, written over the gold space: how
         // tall its figures are in metres, and its colour.
+        [Tooltip("How tall the figures of the gold number over the gold space are, in metres, e.g. 0.03 = 3cm figures. Bigger = easier to read, but may run off the space.")]
         [SerializeField] private float goldNumberHeight = 0.03f;
+        [Tooltip("The colour of the gold number written over the gold space, e.g. white to stand out against the gold pile.")]
         [SerializeField] private Color goldNumberColor = Color.white;
 
         [Header("Colours")]
+        [Tooltip("The colour of the ordinary loot spaces' panels, e.g. a dark brown like leather.")]
         [SerializeField] private Color spaceColor = new(0.17f, 0.12f, 0.08f, 1f);
+        [Tooltip("The colour of the gold space's panel (the grid's top left space), e.g. a dull gold so it reads as the place for coins.")]
         [SerializeField] private Color goldSpaceColor = new(0.45f, 0.36f, 0.12f, 1f);
+        [Tooltip("The colour of the objective's wide space (top left), e.g. a dark blue to set it apart from the loot spaces.")]
         [SerializeField] private Color objectiveSpaceColor = new(0.15f, 0.25f, 0.4f, 1f);
+        [Tooltip("The colour of the keyring's wide space (top right), e.g. a dark grey like iron.")]
         [SerializeField] private Color keyringSpaceColor = new(0.3f, 0.3f, 0.32f, 1f);
+        [Tooltip("The colour of the gold pile that grows in the gold space, e.g. a bright gold.")]
         [SerializeField] private Color goldColor = new(0.9f, 0.7f, 0.15f, 1f);
+        [Tooltip("The colour of the block that lights up the free space carried loot or a key is held over, e.g. a pale yellow so it shows on any space.")]
         [SerializeField] private Color highlightColor = new(0.95f, 0.9f, 0.6f, 1f);
 
         // The least light the pack is ever shown in, 0-1: it has to be
         // seen in a dark room.
+        [Tooltip("The least light the pack's spaces and chest are ever shown in, 0-1, so it can be seen in a dark room, e.g. 0.4 = never darker than 40% lit. Higher = always clearer but less part of the scene; 0 = as dark as where the player stands.")]
         [SerializeField] private float minLight = 0.4f;
 
         // The layer the spaces' trigger boxes go on, so hand rays hit

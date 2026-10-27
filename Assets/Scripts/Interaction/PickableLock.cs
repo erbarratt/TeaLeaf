@@ -22,13 +22,13 @@ namespace Interaction
     /// </summary>
     public class PickableLock : MonoBehaviour, IDebugDrawable
     {
-        [Tooltip("The door this lock holds shut, which must have a Simple lock. Optional: with neither a door nor a chest, the lock keeps its own locked state and raises Unlocked when picked.")]
+        [Tooltip("The door this lock holds shut, which must have a Simple lock, e.g. drag the door leaf with the Door component here; picking the lock then unlocks that door. Filled from a parent Door when the component is added. Left empty along with Chest, a Chest on a parent object is used; with neither, the lock keeps its own locked state and raises Unlocked when picked.")]
         [SerializeField] private Door door;
 
-        [Tooltip("The chest this lock holds shut, for a lock on a chest rather than a door. Left empty along with Door, a Chest on a parent object is used.")]
+        [Tooltip("The chest this lock holds shut, for a lock on a chest rather than a door, e.g. drag the chest body with the Chest component here; it must have a Simple lock. Ignored when Door is set. Left empty along with Door, a Chest on a parent object is used.")]
         [SerializeField] private Chest chest;
 
-        [Tooltip("How far the lock's face is from this object along its Z, in metres: half the door's thickness plus however far the lock plate stands out. The picks sit here once they are in, on whichever face the player is on.")]
+        [Tooltip("How far the lock's face is from this object along its Z, in metres: half the door's thickness plus however far the lock plate stands out. The picks sit here once they are in, on whichever face the player is on. E.g. 0.031 = a 5cm-thick door (0.025) with a plate standing 6mm proud. Higher = the picks sit further out from the door; lower = sunk into it.")]
         [SerializeField] private float faceOffset = 0.031f;
 
         // The radius the gizmo draws the lock's face at, in metres.

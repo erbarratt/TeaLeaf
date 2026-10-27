@@ -26,12 +26,14 @@ namespace Core
     {
         // The box's full width, height and depth along this object's own
         // axes, in metres (before the object's scale).
+        [Tooltip("Full width, height and depth of the room's box along this object's own axes, in metres before the object's scale, e.g. (4, 3, 4) = a small 4m-square room. Boxes of neighbouring rooms should meet mid-wall; anything outside every room counts as one big outside room.")]
         [SerializeField] private Vector3 size = new(4f, 3f, 4f);
 
         // Where rooms overlap, the one with the higher priority wins, and
         // only between equal priorities the smallest. Left at 0 for rooms
         // placed by hand; the level generator's junction rooms are 1, so
         // each wins over the street rooms running into it.
+        [Tooltip("Where rooms overlap, the higher priority wins; between equal priorities the smallest room wins, e.g. 1 makes a junction room win over the street rooms running into it. Leave at 0 for rooms placed by hand.")]
         [SerializeField] private int priority;
 
         [Header("Reverb (heard while the player is in this room)")]
@@ -39,6 +41,7 @@ namespace Core
         // the sound's: every sound the player hears while standing in here
         // gets this reverb, wherever it was made. Right-click the
         // component's title for presets to start from.
+        [Tooltip("How this room echoes; every sound the player hears while standing in here gets it, wherever the sound was made, e.g. the Stone Hall preset for a big bare hall. Right-click the component's title for Reverb Preset/... starting points.")]
         [SerializeField] private ReverbSettings reverb = ReverbSettings.Room;
 
         [Header("Ambience (heard while the player is in this room)")]
@@ -47,9 +50,11 @@ namespace Core
         // that share a cue carry on with the same sound from one to the
         // next. A sound that comes from somewhere (a torch, a fire) is a
         // SoundLoop instead.
+        [Tooltip("A looping background with no position, heard while the player is in this room (its first clip is used), e.g. a warehouse hum or wind in the rafters. Rooms sharing a cue carry on with the same sound between them. Empty = silence. A sound from somewhere (a torch) is a SoundLoop instead.")]
         [SerializeField] private SoundCue ambience;
 
         // Multiplies the ambience cue's volume in this room.
+        [Tooltip("Multiplies the Ambience cue's volume in this room, 0-1, e.g. 0.5 = the same hum at half loudness in a side room. Lower = quieter; 0 = silent.")]
         [SerializeField, Range(0f, 1f)] private float ambienceVolume = 1f;
 
         // Every enabled room in the scene. Rooms add and remove themselves,

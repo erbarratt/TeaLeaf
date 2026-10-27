@@ -19,21 +19,21 @@ namespace Player
     {
         [Header("Tracked XR Objects")]
 
-        [Tooltip("The Main Camera: the tracked headset.")]
+        [Tooltip("The Main Camera: the tracked headset. Every system asking where the head is reads it here, e.g. drag the Main Camera here.")]
         [SerializeField] private Transform head;
 
-        [Tooltip("The Left Hand object, the tracked left controller. Its pose is overwritten with a smoothed one each frame.")]
+        [Tooltip("The Left Hand object, the tracked left controller. Its pose is overwritten with a smoothed one each frame, e.g. drag the Left Hand object under Hands here.")]
         [SerializeField] private Transform leftHand;
 
-        [Tooltip("The Right Hand object, the tracked right controller, smoothed likewise.")]
+        [Tooltip("The Right Hand object, the tracked right controller, smoothed likewise, e.g. drag the Right Hand object under Hands here.")]
         [SerializeField] private Transform rightHand;
 
         [Header("Calibration")]
 
-        [Tooltip("On, the view is checked at level start, behind the fade, and again whenever the headset is recentred: turned upright if it is upside down, and put at standing eye height. Off, the view is left exactly as the tracking reports it.")]
+        [Tooltip("On, the view is checked at level start, behind the fade, and again whenever the headset is recentred: turned upright if it is upside down, and put at standing eye height. Off, the view is left exactly as the tracking reports it. e.g. on: a Virtual Desktop start that reports the headset upside down on the floor is flipped and lifted to 1.6m.")]
         [SerializeField] private bool calibrateView = true;
 
-        [Tooltip("The longest to wait at level start for the headset to report a tracked pose before calibrating anyway, in seconds. The screen stays black meanwhile.")]
+        [Tooltip("The longest to wait at level start for the headset to report a tracked pose before calibrating anyway, in seconds. The screen stays black meanwhile. e.g. 3 = at most three seconds of black. Higher waits longer for a slow headset, lower starts sooner but may calibrate on a bad pose.")]
         [SerializeField] private float trackingTimeout = 3f;
 
         /// Which device's smoothing settings to use.
@@ -49,17 +49,17 @@ namespace Player
 
         [Header("Hand Smoothing")]
 
-        [Tooltip("Whose hand smoothing settings are used. Auto picks by what the game is running on: an Android build is a Quest, anything else PCVR. Pcvr and Quest force one set, to try the other device's numbers.")]
+        [Tooltip("Whose hand smoothing settings are used. Auto picks by what the game is running on: an Android build is a Quest, anything else PCVR. Pcvr and Quest force one set, to try the other device's numbers, e.g. Quest in the editor plays with Quest Smoothing.")]
         [SerializeField] private SmoothingTarget smoothingTarget = SmoothingTarget.Auto;
 
         // Smoothing of the controllers' tracking, per device - see
         // HandSmoothingSettings and SmoothHands(). Read every frame, so
         // they can be tuned while playing. PCVR starts a little stronger:
         // streaming adds shake of its own.
-        [Tooltip("Hand smoothing used on PCVR, including a Quest streamed to the PC. Read every frame, so it can be tuned while playing.")]
+        [Tooltip("Hand smoothing used on PCVR, including a Quest streamed to the PC (Virtual Desktop). Read every frame, so it can be tuned while playing, e.g. lower its Position Min Cutoff while holding a hand still until the shake goes.")]
         [SerializeField] private HandSmoothingSettings pcvrSmoothing = new();
 
-        [Tooltip("Hand smoothing used on a Quest standalone build. Untuned.")]
+        [Tooltip("Hand smoothing used on a Quest standalone build (an Android build, or Smoothing Target forced to Quest). Untuned, e.g. its 5 Hz cutoffs smooth less than PCVR's 3 Hz.")]
         [SerializeField] private HandSmoothingSettings questSmoothing = new() {
             positionMinCutoff = 5f,
             rotationMinCutoff = 5f

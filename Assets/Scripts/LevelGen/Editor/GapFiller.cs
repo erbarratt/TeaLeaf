@@ -182,7 +182,7 @@ namespace LevelGen
             Vector3 at = new Vector3(leftEnd.Centre.x, leftEnd.Bottom + (left.y - entry.renderMin.y) * heightScale, leftEnd.Centre.z)
                 - front * depthMiddle - right * overlap;
             GameObject placed = placer.PlaceAt(piece, left, at, FacadeBuilder.Yaw(front) - FacadeBuilder.Yaw(piece.fronts[0]),
-                FacadeBuilder.PieceScale(piece, widthScale, heightScale), a.Wall.parent);
+                FacadeBuilder.PieceScale(piece, widthScale, heightScale, settings.WallThickness), a.Wall.parent);
 
             if (placed == null) {
                 return false;

@@ -58,77 +58,77 @@ namespace Interaction
         // keyhole, and how far they lean out of the face towards the
         // player, in degrees (0 = flat against the face, 90 = straight
         // out).
-        [Tooltip("How long each pick is from its tip in the keyhole to the end of its handle, in metres. The lockpicks model is scaled to it.")]
+        [Tooltip("How long each pick is from its tip in the keyhole to the end of its handle, in metres; the lockpicks model is scaled to it at load. e.g. 0.2 = picks 20cm long. Higher = bigger picks with the hands working further from the lock; lower = smaller ones, worked close in.")]
         [SerializeField] private float pickLength = 0.2f;
-        [Tooltip("How deep into the keyhole each pick's tip sits, past the lock's face, in metres: each pick turns about its tip there. Kept shallow, so a leaning pick leaves through the keyhole, not the face round it: the Lock Plate's keyhole is 8mm in radius and 5.7mm deep.")]
+        [Tooltip("How deep into the keyhole each pick's tip sits past the lock's face, in metres; each pick turns about its tip there. e.g. 0.004 = 4mm in. Kept shallow so a leaning pick leaves through the keyhole, not the face round it (the Lock Plate's keyhole is 8mm in radius and 5.7mm deep); higher = tips deeper, and a leaning pick may poke through the plate.")]
         [SerializeField] private float pickDepth = 0.004f;
-        [Tooltip("How far both picks' tips are moved up the keyhole, in metres (negative is down), from where they otherwise sit: the left behind the round top's centre, the right behind the slot's middle. Each pick still turns about its tip, so the hand angles are measured from there too. Applied on each Show().")]
+        [Tooltip("How far both picks' tips are moved up the keyhole from where they otherwise sit (the left behind the round top's centre, the right behind the slot's middle), in metres; negative is down. The hand angles are measured from the moved tips too. Applied on each Show(). e.g. 0.002 = both tips 2mm higher; 0 leaves them where the keyhole puts them.")]
         [SerializeField] private float pickRise;
-        [Tooltip("How far the picks lean out of the face towards the player, in degrees: 0 is flat against the face, 90 straight out.")]
+        [Tooltip("How far the picks lean out of the face towards the player, in degrees: 0 is flat against the face, 90 straight out. e.g. 35 = handles tilted towards the player, easy to reach. Higher = picks stick out more; lower = they lie closer to the door.")]
         [SerializeField] private float pickLift = 35f;
 
-        [Tooltip("How far along a pick from its tip in the keyhole a hand grips it, in metres: on the handle, which is the outer half.")]
+        [Tooltip("How far along a pick from its tip in the keyhole a hand grips it, in metres: on the handle, which is the outer half. e.g. 0.15 = the hand holds 15cm out from the keyhole. Higher = grip nearer the handle's end; lower = nearer the lock. Keep below Pick Length.")]
         [SerializeField] private float gripAlong = 0.15f;
 
         [Header("Right Pick (turning)")]
 
-        [Tooltip("Where the right pick starts, as a clock position on the face in degrees clockwise from 12: 30 is 1 o'clock.")]
+        [Tooltip("Where the right (turning) pick starts, as a clock position on the face seen from the player, in degrees clockwise from 12. e.g. 30 = 1 o'clock, 90 = 3 o'clock. Its stops follow on clockwise from here.")]
         [SerializeField] private float rightStartAngle = 30f;
 
-        [Tooltip("How far the right pick turns from one stop to the next, in degrees. There are four stops in all, evenly spaced from the start angle: one per pin, and the last turn that unlocks.")]
+        [Tooltip("How far the right pick turns from one stop to the next, in degrees. There are four stops in all, evenly spaced from Right Start Angle: one per pin, and the last turn that unlocks. e.g. 28 with a start of 30 = stops at 58, 86, 114 and 142. Higher = bigger hand movements per stage; lower = smaller, fiddlier ones.")]
         [SerializeField] private float stopSpacing = 28f;
 
-        [Tooltip("The right pick counts as at its stop within this many degrees of it. It must be turned back three times this before coming up to the stop is felt again.")]
+        [Tooltip("The right pick counts as at its stop within this many degrees of it, and must be turned back three times this before reaching the stop is felt again. e.g. 1.5 = at the stop within 1.5 degrees, re-armed 4.5 degrees back. Higher = stops easier to reach; lower = the hand must turn right up to them.")]
         [SerializeField] private float stopTolerance = 1.5f;
 
-        [Tooltip("How fast the right pick swings back to its start when let go, in degrees a second.")]
+        [Tooltip("How fast the right pick swings back to its start when let go, in degrees a second. e.g. 240 = a full four-stop turn (112 degrees) springs back in about half a second. Higher = snaps back faster; lower = drifts back slowly.")]
         [SerializeField] private float returnSpeed = 240f;
 
         [Header("Left Pick (searching)")]
 
-        [Tooltip("Where the left pick starts, as a clock position on the face in degrees clockwise from 12: -30 is 11 o'clock.")]
+        [Tooltip("Where the left (searching) pick starts, as a clock position on the face seen from the player, in degrees clockwise from 12. e.g. -30 = 11 o'clock. It sweeps anticlockwise from here.")]
         [SerializeField] private float leftStartAngle = -30f;
 
-        [Tooltip("How far the left pick sweeps anticlockwise from its start, down the left side of the face, in degrees: 120 reaches 7 o'clock. The pins are hidden somewhere along this sweep.")]
+        [Tooltip("How far the left pick sweeps anticlockwise from its start, down the left side of the face, in degrees; the pins are hidden somewhere along this sweep. e.g. 120 from 11 o'clock reaches 7 o'clock. Higher = more ground to search, so pins are harder to find; lower = a shorter, easier search.")]
         [SerializeField] private float leftArc = 120f;
 
         [Header("Pins")]
 
         // The left hand starts to feel the pin within this many degrees of
         // it, and has found it within pinSetAngle.
-        [Tooltip("The left hand starts to feel the pin (through haptics) within this many degrees of it, growing stronger up to Pin Set Angle.")]
+        [Tooltip("The left hand starts to feel the pin (through haptics) within this many degrees of it, growing stronger up to Pin Set Angle. e.g. 10 = a faint buzz 10 degrees away, full at 5. Higher = the pin is felt from further off, an easier search; lower = it must be almost found before anything is felt. Keep above Pin Set Angle.")]
         [SerializeField] private float pinFeelAngle = 10f;
-        [Tooltip("Within this many degrees of the pin the left pick counts as on it, and the hold timer runs. Smaller than Pin Feel Angle.")]
+        [Tooltip("Within this many degrees of the pin the left pick counts as on it and the hold timer runs. e.g. 5 = anywhere within 5 degrees either side sets it. Higher = easier to stay on the pin; lower = the hand must be held very still. Keep below Pin Feel Angle.")]
         [SerializeField] private float pinSetAngle = 5f;
 
-        [Tooltip("How long the left pick must be held on the pin to set it, in seconds. Leaving the pin early starts the count again.")]
+        [Tooltip("How long the left pick must be held on the pin to set it, in seconds; leaving the pin early starts the count again. e.g. 1 = hold steady on it for one second. Higher = slower, tenser picking; lower = pins set almost as soon as they're found.")]
         [SerializeField] private float pinHoldTime = 1f;
 
-        [Tooltip("A new pin is never put closer than this to where the left pick already is, in degrees, so it can't be found by doing nothing. 0 allows anywhere along the sweep.")]
+        [Tooltip("A new pin is never put closer than this to where the left pick already is, in degrees, so it can't be found by doing nothing. e.g. 20 = the next pin is at least 20 degrees from the left pick. Higher = the left pick always has to travel further; 0 allows anywhere along the sweep.")]
         [SerializeField] private float minPinGap = 20f;
 
         [Header("Hands")]
 
-        [Tooltip("A hand closer than this to the line through its pick's pivot, square to the face, in metres, has no clear clock angle, so the pick it holds stays where it is.")]
+        [Tooltip("A hand closer than this to the line through its pick's pivot, square to the face, in metres, has no clear clock angle, so the pick it holds stays where it is. e.g. 0.03 = within 3cm of the keyhole's axis the pick stops following the hand. Higher = less twitching near the middle but a bigger dead patch; lower = the pick follows closer in, but can jump about there; 0 turns it off.")]
         [SerializeField] private float deadRadius = 0.03f;
 
         [Header("Sound")]
 
         // The quiet click and scrape of picking, and the lock opening.
         // Both optional (empty = silent, and unheard by guards).
-        [Tooltip("The quiet click and scrape of picking: played at each stop, pin, reset and scrape, from the real lock so guards hear it. Optional: empty is silent.")]
+        [Tooltip("The SoundCue for the quiet click and scrape of picking, played at each stop, pin set, reset and scrape, from the real lock so guards hear it. e.g. drag a small metal-click cue here. Empty = picking is silent and guards hear nothing.")]
         [SerializeField] private SoundCue pickCue;
-        [Tooltip("The sound of the lock opening on the last turn, played from the real lock so guards hear it. Optional: empty is silent.")]
+        [Tooltip("The SoundCue for the lock opening on the last turn, played at full volume from the real lock so guards hear it. e.g. drag a heavier clunk cue here. Empty = the lock opens silently.")]
         [SerializeField] private SoundCue unlockCue;
 
         // How loud the picking sounds are, and how far they carry to
         // guards, as a share of the cue's own volume and noise radius.
-        [Tooltip("How loud the picking sounds are, as a share of the Pick Cue's own volume, 0 to 1.")]
+        [Tooltip("How loud the picking sounds are, as a share of the Pick Cue's own volume, 0 to 1. e.g. 0.4 = 40% of the cue's volume. Higher = louder clicks for the player; lower = quieter. Doesn't change what guards hear (see Pick Noise Scale).")]
         [SerializeField] private float pickVolume = 0.4f;
-        [Tooltip("How far the picking sounds carry to guards, as a share of the Pick Cue's own noise radius, 0 to 1.")]
+        [Tooltip("How far the picking sounds carry to guards, as a share of the Pick Cue's own noise radius, 0 to 1. e.g. 0.3 = guards hear it within 30% of the cue's radius. Higher = picking is riskier near guards; lower = safer; 0 = guards never hear picking.")]
         [SerializeField] private float pickNoiseScale = 0.3f;
 
-        [Tooltip("The left pick scrapes (plays the Pick Cue) once every this many degrees it is swept.")]
+        [Tooltip("The left pick scrapes (plays the Pick Cue) once every this many degrees it is swept. e.g. 25 = a scrape about every 25 degrees of sweep, four or five across the whole arc. Higher = fewer scrapes, a quieter search; lower = more often.")]
         [SerializeField] private float scrapeAngle = 25f;
 
         // The lockpicks model's two picks, by name: the hook works the

@@ -56,26 +56,26 @@ namespace AI
         // Where it sees and hears from: an object on the model's head
         // bone whose forward is the way the head faces, so the view
         // turns and dips with the head as it is animated.
-        [Tooltip("Where the guard sees and hears from: an object on the model's head bone whose forward is the way the head faces.")]
+        [Tooltip("Where the guard sees and hears from: an object on the model's head bone whose forward is the way the head faces, so the view turns and dips with the animated head. e.g. drag the prefab's Head object here. Left empty, the guard logs an error and switches itself off.")]
         [SerializeField] private Transform eye;
 
         // Optional: greybox shapes under one object, laid flat when the
         // guard is knocked out. Left empty on the animated guard, whose
         // Animator plays the fall instead (GuardAnimation).
-        [Tooltip("Optional: greybox shapes under one object, laid flat when the guard is knocked out. Leave empty on the animated guard, whose Animator plays the fall instead.")]
+        [Tooltip("Optional: greybox shapes under one object, laid flat when the guard is knocked out (and stood back up when woken). e.g. a capsule-and-box greybox guard's body object. Leave empty on the animated guard, whose ragdoll falls instead.")]
         [SerializeField] private Transform visual;
 
         // The body's collider (Guard layer) and the head's (GuardHead
         // layer, what the blackjack hits).
-        [Tooltip("The body's collider, on the Guard layer.")]
+        [Tooltip("The body's collider, on the Guard layer: what the player's body walks into. Switched off while knocked out. e.g. the root's CapsuleCollider (filled in by Reset). Left empty, bolts can't find the guard through it.")]
         [SerializeField] private Collider bodyCollider;
-        [Tooltip("The head's collider, on the GuardHead layer: what the blackjack and stun bolts hit.")]
+        [Tooltip("The head's collider, on the GuardHead layer: what the blackjack hits. Switched off while knocked out. e.g. the SphereCollider on the prefab's Head object. Left empty, the blackjack can't knock this guard out.")]
         [SerializeField] private Collider headCollider;
 
         // Optional: a renderer tinted by state, so the state can be read
         // at a glance on a greybox guard. Left empty on the animated
         // guard: the tint would darken its texture.
-        [Tooltip("Optional: a renderer tinted by state, so a greybox guard's state can be read at a glance. Leave empty on the animated guard (the tint darkens its texture).")]
+        [Tooltip("Optional: a renderer tinted by state, so a greybox guard's state can be read at a glance, e.g. yellow while Suspicious, red while chasing. Leave empty on the animated guard (the tint darkens its texture); empty = no tint.")]
         [SerializeField] private Renderer stateRenderer;
 
         [Header("Testing")]
@@ -83,38 +83,38 @@ namespace AI
         // Play Mode only: ticking it knocks the guard out, clearing it
         // wakes it as another guard would. Follows the guard's own
         // state, so it shows whether it is down.
-        [Tooltip("Play Mode only: tick to knock the guard out, clear to wake it up. Shows whether it is down.")]
+        [Tooltip("Play Mode only, for testing: tick to knock the guard out, clear to wake it up as another guard would. Follows the guard's own state, so it also shows whether it is down, e.g. ticks itself when a blackjack swing lands.")]
         [SerializeField] private bool knockedOut;
 
         // Off: the guard notices nothing of the player - not seen, not
         // bumped, not heard, not shot at, a failed blackjack swing
         // ignored - so it never suspects, chases or catches them. Bodies
         // are still found. Can be switched during Play Mode.
-        [Tooltip("Off: the guard never sees, bumps, hears or notices the player (bolts, failed blackjack swings), so it never suspects, chases or catches them. Bodies are still found and woken.")]
+        [Tooltip("On: the guard notices the player normally. Off (for testing, can be switched in Play Mode): it never sees, bumps, hears or notices the player (bolts, failed blackjack swings), so it never suspects, chases or catches them, e.g. to walk up and watch its feet. Bodies are still found and woken.")]
         [SerializeField] private bool detectsPlayer = true;
 
         [Header("Patrol")]
 
         // The route it walks. With none, it stands where it was placed.
-        [Tooltip("The route it walks. With none, it stands where it was placed, facing the way it was put.")]
+        [Tooltip("The PatrolRoute it walks, e.g. drag a route object whose children are its points here. Left empty, it stands where it was placed, facing the way it was put, and goes back there after a search.")]
         [SerializeField] private PatrolRoute patrolRoute;
 
         [Header("Speeds")]
 
         // Metres a second walking (patrolling and searching) and running
         // (chasing), and how fast it turns on the spot, in degrees a second.
-        [Tooltip("Metres a second while patrolling and searching.")]
+        [Tooltip("Walking speed while patrolling and searching, in metres a second. e.g. 1.07 = an unhurried walk; the walk animation speeds up or slows to match. Higher = covers its route faster.")]
         [SerializeField] private float patrolSpeed = 1.07f;
-        [Tooltip("Metres a second while chasing.")]
+        [Tooltip("Running speed while chasing, in metres a second. e.g. 3.6 = a run the player can only just outpace sprinting. Higher = harder to escape.")]
         [SerializeField] private float chaseSpeed = 3.6f;
-        [Tooltip("Top speed of a turn on the spot, in degrees a second.")]
+        [Tooltip("Top speed of a turn on the spot, in degrees a second (the turn eases up to it and down from it by Turn Acceleration). e.g. 720 = a half turn in about half a second. Higher = snappier turns, lower = slower, heavier ones.")]
         [SerializeField] private float turnSpeed = 240f;
 
         // How quickly a turn on the spot speeds up and slows down, in
         // degrees a second per second: it eases in from still and out to
         // a stop on the way it faces. At four times turnSpeed a half
         // turn just reaches turnSpeed at its middle.
-        [Tooltip("How quickly a turn on the spot speeds up and slows down, in degrees a second per second. At four times Turn Speed a half turn just reaches Turn Speed at its middle.")]
+        [Tooltip("How quickly a turn on the spot speeds up from still and slows to a stop on its new heading, in degrees a second per second. e.g. 2880 with Turn Speed 720: a half turn just reaches top speed at its middle. Higher = sharper starts and stops, lower = softer, longer turns.")]
         [SerializeField] private float turnAcceleration = 2880f;
 
         // How hard it slows coming up to where it is going, in metres a
@@ -122,14 +122,14 @@ namespace AI
         // braking hard at the last moment. From a run at 3.6 that takes
         // about 1.2s over 2.2m; from a walk barely a third of a second.
         // Never while chasing: it runs right up to the player.
-        [Tooltip("How hard it slows coming up to where it is going, in metres a second per second (lower = longer, gentler stop). From a run at 3.6 about 1.2s over 2.2m. Not while chasing.")]
+        [Tooltip("How hard it slows coming up to where it is going, in metres a second per second, so it eases to a stop. e.g. 3: from a run at 3.6 it stops over about 2.2m in 1.2s. Higher = shorter, harder stop; lower = longer, gentler one. Not while chasing.")]
         [SerializeField] private float brakeDeceleration = 3f;
 
         [Header("Sight")]
 
         // The vision zones and how fast each fills the meters, shared by
         // every guard (Thief VR's, in Assets/Data/AI).
-        [Tooltip("The vision zones and their fill times, shared by every guard (Assets/Data/AI/GuardSight.asset). Changes made in Play Mode are kept.")]
+        [Tooltip("The vision zones and how fast each fills the meters, shared by every guard, e.g. Assets/Data/AI/GuardSight.asset. Changes made in Play Mode are kept. Left empty, the guard logs an error and switches itself off.")]
         [SerializeField] private GuardSight sight;
 
         // A player whose body is within this of the guard's, level, has
@@ -137,27 +137,27 @@ namespace AI
         // facing. A little more than the two bodies' radii together.
         // Behind a guard and further off than this, only a noise gives
         // the player away.
-        [Tooltip("A player whose feet come within this of the guard's, in metres, level, has bumped into it and is noticed whichever way it faces. A little more than the two bodies' radii together.")]
+        [Tooltip("Gap between the player's body and the guard's, in metres, level and on the same floor, within which the player has bumped into it and is noticed whichever way it faces. e.g. 0.5 = brushing past it; an arm's-length blackjack swing isn't a bump. Higher = noticed from further behind; 0 = only on touching.")]
         [SerializeField] private float bumpRange = 0.5f;
 
         // What blocks its sight. Filled in from the layer names if left
         // empty (Environment and Interactable: walls, props, doors).
-        [Tooltip("What blocks its sight. Left empty, Environment and Interactable (walls, props, doors).")]
+        [Tooltip("Layers that block its sight of the player and of bodies, e.g. Environment and Interactable (walls, props, doors). Left empty (Nothing), it is filled in with those two.")]
         [SerializeField] private LayerMask sightLayers;
 
         [Header("Hearing")]
 
         // How much of a noise's loudness (0-1 at the ears) is added to
         // the detection meter, and how much a noisemaker bolt's is.
-        [Tooltip("How much of a noise's loudness at the ears (0-1) is added to the detection meter.")]
+        [Tooltip("How much of a noise's loudness at the ears (0-1) is added to the detection meter. e.g. 0.7: a footstep heard at 0.45 adds about 0.32. Higher = noises bring a chase on sooner; 0 = noises never raise detection.")]
         [SerializeField] private float hearingGain = 0.7f;
-        [Tooltip("How much a noisemaker bolt's noise is added to the detection meter, in place of Hearing Gain.")]
+        [Tooltip("Hearing Gain for a noisemaker arrow's noise (a distraction), used in place of Hearing Gain. e.g. 1.5 = a noisemaker draws a guard to search far more readily than a footstep. Higher = stronger lure.")]
         [SerializeField] private float distractionGain = 1.5f;
 
         // How many times more a noise adds to the suspicion meter than to
         // the detection meter: at 3.33 a footstep of 0.45 at the ears
         // (x 0.7) fills suspicion and the guard turns to look.
-        [Tooltip("How many times more a noise adds to the suspicion meter than to the detection meter. At 3.33 one ordinary footstep at the ears (0.45 x 0.7) fills suspicion.")]
+        [Tooltip("How many times more a noise adds to the suspicion meter than to the detection meter. e.g. 3.33: one ordinary footstep at the ears (0.45 x 0.7) fills suspicion and the guard turns to look. Higher = quieter noises make it suspicious; lower = takes several.")]
         [SerializeField] private float hearingSuspicionScale = 3.33f;
 
         [Header("Meters (0-1)")]
@@ -166,33 +166,33 @@ namespace AI
         // full = Suspicious) fades fast, detection ("that's a person";
         // full = Chase) lingers. Each holds for a while after the last
         // thing that raised it, then drains at its rate per second.
-        [Tooltip("Seconds the suspicion meter holds after the last thing that raised it, before draining.")]
+        [Tooltip("Seconds the suspicion meter holds after the last thing that raised it, before draining. e.g. 1 = a glimpse is forgotten soon after. Higher = glimpses add up over longer gaps.")]
         [SerializeField] private float suspicionHoldTime = 1f;
-        [Tooltip("How much of the suspicion meter drains each second once it stops holding.")]
+        [Tooltip("How much of the suspicion meter (0-1) drains each second once it stops holding. e.g. 1 = a full meter empties in a second. Higher = forgets faster; 0 = never drains.")]
         [SerializeField] private float suspicionDecayRate = 1f;
-        [Tooltip("Seconds the detection meter holds after the last thing that raised it, before draining (not while chasing).")]
+        [Tooltip("Seconds the detection meter holds after the last thing that raised it, before draining (never drains while chasing). e.g. 4 = a half-seen player stays half seen for 4 seconds. Higher = sightings add up over longer gaps.")]
         [SerializeField] private float detectionHoldTime = 4f;
-        [Tooltip("How much of the detection meter drains each second once it stops holding.")]
+        [Tooltip("How much of the detection meter (0-1) drains each second once it stops holding. e.g. 0.25 = a full meter empties in 4 seconds. Higher = forgets faster; 0 = never drains.")]
         [SerializeField] private float detectionDecayRate = 0.25f;
 
         // A suspicion whose detection reached this is worth going to look
         // at; the level a bump, a bolt or a body sets detection to.
-        [Tooltip("Detection level (0-1) a suspicion must reach for the guard to go and search; also what a bump, a bolt or a found body sets it to.")]
+        [Tooltip("Detection level (0-1) a suspicion must have reached for the guard to go and search rather than shrug it off; also the least a bump, a bolt or a found body sets detection to. e.g. 0.5 = half detected is worth a look. Higher = it shrugs off more; lower = searches more readily.")]
         [SerializeField] private float investigateThreshold = 0.5f;
 
         [Header("Looking (how often)")]
 
         // Seconds between looks, and between looks while the player is
         // further away than any zone reaches.
-        [Tooltip("Seconds between looks.")]
+        [Tooltip("Seconds between looks (each look casts up to five sight rays), each guard on its own offset timer. e.g. 0.15 = about seven looks a second. Lower = reacts sooner but costs more CPU.")]
         [SerializeField] private float lookInterval = 0.15f;
-        [Tooltip("Seconds between looks while the player is further away than any vision zone reaches.")]
+        [Tooltip("Seconds between looks while the player is further away than any vision zone reaches (no sight rays then; only meters drain and bodies are looked for). e.g. 0.5 = twice a second. Lower = finds bodies sooner, costs more.")]
         [SerializeField] private float farLookInterval = 0.5f;
 
         [Header("Suspicious")]
 
         // Seconds it stands looking before deciding.
-        [Tooltip("Seconds it stands looking before deciding to search or go back to its patrol.")]
+        [Tooltip("Seconds it stands Suspicious, facing what it noticed, before deciding to search or go back to its patrol. e.g. 3 = the player has three seconds to keep still or slip away. Higher = longer pause.")]
         [SerializeField] private float suspiciousTime = 3f;
 
         [Header("Search")]
@@ -200,27 +200,27 @@ namespace AI
         // Seconds it looks about at each place, how many places round
         // the first it tries and how far from it, and the longest a
         // search lasts.
-        [Tooltip("Seconds it looks about at each place it searches.")]
+        [Tooltip("Seconds it stands looking about at each place it searches before moving on. e.g. 2.5 = two or three looks each way. Higher = slower, more thorough search.")]
         [SerializeField] private float searchLookTime = 2.5f;
-        [Tooltip("How many random places round the first it searches before giving up.")]
+        [Tooltip("How many random places round the first it searches before giving up and going back to its patrol. e.g. 3 = the first place, then three more. Higher = longer search; 0 = only the first place.")]
         [SerializeField] private int searchPointCount = 3;
-        [Tooltip("How far from the first place those random places can be, in metres.")]
+        [Tooltip("How far from the first place the random search places can be, in metres. e.g. 4 = it pokes round the nearby room or alley. Higher = wanders wider; lower = stays close to where the noise was.")]
         [SerializeField] private float searchRadius = 4f;
-        [Tooltip("The longest a search lasts, in seconds.")]
+        [Tooltip("The longest a search lasts, in seconds, before it gives up whatever places are left (times Alerted Search Scale once a body has been found). e.g. 30 = half a minute at most. Higher = searches can run on longer.")]
         [SerializeField] private float searchTimeout = 30f;
 
         // How much longer every guard searches once a body has been
         // found.
-        [Tooltip("How many times longer every guard searches once a body has been found.")]
+        [Tooltip("How many times longer every guard's Search Timeout is once any guard has found a body. e.g. 2 = searches run up to a minute instead of 30s. 1 = finding a body changes nothing.")]
         [SerializeField] private float alertedSearchScale = 2f;
 
         [Header("Chase")]
 
         // Seconds without seeing the player before a chase becomes a
         // search, and how close is caught, in metres.
-        [Tooltip("Seconds without seeing the player before a chase becomes a search.")]
+        [Tooltip("Seconds without seeing the player before a chase becomes a search where it last saw them. e.g. 4 = break sight for four seconds to lose it. Higher = harder to shake off.")]
         [SerializeField] private float chaseLostTime = 4f;
-        [Tooltip("How close, in metres, a seen player is caught.")]
+        [Tooltip("How close, in metres, level and on the same floor, a seen player is caught (the level then fails and restarts). e.g. 1.1 = about arm's length. Higher = caught from further off.")]
         [SerializeField] private float catchRange = 1.1f;
 
         [Header("Knocking Out")]
@@ -228,53 +228,53 @@ namespace AI
         // How squarely behind the guard the attacker must be: the least
         // dot product of the guard's facing and the way from attacker to
         // guard (1 = dead behind, 0 = level with the shoulders).
-        [Tooltip("How squarely behind the guard a blackjack swing must come from to knock it out: least dot of its facing and the way from attacker to guard (1 = dead behind, 0 = level with the shoulders).")]
+        [Tooltip("How squarely behind the guard a blackjack swing must come from to knock it out: the least dot of its facing and the way from attacker to guard (1 = dead behind, 0 = level with the shoulders). e.g. 0.2 = anywhere a little behind the shoulders. Higher = must be more squarely behind; a swing from in front makes it chase.")]
         [SerializeField] private float behindDot = 0.2f;
 
         // A body lying in at least this much light (0-1) can be seen by
         // another guard.
-        [Tooltip("A knocked-out body lying in at least this much light (0-1) can be seen by another guard.")]
+        [Tooltip("Light level (0-1) a knocked-out body must lie in for this guard to see it. e.g. 0.15 = bodies in deep shadow go unnoticed, in moonlight are found. Higher = bodies need brighter light to be found; 0 = found anywhere in view.")]
         [SerializeField] private float bodyLightThreshold = 0.15f;
 
         // Seconds a guard spends over a knocked-out guard to wake it.
-        [Tooltip("Seconds a guard spends over a knocked-out guard to wake it.")]
+        [Tooltip("Seconds this guard spends over a knocked-out guard, facing it, before waking it. e.g. 3 = three seconds to blackjack the waker too. Higher = slower to wake bodies.")]
         [SerializeField] private float wakeTime = 3f;
 
         [Header("Sounds")]
 
         // Its footsteps, by the floor it's on. Optional (empty = silent).
-        [Tooltip("Its footsteps, by the floor it's on. Optional (empty = silent).")]
+        [Tooltip("Its footstep sounds by the floor it's on, e.g. a SurfaceSounds asset with stone, wood and grass steps. Optional: left empty, the guard walks silently.")]
         [SerializeField] private SurfaceSounds surfaceSounds;
 
         // How loud a step taken standing (turning on the spot, or
         // shuffling a foot back under it) is, against a walking step's 1.
         // When steps fall is the animation's: walking and running steps
         // come from GuardAnimation, standing ones from GuardFootLock.
-        [Tooltip("Volume of a step taken standing (turning on the spot), against a walking step's 1. Step timing comes from the animation (GuardAnimation, GuardFootLock).")]
+        [Tooltip("Volume of a step taken standing (turning on the spot, shuffling a foot back under it), against a walking step's 1. e.g. 0.35 = a soft shuffle. Higher = louder shuffles; 0 = silent. Step timing comes from the animation (GuardAnimation, GuardFootLock).")]
         [Range(0f, 1f)]
         [SerializeField] private float standingStepVolume = 0.35f;
 
         // How far a walking step's noise carries, as a share of the
         // footstep cue's noise radius (as the player's walking step, 1).
         // Guards ignore guards' noises: this is for the noise circles.
-        [Tooltip("How far a footstep's noise carries, as a share of the footstep cue's noise radius (standing steps scaled by Standing Step Volume). Guards ignore guards' noises; shows as noise circles.")]
+        [Tooltip("How far a footstep's noise carries, as a share of the footstep cue's noise radius (standing steps also scaled by Standing Step Volume). e.g. 1 = as far as the player's walking step. Guards ignore guards' noises, so this only changes the noise circles.")]
         [SerializeField] private float footstepNoiseScale = 1f;
 
         // What counts as floor for finding the surface.
-        [Tooltip("What counts as floor when finding the surface underfoot for footstep sounds.")]
+        [Tooltip("Layers that count as floor when finding the surface underfoot for footstep sounds, e.g. Environment and Interactable. Left empty (Nothing), it is filled in with those two.")]
         [SerializeField] private LayerMask groundLayers;
 
         // What it says as it changes state - how the player reads what a
         // guard is thinking. All optional.
-        [Tooltip("Said on becoming Suspicious. Optional.")]
+        [Tooltip("Said from the head on becoming Suspicious, e.g. a \"Hm? What was that?\" cue. Optional: empty = says nothing.")]
         [SerializeField] private SoundCue suspiciousBark;
-        [Tooltip("Said on starting a search. Optional.")]
+        [Tooltip("Said from the head on starting a search, e.g. a \"Who's there?\" cue. Optional: empty = says nothing.")]
         [SerializeField] private SoundCue searchBark;
-        [Tooltip("Said on giving up a search. Optional.")]
+        [Tooltip("Said from the head on giving up a search, e.g. a \"Must have been rats.\" cue. Optional: empty = says nothing.")]
         [SerializeField] private SoundCue gaveUpBark;
-        [Tooltip("Said on spotting the player and starting a chase. Optional.")]
+        [Tooltip("Said from the head on spotting the player and starting a chase, e.g. a \"Thief!\" cue. Optional: empty = says nothing.")]
         [SerializeField] private SoundCue spottedBark;
-        [Tooltip("Said on finding a knocked-out guard. Optional.")]
+        [Tooltip("Said from the head on finding a knocked-out guard, e.g. a \"Wake up, you!\" cue. Optional: empty = says nothing.")]
         [SerializeField] private SoundCue foundBodyBark;
 
         // How close counts as having arrived, on top of the agent's own
@@ -320,6 +320,9 @@ namespace AI
         private static readonly Color _chaseColor = new(1f, 0.15f, 0.1f, 1f);
         private static readonly Color _stunnedColor = new(0.7f, 0.3f, 1f, 1f);
         private static readonly Color _knockedOutColor = new(0.15f, 0.15f, 0.18f, 1f);
+
+        // The gizmo's colour for the vision zone filling a meter fastest.
+        private static readonly Color _sightZoneColor = new(1f, 0.5f, 0f, 1f);
 
         // Every guard in the scene, knocked out or not; each by its root
         // object (to tell a guard's own sounds from the player's), by
@@ -373,6 +376,11 @@ namespace AI
         private float _lookTimer;
         private float _lastLookTime;
         private bool _isPlayerSeen;
+
+        // The vision zone that filled a meter fastest in the last look the
+        // player was seen in (an index into the sight's zones; -1 = none),
+        // drawn out in the gizmo.
+        private int _sightZone = -1;
 
         // Where the player was last seen or a noise last heard from.
         private Vector3 _stimulus;
@@ -443,6 +451,13 @@ namespace AI
         /// How sure it is that's a person: 0 = not at all, 1 = chasing.
         public float Detection { get; private set; }
 
+        /// <summary>
+        /// Whether the last look filled the detection meter from sight
+        /// (the player seen with suspicion full). Read by GuardAlertMarker
+        /// to show the exclamation mark filling.
+        /// </summary>
+        public bool IsDetecting { get; private set; }
+
         public bool IsKnockedOut => State == GuardState.KnockedOut;
 
         // Standing and looking about: turned towards what it noticed
@@ -452,6 +467,14 @@ namespace AI
 
         /// Where its ears are (INoiseListener).
         public Vector3 EarPosition => eye.position;
+
+        /// The eye (forward = gaze), on the head bone. GuardHeadAim
+        /// measures and steers the gaze by it.
+        public Transform Eye => eye;
+
+        /// Where the player was last seen or a noise last heard from (on
+        /// the ground). GuardHeadAim can look towards it.
+        public Vector3 Stimulus => _stimulus;
 
         // Where its body is, for another guard looking for it: the
         // ragdoll's hips while it lies limp (they fall away from the
@@ -699,6 +722,8 @@ namespace AI
             _lastLookTime = now;
             _lookTimer = lookInterval;
             _isPlayerSeen = false;
+            _sightZone = -1;
+            IsDetecting = false;
 
             PlayerVisibility player = PlayerVisibility.Instance;
 
@@ -736,17 +761,23 @@ namespace AI
             // and the fastest fill of any point showing is the rate.
             Quaternion toEye = Quaternion.Inverse(eye.rotation);
             bool isLit = player.Visibility >= sight.LitThreshold;
+            bool isStill = player.IsStill;
             float speed = player.Speed;
             bool isCrouched = player.IsCrouched;
             float weight = 0f;
             float suspicionTime = -1f;
             float detectionTime = -1f;
 
+            // The zone filling either meter soonest over the showing
+            // points, for the gizmo.
+            int fastestZone = -1;
+            float fastestZoneTime = -1f;
+
             for (int i = 0; i < PlayerVisibility.SightPointCount; i++) {
                 Vector3 point = player.GetSightPoint(i);
                 Vector3 local = toEye * (point - eyePosition);
 
-                if (!sight.TryGetFillTimes(local, isLit, speed, isCrouched, out float pointSuspicion, out float pointDetection)) {
+                if (!sight.TryGetFillTimes(local, isLit, isStill, speed, isCrouched, out float pointSuspicion, out float pointDetection, out int pointZone)) {
                     continue;
                 }
 
@@ -757,10 +788,18 @@ namespace AI
                 weight += player.GetSightWeight(i);
                 suspicionTime = FastestTime(suspicionTime, pointSuspicion);
                 detectionTime = FastestTime(detectionTime, pointDetection);
+
+                float pointTime = FastestTime(pointSuspicion, pointDetection);
+
+                if (pointZone >= 0 && (fastestZoneTime < 0f || pointTime < fastestZoneTime)) {
+                    fastestZoneTime = pointTime;
+                    fastestZone = pointZone;
+                }
             }
 
             if (weight >= sight.SeenWeight) {
                 _isPlayerSeen = true;
+                _sightZone = fastestZone;
                 _stimulus = player.FeetPosition;
 
                 // Each meter fills in its own time; a meter this view
@@ -771,8 +810,13 @@ namespace AI
                     DrainSuspicion(elapsed);
                 }
 
-                if (detectionTime >= 0f) {
+                // Detection fills only once suspicion is full, as Thief
+                // VR's guards: where suspicion never fills (crouched in
+                // the dark 3.75-6m off) the guard never gives chase, and
+                // close up suspicion fills fast, then detection.
+                if (detectionTime >= 0f && Suspicion >= 1f) {
                     RaiseDetection(elapsed / Mathf.Max(detectionTime, 0.001f));
+                    IsDetecting = true;
                 } else {
                     DrainDetection(elapsed);
                 }
@@ -914,6 +958,7 @@ namespace AI
         {
             Suspicion = 0f;
             Detection = 0f;
+            IsDetecting = false;
         }
 
         /// <summary>
@@ -1404,6 +1449,7 @@ namespace AI
 
             _stunTimer = seconds;
             _isPlayerSeen = false;
+            IsDetecting = false;
         }
 
         private void TickStunned(float deltaTime)
@@ -1560,6 +1606,7 @@ namespace AI
             _lastLookTime = Time.time;
             _lookTimer = lookInterval;
             _isPlayerSeen = false;
+            IsDetecting = false;
 
             _stimulus = transform.position;
             ClearMeters();
@@ -1801,7 +1848,8 @@ namespace AI
         }
 
         /// <summary>
-        /// Draws the vision zones in the state's colour and two bars above
+        /// Draws the vision zones in the state's colour (the one filling a
+        /// meter fastest while the player is seen in orange) and two bars above
         /// the head (suspicion yellow, detection red, each as long as its
         /// meter is full); in the detailed view, a line to what it last
         /// saw or heard.
@@ -1821,7 +1869,9 @@ namespace AI
             };
 
             Vector3 eyePosition = eye.position;
-            sight.DrawZones(lines, eyePosition, eye.rotation);
+            // A stunned or knocked-out guard isn't looking: no zone counts.
+            bool isLooking = State != GuardState.Stunned && State != GuardState.KnockedOut;
+            sight.DrawZones(lines, eyePosition, eye.rotation, isLooking ? _sightZone : -1, _sightZoneColor);
 
             // The meters: a line each above the head, as long as it is
             // full.

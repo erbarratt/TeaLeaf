@@ -18,21 +18,25 @@ namespace Core
     {
         // How much reverb there is, as a volume: 0 = none (a dead space),
         // 1 = a normal amount, up to 2 for a space that rings.
+        [Tooltip("How much reverb there is, as a volume, e.g. 1 = a normal amount (Unity's preset loudness), 2 = a space that rings. Higher = more echo; 0 = none (a dead space).")]
         [SerializeField, Range(0f, 2f)] private float level;
 
         // How long the tail takes to die away, in seconds: about 0.4 for a
         // small furnished room, 1.5 for a stone hall, 4 or more for a big
         // warehouse or a cave.
+        [Tooltip("How long the echo's tail takes to die away, in seconds, e.g. 0.4 = a small furnished room, 1.5 = a stone hall, 4 or more = a big warehouse or cave. Higher = a longer tail.")]
         [SerializeField, Range(0.1f, 20f)] private float decayTime;
 
         // How quickly the high end of the tail dies: 0 = bright and ringing
         // (bare stone, tile, metal), 1 = dull (carpet, hangings, timber
         // and straw).
+        [Tooltip("How quickly the high end of the tail dies, 0-1, e.g. 0 = bright and ringing (bare stone, tile, metal), 1 = dull (carpet, hangings, timber and straw). Higher = a duller, softer echo.")]
         [SerializeField, Range(0f, 1f)] private float damping;
 
         // Roughly how far away the walls are, in metres. It sets the gap
         // before the echo starts, which is how the ear judges a space's
         // size: a bigger number is a bigger-sounding room.
+        [Tooltip("Roughly how far away the walls are, in metres, e.g. 4 = an ordinary room, 15 = a warehouse. Sets the gap before the echo starts (and makes early echoes quieter), which is how the ear judges size: higher = a bigger-sounding space.")]
         [SerializeField, Range(0f, 50f)] private float size;
 
         // Millibels (hundredths of a decibel) are what Unity's reverb is

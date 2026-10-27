@@ -1,0 +1,368 @@
+TeaLeaf performance review - Intro scene and project settings
+================================================================
+
+Written 2026-10-26, to be gone through with the maintainer and implemented item by item.
+Nothing here has been changed yet; every item is a proposal.
+
+What was looked at
+------------------
+- The open scene (Assets/Scenes/Intro.unity), read in the Editor through the Unity CLI:
+  every renderer, material, texture, mesh, light, probe, LOD group, collider, rigidbody,
+  particle system, animator, camera and active script.
+- Project settings: Player, Quality, Graphics, URP asset (Assets/Settings/PC_RPAsset.asset,
+  quality level "PC") and renderer (PC_Renderer.asset), OpenXR, Physics, Time, Audio.
+- Runtime code: every Update()/LateUpdate()/OnAudioFilterRead, physics queries, Find calls,
+  Camera.main, material access, LINQ.
+- Web sources (listed at the end) for Unity 6 behaviour that can't be read from the project.
+
+Budget reminder: 8.3 ms CPU and 8.3 ms GPU per frame on an RTX 3060 / Ryzen 5 5600X at
+~2000x2000 per eye. Nothing has been measured on that rig: every "gain" below is a
+judgement, not a measurement. Section 9 is how to measure before and after.
+
+The scene in numbers
+--------------------
+- 5,863 active renderers (5,849 mesh, 3 skinned, 11 particle), 5,830 static, 5,338 Batching Static.
+- 2.34M triangles summed over every LOD level of every renderer (not what is drawn at once).
+- 2,387 LOD groups (1,735 two-level, 652 three-level), 2,386 of them cross-fading.
+- 44 materials (2 used once); 5,658 renderers on URP Lit, 93 Simple Lit (Backing),
+  63 TeaLeaf/DoorLeaf, 38 TeaLeaf/GroundBlend, 11 particles.
+- 94 textures, about 920 MB in a build (1.84 GB as the Editor counts it, which keeps a CPU copy).
+- 4 lightmaps (three 2048, one 1024; BC6H colour + ARGB4444 shadowmask), Shadowmask mode,
+  7,240 baked light probes, 0 reflection probes, occlusion data baked (333 KB).
+- 54 lights: 45 Baked spots, 1 Baked directional (moon), 8 Mixed point lights on the
+  lamp posts with Hard realtime shadows.
+- 2,489 colliders (2,196 boxes on Environment, 273 mesh colliders: 234 convex, 39 concave
+  street-ground chunks), 14 rigidbodies (12 kinematic).
+- No AudioSources in the scene (SoundPlayer pools them at load).
+
+Already good - keep as is
+-------------------------
+- Single Pass Instanced stereo (OpenXR render mode 1), SRP Batcher on, dynamic batching off.
+- HDR off, render scale 1, 4x MSAA, no post-processing, no depth or opaque texture, no
+  soft shadows, main light shadows off (moon baked), no realtime GI.
+- Forward+ renderer; occlusion culling baked and on for the camera.
+- Code: no LINQ, no allocating physics queries, Camera.main and Find calls only at load
+  and cached, no .material at runtime outside load, sliced timers on guard sight
+  (0.15 s / 0.5 s far), player visibility (0.1 s), guard shadow checks, keyhole search.
+  Door and ScreenFade Update()s switch themselves off when idle.
+- GPU skinning on, incremental GC on, mesh 16-bit indices everywhere, 0 readable pack meshes
+  in use (the 71 readable meshes are runtime-built ones: ground, proxies, LockMeshBuilder).
+
+
+1. BIGGEST WINS (do first)
+===========================
+
+1.1 Lamp-post realtime point-light shadows (GPU + CPU)                      [HIGH]
+---------------------------------------------------------------------------------
+Found: all 8 TL_Lampost point lights are Mixed with Hard shadows on, tier High (1024),
+in a 4096 shadow atlas. A point light's shadow is six shadow maps (Unity: "comparable
+with rendering shadows from six spot lights"), so up to 48 shadow views a frame, each
+culled on the CPU and each drawn if a dynamic caster (guard, props, arrows) is inside.
+In Shadowmask mode static geometry doesn't draw into them, so the GPU part is small until
+a guard walks under a lamp, but the culling runs every frame for all eight.
+The design (root CLAUDE.md) allows realtime shadows from moving things only for torches,
+as a switchable quality setting; lamp posts burn on and were never part of that.
+Options:
+  a) Shadows off on the lamp posts' lights (in the TL_Lampost variant). Static shadows stay
+     baked in the shadowmask. Cost: one prefab field. Loses: guards cast no lamp shadow
+     (GuardShadow's blob already gives them a contact shadow). Gain: removes all 48 views.
+  b) Keep shadows, but only on the nearest one or two lamps (a small script switching
+     Light.shadows by distance on a slow timer). Cost: one small component; more to keep.
+  c) Leave as is and expose it as the quality setting the design describes.
+Recommendation: (a) now; revisit (b)/(c) only when torches with moving shadows are built,
+so one switch covers both. Also drop the additional-light shadow atlas from 4096 to 2048
+(32 MB to 8 MB of depth) once fewer lights cast.
+Quest: (a) is what a port does anyway.
+
+1.2 Static batching + GPU Resident Drawer both on (CPU)                     [HIGH]
+---------------------------------------------------------------------------------
+Found: URP asset GPU Resident Drawer = Instanced Drawing, BatchRendererGroup variants
+Keep All, Forward+, SRP Batcher - all the drawer needs - but Player > Static Batching is
+on and 5,338 renderers are Batching Static. Unity's docs: static batching is not
+compatible with the BRG API / GPU Resident Drawer and should be turned off for it. Right
+now the project pays the drawer's costs (all BRG variants compiled, longer builds) while
+most of the level goes through static batching instead.
+Options:
+  a) Pick static batching: GPU Resident Drawer off. Cost: one setting; shorter builds,
+     fewer variants. Well-trodden in VR.
+  b) Pick the GPU Resident Drawer: Static Batching off in Player settings (renderers can
+     keep the flag; it's ignored). Saves the big combined meshes' memory and is aimed at
+     exactly this case (thousands of renderers sharing a few dozen meshes and materials:
+     the level is 5,800 renderers from ~215 meshes and 44 materials). Risks: I found no
+     source confirming the drawer works with Single Pass Instanced on PC (it isn't listed
+     as unsupported either); LOD cross-fade with the drawer and MaterialPropertyBlock
+     users (guard, door leaf?) need checking; per-instance callbacks fall back.
+  c) Measure both (section 9) and keep the winner.
+Recommendation: (c), and it is quick: same scene, two builds, CPU render-thread time
+compared in the profiler. If no time to measure, (a) is the stable choice.
+Note: the CLAUDE.md rule "a probe-lit renderer is never Batching Static" only matters
+under (a).
+
+1.3 Direct3D 12 is the first graphics API (CPU)                             [HIGH]
+---------------------------------------------------------------------------------
+Found: Standalone graphics APIs automatic = Direct3D12, Direct3D11, graphics jobs Split.
+Several recent reports with Unity 6 + URP + OpenXR show DX12 using much more CPU than
+DX11 (one on 6000.3.18: 6.0 ms vs 3.5 ms CPU, 7 GB vs 5 GB VRAM), and Unity's issue
+UUM-64462 (XR on DX12 slower than DX11) is Won't Fix. DX12 is needed only for split/native
+graphics jobs, foveated rendering and async compute - none used.
+Proposal: untick Auto Graphics API for Windows, put Direct3D11 first (keep D3D12 second as
+fallback), set graphics jobs to Legacy/off for DX11 if Unity asks. Measure (section 9).
+Cost: a setting. Risk: low; easy to switch back.
+
+1.4 Mono scripting backend (CPU)                                            [MEDIUM]
+---------------------------------------------------------------------------------
+Found: Standalone scripting backend Mono2x, managed stripping Disabled.
+IL2CPP compiles C# to native code: Unity's own guidance is better runtime performance,
+paid for in longer build times. Most of TeaLeaf's frame is gameplay C# (player tick, guards,
+sound DSP in SpatialVoice.OnAudioFilterRead on the audio thread), so it benefits.
+Proposal: IL2CPP for release/profiling builds, C++ compiler config Release (Master for
+shipping), managed stripping Low. Keep Mono for quick test builds if build time hurts.
+Risk: reflection-only code stripped (none found at runtime); first IL2CPP build is slow.
+
+1.5 LOD cross-fade on 2,386 LOD groups (GPU)                                [MEDIUM]
+---------------------------------------------------------------------------------
+Found: URP asset LOD Cross Fade on (Bayer dither); every pack LOD group fades.
+While a group fades both levels draw, and the faded draw uses clip() in the pixel shader,
+which costs early-depth rejection on those pixels; with 4x MSAA the dither also shows as
+noise. Unity's own optimisation table only asks for Bayer (already set).
+Options:
+  a) Keep it (VR pops are noticeable; it's working).
+  b) Turn fade off on the generator's building LOD groups and props smaller than ~1m
+     (pops there are hard to see), keep it on big walls/roofs.
+  c) Off everywhere (URP asset), accept pops.
+Recommendation: (a) until section 9 shows the GPU is over budget; then (b). Judgement:
+a few percent of GPU at most.
+
+1.6 The 8192 guard albedo (memory, bandwidth)                               [MEDIUM]
+---------------------------------------------------------------------------------
+Found: tripo_rgb_b61156be... (guard_1 _MainTex) is 8192x8192 DXT1, max size 8192: ~43 MB
+in a build for one character, every other texture is capped at 4096 or 2048.
+Proposal: max size 2048 (the guard never fills more of the view than a door does).
+Check every Assets/TripoModels texture for the same (import presets per folder would keep
+new Tripo imports at 2048). Cost: import setting. Gain: ~40 MB VRAM, faster loads.
+
+
+2. LIGHTING
+===========
+
+2.1 FlameFlicker on Mixed lights. FlameFlicker (8 in scene, Update each) changes the
+lamp lights' intensity every frame. Only the realtime part flickers; the baked lightmap
+and shadowmask part stays fixed, so the flicker is lighting-only on dynamic objects plus
+direct light. Cost is tiny (one Perlin pair a light). Note only; if lamp posts should
+burn steady (CLAUDE.md: "lamp posts have none and burn on"), remove FlameFlicker from
+TL_Lampost and save the eight Update()s.
+2.2 No reflection probes; Lit materials still sample the default reflection (Custom,
+128). 5,759 renderers are set to Blend Probes with nothing to blend. Proposal: in the
+painted, matte style, turn Environment Reflections off on the pack material copies that
+are matte (plaster, roofs, masonry, timber) - saves a cubemap fetch and the fresnel maths
+per pixel on most of the screen. Keep on metals (iron fixtures, pipes, windows). Cost:
+material checkbox per material (~20). Gain: judgement, 3-8% of forward pixel cost.
+2.3 Specular highlights: same reasoning - matte materials with Specular Highlights off
+skip the GGX specular per light. Combine with 2.2 and compare by eye in the headset.
+2.4 Light Layers and Light Cookies are supported in the URP asset but nothing uses them
+(no cookie on any light, no script touches rendering layers). Turn both off: fewer
+variants, and Forward+ skips the per-light layer test. Cost: two ticks.
+2.5 Lightmaps: Non-directional, BC6H, 10 texels/unit, 4 maps (~45 MB in a build with the
+shadowmasks). Fine for PC. The shadowmask maps are ARGB4444 (uncompressed 16-bit): if the
+memory is wanted, Lightmap Compression "High Quality" or a lower texel density on roofs
+and backs of buildings (Lightmap Scale per renderer) is where it is. Low priority.
+2.6 Fog is on (ExponentialSquared). URP fog is cheap (factor per vertex, one lerp per
+pixel), but CLAUDE.md lists haze as a reserve "only when profiling asks". FogTestDebug is
+in the scene, so this is a test. Note only: decide whether it stays and write it down.
+2.7 Lamp posts' realtime light range 5 m, mean 2.9 m for all spots/points: good. Check
+"max four mixed lights overlap" still holds after each generation (8 lamps; generator
+keeps lampSpacing).
+
+3. GEOMETRY, BATCHING, CULLING
+===============================
+
+3.1 Non-uniform and negative renderer scale from the generator.
+Found: 3,132 renderers scaled unevenly, 352 negatively (TL_RoofTiles_TopCorner 184,
+TL_RoofTiles_MiddleSide 162, OpenWindowWall 5). Top uneven: TL_PlasterWalls_A_MidBeam
+664, TL_RoofTiles_MiddleSide 326, TL_Pipes_Small_A_thin 225, TL_RoofTiles_TopCorner 222,
+TL_RoofWall_MedA 172 ... - the generator stretches pieces to fit modules (e.g. x 0.876,
+1.326 x 1.291). Assets/Scenes/CLAUDE.md says renderers never scale unevenly (breaks
+batching, bends lighting).
+Cost: negative scale flips triangle winding, so those 352 draw with the opposite cull
+state and can't share batches with the rest; non-uniform scale is fine for the SRP
+Batcher and static batching bakes it in, but lightmap texel density is stretched with it
+and normals of unbaked/dynamic-batched paths need the inverse-transpose.
+Options:
+  a) Accept and correct the docs: the generator's stretched modules are a deliberate part
+     of the storybook look; keep the rule for hand-placed pieces only.
+  b) Generator mirrors by choosing mirrored mesh variants (a mirrored copy of the two
+     roof-tile meshes, made once by an editor step) instead of scale -1. Fixes the batch
+     split; leaves the stretching.
+Recommendation: (b) for the negatives (two meshes), (a) for the stretching; measure the
+draw-call difference before and after.
+3.2 Mesh colliders using the render mesh: 26 TL_Chimney_full (convex) + 38 generated
+street-ground chunks (concave, 2-926 triangles, fine: the ground has to be exact). The
+chimneys break "collision is authored, never the render mesh" - a box or two each would
+do, and they are on roofs (only reached by climbing). They do need a collider for
+gameplay shadows (SceneLight rays), so replace, don't remove. Low priority; physics cost
+of 26 convex hulls is small.
+3.3 Camera far plane 200 m, no per-layer cull distances. The level is ~120 m across. A
+far plane at ~120 m and per-layer cull distances are listed reserves in CLAUDE.md; leave
+until profiling shows draw-call pressure from far props.
+3.4 Occlusion bake: smallest occluder 5 m, smallest hole 0.25 m (defaults). In narrow
+alleys a smaller occluder (2-3 m, the size of one house wall module run) lets more
+buildings hide behind each other; bake time and data grow. Try 3 m once and compare
+culled renderer counts from a few spots (section 9).
+3.5 383 mesh renderers have no LOD group (generated ground, backing boxes, proxies,
+props). Fine for ground and proxies; check the props (kettle, barrel, crate, door) -
+small Tripo props with 1-1.2k verts don't need LODs, only a cull distance (an LOD group
+with a single level culled at ~1-2%).
+3.6 Motion vectors: 5,852 renderers are "Per Object Motion". URP only draws a motion
+vector pass when something needs it (TAA, motion blur, SpaceWarp); none does on PC, so
+there is no cost today. Set static renderers to "Camera Motion Only" in the variants tool
+so a later Quest SpaceWarp port doesn't redraw the whole level. Note only.
+
+4. MATERIALS, SHADERS, TEXTURES
+================================
+
+4.1 Street ground shader (TeaLeaf/GroundBlend) - texture fetches.            [MEDIUM]
+Found: each layer reads 6 textures (albedo, normal, height, occlusion, smoothness, plus
+a second height read for the offset parallax) and up to 3 layers blend: up to 18 fetches
+a pixel on the surface that fills the bottom half of most views. The "branch is uniform
+over the triangle" comment is only true when all three vertices are unpainted; at every
+paint edge the GPU runs both sides.
+Proposal (in order of size):
+  a) Pack height, occlusion and smoothness of each layer into one RGB texture (BC1/BC7):
+     6 fetches -> 4 per layer, 9 single-channel BC4 textures (48 MB) -> 3 (each 2048).
+     An editor step packs them; the shader reads .r/.g/.b. Same look.
+  b) Read the parallax height once and reuse it as the layer's height (it is the same
+     texture at nearly the same uv): -1 fetch a layer.
+  c) The parallax (offset mapping, one sample - not POM, so within the rules) can be a
+     per-material switch already (_PARALLAX); compare in headset with it off.
+Gain: judgement, 20-35% of the ground's pixel cost. Quest: (a) is needed for a port.
+4.2 Backing material (93 black boxes behind facades) is Simple Lit with specular 0.5 and
+a 0.5 smoothness - a lit, specular black box. URP Unlit, black, gives the same picture
+for less (no lighting, no shadows sampling). Instancing is off on it; with the SRP
+Batcher that doesn't matter. Cost: shader swap on one material.
+4.3 Pack textures: 4096 albedo, normal and MRAO on most kit materials (each MRAO/normal
+21 MB in a build). The "_2k" window textures are imported at 4096 (Medieval_Windows_
+EMMISIVE_2k, _Nrm_2k): source is bigger than the name says; cap them at 2048 as named.
+Foliage (S_MVillage_Foliage_01, nettles and grass) 3 x 4096 DXT5 = 64 MB for small plants:
+cap at 2048 (or 1024 for the MRAO). Gain: ~150 MB VRAM, no visible change at VR
+resolution for foliage. The CLAUDE.md cap (4096 in STYLZ_MVillage) stays the ceiling, not
+a target.
+4.4 Anisotropic filtering: Quality "PC" has Anisotropic Textures = Forced On, which
+raises every texture to at least Unity's forced minimum (9x) regardless of its own setting
+(61 textures already ask for 4-8x). On a 3060 aniso is cheap, and it matters for floors at
+grazing angles in VR, so keep it on for the ground; "Per Texture" with 8x on floors/walls
+and 1-2x on props, foliage and the guard is the cheaper middle. Low priority.
+4.5 Normal maps are DXT5 (DXT5nm). BC5 is the same size and better quality for normals
+(Player Settings > Normal Map Encoding for Standalone). Quality, not speed; note only.
+4.6 Two materials named Medieval_PlasterWalls_A_4k and two Medieval_WallsTall_A_4k (pack
+original and project copy both in use). Harmless to the SRP Batcher, but it means some
+pieces still use the pack material and some the copy: pick one per surface so tint
+changes apply everywhere. Check with TeaLeaf > Modify Prefab variants.
+4.7 Mip streaming is off. 12 GB VRAM holds the level's ~920 MB easily, so leave off on PC;
+it is the first thing a Quest port turns on (with a budget).
+
+5. CPU CODE
+===========
+The runtime code is already written to the performance habits; nothing found is large.
+5.1 Debug components active in the scene: FogTestDebug, NoiseDebug, SoundDebug,
+GameStateDebug, VisibilityDebug, BigLockDebug (each with an Update), InventoryDebug x2,
+PhysicalHandsTrace, DefaultLayerGizmos, InHeadsetGizmos, PcPlay. They ship in a build.
+Proposal: one "Debug" root object holding all scene debug components, tagged EditorOnly
+(Unity strips EditorOnly objects from builds), and a rule in Assets/Scenes/CLAUDE.md that
+debug components live only there. PcPlay disables itself already.
+5.2 FlameFlicker: 8 Update()s for 8 lights (see 2.1). If flicker stays, one manager
+ticking all lights in a list, or a shader-side flicker for the flame mesh, saves the
+per-component Update overhead (~0.01 ms; note only).
+5.3 SpatialVoice runs a C# DSP per voice on the audio thread (16 voices, delay line,
+filters per sample). Off the main thread, so not in the 8.3 ms, but with Mono it is the
+heaviest per-sample code in the project; IL2CPP (1.4) helps it most. If audio crackles
+under load, raise DSP buffer (already 1024, see 7.2) before anything else.
+5.4 SoundPlayer Update() ticks every voice each frame (TickSpatialVoices) and the
+listener room on a timer: correct pattern. No change.
+5.5 Guard sight: 5 linecasts per look, 0.15 s near / 0.5 s far. With 11 guards (the
+reference level), ~370 linecasts a second near: fine. Look timers already start at a
+random offset (Guard.cs:552), so guards don't all look on the same frame. No change.
+
+6. PHYSICS
+==========
+6.1 Fixed timestep 0.02 (50 Hz) against a 90 Hz frame, and no rigidbody interpolates
+(the arrows interpolate only while tumbling; grabbable test props interpolate; scene
+props don't). Thrown props, bounced bolts and the guard ragdoll visibly step at 50 Hz in
+the headset. Options: Interpolate on every Grabbable's Rigidbody (cheap, standard),
+or fixed timestep 1/90 (costs 1.8x physics steps). Recommendation: interpolate.
+6.2 Queries Hit Triggers is on project-wide; every query in code passes
+QueryTriggerInteraction explicitly or wants triggers (hand rays, grab volumes). No change;
+keep passing it explicitly in new code.
+6.3 2,196 boxes + 273 mesh colliders, auto sync transforms off, reuse collision callbacks
+on: good.
+
+7. XR, AUDIO, PLAYER SETTINGS
+==============================
+7.1 OpenXR depth submission None. Submitting depth lets some runtimes reproject better
+when a frame is late; it costs a depth resolve and Meta lists MSAA artefacts, and one
+report says 24-bit breaks SteamVR's Oculus path. Leave off; note only.
+7.2 Audio DSP buffer 1024 (~21 ms at 48 kHz). Fine for safety; "Good latency" (512)
+halves audio latency, which matters for footsteps matching the feet in VR. Try 512 once
+IL2CPP is in (5.3).
+7.3 Real voices 32, virtual 512; SoundPlayer pools 16 + loops. Fine.
+7.4 Foveated rendering on PC: Unity documents it for D3D12/Vulkan with VRS, forum reports
+say PCVR foveation doesn't work in Unity 6.0. Not worth it now (and conflicts with 1.3).
+7.5 Quality "Mobile" level points at Mobile_RPAsset: unused on PC, kept for the future
+Quest port. Note: its settings were never reviewed for Quest.
+
+8. CODE ISSUES FOUND WHILE WRITING TOOLTIPS (not performance; for the clean-up)
+=================================================================================
+- AI/Guard.cs:111 turnSpeed code default 240, prefab and AI/CLAUDE.md use 720; the
+  turnAcceleration comment (:115-117, "four times Turn Speed" = 2880) only fits 720.
+- PlayerArrows.cs:286 comment says three of each of five kinds; there are six (18 can be
+  carried against ArrowPoolSize 16, so "can never all be in the world at once" is untrue).
+- PlayerFootsteps.cs:156/161 subscribe to playerLocomotion.Landed with no null check
+  (only Reset() fills it).
+- PlayerController.cs ~166: Awake() summary lists 4 systems it finds; it finds 15.
+- PlayerInputXR: every InputActionReference is required (an empty one throws in
+  OnEnable); tooltips say so.
+- InHeadsetGizmos.cs:228 SetAllTypes() summary says "to on"; it sets the given value.
+- Pack.cs:30-31 class comment says keys "aren't built yet"; they are.
+- ClimbableEdge.cs:56 Mantle Point code default (0, 0.1, -0.2) vs docs/Reset 0.4 m in.
+- ClimbableEdge.cs:58 and ClimbableRope.cs:244 comments describe history ("before this
+  option", "Found 2026-09-28"), against the docs-describe-now rule.
+- BigLock.cs:62 Pick Length read only in Awake() (no Play Mode tuning) unlike Pick Rise.
+- No guard against Pin Feel Angle <= Pin Set Angle (BigLock), Locked Twist >= Unlatch
+  Twist (Door), Aim End >= Aim Start (PlayerHandThrowing); tooltips say "keep above/below".
+- GeneratorSettings: pipeLargeShare (:146) has no effect while only the thin kit is
+  verified; header "Visibility cull (last of all)" (:361) is wrong (it isn't last);
+  maxStoreyWidthMismatch (:209) shows under the "Backing" header.
+- HandRayReticle segments < 3 not clamped.
+- Debug scripts HandRayDebug, InputTest, LocomotionInputTest, MovementStateDebug,
+  TrackingTest, VRDebugInput throw if their reference is empty.
+
+9. HOW TO MEASURE (before and after each item above)
+=====================================================
+Nothing above should be kept without a number. Cheapest reliable loop:
+1. Development Build, Autoconnect Profiler, Deep Profile off, scripting backend as tested.
+2. Three fixed spots in the scene (start, the busiest street view down the longest run,
+   under a lamp with the guard passing), 30 s each, headset on (VD), stood still.
+3. Record: CPU main thread ms, render thread ms (PlayerLoop, Gfx.WaitForPresent excluded),
+   GPU ms (Profiler GPU module, or SteamVR frame timing / VD's overlay), Batches,
+   SetPass calls, shadow casters, visible renderers (Rendering module).
+4. Change one item, rebuild, repeat. Write the numbers into the devlog with the change.
+Order to try: 1.3 (DX11) and 1.4 (IL2CPP) first - they change every later number - then
+1.1, 1.2, 4.1, 2.2/2.3, 1.5. The dev machine is not the target: compare relative changes,
+and treat absolute numbers as an upper bound only if the dev GPU is faster than a 3060.
+
+Sources
+-------
+- GPU Resident Drawer (Unity 6.0 / 6.3): https://docs.unity3d.com/6000.3/Documentation/Manual/urp/gpu-resident-drawer.html
+- GPU Resident Drawer performance, static batching: https://docs.unity3d.com/Manual/urp/gpu-resident-drawer-performance.html
+- Choosing a draw call method (static batching vs BRG): https://docs.unity3d.com/ja/6000.0/Manual/optimizing-draw-calls-choose-method.html
+- Shadow optimisation (point light = six shadow maps): https://docs.unity3d.com/Manual/shadows-optimization.html
+- Shadowmask lighting mode: https://docs.unity3d.com/ru/2020.2/Manual/LightMode-Mixed-Shadowmask.html
+- DX11 vs DX12 parity thread (6000.3, URP, OpenXR): https://discussions.unity.com/t/performance-parity-dx11-vs-dx12-again/1735784
+- XR DX12 slower than DX11, Won't Fix: https://issuetracker.unity3d.com/issues/quest-low-gpu-performance-with-directx12-when-compared-to-directx11
+- DX11/DX12 feature list: https://docs.unity3d.com/Manual/UsingDX11GL3Features.html
+- IL2CPP introduction: https://docs.unity.com/en-us/engine/6000.3/manual/programming-environment/scripting-backends/il2cpp/il2cpp-introduction.md
+- URP performance settings (LOD cross-fade dither): https://docs.unity.com/en-us/engine/6000.3/manual/analysis/graphics-performance-profiling/in-urp/optimize-for-better-performance.md
+- GPU occlusion culling: https://docs.unity3d.com/6000.2/Documentation/Manual/urp/gpu-culling.html
+- XR foveated rendering: https://docs.unity3d.com/6/Documentation/Manual/xr-foveated-rendering.html
+- SRP foveation on PCVR (forum): https://discussions.unity.com/t/enabling-srp-foveated-rendering-crashes-editor/1538264
+- OpenXR depth submission: https://developers.meta.com/horizon/documentation/unity/unity-openxr-settings/
+- Depth submission vs SteamVR (forum): https://forum.unity.com/threads/openxr-depth-submission-mode-vs-steamvr-oculus.1413531/

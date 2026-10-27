@@ -21,6 +21,7 @@ namespace Core
     {
         // The box's full width, height and depth along this object's own
         // axes, in metres (before the object's scale).
+        [Tooltip("Full width, height and depth of the exit box along this object's own axes, in metres before the object's scale, e.g. (3, 3, 3) = a 3m cube centred on this object. The player's feet must be inside while carrying the objective to win, so sink the box a little into the floor.")]
         [SerializeField] private Vector3 size = new(3f, 3f, 3f);
 
         // Every enabled exit zone in the scene. Zones add and remove

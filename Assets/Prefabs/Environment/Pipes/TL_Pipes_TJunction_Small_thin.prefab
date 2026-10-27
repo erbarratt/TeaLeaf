@@ -32,6 +32,10 @@ PrefabInstance:
       propertyPath: m_ScaleInLightmap
       value: 0.5
       objectReference: {fileID: 0}
+    - target: {fileID: 4134663752290819191, guid: d7332fec5788d3a4c99d41d3ba560f60, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 5294790853153792534, guid: d7332fec5788d3a4c99d41d3ba560f60, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -48,6 +52,10 @@ PrefabInstance:
       propertyPath: m_ScaleInLightmap
       value: 0.5
       objectReference: {fileID: 0}
+    - target: {fileID: 5428810286609946864, guid: d7332fec5788d3a4c99d41d3ba560f60, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 7042515977642835567, guid: d7332fec5788d3a4c99d41d3ba560f60, type: 3}
       propertyPath: m_Layer
       value: 6
@@ -80,6 +88,10 @@ PrefabInstance:
       propertyPath: m_ScaleInLightmap
       value: 0.5
       objectReference: {fileID: 0}
+    - target: {fileID: 8080285280620364903, guid: d7332fec5788d3a4c99d41d3ba560f60, type: 3}
+      propertyPath: 'm_Materials.Array.data[0]'
+      value: 
+      objectReference: {fileID: 2100000, guid: df6fd1d08fc68cf49b6ce2a9b21dbef9, type: 2}
     - target: {fileID: 8615479407024347036, guid: d7332fec5788d3a4c99d41d3ba560f60, type: 3}
       propertyPath: m_LocalScale.x
       value: 0.3

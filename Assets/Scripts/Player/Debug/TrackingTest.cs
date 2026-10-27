@@ -12,7 +12,7 @@ using Player;
 /// </summary>
 public class TrackingTest : MonoBehaviour
 {
-    [Tooltip("The tracking whose head and hand positions are logged once a second.")]
+    [Tooltip("The tracking whose head and hand positions are logged once a second, e.g. drag the Player root here. Must be set: it isn't looked for.")]
     [SerializeField] private PlayerTracking tracking;
 
     // Used to count elapsed time.

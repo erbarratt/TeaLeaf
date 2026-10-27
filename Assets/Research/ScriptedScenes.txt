@@ -1,0 +1,335 @@
+SCRIPTED SCENES - CHARACTERS MOVING AND SPEAKING TO A SCRIPT
+===========================================================
+
+How to make in-level scripted moments: a character walking a set way,
+saying lines at set points, a conversation that ends and hands over to
+normal AI. Part 1 is how Thief VR does it (its prologue's two guards at
+the market alley brazier). Part 2 is the options for TeaLeaf, with costs
+and a recommendation.
+
+Source for part 1: the extracted Thief VR prologue
+(E:\ThiefVR_Export\Prologue\ExportedProject, gameplay scene). The game is
+IL2CPP, so scripts are empty stubs: the serialized fields and UnityEvent
+wiring are real, what the code does with them is inferred and marked so.
+
+
+PART 1 - THIEF VR: THE TWO GUARDS AT THE BRAZIER
+================================================
+
+WHAT THE PLAYER SEES
+--------------------
+
+Two guards stand by the brazier in the market alley. As the player comes
+near they talk (27 lines, a zealot and a moaner arguing about the Baron),
+then both walk off on patrol routes they keep for the rest of the level.
+If the player is spotted mid-conversation, they still end up on the same
+patrols.
+
+
+NO TIMELINE, NO CUTSCENE TOOL
+-----------------------------
+
+The scene uses no Timeline. The whole thing is five plain pieces, each a
+component wired to the next by UnityEvents in the Inspector:
+
+  1. trigger volumes the player walks into
+  2. a delay component
+  3. guard objects switched on and off
+  4. one "eavesdropping situation" component holding the conversation
+  5. the guards' normal patrol system, given a new route at the end
+
+The scene's only PlayableDirectors (Timeline) are two in
+"Cutscene - PrologueTutorial", the intro cutscene: own guard rig, own
+characters, a looping idle timeline chained to the main one
+(TimelinePlayer: looping, nextTimelinePlayer, completeEvent,
+sceneTransitionOnComplete). Timeline is kept for the non-interactive
+cutscene; everything that happens in the playable level is triggers plus
+AI.
+
+
+THE CHAIN, IN ORDER
+-------------------
+
+Positions are world metres in the prologue (brazier at 23.2, -1, -38.2).
+
+a) Level start: two stand-in guards at the fire
+   = NPC/SG_GuardPatrol_PlayerAtBalcony01 and ...02, a metre either side
+   of the brazier. Full guards (senses, awareness, ragdoll), each with a
+   one-point "WaypointsIDLE" route: they just stand there. These cover the
+   view from the starting house's balcony.
+
+b) BalconyGuardSwap (box trigger 2.5 x 2.9 x 1.8m on the balcony,
+   player body only). On enter, UnityEvents:
+     - PlayerAtBalcony01 guard   SetActive(false)
+     - PlayerAtBalcony02 guard   SetActive(false)
+     - Pre-StealthHit guard      SetActive(true)   ("STARTS OFF")
+     - PreObj guard              SetActive(true)   ("STARTS OFF")
+     - the trigger itself        SetActive(false)  (fires once)
+   The two new guards stand in exactly the same spots. So the guards who
+   will talk are swapped in, fresh, out of the player's sight.
+   Inferred why: a guard placed with its scene state ready is simpler than
+   resetting one that may have been alerted from the balcony. The swap is
+   a cheap "reset the actors" step.
+
+c) SetMarketGuardsToIdle (box 5.2 x 3.5 x 0.5m, player body or head).
+   On enter: EnterIdleBehaviour() on both new guards - pins them standing
+   at their idle point (each has a one-point WaypointsIDLE route too).
+
+d) ActivateMarketEavesdrop (box 2.1 x 3.5 x 0.5m, ~12m from the fire,
+   player body or head). On enter: DelayedEvent.TriggerDelayedEvent(),
+   which after delayTime 2.5s does pfb_Eavesdropping.SetActive(true).
+   The conversation starts when its object switches on.
+
+e) EavesdroppingSituation (on pfb_Eavesdropping, at the fire):
+     eavesdropBlockName   FirstEavesdrop
+     speakerMappings      name -> guard  (Pre-StealthHit_Helmetless,
+                                          PreObj_Helmetless)
+     timeline             27 entries, each:
+                            Speaker_RF  which guard speaks
+                            EventKey    audio event, e.g.
+                                        ZEALOT/CH00_EAVESDROP_MAIN_LN001
+                            EventLine   subtitle text
+                            Buffer      0.2s gap after the line
+     eavesRadius          12.36m
+     checkType            0
+     raycastCheckMask     Default + layer 20 (Door)
+     disableAnimation     0
+     onCompletion         SetPatrolRoute(WaypointsPATROL) on each guard
+     onFail               the same two calls
+   Plus EavesdroppingSaveable and GameObjectActiveSaveable (save games
+   remember whether it ran).
+
+   Inferred:
+   - Lines play one after another: line's audio length + Buffer, then the
+     next. The "timeline" is just an ordered list, not Unity Timeline.
+   - Speakers are guards, so lines come from their heads; animation runs
+     unless disableAnimation (talking gestures).
+   - eavesRadius + raycast mask: the player must be within 12.36m and not
+     behind a wall or door for it to start or carry on, so the player
+     doesn't miss it. (Exact rule unknown: may pause between lines, may
+     only gate the start.)
+   - onFail: a speaker leaves its idle/talk behaviour (sees the player,
+     hears a noise, is knocked out). Conversation stops; the survivors
+     get the same patrols as if it had ended. Both endings converge, so
+     the level beyond doesn't care how the scene went.
+
+f) Afterwards: ordinary AI on ordinary routes.
+   PreStealthHit WaypointsPATROL: 8 points, cyclical.
+   PreObj WaypointsPATROL: 2 points, cyclical.
+   Each PatrolPoint:
+     type             0 = walk through, 1 = stop here
+     IdleTime         seconds stopped (5 on the stop points)
+     AnimationIndex   which idle animation to play while stopped
+     barkOptions      lines to say there (empty everywhere in the prologue)
+   So "say a line at a point on a route" is a route point property, no
+   scene object needed.
+
+g) Later swap on the objective. Picking up the Keeper Relic (DoOnceEvent
+   on it) fires, among tutorial prompts:
+     - MedallionPickup15 narration
+     - PreObj guard (at the fire) SetActive(false)
+     - PostObj guard (same model, other side of the alley) SetActive(true)
+   The level changes one guard's patrol after the objective by swapping
+   in another pre-placed guard, not by re-routing.
+
+
+THE OTHER SCRIPTING PIECES IN THE PROLOGUE
+-----------------------------------------
+
+  Component                       Count  What it does (inferred from fields)
+  NarrativeDialogueTriggerVolume   29    player's own voice lines: sceneName
+                                         (DLG_CH00_GAM_07...), disableAfterPlay;
+                                         some switched on later by events
+  DelayedEvent                     64    UnityEvent after delayTime
+  DoOnceEvent                      19    UnityEvent, first time only
+  CountEvent                        5    UnityEvent after N calls
+  GazeEvent                         4    UnityEvent when looked at
+  CheckpointTrigger                10    save point
+  ObjToObjInteraction            many    the trigger box itself: which
+                                         interactor ids (PlayerBody,
+                                         PlayerHead) set off enter/exit
+                                         UnityEvents
+  SplineAnimate (Unity Splines)     2    crows flying off along a spline
+                                         when triggered (PlayOnAwake off,
+                                         4s, eased) - scripted movement
+                                         for things without AI
+  PatrolRoute / PatrolPoint     11/37    guard routes, per-point stop,
+                                         idle time, animation, barks
+
+Pattern: a small library of single-purpose event components chained by
+UnityEvents in the Inspector, with designer-facing names on every object
+("STARTS OFF", "BalconyGuardSwap"). No visual scripting graph for level
+events (the guards' own brains are a behaviour graph, separate).
+
+
+LESSONS
+-------
+
+- Scripted moments in a playable stealth level are AI with a script laid
+  over it, not cutscenes. The actors stay real guards throughout: they
+  can see, hear and be knocked out mid-line.
+- Every scene has an interrupted ending, and it hands over to the same
+  state as the finished one.
+- Movement is navigation to points, never keyframed: the guard's feet,
+  animation and avoidance keep working.
+- Lines are data (speaker, audio, text, gap), played in order.
+- Start the scene where the player will hear it: trigger placed on the
+  approach, a short delay, a range check.
+- Swapping in pre-placed actors is their cheap way to reset or re-route.
+
+
+PART 2 - OPTIONS FOR TEALEAF
+============================
+
+What TeaLeaf has today (Assets/Scripts/AI/CLAUDE.md): Guard state machine
+(Patrol / Suspicious / Search / Chase / Stunned / KnockedOut), PatrolRoute
+(child points, one waitTime for all, loops or ping-pong), barks as
+SoundCues played from the head by SoundPlayer (room/portal routed,
+SpatialVoice, sound only - other guards don't react). Not built: chatter,
+patrol idle variety (clips scratch, fold_arms, wait unused). Unity
+Timeline is not in Packages/manifest.json.
+
+Three scales of solution.
+
+
+OPTION A - UNITY TIMELINE
+-------------------------
+
+A PlayableDirector per scene: animation tracks for guards, audio tracks
+for lines, signals for "now go patrol".
+
+  Build:    package add; custom track for lines (Timeline's audio track
+            bypasses SoundPlayer, so no rooms/portals/SpatialVoice, no
+            muffling through doors); custom track or signals to drive
+            guards; code to stop the director when a guard is alerted.
+  Maintain: two systems moving guards (Timeline and Guard) that must not
+            fight: an animation track overrides the Animator, position
+            keys ignore the NavMesh, GuardFootLock and GuardAnimation
+            assume agent movement.
+  Runtime:  a PlayableGraph per director while playing; modest.
+  Gives:    visual editing, scrubbing, exact timing.
+
+Fits a non-interactive cutscene (Thief VR's intro). Wrong tool for a
+guard who may spot the player mid-sentence: interruption is the normal
+case in a stealth level, and Timeline is built for runs that finish.
+Cutscenes are out of scope for the slice.
+
+
+OPTION B - ROUTE POINTS THAT DO THINGS (single guard, no scene object)
+---------------------------------------------------------------------
+
+Extend PatrolRoute: each point can hold its own wait, an idle animation,
+a facing, and a line to say on arrival (Thief's PatrolPoint fields:
+type, IdleTime, AnimationIndex, barkOptions). Plus Guard.SetPatrolRoute()
+so an event can give a guard a new route.
+
+  Build:    small - a PatrolPoint component (optional per child; a child
+            without one keeps the route's waitTime), the guard reads it on
+            arrival; a few Animator states for the idle clips.
+  Maintain: low; it is the patrol system, not a new one. Alerted guards
+            already leave Patrol and come back to the nearest point.
+  Runtime:  nothing new per frame.
+  Gives:    "walk this way, stop here, scratch, say this, carry on" for
+            one guard. Not a conversation (no taking turns between two
+            speakers, no "start when the player arrives").
+
+
+OPTION C - A SCENE COMPONENT (Thief's eavesdrop, generalised a little)
+---------------------------------------------------------------------
+
+One component per scripted moment, e.g. AI.GuardScene:
+  - actors: the guards taking part
+  - steps, in order, each one of:
+      Say    speaker, SoundCue, subtitle text (kept for later), gap after
+      GoTo   actor, point transform (NavMesh walk, Guard's own GoTo)
+      Face   actor, point or other actor
+      Wait   seconds
+      (Animate: actor, idle clip - once the Animator has the states)
+  - when done: each actor's route afterwards (SetPatrolRoute)
+  - if broken off: the same, by default (Thief's onFail = onCompletion)
+  - started by a trigger, or on level start; optional delay
+
+Guard side: while in a scene, a guard stays in Patrol but the scene drives
+it instead of the route (a "held by scene" flag; the scene calls GoTo,
+FaceTowards, Bark-like Say). Senses stay on. Any state change out of
+Patrol (suspicious, chase, stunned, KO) ends the scene for everyone:
+remaining actors get their after-routes (a speaker alone mid-argument
+shouldn't stand talking to nobody). Lines are sound only, no noise event,
+as chatter (root CLAUDE.md).
+
+Trigger: a box on PlayerBlocker (collides only with Player, in no query
+mask, so nothing else trips or sees it) with a small ScriptTrigger
+component: on player enter, once, after an optional delay, start the
+scene (or fire a UnityEvent, for the "swap a guard after the objective"
+kind of thing). OnTriggerEnter from the CharacterController; the
+controller is off during a mantle, so the trigger fires on the first move
+after one.
+
+  Build:    medium - GuardScene (steps list + a tiny state machine in its
+            own Update while running, idle otherwise), ScriptTrigger, a
+            few public hooks on Guard (SetPatrolRoute, enter/leave held,
+            Say returning the line's length, an event when it leaves
+            Patrol). SoundPlayer.Play returns only a bool: Say needs the
+            chosen clip's length back (or the SoundCue exposes it) to time
+            the next line. Dialogue cues: one clip each, pitchVariation 0
+            (pitch changes the length).
+  Maintain: one place for all scripted moments; steps visible in the
+            Inspector in order; guards stay the only thing moving guards.
+  Runtime:  nothing while idle; while running, one Update with a timer
+            check. No allocations (steps are serialized data). Lines go
+            through SoundPlayer, so they are heard through portals, muffled
+            by shut doors, placed by SpatialVoice - eavesdropping through a
+            doorway works and sounds true.
+  Gives:    the brazier scene and most in-level scripted moments: two or
+            more guards talking, a guard walking somewhere to meet
+            another, then everyone off on patrol.
+
+Range check (Thief's eavesRadius 12.36m + ray): leave it out at first.
+Place the trigger on the approach so the player is in earshot when it
+starts; add "wait between lines while the player is out of earshot" only
+if headset testing shows players missing it.
+
+
+RECOMMENDATION
+--------------
+
+C, with B's SetPatrolRoute and per-point waits/lines as the first slice
+of it if a single guard's moment is wanted sooner. Not Timeline.
+
+Why: it matches what the shipped game does for exactly this kind of
+scene; actors stay real guards, so interruption is the normal case and
+needs no extra machinery; movement stays on the NavMesh with the foot
+lock and animation intact; lines use the existing sound routing (the
+project's "sound tells the truth" rule); nothing runs when no scene is
+playing. Timeline only earns a place if a real cutscene is ever wanted.
+
+Build order, smallest useful first:
+  1. Guard.SetPatrolRoute(); ScriptTrigger (box on PlayerBlocker, once,
+     delay, UnityEvent).
+  2. GuardScene with Say and Wait only: two guards stand at a fire and
+     talk, then get their routes. (Covers the brazier example.)
+  3. GoTo / Face steps.
+  4. Idle animations (Animator states for scratch, fold_arms, wait) for
+     scene steps and patrol points.
+  5. Subtitles, if ever (the text field is already in the data).
+
+Voice-line pools that never repeat (root CLAUDE.md) are for barks and
+idle chatter; a scene's lines are written once and play in order, so
+they sit outside those pools.
+
+
+AUTHORING A SCENE (as it would work)
+------------------------------------
+
+  1. Place the guards (prefab instances) where the scene starts; no route
+     (they hold their placed pose) or a one-point route.
+  2. Make each guard's after-scene PatrolRoute.
+  3. Add a GuardScene object near them: actors, steps (speaker + cue +
+     gap per line), after-routes.
+  4. Add a ScriptTrigger box on the approach, on PlayerBlocker, pointing
+     at the scene; set the delay.
+  5. Test: walk in, listen; then walk in loud and get spotted mid-line -
+     both guards must leave the scene and patrol/search as normal.
+
+A level restart reloads the scene, so every scripted moment replays from
+the start with nothing to reset.

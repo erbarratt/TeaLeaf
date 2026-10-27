@@ -34,29 +34,29 @@ namespace AI
     public class GuardAnimationTest : MonoBehaviour
     {
         // The clip to loop.
-        [Tooltip("The clip to loop.")]
+        [Tooltip("The animation clip this model loops, e.g. Guard_Walk from Assets/Art/Animations/Guard. Left empty, nothing plays.")]
         [SerializeField] private AnimationClip clip;
 
         // The model's Animator, a child of the root. Found in the
         // children if not assigned.
-        [Tooltip("The model's Animator, a child of the root. Found in the children if not assigned.")]
+        [Tooltip("The model's Animator, a child of the root, which plays the clip. Left empty, it is found in the children; with none at all, nothing plays.")]
         [SerializeField] private Animator animator;
 
         // How fast the clip plays: 1 is as authored, 2 twice as fast.
-        [Tooltip("How fast the clip plays: 1 is as authored, 2 twice as fast.")]
+        [Tooltip("How fast the clip plays, as a multiple of authored speed: e.g. 1 = as authored, 2 = twice as fast, 0 = frozen. Tune with Move Speed until the feet stay planted.")]
         [SerializeField, Min(0f)] private float playbackSpeed = 1f;
 
         // How far the guard travels along its forward each second, in
         // metres. 0 plays the clip on the spot.
-        [Tooltip("How far the guard travels along its forward each second, in metres. 0 plays the clip on the spot. Tune with Playback Speed until the feet stay planted.")]
+        [Tooltip("How far the model travels along its forward each second, in metres. e.g. 0.97 for the walk at Playback Speed 1. Too high and planted feet slide forwards, too low and they slide backwards; 0 plays the clip on the spot. Tune with Playback Speed until the feet stay planted.")]
         [SerializeField, Min(0f)] private float moveSpeed = 0f;
 
         // How far it travels before it is put back at its start.
-        [Tooltip("How far it travels, in metres, before it is put back at its start.")]
+        [Tooltip("How far it travels, in metres, before it is put back at its start. e.g. 6 = loops along a 6m strip of the test floor. Higher = longer laps between resets.")]
         [SerializeField, Min(0.1f)] private float lapLength = 6f;
 
         // The label over the guard's head, if it has one.
-        [Tooltip("The label over the guard's head. Optional.")]
+        [Tooltip("Optional label over the model's head showing the clip's name, Playback Speed and Move Speed, e.g. the TextMeshPro the Guard Tests builder adds. Left empty, no label is written.")]
         [SerializeField] private TextMeshPro label;
 
         private PlayableGraph _graph;
@@ -86,6 +86,9 @@ namespace AI
             animator.applyRootMotion = false;
 
             _playable = AnimationPlayableUtilities.PlayClip(animator, clip, out _graph);
+            // Humanoid foot IK is off in Guard.controller's states, so off
+            // here too: the feet land where the guard's own do.
+            _playable.SetApplyFootIK(false);
             _startPosition = transform.position;
         }
 

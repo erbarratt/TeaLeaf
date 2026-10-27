@@ -28,12 +28,15 @@ namespace Inventory
     {
         // How many coins are shown over it while it's carried, 1 to 3 -
         // and what it's worth: one coin is one gold piece.
+        [Tooltip("What the loot is worth, in gold pieces (1 to 3), and how many coins show over it while carried, e.g. 3 for a crown: three coins shown, three gold added to the loot total. Higher = worth more.")]
         [SerializeField, Range(1, 3)] private int coinLevel = 1;
 
         // Small loot that just adds to the gold in the pack.
+        [Tooltip("On: small loot (coins, rings) that takes no space of its own - put anywhere in the pack it goes to the gold space, its worth is added to the gold there and the prop is gone. Off: ordinary loot that takes one pack space and can be taken out again.")]
         [SerializeField] private bool isGold;
 
         // The item the level is about: packing it lets the player leave.
+        [Tooltip("On: the item the level is about - it has its own pack space, is never taken out again once in, and packing it lets the player leave, e.g. the idol in the warehouse. Off: ordinary loot.")]
         [SerializeField] private bool isObjective;
 
         // Every enabled piece of loot, by its Grabbable.

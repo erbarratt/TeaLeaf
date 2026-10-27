@@ -49,6 +49,9 @@ namespace LevelGen
         // of steps) is free over the rest where at least this many rows of
         // samples at its top or bottom touch nothing.
         private const int PartRows = 2;
+        // A sheared wall's foot and head: its vertices within this of its
+        // bottom, and of its top, in its root's space.
+        private const float EndBand = 0.05f;
         // Where a sample may be seen from: street tiles within this distance,
         // at this height above them, up to this many spread round the sample
         // (at least this many degrees apart). A tile under or right beside a
@@ -549,6 +552,9 @@ namespace LevelGen
                 // Its width runs along the longer horizontal side.
                 int along = size.x >= size.z ? 0 : 2;
                 int across = along == 0 ? 2 : 0;
+                // A sheared wall's ends slant (ShearedMeshes): each followed
+                // from its foot to its head rather than its box's end.
+                bool sheared = ShearedEnds(wall, along, out Vector2 foot, out Vector2 head);
 
                 for (int end = 0; end < 2; end++) {
                     float face = end == 0 ? wall.Min[along] : wall.Max[along];
@@ -576,7 +582,7 @@ namespace LevelGen
 
                         for (int row = 0; row < _up.Length; row++) {
                             Vector3 local = Vector3.zero;
-                            local[along] = face;
+                            local[along] = sheared ? Mathf.Lerp(foot[end], head[end], _up[row]) : face;
                             local[across] = Mathf.Lerp(wall.Min[across], wall.Max[across], a);
                             local.y = Mathf.Lerp(wall.Min.y, wall.Max.y, _up[row]);
                             Vector3 sample = wall.Root.TransformPoint(local) + outward * SampleOut;
@@ -657,6 +663,48 @@ namespace LevelGen
             }
 
             return found;
+        }
+
+        /// <summary>
+        /// For a wall wearing a sheared mesh (ShearedMeshes: a side wall
+        /// following a leaning facade), where its two ends stand along its
+        /// width at its foot and at its head, in its root's space (x the
+        /// first end, y the second): the furthest its vertices reach each way
+        /// within EndBand of its bottom, and of its top. Its box's end is the
+        /// furthest either reaches, so sampled there the rest of a slanting
+        /// end would hang in the air. False (nothing set) for an unsheared
+        /// wall.
+        /// </summary>
+        private static bool ShearedEnds(Piece wall, int along, out Vector2 foot, out Vector2 head)
+        {
+            foot = new Vector2(float.PositiveInfinity, float.NegativeInfinity);
+            head = foot;
+            bool sheared = false;
+            List<MeshFilter> filters = new();
+            wall.Root.GetComponentsInChildren(true, filters);
+            bool lods = filters.Exists(f => f.name.EndsWith("_LOD0"));
+
+            foreach (MeshFilter filter in filters) {
+                if (lods && !filter.name.EndsWith("_LOD0") || filter.sharedMesh == null) {
+                    continue;
+                }
+
+                sheared |= ShearedMeshes.IsSheared(filter.sharedMesh);
+
+                foreach (Vector3 vertex in filter.sharedMesh.vertices) {
+                    Vector3 local = wall.Root.InverseTransformPoint(filter.transform.TransformPoint(vertex));
+
+                    if (local.y <= wall.Min.y + EndBand) {
+                        foot = new Vector2(Mathf.Min(foot.x, local[along]), Mathf.Max(foot.y, local[along]));
+                    }
+
+                    if (local.y >= wall.Max.y - EndBand) {
+                        head = new Vector2(Mathf.Min(head.x, local[along]), Mathf.Max(head.y, local[along]));
+                    }
+                }
+            }
+
+            return sheared && !float.IsInfinity(foot.x) && !float.IsInfinity(head.x);
         }
 
         /// <summary>

@@ -28,32 +28,32 @@ namespace Interaction
     [RequireComponent(typeof(BoxCollider))]
     public class DoorBolt : MonoBehaviour, IHandTarget, IHandSnapTarget, IDebugDrawable
     {
-        [Tooltip("The door this bolt holds shut. Left empty, the Door on a parent object is used.")]
+        [Tooltip("The door this bolt holds shut. e.g. drag the Door it's fitted to here. Left empty, the Door on a parent object is used.")]
         [SerializeField] private Door door;
 
-        [Tooltip("Which face of the door the bolt is on: ticked, its front (+Z); unticked, its back. The bolt can only be targeted and worked from that side.")]
+        [Tooltip("Which face of the door the bolt is on. On: its front (+Z). Off: its back (-Z). The bolt can only be targeted and worked from that side, e.g. off for a bolt on the inside of a door whose front faces the street.")]
         [SerializeField] private bool onFront = true;
 
-        [Tooltip("The part shown sliding: the bar and its knob, moved along the door's X by the slide. Optional: empty, nothing visible moves.")]
+        [Tooltip("The part shown sliding: the bar and its knob, moved along the door's X by the slide. e.g. drag the bolt's Bar child here. Empty = the bolt still works but nothing visible moves.")]
         [SerializeField] private Transform bar;
 
-        [Tooltip("How far the bolt slides along the door between drawn back and shot, in metres.")]
+        [Tooltip("How far the bolt slides along the door between drawn back and shot, in metres. e.g. 0.05 = the hand moves the knob 5cm towards the free edge to shoot it. Higher = a longer slide; lower = a short flick.")]
         [SerializeField] private float travel = 0.05f;
 
-        [Tooltip("Whether the bolt starts the level shot, holding the door shut. Applied when Play starts.")]
+        [Tooltip("On: the bolt starts the level shot, holding the door shut until it's drawn back (applied when Play starts). Off: it starts drawn back.")]
         [SerializeField] private bool startsShot;
 
         [Header("Grip")]
 
-        [Tooltip("The hand offsets and finger pose for a hand on the knob. Empty, the hand sits exactly on the grip frame with the default pose.")]
+        [Tooltip("The HandSnapProfile giving the hand offsets and finger pose for a hand on the knob. e.g. drag Assets/Data/Hand Poses/DoorHandle.asset here. Empty = the hand sits exactly on the grip frame and its fingers follow the controller's grip and trigger.")]
         [SerializeField] private HandSnapProfile snapProfile;
 
-        [Tooltip("How far out from the door's face the hand grips the knob, in metres.")]
+        [Tooltip("How far out from the door's face the hand grips the knob, in metres. e.g. 0.03 = 3cm proud of the door, where a knob sits. Higher = the hand sits further from the door; lower = closer, and may sink into it.")]
         [SerializeField] private float standOff = 0.03f;
 
         [Header("Sound")]
 
-        [Tooltip("The sound of the bolt reaching either end, played from the knob so guards hear it too. Optional: empty is silent.")]
+        [Tooltip("The SoundCue for the bolt reaching either end, played from the knob so guards hear it too. e.g. drag a metal clack cue here. Empty = the bolt slides silently.")]
         [SerializeField] private SoundCue slideCue;
 
         // The layer the bolt must be on - see OnValidate().

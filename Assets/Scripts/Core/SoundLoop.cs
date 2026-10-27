@@ -27,10 +27,12 @@ namespace Core
         // What it plays. One of the cue's clips is picked when the loop
         // starts to be heard, and repeats. Use clips made to loop (the end
         // runs into the start with no click).
+        [Tooltip("The cue this loop plays, e.g. a torch crackle; one of its clips is picked when the loop becomes audible and repeats, so use clips made to loop. Its noise half is ignored. Empty = silent.")]
         [SerializeField] private SoundCue cue;
 
         // Multiplies the cue's volume for this one loop (a small candle
         // and a big brazier can share a cue).
+        [Tooltip("Multiplies the cue's volume for this one loop, e.g. 0.5 for a small candle and 1.5 for a big brazier sharing one fire cue. Higher = louder; 0 = silent.")]
         [SerializeField, Range(0f, 2f)] private float volumeScale = 1f;
 
         // Every enabled loop in the scene. Loops add and remove themselves,

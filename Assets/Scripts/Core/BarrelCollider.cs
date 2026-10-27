@@ -45,9 +45,11 @@ namespace Core
         private struct Ring
         {
             // How far above the object's position the ring is.
+            [Tooltip("How far above this object's position the ring sits, in metres (keep scale 1), e.g. 0.35 = a third of the way up a 1m barrel. Higher moves the ring up the barrel; it is kept at least 1cm above the ring below.")]
             public float height;
 
             // How far the ring's corners are from the barrel's axis.
+            [Tooltip("How far the ring's twelve corners are from the barrel's axis, in metres, e.g. 0.4 = a barrel 0.8m across at that height. Higher makes the shape bulge out there; a ring narrower than the line between its neighbours is bridged over (the shape is convex).")]
             public float radius;
 
             public Ring(float height, float radius)
@@ -59,13 +61,18 @@ namespace Core
 
         // The four rings, from the base upwards. The two rim rings are also
         // the flat bottom and top of the shape.
+        [Tooltip("The lowest ring, which is also the flat bottom of the shape, e.g. height 0.01, radius 0.33 = a base 0.66m across just above the floor. Changes show in the yellow outline; the collider only changes on Bake To Mesh Asset.")]
         [SerializeField] private Ring bottomRim = new(0.01f, 0.33f);
+        [Tooltip("The lower ring of the barrel's bulge, e.g. height 0.35, radius 0.4 = widest part starts a third of the way up. Only changes the collider on Bake To Mesh Asset.")]
         [SerializeField] private Ring lowerBelly = new(0.35f, 0.4f);
+        [Tooltip("The upper ring of the barrel's bulge, e.g. height 0.69, radius 0.4 = widest part ends two thirds of the way up. Only changes the collider on Bake To Mesh Asset.")]
         [SerializeField] private Ring upperBelly = new(0.69f, 0.4f);
+        [Tooltip("The highest ring, which is also the flat top of the shape, e.g. height 1.03, radius 0.33 = a lid 0.66m across at the barrel's top. Only changes the collider on Bake To Mesh Asset.")]
         [SerializeField] private Ring topRim = new(1.03f, 0.33f);
 
         // Where "Bake To Mesh Asset" saves the mesh. Baking again writes over
         // the same asset, so every collider using it gets the new shape.
+        [Tooltip("Project path of the mesh asset Bake To Mesh Asset writes, e.g. Assets/Art/Colliders/BarrelCollider.asset. Baking again refills the same asset, so every barrel collider sharing it gets the new shape.")]
         [SerializeField] private string meshAssetPath = "Assets/Art/Colliders/BarrelCollider.asset";
 
         // How many corners each ring has.

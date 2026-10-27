@@ -49,13 +49,21 @@ namespace Player
     {
         // All optional, and found in Awake() if not wired: climbing is on
         // the Player root above this object, the rest are on this object.
+        [Tooltip("Climbing on the Player root: a hand gripping a ledge, ladder or rope counts as busy (Climbing). Empty looks for it on a parent at load; a rig without it never has a hand busy climbing.")]
         [SerializeField] private PlayerClimbing playerClimbing;
+        [Tooltip("Prop carrying on this Hands object: a hand carrying a crate counts as busy (Carrying). Empty finds it on this object at load; none = never busy carrying.")]
         [SerializeField] private PlayerHandHolding playerHandHolding;
+        [Tooltip("Doors on this Hands object: a hand on a door handle, bolt or chest lid counts as busy (Door). Empty finds it on this object at load; none = never busy with a door.")]
         [SerializeField] private PlayerHandDoors playerHandDoors;
+        [Tooltip("Lockpicking on this Hands object: a hand carrying the picks or holding one in a lock counts as busy (Lockpicks). Empty finds it on this object at load; none = never busy picking.")]
         [SerializeField] private PlayerLockpicking playerLockpicking;
+        [Tooltip("Keys on this Hands object: a hand holding the keyring or turning a key counts as busy (Keys). Empty finds it on this object at load; none = never busy with keys.")]
         [SerializeField] private PlayerKeys playerKeys;
+        [Tooltip("The pack on this Hands object: the hand holding the pack out counts as busy (Pack). Empty finds it on this object at load; none = never busy with the pack.")]
         [SerializeField] private PlayerPack playerPack;
+        [Tooltip("The blackjack on this Hands object: the hand holding it counts as busy (Blackjack). Empty finds it on this object at load; none = never busy with it.")]
         [SerializeField] private PlayerBlackjack playerBlackjack;
+        [Tooltip("The bow on this Hands object: the bow hand while the bow is out, and the drawing hand while it holds an arrow, count as busy (Bow). Empty finds it on this object at load; none = never busy with the bow.")]
         [SerializeField] private PlayerBow playerBow;
 
         // Looked up once, so the per-frame code tests plain bools.

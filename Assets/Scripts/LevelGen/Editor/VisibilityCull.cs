@@ -59,6 +59,11 @@ namespace LevelGen
         private const int Batch = 1 << 18;
         // The fewest rays one job takes.
         private const int RaysPerJob = 64;
+        // A side wall a seen gable stands on or against (KeepGableWalls):
+        // its middle within GablePlane of the gable's plane, its top no lower
+        // than GableFoot under the gable's foot.
+        private const float GablePlane = 0.5f;
+        private const float GableFoot = 0.5f;
 
         /// <summary>
         /// One placed piece: its root, the group it is under, its render box
@@ -104,6 +109,10 @@ namespace LevelGen
 
             // The rest of the looks for whatever is still unseen, as jobs.
             SeenFromFarLooks(pieces, looks, mask);
+            // Side walls a seen gable stands on or against stay, though no
+            // look reached their sample points: seen only through the slot
+            // under the gable, removing them would open a gap there.
+            int underGables = KeepGableWalls(pieces);
 
             // Removed and total, per group, in the order the groups are met.
             List<string> groups = new();
@@ -162,7 +171,69 @@ namespace LevelGen
             log.Add($"Visibility cull: {removedAll} of {pieces.Count} piece(s) removed, unseen from the streets ({string.Join(", ", parts)}; "
                 + $"{looks.Count} looks every {settings.CullStep}m, at {settings.CullEyeHeight}m along the middle and both edges and at {settings.CullHeight}m "
                 + $"along the middle, out to {range}m" + (dropped > 0 ? $", {dropped} look(s) inside something built dropped" : "") + $"; {watch.Elapsed.TotalSeconds:0.0}s)"
-                + (railings > 0 ? $"; {railings} railing(s) on a removed ridge taken too" : "") + ".");
+                + (railings > 0 ? $"; {railings} railing(s) on a removed ridge taken too" : "")
+                + (underGables > 0 ? $"; {underGables} side wall(s) under a gable kept" : "") + ".");
+        }
+
+        /// <summary>
+        /// Marks seen every unseen side wall (a piece under a building's
+        /// "Side ..." or "End ..." group) that a seen gable (a TL_RoofWall...
+        /// piece) stands on or against: in the gable's plane (its middle
+        /// within GablePlane of it), across part of its width, its top no
+        /// lower than GableFoot under the gable's foot and its bottom below
+        /// the gable's apex. Returns how many.
+        /// </summary>
+        private static int KeepGableWalls(List<Piece> pieces)
+        {
+            int kept = 0;
+
+            foreach (Piece gable in pieces) {
+                if (!gable.Seen || !gable.Root.name.StartsWith("TL_RoofWall")) {
+                    continue;
+                }
+
+                Vector3 forward = gable.Root.forward;
+                forward.y = 0f;
+                forward.Normalize();
+                Vector3 across = Vector3.Cross(Vector3.up, forward);
+                float plane = Vector3.Dot(gable.Root.position, forward);
+                Vector2 width = Span(gable.World, across);
+
+                foreach (Piece wall in pieces) {
+                    Transform group = wall.Root.parent;
+
+                    if (wall.Seen || group == null || !(group.name.StartsWith("Side ") || group.name.StartsWith("End "))
+                        || wall.World.max.y < gable.World.min.y - GableFoot || wall.World.min.y > gable.World.max.y
+                        || Mathf.Abs(Vector3.Dot(wall.World.center, forward) - plane) > GablePlane) {
+                        continue;
+                    }
+
+                    Vector2 span = Span(wall.World, across);
+
+                    if (Mathf.Min(width.y, span.y) > Mathf.Max(width.x, span.x)) {
+                        wall.Seen = true;
+                        kept++;
+                    }
+                }
+            }
+
+            return kept;
+        }
+
+        /// <summary>
+        /// The least and most a box's corners reach along a level direction.
+        /// </summary>
+        private static Vector2 Span(Bounds box, Vector3 direction)
+        {
+            Vector2 span = new(float.PositiveInfinity, float.NegativeInfinity);
+
+            for (int c = 0; c < 4; c++) {
+                Vector3 corner = new((c & 1) == 0 ? box.min.x : box.max.x, 0f, (c & 2) == 0 ? box.min.z : box.max.z);
+                float along = Vector3.Dot(corner, direction);
+                span = new Vector2(Mathf.Min(span.x, along), Mathf.Max(span.y, along));
+            }
+
+            return span;
         }
 
         /// <summary>

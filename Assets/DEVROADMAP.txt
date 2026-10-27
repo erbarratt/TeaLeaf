@@ -97,6 +97,9 @@ Phase 1 - Locomotion and physical hands (Player)
 -----------------------------------------------
 [x] Sprint (click-to-toggle), jump (momentum, air control, coyote time,
     jump buffer), one MovementState.
+[x] Thief VR's speeds: walk 2.4, sprint 3.8, crouch 1.4, crouch sprint
+    1.8 m/s, each with its own acceleration and deceleration; full speed
+    within 25 degrees of forward, half from 160; smooth turn 120 deg/s.
 [x] Ray-targeted climbing and the general hand snap pose
     (IHandSnapTarget, HandSnapProfile, the Snap Pose finger layer).
 [x] Mantling: per-target landing point, head-locked arrow, stick up;
@@ -366,11 +369,15 @@ Perception:
     into the guard (within 0.5m of it).
 [x] Two meters per guard (0-1), suspicion and detection, each held a
     while after it was last raised and then draining; full suspicion
-    makes a patrolling guard suspicious, full detection chases.
+    makes a patrolling guard suspicious, full detection chases. Sight
+    raises detection only once suspicion is full; "still" = the stick
+    not moving the player (PlayerVisibility.IsStill).
 [x] Alert mark over the head (GuardAlertMarker, TeaLeaf/OverlayFill):
-    a question mark filling yellow with suspicion, red once full, full
-    through a search, then draining; an exclamation mark red with
-    detection; pops in; drawn on top of everything.
+    a question mark filling yellow with suspicion or detection, red
+    once suspicion is full, full through a search, then draining; an
+    exclamation mark filling red as sight raises detection; pops in;
+    drawn on top of everything. The sight gizmo draws the zone filling
+    fastest in orange.
 [ ] Look at the alert marks in the headset.
 [x] Hearing: an INoiseListener on NoiseSystem, which delivers only the
     noises that reach the guard through rooms and portals, with a
@@ -474,10 +481,12 @@ Phase 7 - Animation
 -------------------
 Guard:
 [x] A rigged, textured model: Tripo-generated guard_1 (21k triangles,
-    67 bones, one SkinnedMeshRenderer, URP Lit), imported as Generic at
-    scale 1.8.
+    67 bones, one SkinnedMeshRenderer, URP Lit), imported as Humanoid at
+    scale 1.8 (Mixamo clips retarget onto it); guard scripts find bones
+    through the rig.
 [x] Blob shadows (GuardShadow, TeaLeaf/BlobShadow) under body and
-    feet, stretched away from the moon (Baked: no realtime moon shadow).
+    feet, stretched away from the moon, under the guard's realtime moon
+    shadow.
 [x] Clips: idle, walk, run, look-around, stunned, knocked-out fall
     (holds its last frame), as project copies with the hips' ground
     motion frozen so they play in place.
@@ -491,12 +500,17 @@ Guard:
     matching the feet to the speeds.
 [ ] Look at the guard's animation in the headset; tune playback and
     move speeds on the Guard Tests floor; LOD meshes for the model.
-[ ] Head look-at towards stimulus while suspicious (Animator IK or simple
-    head bone rotation in LateUpdate).
+[x] Head per state (GuardHeadAim, GuardHeadLook asset): clip, straight
+    ahead or looking at stimulus/player, eased; patrol standing looks
+    ahead, suspicious at the stimulus, chase at the player.
+[ ] Import the Mixamo clips (Bored, Dizzy Idle, Looking, Talking...)
+    onto the Humanoid guard.
 Player hands:
 [x] Finger poses as data on HandSnapProfile (16 finger bone rotations),
     played over the Animator by HandFingerPoser; offsets and fingers
-    posed without Play Mode in TeaLeaf > Modify Prefab > Pose with Hand.
+    posed without Play Mode in TeaLeaf > Player > Pose with Hand, which
+    also edits the ledge, ladder rung, rope, chest lid, door bolt and key
+    holds.
 [x] Hand model: an armoured gauntlet (Tripo), the hand's skeleton
     fitted into it in Blender.
 [ ] Pose with Hand: finger poses of their own for the door handle,
@@ -631,10 +645,11 @@ Greybox build:
             by height maps, world-space UVs, as Thief VR's streets);
             the ground's colliders a few boxes per level (27 on
             three-streets); flights of steps part two level meshes.
-        [ ] Ground: replace the fifteen stand-in textures
-            (Assets/Art/Textures/Ground/*_REPLACEME.png) with our own;
-            judge the blend and its offset parallax (on, 0.015m) in the
-            headset and drop the parallax if it costs or shows.
+        [x] Ground textures our own: setts generated in code
+            (Tools/TextureGen), dirt and wet dirt from Poly Haven CC0
+            scans; parallax 0.035m.
+        [ ] Judge the ground blend and its parallax in the headset;
+            drop the parallax if it costs or shows.
         [x] Sound rooms (SoundRooms pass): a room per straight run of
             street, a junction room (priority 1) where runs meet,
             portals between them and open to the sky; a self-check for
@@ -687,11 +702,13 @@ Greybox build:
         [ ] A storey's corner filler left out at a shallow inside bend
             with a jettied building (example-slope's hill street, left
             side at its bend).
-        [ ] Moon shafts over the alleys (MoonShafts pass, Core.MoonShaft,
-            TeaLeaf/MoonShaft): built, switched off
-            (moonShaftStreetMaxWidth 0) - the beams read as flat bright
-            slabs in editor renders. Rework the shading (softer, less
-            sheet-like), judge in the headset, then switch on.
+        [x] Moon shafts (MoonShafts pass): a GodRayBox beside each
+            building casting a moon shadow onto a street, from the
+            moonlit strip up the moonlight to moonShaftTopClearance
+            (100m) above the roofs.
+        [ ] Moon shafts: the shader's fades are shares of the box's
+            length, so a 100m box leaves the street nearly dark - measure
+            them in metres from the street up; judge in the headset.
         [ ] Streets climbing more than one flight: the facade beside a
             three-flight climb stands at the low level, its upper
             storey and roof in the raised street (example-three-levels
@@ -773,17 +790,20 @@ Lighting:
         drawn into the shadow map (2048, 25m).
     [x] The pack's own point lights (in the buildings, the lampposts and
         the tower bridge's torch) Baked.
-    [ ] Shafts of moonlight as placed geometry, never a screen effect
-        (Core.MoonShaft and TeaLeaf/MoonShaft: an opening, a prism of
-        light built from the moon at load, cut to what the moon reaches).
-        Built; switched off until the shading reads as soft light and
-        has been judged in the headset. Then hand-placed ones at windows
-        and gaps the generator doesn't know.
+    [x] Shafts of moonlight as placed geometry, never a screen effect:
+        Core.GodRayBox (TeaLeaf/GodRayBox, outer faces only, eight
+        corners dragged in the Scene view), from the generator or by
+        hand. Lantern light cones (TeaLeaf/LightCone) on both lantern
+        prefabs, fading as the player draws near, as Thief VR's.
+    [ ] Judge god ray boxes and lantern cones in the headset; place
+        boxes by hand at windows and gaps the generator doesn't know.
     [x] Night sky (ProceduralSky): steady stars, the moon a photo on its
         disc, Thief VR-style clouds from a cubemap churning in place
         over them (TeaLeaf/SkyClouds).
-    [ ] Replace the stand-in cloud cubemap (SkyClouds_REPLACEME, Thief
-        VR's) with our own; look at the sky in the headset.
+    [x] Cloud cubemap and smoke flipbook our own, generated in code
+        (Tools/TextureGen); sky drawn by render queue, so the start fade
+        hides it.
+    [ ] Look at the sky and the chimney smoke in the headset.
     [ ] Look over the bake in the headset: leaks, blotches, probe-lit
         pieces that stand out, moving things' shadows on the baked level.
     [ ] Torches. A realtime point light with no shadows shines through
@@ -875,7 +895,7 @@ Phase 10 - Performance pass (PCVR target rig)
         until torches need them, light cookies, reflection probe
         blending) and choose between Forward and Forward+.
     [x] Render scale 1.0 in PC_RPAsset, MSAA at 4x, the
-        moon's shadow map at 2048 over 25m.
+        moon's shadow map at 4096 over 25m, two cascades.
     [ ] Measure both on the target rig; come down only if the frame
         time says so.
     [ ] Dynamic resolution as the safety net for heavy moments.
@@ -886,9 +906,8 @@ Phase 10 - Performance pass (PCVR target rig)
         that fill the view. Profile them, with and without Dirt and
         Parallax; the cobbles' 5x5 search is the heavy one. If they cost
         too much, bake each pattern into textures at level load and keep the same material settings.
-    [ ] Shadow distance (50m, for the Mixed lamps' shadows from movers;
-        the moon is Baked, main light shadows off): try shorter on the
-        target rig.
+    [ ] Shadow distance (25m, the Mixed moon's and lamps' shadows from
+        movers) and the 4096 map: try smaller on the target rig.
     [ ] Batching: the docks draw in about 216 batches with the GPU
         Resident Drawer on. Compare it against static batching (GPU
         Resident Drawer off) on CPU and GPU frame time, not the batch

@@ -21,8 +21,11 @@ namespace Player
     /// </summary>
     public class HandRayReticle : MonoBehaviour
     {
+        [Tooltip("The reticle disc's radius, in metres, e.g. 0.02 = a dot 4 cm across where the hand ray hits. Higher = bigger, easier to see; lower = less in the way. Read once at load.")]
         [SerializeField] private float radius = 0.02f;
+        [Tooltip("The reticle's colour (alpha included); drawn on top of everything, with no depth test, e.g. white. Read once at load.")]
         [SerializeField] private Color color = Color.white;
+        [Tooltip("How many straight sides the disc's edge is made of, e.g. 16 = a smooth-looking circle. Higher = rounder; lower = more polygonal (3 = a triangle). Read once at load.")]
         [SerializeField] private int segments = 16;
 
         private MeshRenderer _meshRenderer;
