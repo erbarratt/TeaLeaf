@@ -128,7 +128,7 @@ namespace LevelGen
             // How the streets change height: their flights of steps and their
             // slopes, found once and read by everything below.
             StreetHeights heights = StreetHeights.Find(spec.streets, styles, placer, settings);
-            StreetGround.Build(spec, styles, heights, settings, random, foliageRandom, placer, streets, foliage, log);
+            StreetGround.Painting painting = StreetGround.Build(spec, styles, heights, settings, random, foliageRandom, placer, streets, foliage, log);
 
             Transform facades = new GameObject("Facades").transform;
             facades.SetParent(rootObject.transform, false);
@@ -138,6 +138,9 @@ namespace LevelGen
             Transform roofs = new GameObject("Roofs").transform;
             roofs.SetParent(rootObject.transform, false);
             FacadeBuilder.Build(spec, styles, annotations, plan, heights, settings, random, placer, facades, lots, roofs, log);
+            // The ground's paint, now every foundation stands: the dirt
+            // border is measured out from them.
+            StreetGround.Paint(painting, rootObject.transform, annotations, settings, log);
             // Every foundation and walkway placed, the street test then checks
             // the boxes that replace their colliders.
             MergedColliders.RunFoundations(rootObject.transform, annotations, settings, log);

@@ -24,7 +24,8 @@ namespace LevelGen
     /// folder the new level doesn't use (ClearUnused); other sectors'
     /// folders are never touched. A folder may be deleted at any time (the
     /// sector's walls then lose their meshes until it is generated again,
-    /// which remakes them).
+    /// which remakes them). Roof panels ending on a hip line are sheared
+    /// the same way at that end only (ShearEnds, FacadeRoofs).
     /// </summary>
     internal static class ShearedMeshes
     {
@@ -33,6 +34,9 @@ namespace LevelGen
         // The shear angles are rounded to this many degrees, so a few copies
         // serve every scale a wall is placed at.
         private const float AngleStep = 0.25f;
+        // A roof panel's end shear factors (ShearEnds) are rounded to this,
+        // so the panels of one corner share copies.
+        private const float FactorStep = 0.01f;
         // The copies made or loaded this session, by asset path.
         private static readonly Dictionary<string, Mesh> _meshes = new();
         // The folder of the sector being generated, set by Begin().
@@ -115,24 +119,53 @@ namespace LevelGen
 
             foreach (MeshFilter filter in instance.GetComponentsInChildren<MeshFilter>(true)) {
                 if (filter.sharedMesh != null) {
-                    filter.sharedMesh = Sheared(filter.sharedMesh, right, baseY, angle, factor);
+                    // The source's own asset (an FBX) tells copies of
+                    // same-named meshes from different packs apart.
+                    Mesh source = filter.sharedMesh;
+                    string axis = Mathf.Abs(right.x) >= Mathf.Abs(right.z) ? "x" : "z";
+                    float signed = angle * (Mathf.Abs(right.x) >= Mathf.Abs(right.z) ? Mathf.Sign(right.x) : Mathf.Sign(right.z));
+                    string key = $"{axis}{(signed >= 0f ? "+" : "-")}{Mathf.Abs(signed):0.00}";
+                    filter.sharedMesh = Sheared(source, key, () => Make(source, right, baseY, factor, factor));
                 }
             }
         }
 
         /// <summary>
-        /// The sheared copy of a mesh for one angle and axis: from this
-        /// session's cache, else the asset saved by an earlier generation,
-        /// else made now and saved.
+        /// Shears a roof panel's ends (FacadeRoofs, a row ending on a hip
+        /// line), in the instance's own space: each vertex moves along x by
+        /// its height (y) times a factor that runs evenly across the panel's
+        /// width from minFactor at its -x end to maxFactor at its +x end, so
+        /// either end's edge can slant on its own while the other stays
+        /// square. Factors are rounded to FactorStep; nothing happens if both
+        /// round to 0. Colliders are left as they are.
         /// </summary>
-        private static Mesh Sheared(Mesh source, Vector3 right, float baseY, float angle, float factor)
+        internal static void ShearEnds(GameObject instance, float minFactor, float maxFactor)
         {
-            // The source's own asset (an FBX) tells copies of same-named
-            // meshes from different packs apart.
+            minFactor = Mathf.Round(minFactor / FactorStep) * FactorStep;
+            maxFactor = Mathf.Round(maxFactor / FactorStep) * FactorStep;
+
+            if (Mathf.Approximately(minFactor, 0f) && Mathf.Approximately(maxFactor, 0f)) {
+                return;
+            }
+
+            foreach (MeshFilter filter in instance.GetComponentsInChildren<MeshFilter>(true)) {
+                if (filter.sharedMesh != null) {
+                    Mesh source = filter.sharedMesh;
+                    string key = $"ends{minFactor:+0.00;-0.00}{maxFactor:+0.00;-0.00}";
+                    filter.sharedMesh = Sheared(source, key, () => Make(source, Vector3.right, 0f, minFactor, maxFactor));
+                }
+            }
+        }
+
+        /// <summary>
+        /// The sheared copy of a mesh for one shear (key names it): from this
+        /// session's cache, else the asset saved by an earlier generation,
+        /// else made now (make) and saved.
+        /// </summary>
+        private static Mesh Sheared(Mesh source, string key, System.Func<Mesh> make)
+        {
             string guid = AssetDatabase.AssetPathToGUID(AssetDatabase.GetAssetPath(source));
-            string axis = Mathf.Abs(right.x) >= Mathf.Abs(right.z) ? "x" : "z";
-            float signed = angle * (Mathf.Abs(right.x) >= Mathf.Abs(right.z) ? Mathf.Sign(right.x) : Mathf.Sign(right.z));
-            string path = $"{_sectorFolder}/{source.name}_{(guid.Length >= 8 ? guid.Substring(0, 8) : guid)}_{axis}{(signed >= 0f ? "+" : "-")}{Mathf.Abs(signed):0.00}.asset";
+            string path = $"{_sectorFolder}/{source.name}_{(guid.Length >= 8 ? guid.Substring(0, 8) : guid)}_{key}.asset";
 
             if (_meshes.TryGetValue(path, out Mesh cached) && cached != null) {
                 return cached;
@@ -141,7 +174,7 @@ namespace LevelGen
             Mesh mesh = AssetDatabase.LoadAssetAtPath<Mesh>(path);
 
             if (mesh == null) {
-                mesh = Make(source, right, baseY, factor);
+                mesh = make();
                 mesh.name = Path.GetFileNameWithoutExtension(path);
 
                 MakeFolder(Folder);
@@ -155,29 +188,43 @@ namespace LevelGen
 
         /// <summary>
         /// A copy of a mesh with the shear applied: positions moved along
-        /// right by (height above baseY) * factor; normals by the shear's
-        /// inverse transpose and tangents by the shear itself, both
-        /// normalised; bounds recalculated. Everything else (UVs, lightmap
-        /// UVs, colours, submeshes) is the source's.
+        /// right by (height above baseY) times a factor running evenly from
+        /// minFactor at the mesh's furthest point against right to maxFactor
+        /// at its furthest along it (one factor for both: a plain shear);
+        /// normals by the shear's inverse transpose and tangents by the
+        /// shear itself, both normalised, at each vertex's own factor;
+        /// bounds recalculated. Everything else (UVs, lightmap UVs, colours,
+        /// submeshes) is the source's.
         /// </summary>
-        private static Mesh Make(Mesh source, Vector3 right, float baseY, float factor)
+        private static Mesh Make(Mesh source, Vector3 right, float baseY, float minFactor, float maxFactor)
         {
             Mesh mesh = Object.Instantiate(source);
             Vector3[] vertices = mesh.vertices;
+            float[] factors = new float[vertices.Length];
+            float min = float.PositiveInfinity;
+            float max = float.NegativeInfinity;
+
+            foreach (Vector3 vertex in vertices) {
+                min = Mathf.Min(min, Vector3.Dot(vertex, right));
+                max = Mathf.Max(max, Vector3.Dot(vertex, right));
+            }
 
             for (int i = 0; i < vertices.Length; i++) {
-                vertices[i] += right * ((vertices[i].y - baseY) * factor);
+                float across = max > min ? (Vector3.Dot(vertices[i], right) - min) / (max - min) : 0.5f;
+                factors[i] = Mathf.Lerp(minFactor, maxFactor, across);
+                vertices[i] += right * ((vertices[i].y - baseY) * factors[i]);
             }
 
             mesh.vertices = vertices;
             // The shear is M = I + factor * right * up^T. A normal transforms
             // by the inverse transpose, I - factor * up * right^T; a tangent
-            // by M itself.
+            // by M itself. (Where the factor changes across the width the
+            // small extra turn that adds is left out.)
             Vector3[] normals = mesh.normals;
 
             if (normals.Length == vertices.Length) {
                 for (int i = 0; i < normals.Length; i++) {
-                    normals[i] = (normals[i] - Vector3.up * (factor * Vector3.Dot(right, normals[i]))).normalized;
+                    normals[i] = (normals[i] - Vector3.up * (factors[i] * Vector3.Dot(right, normals[i]))).normalized;
                 }
 
                 mesh.normals = normals;
@@ -188,7 +235,7 @@ namespace LevelGen
             if (tangents.Length == vertices.Length) {
                 for (int i = 0; i < tangents.Length; i++) {
                     Vector3 tangent = tangents[i];
-                    tangent = (tangent + right * (factor * tangent.y)).normalized;
+                    tangent = (tangent + right * (factors[i] * tangent.y)).normalized;
                     tangents[i] = new Vector4(tangent.x, tangent.y, tangent.z, tangents[i].w);
                 }
 

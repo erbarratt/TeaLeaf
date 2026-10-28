@@ -116,8 +116,7 @@ Phase 1 - Locomotion and physical hands (Player)
 [x] Physical hand shape: six pieces per hand (palm box, thumb and
     finger capsules) fitted from the bones, open or fisted by trigger
     and grip; a carried prop adds its own colliders.
-[ ] Try the six-piece hand shape in the headset (gaps, props carried
-    against walls).
+[x] Six-piece hand shape, working in the headset.
 [x] In-headset gizmos (DebugLines, InHeadsetGizmos).
 [x] PC Play: a development switch on LevelManager to walk the level in
     Play Mode with the mouse and keyboard, no headset (PcPlay).
@@ -149,7 +148,7 @@ Phase 2 - Core stealth framework (Core namespace)
 [x] Surfaces, footsteps (surface x stance x speed) and landings.
 [x] Debug: noise, sound and visibility readouts; Sound Test Area and
     Sound Test House.
-[ ] Tune by ear: the loops' easing through doorways.
+[x] The loops' easing through doorways, tuned by ear.
 [ ] If up/down direction turns out to matter in the level: Steam Audio,
     through SoundPlayer's Plugin mode.
 [x] Flame: one call puts a fire out everywhere - the gameplay
@@ -160,7 +159,7 @@ Phase 2 - Core stealth framework (Core namespace)
     carpet footstep; rename the cues still called "Placeholder".
 [x] Sound direction indicator: the compass's arrows (Phase 4), fed by
     SoundPlayer.Heard.
-[ ] Visibility: a proper headset test.
+[x] Visibility, working in the headset.
 
 
 Phase 3 - Interaction framework (Interaction namespace)
@@ -182,12 +181,11 @@ Phase 3 - Interaction framework (Interaction namespace)
 [x] Keyhole black at rest, see-through only as the head comes close;
     the wedge's size per keyhole; the opening rises and its walls reach
     out of the faces as it opens. DoorLeaf takes URP Lit's surface.
-[ ] Look at the keyhole and the ShabbyDoor in the headset.
+[x] The keyhole and the ShabbyDoor, working in the headset.
 [ ] Hold poses for other prop shapes (the test cube and crate are held
     by the middle with the ledge fingers) - as real props need them.
-[ ] Door handle hand pose: Assets/Data/DoorHandle.asset is a copy of
-    BottleHold. Tune its offsets; give it a finger pose of its own if the
-    bottle's looks wrong.
+[x] Door handle hand pose (DoorHandle, a copy of BottleHold), right in
+    the headset.
 [ ] Door sounds: real latch, rattle and creak, and a louder latch for a
     slam.
 [ ] Impact sounds per prop material and per surface (one placeholder cue
@@ -219,12 +217,12 @@ Phase 4 - Inventory: the pack, loot and keys (Inventory namespace)
 [x] Handedness: one setting swaps which hand wears the lockpicks and
     which the bow; the other gets the compass and the blackjack. The
     lock puzzle is never mirrored.
-[ ] Try in the headset: bringing the pack out at the chest, the chest
-    model in either hand, and the gold number.
-[ ] Tune in the headset: the chest zone, the PackHold profile (Pose
-    with Hand), the gold number's size and place, where the keyring sits in
-    the hand, and the hand pose on the key (the door handle's, as a
-    stand-in).
+[x] Bringing the pack out at the chest and the chest model in either
+    hand, working in the headset; the chest zone and the PackHold profile
+    right.
+[ ] The gold number in the headset: its size and place.
+[ ] Tune in the headset: where the keyring sits in the hand, and the hand
+    pose on the key (the door handle's, as a stand-in).
 [ ] Real sounds for putting things in the pack and for the keyed lock.
 [x] The compass (PlayerCompass), the player's readout, always worn on
     the back of the hand without the lockpicks, where the picks sit on
@@ -246,8 +244,8 @@ Blackjack:
     pressing grip and holds it while grip is held; letting go puts it
     away. Tripo leather-wrapped cudgel, placed by the BlackjackGrip
     profile.
-[ ] Try in the headset: drawing it over the shoulder. Tune where it
-    sits in the hand; a hold pose.
+[x] Drawing it over the shoulder, its place in the hand and the hold
+    pose, right in the headset.
 [x] Swing detection (PlayerBlackjack.TickSwing): the blackjack's head
     moving faster than a threshold (measured in the player's own space,
     so walking isn't a swing) while the capsule round its head touches
@@ -255,15 +253,15 @@ Blackjack:
 [x] Tools burn (ToolBurn, TeaLeaf/Burn): bow, blackjack, worn lockpicks
     and the big lock's picks burn into being when taken; let go of, they and
     arrows burn away where they were let go of.
-[ ] Look at the burn in the headset; tune its time and colours.
+[x] The burn's time and colours, right in the headset.
 [x] Takedown rules (Guard.TryKnockOut): works only if the guard isn't
     chasing and the player is behind it (dot product of the guard's
     facing and the level direction from player to guard). Otherwise the
     guard turns on the player.
 [x] Haptic pulse on hit; a thud (the placeholder impact cue).
 [x] The takedown, working in the headset.
-[ ] Tune the takedown in the headset: the swing speed, the hit radius,
-    how far round "behind" reaches.
+[x] The takedown's swing speed, hit radius and reach round "behind",
+    right in the headset.
 Bow:
 [x] Model: the Tripo bow rigged in Blender (Blends/rig_bow.py): a
     two-segment string, a Drawn blend shape (limbs and string), empties
@@ -304,13 +302,13 @@ Bow:
     SurfaceTag has Supports Rope Bolt ticked; elsewhere the arrow still
     sticks, but pulls out and the rope falls when the player takes
     hold. A rope arrow is never recovered.
-[ ] Try the bow in the headset: drawing, taking and nocking an arrow,
-    the draw line and lock, shooting, changing kind, each arrow kind
-    landing, moss silencing steps.
-[ ] Tune in the headset: the BowGrip, ArrowHold and BowString profiles
-    (Pose with Hand), the nock radius, the off-line distance, an arrow's
-    bounce and the reach for picking one up; a hand on a rope arrow's
-    rope sits as on a placed rope.
+[x] The bow, working in the headset: drawing, taking and nocking an
+    arrow, the draw line and lock, shooting, changing kind; the BowGrip,
+    ArrowHold and BowString profiles, the nock radius, the off-line
+    distance, an arrow's bounce, the pickup reach and the hand on a rope
+    arrow's rope.
+[ ] Change the arrow's collider shape.
+[ ] Try in the headset: each arrow kind landing, moss silencing steps.
 [ ] Arrow pickups in the level.
 [ ] Draw, shot and impact sounds, a splash, and the noisemaker's sound.
 Lockpicking:
@@ -328,8 +326,7 @@ Lockpicking:
     the keyhole shut and black on the picker's face while picking; the
     Lock Plate prefab (Tripo lock) on doors; the door keyhole shaped as
     the plate's; the pack's Rectangle Door with a keyhole and lock.
-[ ] Try the lockpicking art in the headset: picks on the hand, the big
-    picks' size and place in the keyhole, their pivots.
+[x] Lockpicking art, right in the headset.
 [x] Chests (Chest, ChestLid): the same lock kinds as doors, picked or
     opened with a key through the same locks; unlocked, a hand takes
     the front of the lid and lifts it. Chest Test Area builder.
@@ -378,7 +375,7 @@ Perception:
     exclamation mark filling red as sight raises detection; pops in;
     drawn on top of everything. The sight gizmo draws the zone filling
     fastest in orange.
-[ ] Look at the alert marks in the headset.
+[x] Alert marks, right in the headset.
 [x] Hearing: an INoiseListener on NoiseSystem, which delivers only the
     noises that reach the guard through rooms and portals, with a
     loudness and the point it was heard from; louder noise = more on
@@ -410,10 +407,8 @@ Behaviour (explicit state machine - keep it readable and debuggable):
     point.
 [x] Working in the headset: the blackjack takedown, the bump from
     behind, a second guard finding a body.
-[ ] Tune in the headset: suspicion and search as they look, how easily
-    footsteps are heard (one step of about 0.45 loudness makes a guard
-    suspicious), the vision zones and fill times, the chase and catch
-    range.
+[x] Suspicion, search, hearing, vision zones and fill times, chase and
+    catch range, right in the headset.
 Body dragging:
 [ ] KO'd guard has a grab handle (collar/shoulder). The player grabs it and
     the body follows the hand along the ground (kinematic follow with
@@ -498,8 +493,9 @@ Guard:
     GuardAnimation, so Guard knows nothing of animation.
 [x] TeaLeaf > Dev Room > Guard Tests: one guard per clip, looping, for
     matching the feet to the speeds.
-[ ] Look at the guard's animation in the headset; tune playback and
-    move speeds on the Guard Tests floor; LOD meshes for the model.
+[x] The guard's animation, playback and move speeds, right in the
+    headset.
+[ ] LOD meshes for the guard model.
 [x] Head per state (GuardHeadAim, GuardHeadLook asset): clip, straight
     ahead or looking at stimulus/player, eased; patrol standing looks
     ahead, suspicious at the stimulus, chase at the player.
@@ -631,11 +627,15 @@ Greybox build:
         [x] 5d: lots' whole buildings, polygon lots and lots taking
             the block their streets enclose.
         [x] Street heights: flights of steps within a segment, the
-            columns split at the flight.
+            columns split at the flight; beside steps each building
+            has its own level, so a corner raises only the corner
+            building to its neighbour's.
         [x] 5e: roofs: ridge along the street, whole gable triangles
             fitted to free ends, hip strips (fitted to corners of
             50-135 degrees) and valleys at corners, hipped or courtyard
-            lots.
+            lots. Every street corner of three-streets hipped, none
+            gabled; a row's end panel at a hip sheared along the hip
+            line (ShearedMeshes), so no tile sticks up through the strip.
         [x] Chimneys (at varied heights, half of them smoking) and
             dormers on the roofs; ridge railings seated on the ridge.
         [x] Street clearance: no wall, foundation or side wall stands
@@ -648,8 +648,10 @@ Greybox build:
         [x] Ground textures our own: setts generated in code
             (Tools/TextureGen), dirt and wet dirt from Poly Haven CC0
             scans; parallax 0.035m.
-        [ ] Judge the ground blend and its parallax in the headset;
-            drop the parallax if it costs or shows.
+        [x] The ground blend and its parallax, right in the headset.
+        [x] Ground painted after the buildings: a dirt border of even
+            width (groundDirtBorder) out from the foundations actually
+            placed, cobbles beyond.
         [x] Sound rooms (SoundRooms pass): a room per straight run of
             street, a junction room (priority 1) where runs meet,
             portals between them and open to the sky; a self-check for
@@ -691,14 +693,13 @@ Greybox build:
             comes under it, foundations stacked down to the street
             (example-slope, three-streets).
         [x] Pipes on pipeBuildingShare of the buildings only.
-        [ ] Facade lean (facadeLean, 5 in the asset): the upper
+        [x] Facade lean (facadeLean, 5 in the asset): the upper
             storeys, beams, doors and inserts tilt out over the street
             on one plane; one side per corner, the upright side's end
             and the side walls sheared through ShearedMeshes; ground
-            storey, roofs and dressing upright. Judge in the headset;
-            check a sharp corner's notch cover and the top of inside
-            bends and dead ends with one side leaning; then the roofs
-            and ground storey for the storybook lean proper.
+            storey, roofs and dressing upright. Right in the headset,
+            sharp corners, inside bends and dead ends included.
+        [ ] The roofs and ground storey for the storybook lean proper.
         [ ] A storey's corner filler left out at a shallow inside bend
             with a jettied building (example-slope's hill street, left
             side at its bend).
@@ -706,18 +707,19 @@ Greybox build:
             building casting a moon shadow onto a street, from the
             moonlit strip up the moonlight to moonShaftTopClearance
             (100m) above the roofs.
-        [ ] Moon shafts: the shader's fades are shares of the box's
-            length, so a 100m box leaves the street nearly dark - measure
-            them in metres from the street up; judge in the headset.
+        [x] Moon shafts over the streets, right in the headset.
         [ ] Streets climbing more than one flight: the facade beside a
             three-flight climb stands at the low level, its upper
             storey and roof in the raised street (example-three-levels
             fails the street test). Choose: modules beside a flight
             stand at the flight's surface height, or specs split a
             climb into one-flight segments with landings.
-        [x] Lit windows: a share of the window inserts (litWindowShare)
-            are lit variants with an emissive material.
-        [ ] Review the hip and valley roof corners in the headset.
+        [x] Lit windows: once every window is placed, inserts above the
+            ground storey swapped for their lit twins at least
+            litWindowSpacing (10m) apart.
+        [x] Hip and valley roof corners, right in the headset.
+        [ ] The sheared hip ends and the corners raised beside steps in
+            the headset.
         [ ] Shallow junctions: example-quarter's main-street right
             0-2 module 7 runs 2.2m past its corner; one step
             foundation on west-lane is refused.
@@ -739,13 +741,14 @@ Greybox build:
         [x] Street ground runs on under the steps; side walls close the
             step where a jettied storey stands beside an unjettied one;
             the hole check finds an end open over its top or bottom.
-        [ ] Look at the building proxies' far range and the backing in
-            the headset.
+        [x] Building proxies' far range and the backing, right in the
+            headset.
     [x] Stage 6: placement report (TeaLeaf > Level Gen > Report
         Generated): free wall ends, refused pieces, markers.
     [ ] Facade dressing: walkways and lamp posts (built; the lamp posts
         are gameplay lights, lampSpacing apart with no two lights
-        overlapping, sunk lampSink into the ground);
+        overlapping, sunk lampSink into the ground; placeLamps off
+        leaves them out without moving any other draw);
         pipes from the thin kit placed by their verified ends, standing
         off the drawn surface along their height, on the plaster past
         the end post, elbows under the eaves and hidden straights behind
@@ -799,7 +802,9 @@ Lighting:
         boxes by hand at windows and gaps the generator doesn't know.
     [x] Night sky (ProceduralSky): steady stars, the moon a photo on its
         disc, Thief VR-style clouds from a cubemap churning in place
-        over them (TeaLeaf/SkyClouds).
+        over them (TeaLeaf/SkyClouds), up to straight overhead, turning
+        slowly round the sky over the moon; thickness in the cubemap's
+        alpha.
     [x] Cloud cubemap and smoke flipbook our own, generated in code
         (Tools/TextureGen); sky drawn by render queue, so the start fade
         hides it.

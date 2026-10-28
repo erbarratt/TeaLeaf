@@ -29,11 +29,13 @@ namespace LevelGen
     /// top line (PlaceVertex), so the lower level runs on under the lowest
     /// step and the upper one starts under the top step's tread, sunk out
     /// of sight (HeightAt): no slit shows at either edge. The
-    /// vertices are painted (Paint): cobbles down the middle of every
-    /// street out to GroundCobbleShare of its half-width, a dirt gutter
-    /// beyond, the edge between them wobbled by noise, and puddles of wet
-    /// dirt wherever a second noise rises above GroundPuddleCover; the
-    /// shader blends the three by their height maps.
+    /// vertices are built plain dirt and painted once the facades stand
+    /// (Paint, after FacadeBuilder.Build): a dirt border GroundDirtBorder
+    /// wide out from the foundations actually placed, following every
+    /// column stepped forward or back, cobbles beyond, the edge between them
+    /// wobbled by noise, and puddles of wet dirt wherever a second noise
+    /// rises above GroundPuddleCover; the shader blends the three by their
+    /// height maps.
     ///
     /// The ground collides by its own meshes (GroundMesh: a MeshCollider
     /// per chunk, with a Stone SurfaceTag), so what is walked on is what
@@ -74,7 +76,7 @@ namespace LevelGen
         /// <summary>
         /// A rectangle on the ground (x, z).
         /// </summary>
-        private struct GroundRect
+        internal struct GroundRect
         {
             public Vector2 Centre;
             public Vector2 AxisX;
@@ -86,20 +88,45 @@ namespace LevelGen
         /// <summary>
         /// A disc on the ground (x, z): fills the wedge at a bend or junction.
         /// </summary>
-        private struct GroundDisc
+        internal struct GroundDisc
         {
             public Vector2 Centre;
             public float Radius;
         }
 
         /// <summary>
+        /// One ground area's meshes and outline, kept from Build for Paint.
+        /// </summary>
+        internal class PaintArea
+        {
+            public List<Mesh> Meshes;
+            public List<GroundRect> Rects;
+            public List<GroundDisc> Discs;
+        }
+
+        /// <summary>
+        /// What Build laid that Paint colours once the facades stand: every
+        /// ground area's meshes and outline, and the spec's seed for the
+        /// paint's noise.
+        /// </summary>
+        internal class Painting
+        {
+            public int Seed;
+            public readonly List<PaintArea> Areas = new();
+        }
+
+        /// <summary>
         /// Lays every street in the spec, in the spec's order (so the random
         /// choices come in a fixed order), each area or street under a group
         /// of its own in parent. Adds a line per area or street to log.
+        /// Returns the unpainted ground, for Paint once the facades stand.
         /// </summary>
-        internal static void Build(LayoutSpec spec, Dictionary<string, BuildingStyle> styles, StreetHeights heights, GeneratorSettings settings,
+        internal static Painting Build(LayoutSpec spec, Dictionary<string, BuildingStyle> styles, StreetHeights heights, GeneratorSettings settings,
             System.Random random, System.Random foliageRandom, PiecePlacer placer, Transform parent, Transform foliage, List<string> log)
         {
+            // The paint's noise fields come from the spec's seed, so the
+            // same spec paints the same ground.
+            Painting painting = new() { Seed = spec.seed };
             HashSet<StreetSpec> done = new();
             // Each street in order: a ground area (its first street, style and
             // streets) or a decked street, so the lots can be shared out
@@ -137,11 +164,13 @@ namespace LevelGen
 
                 if (area != null) {
                     LayArea(spec, area, lotGround[i], heights, style, settings, random, foliageRandom, placer, Group(parent, $"Ground - {first.id}"),
-                        foliage, log);
+                        foliage, painting, log);
                 } else {
                     LayDecking(first, style, settings, random, placer, Group(parent, $"Decking - {first.id}"), log);
                 }
             }
+
+            return painting;
         }
 
         /// <summary>
@@ -322,12 +351,13 @@ namespace LevelGen
         /// <summary>
         /// Builds one area's ground: its mesh (GroundMesh) over the area's
         /// streets and the ground under the lots given to it, every vertex
-        /// at the street's level there, painted; then its colliders, its
-        /// flights of steps (LayFlight) and its grass.
+        /// at the street's level there, plain dirt (its meshes and outline
+        /// added to painting, for Paint); then its colliders, its flights of
+        /// steps (LayFlight) and its grass.
         /// </summary>
         private static void LayArea(LayoutSpec spec, List<StreetSpec> area, List<GroundLot> lots, StreetHeights heights, BuildingStyle style,
             GeneratorSettings settings, System.Random random, System.Random foliageRandom, PiecePlacer placer, Transform group, Transform foliage,
-            List<string> log)
+            Painting painting, List<string> log)
         {
             StreetSpec first = area[0];
             // The area's own flights of steps and slopes.
@@ -379,17 +409,14 @@ namespace LevelGen
             }
 
             GroundMesh.Frame frame = new() { Origin = origin, AxisX = axisX, AxisZ = axisZ, Min = min, Max = max };
-            // The paint's noise fields come from the spec's seed, so the
-            // same spec paints the same ground.
-            int paintSeed = spec.seed;
             GroundMesh.Result mesh = GroundMesh.Build(spec.sector, first.id, frame, settings.GroundCell,
                 (corners, centre) => RegionOf(corners, centre, area, rects, discs, lots, heights, flights, slopes, settings, margin),
                 (a, b) => CutsLevel(a, b, area, heights, settings),
                 point => PlaceVertex(point, flights, settings),
                 point => HeightAt(area, lots, heights, point, settings),
-                point => Paint(point, area, settings, paintSeed),
                 (region, point) => RegionName(region, point, area, lots, heights, slopes, settings),
                 group, log);
+            painting.Areas.Add(new PaintArea { Meshes = mesh.Meshes, Rects = rects, Discs = discs });
 
             int boxes = LayColliders(area, heights, flights, settings, group);
             int steps = 0;
@@ -464,20 +491,139 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// The vertex colour at a point: red the cobbles, blue the wet dirt,
-        /// nothing the dirt beneath. Cobbles reach from the nearest street's
-        /// middle out to GroundCobbleShare of its half-width, the edge moved
-        /// in and out by up to GroundPaintWobble by a noise of
-        /// GroundPaintScale, and fading over GroundPaintFade; puddles lie
-        /// wherever a second noise of GroundPuddleScale rises into its top
-        /// GroundPuddleCover.
+        /// Paints the ground Build laid, once the facades stand (straight
+        /// after FacadeBuilder.Build): every vertex of every chunk gets its
+        /// colour (PaintAt) from its distance to the foundations placed under
+        /// root (MergedColliders.Foundations), each foundation's footprint
+        /// the box round its meshes on the ground. The meshes are saved.
+        /// Adds one line to log.
         /// </summary>
-        private static Color32 Paint(Vector2 point, List<StreetSpec> area, GeneratorSettings settings, int seed)
+        internal static void Paint(Painting painting, Transform root, PieceAnnotations annotations, GeneratorSettings settings, List<string> log)
         {
-            float distance = DistanceToStreets(point, area, settings, out float halfWidth);
+            List<GroundRect> footprints = new();
+
+            foreach (GameObject piece in MergedColliders.Foundations(root, annotations)) {
+                foreach (MeshFilter filter in piece.GetComponentsInChildren<MeshFilter>(true)) {
+                    if (filter.sharedMesh != null) {
+                        footprints.Add(Footprint(filter));
+                    }
+                }
+            }
+
+            // Past this far from every foundation a point is all cobbles
+            // whatever the noise, so only the footprints this near a chunk
+            // are looked at for its vertices.
+            float reach = settings.GroundDirtBorder + settings.GroundPaintWobble + settings.GroundPaintFade;
+            List<GroundRect> near = new();
+            List<Vector3> vertices = new();
+            List<Color32> colours = new();
+            int chunks = 0;
+            int painted = 0;
+
+            foreach (PaintArea area in painting.Areas) {
+                foreach (Mesh mesh in area.Meshes) {
+                    Bounds bounds = mesh.bounds;
+                    near.Clear();
+
+                    foreach (GroundRect footprint in footprints) {
+                        if (Outside(new Vector2(bounds.center.x, bounds.center.z), footprint)
+                            <= new Vector2(bounds.extents.x, bounds.extents.z).magnitude + reach) {
+                            near.Add(footprint);
+                        }
+                    }
+
+                    mesh.GetVertices(vertices);
+                    colours.Clear();
+
+                    foreach (Vector3 vertex in vertices) {
+                        colours.Add(PaintAt(new Vector2(vertex.x, vertex.z), near, area, settings, painting.Seed));
+                    }
+
+                    mesh.SetColors(colours);
+                    EditorUtility.SetDirty(mesh);
+                    chunks++;
+                    painted += vertices.Count;
+                }
+            }
+
+            AssetDatabase.SaveAssets();
+            log.Add($"Ground paint: {painted} vertices in {chunks} chunk(s), dirt border from {footprints.Count} foundation footprint(s).");
+        }
+
+        /// <summary>
+        /// A foundation mesh's footprint on the ground: the rectangle round
+        /// its bounds' corners, along the mesh's own right and forward
+        /// (foundations stand upright), so a turned foundation keeps its
+        /// true front.
+        /// </summary>
+        private static GroundRect Footprint(MeshFilter filter)
+        {
+            Transform t = filter.transform;
+            Vector3 right = t.right;
+            Vector2 axisX = new Vector2(right.x, right.z).sqrMagnitude > 0.0001f
+                ? new Vector2(right.x, right.z).normalized
+                : new Vector2(t.forward.x, t.forward.z).normalized;
+            Vector2 axisZ = new(-axisX.y, axisX.x);
+            Bounds bounds = filter.sharedMesh.bounds;
+            Vector2 min = new(float.MaxValue, float.MaxValue);
+            Vector2 max = new(float.MinValue, float.MinValue);
+
+            for (int corner = 0; corner < 8; corner++) {
+                Vector3 local = bounds.center + Vector3.Scale(bounds.extents,
+                    new Vector3((corner & 1) == 0 ? -1f : 1f, (corner & 2) == 0 ? -1f : 1f, (corner & 4) == 0 ? -1f : 1f));
+                Vector3 world = t.TransformPoint(local);
+                Vector2 along = new(world.x * axisX.x + world.z * axisX.y, world.x * axisZ.x + world.z * axisZ.y);
+                min = Vector2.Min(min, along);
+                max = Vector2.Max(max, along);
+            }
+
+            Vector2 middle = (min + max) * 0.5f;
+            return new GroundRect {
+                Centre = axisX * middle.x + axisZ * middle.y,
+                AxisX = axisX,
+                AxisZ = axisZ,
+                HalfX = (max.x - min.x) * 0.5f,
+                HalfZ = (max.y - min.y) * 0.5f
+            };
+        }
+
+        /// <summary>
+        /// How far a point on the ground lies outside a rectangle (0 inside).
+        /// </summary>
+        private static float Outside(Vector2 point, GroundRect rect)
+        {
+            Vector2 offset = point - rect.Centre;
+            float x = Mathf.Max(Mathf.Abs(Vector2.Dot(offset, rect.AxisX)) - rect.HalfX, 0f);
+            float z = Mathf.Max(Mathf.Abs(Vector2.Dot(offset, rect.AxisZ)) - rect.HalfZ, 0f);
+            return Mathf.Sqrt(x * x + z * z);
+        }
+
+        /// <summary>
+        /// The vertex colour at a point: red the cobbles, blue the wet dirt,
+        /// nothing the dirt beneath. A dirt border GroundDirtBorder wide runs
+        /// out from the nearest foundation's footprint, cobbles beyond it, so
+        /// it steps out and back with every column; its inner edge is moved
+        /// in and out by up to GroundPaintWobble by a noise of
+        /// GroundPaintScale and fades over GroundPaintFade. Where no
+        /// foundation stands (a gap, an open street end) the street's edge
+        /// stands in, set back by ColumnDepthMax as if the deepest-set column
+        /// stood there: a nearer foundation always wins, so a column set back
+        /// still measures from its own foundation, and the outline never
+        /// paints a column's recess all dirt. Puddles lie wherever a second
+        /// noise of GroundPuddleScale rises into its top GroundPuddleCover.
+        /// </summary>
+        private static Color32 PaintAt(Vector2 point, List<GroundRect> footprints, PaintArea area, GeneratorSettings settings, int seed)
+        {
+            // How far the point lies out from the nearest foundation.
+            float fromFoundation = Depth(point, area.Rects, area.Discs) - settings.FoundationFrontOffset + settings.ColumnDepthMax;
+
+            foreach (GroundRect footprint in footprints) {
+                fromFoundation = Mathf.Min(fromFoundation, Outside(point, footprint));
+            }
+
             float wobble = (GroundMesh.Noise(point / Mathf.Max(settings.GroundPaintScale, 0.1f), seed) - 0.5f) * 2f * settings.GroundPaintWobble;
-            float edge = halfWidth * settings.GroundCobbleShare + wobble;
-            float cobbles = Mathf.Clamp01((edge - distance) / Mathf.Max(settings.GroundPaintFade, 0.01f) + 0.5f);
+            float edge = settings.GroundDirtBorder + wobble;
+            float cobbles = Mathf.Clamp01((fromFoundation - edge) / Mathf.Max(settings.GroundPaintFade, 0.01f) + 0.5f);
 
             float puddle = GroundMesh.Noise(point / Mathf.Max(settings.GroundPuddleScale, 0.1f) + new Vector2(41.3f, 17.9f), seed + 7);
             float threshold = 1f - settings.GroundPuddleCover;
@@ -492,37 +638,6 @@ namespace LevelGen
             }
 
             return new Color32((byte)Mathf.RoundToInt(cobbles * 255f), 0, (byte)Mathf.RoundToInt(wet * 255f), 255);
-        }
-
-        /// <summary>
-        /// How far a point lies from the nearest of the area's middle lines,
-        /// and that segment's half-width.
-        /// </summary>
-        private static float DistanceToStreets(Vector2 point, List<StreetSpec> area, GeneratorSettings settings, out float halfWidth)
-        {
-            float nearest = float.MaxValue;
-            halfWidth = settings.StreetWidth * 0.5f;
-
-            foreach (StreetSpec street in area) {
-                for (int i = 1; i < street.points.Count; i++) {
-                    Vector2 a = Ground(street.points[i - 1]);
-                    Vector2 ab = Ground(street.points[i]) - a;
-
-                    if (ab.magnitude < settings.MinSegmentLength) {
-                        continue;
-                    }
-
-                    float t = Mathf.Clamp01(Vector2.Dot(point - a, ab) / ab.sqrMagnitude);
-                    float distance = (a + ab * t - point).magnitude;
-
-                    if (distance < nearest) {
-                        nearest = distance;
-                        halfWidth = street.SegmentWidth(i - 1) * 0.5f;
-                    }
-                }
-            }
-
-            return nearest;
         }
 
         /// <summary>

@@ -7,9 +7,9 @@ using System.Threading.Tasks;
 namespace TextureGen
 {
     // Paints the night cloud layer (Assets/Art/Textures/Sky/SkyClouds.png) as a vertical-strip
-    // cubemap (+X, -X, +Y, -Y, +Z, -Z top to bottom): a bank of top-lit cumulus heaps round the
-    // horizon, clear overhead. Noise is sampled by view direction, so every face meets its
-    // neighbours seamlessly. Bright = thick cloud, black = clear.
+    // cubemap (+X, -X, +Y, -Y, +Z, -Z top to bottom): top-lit cumulus heaps from the horizon to
+    // straight overhead (so they pass over the moon), clear well below the horizon. Noise is sampled by view direction, so every face meets its
+    // neighbours seamlessly. Colour = the cloud's light (black = clear), alpha = how thick it is.
     public static class CloudSky
     {
         // Noise: features round the sky, vertical squash, warp, billow share, octaves.
@@ -17,10 +17,9 @@ namespace TextureGen
         public static int Octaves = 6, ShadeOct = 4;
         // Coverage: how much is cloud, how soft its edges.
         public static double Cover = 0.4, Soft = 0.06;
-        // The bank: its bottom below the horizon (direction y), its top rising and falling round
-        // the sky by TopVary, and how hard the band cuts cloud outside it.
-        public static double BandLow0 = -1.1, BandLow1 = -0.72, ZenithClear0 = 0.5, ZenithClear1 = 0.98;
-        public static double TopScale = 2.2, TopVary = 0.22, BandCut = 0.5;
+        // The cover: its bottom below the horizon (direction y), and how hard it cuts cloud below
+        // that. Above it clouds reach all the way overhead.
+        public static double BandLow0 = -1.1, BandLow1 = -0.72, BandCut = 0.5;
         // Shading: lit from above, darker below the horizon.
         public static double LightStep = 0.1, LightGain = 5, DetailGain = 0.7, ShadeGain = 1.0, Ambient = 0.4;
         public static double NadirDark0 = -0.4, NadirDark1 = -1.0, NadirLevel = 0.6;
@@ -98,9 +97,8 @@ namespace TextureGen
             double wx = Fbm(px + 11.3, py, pz, 3) - 0.5, wy = Fbm(px, py + 5.1, pz, 3) - 0.5, wz = Fbm(px, py, pz + 7.9, 3) - 0.5;
             px += wx * Warp; py += wy * Warp; pz += wz * Warp;
             double n = Fbm(px, py, pz, Octaves);
-            // A bank round the horizon, its top rising and falling heap by heap.
-            double top = (Fbm(dx * TopScale + 31.7, 0.3, dz * TopScale, 3) - 0.5) * 2 * TopVary;
-            double band = Smooth(BandLow0, BandLow1, dy) * (1 - Smooth(ZenithClear0 + top, ZenithClear1 + top, dy));
+            // Cloud from a little below the horizon to straight overhead; clear below that.
+            double band = Smooth(BandLow0, BandLow1, dy);
             double d = n + (band - 1) * BandCut;
             thick = Smooth(1 - Cover - Soft, 1 - Cover + Soft, d);
             // Lit from above on a smoother field (rounded lit tops, dark undersides).
@@ -137,7 +135,9 @@ namespace TextureGen
                     px[o] = (byte)Math.Min(255, v * Lerp(CoolB, WarmB, light) * 255);
                     px[o + 1] = (byte)Math.Min(255, v * Lerp(CoolG, WarmG, light) * 255);
                     px[o + 2] = (byte)Math.Min(255, v * Lerp(CoolR, WarmR, light) * 255);
-                    px[o + 3] = 255;
+                    // Alpha = thickness, so the sky shader hides what's behind by how thick the
+                    // cloud is, not how bright (dark undersides are as thick as lit tops).
+                    px[o + 3] = (byte)Math.Round(thick * 255);
                 }
             });
             var bmp = new Bitmap(face, face * 6, PixelFormat.Format32bppArgb);

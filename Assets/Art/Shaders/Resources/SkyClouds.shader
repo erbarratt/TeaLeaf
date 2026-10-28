@@ -21,7 +21,8 @@ Shader "TeaLeaf/SkyClouds"
 {
     Properties
     {
-        // The clouds: bright where thick, black where the sky is clear.
+        // The clouds: colour = their light (black where the sky is clear),
+        // alpha = how thick they are.
         [NoScaleOffset] _CloudTex ("Cloud Cubemap", Cube) = "black" {}
 
         // What the cubemap's colour is multiplied by. A plain vector, not a
@@ -34,6 +35,10 @@ Shader "TeaLeaf/SkyClouds"
 
         // Turns the clouds round the vertical axis, in degrees.
         _Rotation ("Rotation", Range(0, 360)) = 214
+
+        // Keeps turning the clouds round the vertical axis, in degrees per
+        // second, so they travel across the sky and over the moon.
+        _TurnSpeed ("Turn Speed", Range(-2, 2)) = 0.3
 
         // How much thick cloud hides what's behind it (stars, moon):
         // 0 = clouds only add light, 1 = the thickest cloud hides it all.
@@ -85,6 +90,7 @@ Shader "TeaLeaf/SkyClouds"
                 float4 _Tint;
                 float _Exposure;
                 float _Rotation;
+                float _TurnSpeed;
                 float _Opacity;
                 float4 _Wind;
             CBUFFER_END
@@ -126,8 +132,9 @@ Shader "TeaLeaf/SkyClouds"
                 #endif
 
                 // Turning the clouds one way is reading the cubemap turned
-                // the other.
-                float angle = radians(_Rotation);
+                // the other. The turn grows with time (kept within one
+                // revolution, so the angle never loses precision).
+                float angle = radians(_Rotation + fmod(_Time.y * _TurnSpeed, 360.0));
                 float s = sin(angle);
                 float c = cos(angle);
                 output.direction = float3(direction.x * c - direction.z * s, direction.y, direction.x * s + direction.z * c);
@@ -146,16 +153,15 @@ Shader "TeaLeaf/SkyClouds"
                 float3 flow = float3(_Wind.x, 0.0, _Wind.y) * _Wind.z;
                 float phaseA = frac(_Time.y * _Wind.w);
                 float phaseB = frac(phaseA + 0.5);
-                half3 cloudA = SAMPLE_TEXTURECUBE(_CloudTex, sampler_CloudTex, direction - flow * phaseA).rgb;
-                half3 cloudB = SAMPLE_TEXTURECUBE(_CloudTex, sampler_CloudTex, direction - flow * phaseB).rgb;
+                half4 cloudA = SAMPLE_TEXTURECUBE(_CloudTex, sampler_CloudTex, direction - flow * phaseA);
+                half4 cloudB = SAMPLE_TEXTURECUBE(_CloudTex, sampler_CloudTex, direction - flow * phaseB);
                 half weightB = abs(phaseA * 2.0 - 1.0);
-                half3 cloud = lerp(cloudA, cloudB, weightB);
+                half4 cloud = lerp(cloudA, cloudB, weightB);
 
-                // Thickness from how bright the cloud is in the cubemap
-                // (it has no alpha): black gaps are clear sky.
-                half thickness = saturate(dot(cloud, half3(0.2126, 0.7152, 0.0722)));
-
-                return half4(cloud * _Tint.rgb * _Exposure, thickness * _Opacity);
+                // Colour is the cloud's light, alpha how thick it is (0 in
+                // the clear gaps), so a dark underside hides the moon as
+                // well as a lit top does.
+                return half4(cloud.rgb * _Tint.rgb * _Exposure, cloud.a * _Opacity);
             }
             ENDHLSL
         }

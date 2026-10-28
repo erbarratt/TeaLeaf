@@ -1,6 +1,6 @@
 # AI systems (`Assets/Scripts/AI/`, namespace `AI`)
 
-Guards; roadmap Phase 6. **Built, working in headset** (test guard from the menu). Model animation checked in Play Mode at the desk only. All numbers are first guesses.
+Guards; roadmap Phase 6. **Built, working in headset** (test guard from the menu), model animation and the perception numbers (suspicion, search, hearing, vision zones, chase and catch range) included.
 
 ## The guard
 

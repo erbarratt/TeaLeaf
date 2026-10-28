@@ -992,10 +992,49 @@ namespace LevelGen
                     previous = piece;
                     float widthScale = slot / piece.width;
                     bool mirrored = minusEnd && !plusEnd;
-                    placer.PlaceAt(piece, Vector3.zero, centreOfPanel, rotation, new Vector3(mirrored ? -widthScale : widthScale, rowScale, 1f),
-                        group);
+                    float scaleX = mirrored ? -widthScale : widthScale;
+                    GameObject panel = placer.PlaceAt(piece, Vector3.zero, centreOfPanel, rotation, new Vector3(scaleX, rowScale, 1f), group);
+
+                    if (panel != null) {
+                        ShearHipEnds(panel, j == 0 && cornerStart && startSlant > 0f ? startSlant : 0f,
+                            j == panels - 1 && cornerEnd && endSlant < 0f ? endSlant : 0f, plusAlong, cos, rowScale, scaleX);
+                    }
                 }
             }
+        }
+
+        /// <summary>
+        /// Shears a row's end panel where it ends on a hip line, so its end's
+        /// edge lies along the line all the way up instead of standing square
+        /// to the eave with its middle on it: placed square, its upper corner
+        /// would stand past the line, sticking up out of the other slope
+        /// through the hip strip, and its lower corner would fall short. A
+        /// point of the row v up the slope from its middle lies v x cos(pitch)
+        /// further back from the eave, so on a hip line of slant s the edge
+        /// there moves s x cos x v along the run (startSlant at the row's
+        /// start, endSlant at its end; 0 where that end is no hip). The other
+        /// end stays square, where it overlaps the next panel
+        /// (ShearedMeshes.ShearEnds). The panel's own x runs along the run
+        /// (plusAlong) scaled by scaleX (negative: mirrored), its y up the
+        /// slope scaled by rowScale.
+        /// </summary>
+        private static void ShearHipEnds(GameObject panel, float startSlant, float endSlant, bool plusAlong, float cos, float rowScale, float scaleX)
+        {
+            if (startSlant == 0f && endSlant == 0f) {
+                return;
+            }
+
+            // Along the run per metre of the panel's own height, in the
+            // slope's frame (x the run's way if plusAlong).
+            float way = plusAlong ? 1f : -1f;
+            float atStart = startSlant * cos * rowScale * way;
+            float atEnd = endSlant * cos * rowScale * way;
+            // Which of the frame's x ends is the run's start.
+            float atPlus = plusAlong ? atEnd : atStart;
+            float atMinus = plusAlong ? atStart : atEnd;
+            // In the panel's own x: divided by its scale, a mirrored panel's
+            // +x end at the frame's -x.
+            ShearedMeshes.ShearEnds(panel, (scaleX > 0f ? atMinus : atPlus) / scaleX, (scaleX > 0f ? atPlus : atMinus) / scaleX);
         }
 
         /// <summary>

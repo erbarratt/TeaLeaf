@@ -114,8 +114,8 @@ namespace LevelGen
         [SerializeField, Range(0f, 1f)] private float windowInsertMaxMargin = 0.45f;
         [Tooltip("How far, in metres, an insert's middle stands forward of the middle of the wall's depth; below 0, back from it, e.g. 0.05 brings windows 5cm forward. 0 = in the middle.")]
         [SerializeField, Range(-0.5f, 0.5f)] private float windowInsertDepth;
-        [Tooltip("The share, 0-1, of filled window holes whose insert is a lit one (a window piece marked Lit: its panes glow and a baked spot spills light into the street); the rest get unlit inserts, e.g. 0.3 = about a third of windows lit. Higher = a brighter, busier street; 0 = all dark.")]
-        [SerializeField, Range(0f, 1f)] private float litWindowShare = 0.3f;
+        [Tooltip("The least distance, in metres, between two lit windows (inserts swapped for their Lit twin: panes glow, a baked spot spills light into the street), spread evenly over every window above the ground storey once all are placed, e.g. 10 = lit windows about 10-15m apart. Higher = fewer, darker streets; lower = more lit windows.")]
+        [SerializeField, Range(2f, 50f)] private float litWindowSpacing = 10f;
 
         [Header("Columns")]
         [Tooltip("The fewest modules wide a column is: every facade building is cut end to end into columns of Column Width Min to Max modules at random (the last takes what is left), each with its own depth and storey count, e.g. 1 allows one-module columns. Lower = busier, more broken-up facades.")]
@@ -170,6 +170,8 @@ namespace LevelGen
         [SerializeField, Range(0.005f, 0.2f)] private float ventFlatTolerance = 0.03f;
         [Tooltip("The share, 0-1, of buildings with an upper storey that get a walkway along their facade: a row of the jetty piece at the base of one upper storey (never a jettied one), e.g. 0.3 = about a third. Higher = more walkways; 0 = none.")]
         [SerializeField, Range(0f, 1f)] private float walkwayShare = 0.3f;
+        [Tooltip("Whether lamp posts are placed along the streets at all, e.g. off for a level lit only by hand-placed lights. On = posts placed per Lamp Spacing; off = no lamp posts, everything else (building colours included) generated as with them.")]
+        [SerializeField] private bool placeLamps = true;
         [Tooltip("Metres of street frontage per lamp post on average, and the least distance between any two posts over every street; posts stand before plain ground walls facing the street, and two posts' lights never overlap, e.g. 20 = about one post per 20m, never closer. Higher = fewer, darker streets; 0 = no lamp posts.")]
         [SerializeField, Range(0f, 60f)] private float lampSpacing = 14f;
         [Tooltip("How far, in metres, into the street from its edge a lamp post stands, e.g. 0.6 = 60cm out from the facade line. Higher = posts further out into the street.")]
@@ -255,10 +257,10 @@ namespace LevelGen
         [SerializeField, Range(0f, 0.6f)] private float groundStepsOverlap = 0.3f;
 
         [Header("Ground paint (the vertex colours the shader blends)")]
-        [Tooltip("Cobbles cover the middle of every street out to this share of its half-width, the dirt gutter beyond, the edge wobbled by noise, e.g. 0.8 on a 5m street = cobbles 2m either side of the middle. Higher = more cobbles, narrower gutters; above 1 the cobbles run under the facades.")]
-        [SerializeField, Range(0f, 1.5f)] private float groundCobbleShare = 0.8f;
-        [Tooltip("How far, in metres, the noise moves the cobbles' edge in and out, e.g. 0.8 = the edge wanders up to 80cm. Higher = a more ragged edge; 0 = a straight edge.")]
-        [SerializeField, Range(0f, 3f)] private float groundPaintWobble = 0.8f;
+        [Tooltip("How wide, in metres, the dirt border along every street edge is, measured from the foundations' front into the street (to the middle of the fade to cobbles), cobbles beyond, e.g. 0.75 = 75cm of dirt before the cobbles. Higher = wider dirt borders, less cobble; 0 = cobbles up to the foundations.")]
+        [SerializeField, Range(0f, 3f)] private float groundDirtBorder = 0.75f;
+        [Tooltip("How far, in metres, the noise moves the dirt border's inner edge in and out, e.g. 0.15 = the edge wanders up to 15cm. Higher = a more ragged, less even border; 0 = a straight edge.")]
+        [SerializeField, Range(0f, 3f)] private float groundPaintWobble = 0.15f;
         [Tooltip("The size of the noise that wobbles the cobbles' edge, in metres per blob, e.g. 4 = the edge bulges every few metres. Higher = long, slow wobbles; lower = tight, busy ones.")]
         [SerializeField, Range(0.5f, 20f)] private float groundPaintScale = 4f;
         [Tooltip("How far, in metres, the paint fades from all cobbles to all dirt at the edge (the shader's height blend sharpens it at the pixels), e.g. 1 = over a metre. Higher = a softer, wider blend; lower = a crisp edge.")]
@@ -493,7 +495,7 @@ namespace LevelGen
         internal float WindowInsertShare => windowInsertShare;
         internal float WindowInsertMaxMargin => windowInsertMaxMargin;
         internal float WindowInsertDepth => windowInsertDepth;
-        internal float LitWindowShare => litWindowShare;
+        internal float LitWindowSpacing => litWindowSpacing;
         internal float ColumnShare => columnShare;
         internal int ColumnMinRunModules => columnMinRunModules;
         internal int ColumnWidthMin => columnWidthMin;
@@ -532,6 +534,7 @@ namespace LevelGen
         internal GameObject VentSteamPrefab => ventSteamPrefab;
         internal float VentSteamShare => ventSteamShare;
         internal float WalkwayShare => walkwayShare;
+        internal bool PlaceLamps => placeLamps;
         internal float LampSpacing => lampSpacing;
         internal float LampEdgeInset => lampEdgeInset;
         internal float LampSink => lampSink;
@@ -555,7 +558,7 @@ namespace LevelGen
         internal float GroundThickness => groundThickness;
         internal float GroundOverlap => groundOverlap;
         internal float GroundStepsOverlap => groundStepsOverlap;
-        internal float GroundCobbleShare => groundCobbleShare;
+        internal float GroundDirtBorder => groundDirtBorder;
         internal float GroundPaintWobble => groundPaintWobble;
         internal float GroundPaintScale => groundPaintScale;
         internal float GroundPaintFade => groundPaintFade;

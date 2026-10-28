@@ -6,6 +6,53 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-28 (every street corner hipped with peaked pieces; hip ends
+            sheared; corner levels beside steps; ground painted from
+            the foundations; lit windows spaced; clouds overhead and
+            travelling; headset checks ticked)
+---------------------------------------------------------------------------
+- Street corners: two roofs only meet on a hip when their walls' tops
+  are within sizeTolerance (0.08m). Beside a flight of steps the corner
+  building kept its side's level, so at three-streets' west junction
+  the two walls ended 0.39m apart (2m at the east one) and both roofs
+  ended in gables. Beside steps every building now has its own level
+  stretch (at its side's height), so EqualCornerLevels raises only the
+  corner building to its neighbour's, foundations stacked down. All
+  four street corners hip, none gabled; the report finds no free wall
+  end.
+- Hip ends sheared: a row ending on a hip stopped with its middle on
+  the hip line, its end square to the eave, so its upper corner stood
+  past the line and stuck up through the peaked strip - worst at
+  corners sharper than right (80 degrees), where the strip is scaled
+  narrower. The end panel is now sheared (ShearedMeshes.ShearEnds,
+  like the leaning side walls) so its end edge lies along the hip
+  line all the way up; the factor runs across the panel's width from
+  0 at its other end, which stays square for the overlap with the
+  next panel. Copies saved per sector beside the wall shears.
+- Lesson: one more foundation drawn from the main random sequence moves
+  every later draw, so a level change at one corner re-rolls storeys
+  and colours across the level.
+- Ground paint runs after the buildings: a dirt border of even width
+  (groundDirtBorder 0.75m) out from the foundations actually placed
+  (MergedColliders footprints), cobbles beyond; where no foundation
+  stands, the street edge set back columnDepthMax.
+- Lit windows chosen once every window is placed: inserts above the
+  ground storey swapped for their _Lit twin unless one is already
+  within litWindowSpacing (10m), so they spread evenly.
+- placeLamps (off in the asset): lamp posts worked out with the same
+  draws but not placed, so colours don't shift.
+- Clouds: the cubemap now reaches straight overhead (covers the moon)
+  with thickness in its alpha (DXT5), so dark undersides hide the moon
+  as well as lit tops; _TurnSpeed (0.3 deg/s) turns them round the sky.
+- Headset checks done: six-piece hands, sound loops through doorways,
+  visibility, keyhole and ShabbyDoor, door handle pose, pack at the
+  chest, blackjack and takedown tuning, burn, bow (drawing to the rope
+  arrow's rope), lockpicking art, alert marks, guard perception and
+  animation, ground blend, facade lean, moon shafts, hip and valley
+  corners, building proxies and backing.
+- Removed: the example layout specs and the old test scenes.
+
+
 2026-10-27 (26th-27th: our own ground, smoke, cloud and pipe textures;
             guard Humanoid with per-state head look; guard sight
             follows Thief VR; Thief VR movement speeds; god ray boxes

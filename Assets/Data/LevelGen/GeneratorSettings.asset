@@ -53,7 +53,7 @@ MonoBehaviour:
   windowInsertShare: 1
   windowInsertMaxMargin: 0.45
   windowInsertDepth: 0.107
-  litWindowShare: 0.5
+  litWindowSpacing: 10
   columnWidthMin: 2
   columnWidthMax: 3
   columnShare: 0.403
@@ -79,6 +79,7 @@ MonoBehaviour:
   ventLargeShare: 0.3
   ventFlatTolerance: 0.03
   walkwayShare: 0.3
+  placeLamps: 0
   lampSpacing: 20
   lampEdgeInset: 0.6
   lampSink: 0.2
@@ -112,8 +113,8 @@ MonoBehaviour:
   groundThickness: 0.25
   groundOverlap: 0.18
   groundStepsOverlap: 0.3
-  groundCobbleShare: 0.8
-  groundPaintWobble: 0.8
+  groundDirtBorder: 0.75
+  groundPaintWobble: 0.15
   groundPaintScale: 4
   groundPaintFade: 0.68
   groundPuddleCover: 0.425

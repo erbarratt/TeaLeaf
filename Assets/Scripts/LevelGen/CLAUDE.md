@@ -49,7 +49,7 @@ a closed post, may show, as a corner post.
   listed is looked at - top-down or street-level render from a temporary camera, `Roofs`
   hidden for top-down - before calling it done). Check the scene (gaps along street edges,
   ground meeting steps). Rolled segment widths: `LayoutSpecValidator.ValidateFile` the same
-  way (spec widths are only the base). One log line per finishing pass: `Foundation
+  way (spec widths are only the base). One log line per finishing pass: `Ground paint`, `Foundation
   colliders`, `Walkway colliders`, `Wall colliders`, `Roof colliders`, `Nettles`, `Gaps`,
   `Visibility cull`, `Roof edge`, `Roof features`, `Roof railings`, `Pipes`, `Vents`, `Lamp
   posts`, `Building colours`, `Open windows`, `Backing`, `Moon shafts`, `Sound rooms`,
@@ -89,8 +89,8 @@ a closed post, may show, as a corner post.
   Never hand-edited.
 - `annotations.json` — maintainer's per-prefab facts (survive rescans), written by Review
   Pieces. No entry = not looked at; only `verified`, not `excluded` are placed.
-- `Sheared/<sector>/*.asset` — sheared wall meshes for leaning facades (`ShearedMeshes`), a
-  folder per sector. Reused within the sector; each generation ends by deleting the ones in
+- `Sheared/<sector>/*.asset` — sheared wall meshes for leaning facades and roof panels ending
+  on a hip (`ShearedMeshes`), a folder per sector. Reused within the sector; each generation ends by deleting the ones in
   its sector's folder the new level doesn't use (`ClearUnused`); other sectors' folders
   untouched. Deletable (remade at the next generation).
 - `Ground/*.asset` — street ground meshes (`GroundMesh`), one per region chunk, `<sector> -
@@ -183,7 +183,7 @@ unless "asset". Meanings are in the sections that use them.
   `columnStoreyVariation` 1.
 - **Doors:** `doorInsertMargin` 5cm; `doorSideMargin` 0.13m; `doorInsertDepth` 0. **Window
   inserts:** `windowInsertShare` 1; `windowInsertMaxMargin` 0.45m; `windowInsertDepth` 0;
-  `litWindowShare` 0.3.
+  `litWindowSpacing` 10m.
 - **Side walls:** `sideWallMultiplier` 0-5, 1; `sideWallTuck` 0.12m (for walls of the pack's depth, x `wallThickness`; above ~0.16 a lower neighbour's gable on the join shows through). **Gaps:** `gapBridgeMax`
   3m; `gapStoreyTolerance` 0.3m. **Backing:** `backingMaterial` (asset:
   `Assets/Art/Materials/Environment/Backing.mat`; none = no boxes); `backingDepth` 3m;
@@ -192,7 +192,7 @@ unless "asset". Meanings are in the sections that use them.
   `pipeMinRunShare` 0.5; `pipeLargeShare` 0.1 (inert: only the thin kit is verified);
   `pipePanelInset` 0.6m; `pipeWallGap` 5cm; `pipeOpeningMargin` 0.25m; `pipeEndSpread` 0.5;
   `valveShare` 0.3; `valveHeight` 1.3m; `ventShare` 0.4; `ventsMax` 2; `ventLargeShare` 0.3;
-  `ventFlatTolerance` 3cm; `walkwayShare` 0.3; `lampSpacing` 14m (**asset 20m**);
+  `ventFlatTolerance` 3cm; `walkwayShare` 0.3; `placeLamps` on; `lampSpacing` 14m (**asset 20m**);
   `lampEdgeInset` 0.6m; `lampSink` 0.2m.
 - **Smoke/steam:** `chimneySmokePrefab`, `chimneySmokeShare` 0.5; `ventSteamPrefab`,
   `ventSteamShare` 0.5.
@@ -210,8 +210,8 @@ unless "asset". Meanings are in the sections that use them.
   clears any angle).
 - **Ground:** `groundCell` 0.75m; `groundEdgeMargin` 1.5m; `groundGridMinAngle` 15°;
   `lotGroundMargin` 1m; `groundThickness` 0.25m; `groundOverlap` 3cm; `groundStepsOverlap`
-  0.3m. **Paint:** `groundCobbleShare` 0.8; `groundPaintWobble` 0.8m; `groundPaintScale` 4m;
-  `groundPaintFade` 1m; `groundPuddleCover` 0.2; `groundPuddleScale` 5m. **Steps/slopes:**
+  0.3m. **Paint:** `groundDirtBorder` 0.75m; `groundPaintWobble` 0.15m; `groundPaintScale` 4m;
+  `groundPaintFade` 0.68m; `groundPuddleCover` 0.2; `groundPuddleScale` 5m. **Steps/slopes:**
   `streetSlopeMaxGrade` 0.083 (1 in 12); `slopeDropMax` 0.6m.
 - **Roofs:** `roofPitch` 60°; `roofRows` 2; `roofEaveOverhang` 0.4m; `roofEaveDrop` 1m;
   `roofVergeOverhang` 0.2m; `roofRowOverlap` 0.25m; `roofPanelOverlap` 0.45m; `roofGableSink`
@@ -311,11 +311,13 @@ unless "asset". Meanings are in the sections that use them.
   (`Surface()`: flight's/slope's `SurfaceAt`, else level), but **each building stands level at
   the highest the street comes under any of its modules on that run** (never above a wall
   base or burying a door; buildings step down a hill; one spanning a bend has a level per
-  run). Non-stepped runs hold one `RunLevel` per building; `Height()` (storeys, beams, jetties,
-  side walls, columns, corners, roofs, dressing) reads it; lamp posts use `Surface()`.
+  run). Every street run holds one `RunLevel` per building (beside steps at its side's height,
+  one per side for a building across `StepAt`); `Height()` (storeys, beams, jetties, side
+  walls, columns, corners, roofs, dressing) reads it; lamp posts use `Surface()`.
   **Buildings either side of every joint take the higher level** (`EqualCornerLevels`, right
-  after `EqualCornerHeights`, repeated until stable); stepped runs, lots, dead ends keep their
-  own (a dead end across a sloping end stands at the end point's height). **Street below a
+  after `EqualCornerHeights`, repeated until stable), beside steps too (only the corner
+  building rises, so its walls and roof meet the other side's and the roofs can hip); lots,
+  dead ends keep their own (a dead end across a sloping end stands at the end point's height). **Street below a
   module's level: foundations stacked down** (`StackFoundations`, also stacks beside steps;
   random, no repeat, each top overlapping the one above by `wallOverlap`) until the lowest's
   bottom is `foundationBury` below the lowest street in front (`LowestInFront`), centred and
@@ -425,7 +427,8 @@ unless "asset". Meanings are in the sections that use them.
     MeshFilters as override (transform, colliders, prefab link unchanged). After the NavMesh,
     `ClearUnused` deletes the sector folder's copies no MeshFilter under the root uses (not
     undoable, like the ground meshes). Colliders stay unsheared (up to 0.26m off at a 3m
-    storey's top).
+    storey's top). Also roof panels' hip ends (`ShearEnds`, Roofs 5e): factor per end blended
+    across the width, `<mesh>_<fbx guid>_ends<min><max>.asset`, factors rounded 0.01.
   - **Roofs follow the lean** (`RoofFace`: face at the top storey's walls' top, `LeanForward`
     included), so the eave stands in front of the leaning walls as it would upright walls;
     the roof itself stays unleaned.
@@ -450,15 +453,20 @@ unless "asset". Meanings are in the sections that use them.
   per `window` opening (`PlasterWalls_A_WindowBase_Hole` 1 of 1.2 x 1.3m;
   `Masonary_WoodLarge_WallWindows` 2 of ~0.5 x 1m), at `windowInsertShare`, a usable `window`
   (one front, any style; inserts aren't style-tagged) at least the hole's size and at most
-  `windowInsertMaxMargin` bigger each side; **lit at `litWindowShare`**, else unlit, either if
-  none of the drawn kind fits; random, no repeat. Three draws (fill, lit, pick) per hole
-  always. Render box middle on hole middle at mid depth (back plane to render front) +
+  `windowInsertMaxMargin` bigger each side, **always unlit**; random, no repeat. Two draws
+  (fill, pick) per hole always. Render box middle on hole middle at mid depth (back plane to render front) +
   `windowInsertDepth`. Pack inserts (`Window_A`-`D`, `C_Open`, `D_Open`) 1.6-2.0m with frames:
   fit plaster holes; woodlarge holes stay open.
   - **Blind window face** (`faceWindow`): a wall with no opening but a `window*` point
-    (`WallTall_WindowBase`, set by hand where the pack's demos put an insert) gets any insert
-    (lit as above) centred on the point + `windowInsertDepth`, only when the module's window
+    (`WallTall_WindowBase`, set by hand where the pack's demos put an insert) gets any unlit
+    insert centred on the point + `windowInsertDepth`, only when the module's window
     draw came up (`windowDrawn && !overrun`).
+  - **Lighting windows** (`LightWindows`, after dead ends, before roofs): **once every window is
+    placed**, the inserts above a building's ground storey (**never storey 0**) with a usable lit
+    twin (prefab named `<own name>_Lit`) are shuffled and each swapped for its twin (same parent,
+    sibling slot, transform) **unless a lit window is already closer than `litWindowSpacing`**
+    (3D, between insert roots): lit windows spread evenly at that spacing or a little more. One
+    log line (lit of lightable).
   - **Lit windows:** `TL_Window_<x>_Lit` (`Assets/Prefabs/Environment/Windows`) = `TL_Window_<x>`
     + material `WindowLit` (`Assets/Art/Materials/Environment/Windows`; copy of the pack's
     unused `Medieval_Windows_Light_2k`, URP Lit, emission via the pack's pane-only emissive map,
@@ -669,8 +677,12 @@ unless "asset". Meanings are in the sections that use them.
   negative outside (hip), positive inside (rows run under the other roof: valley). Back-slope
   rows (eave 2 x ridgeBack behind) end `slant` x (2 ridgeBack - b) past it: convex = hip front,
   valley back; concave = valley front, hip back. Into a valley a row runs until its top edge
-  reaches the line, + `roofPanelOverlap`; at a hip it stops where its middle meets the line,
-  corners straddling under the strip. The end panel keeps its verge at the corner, hidden
+  reaches the line, + `roofPanelOverlap`; at a hip it stops where its middle meets the line
+  and **its end panel is sheared so its end edge lies along the hip line** all the way up
+  (`ShearHipEnds`, `ShearedMeshes.ShearEnds`: the hip end slants by slant x cos(pitch) per
+  metre up the slope, the other end stays square for the overlap; a square end's upper corner
+  would stand past the line and stick up through the strip, worst at corners sharper than
+  right, where the strip is narrower). The end panel keeps its verge at the corner, hidden
   (turned inward, two set-back ends leave a slit). Convex corners taken when the eaves' angle is
   in `roofHipAngleMin`-`Max` (`RoofCorner.Angle`, `Hipped`), else gable rules (a near-straight
   bend's hip piece would be far wider than tall); concave of any angle taken, back hip stripped
@@ -1166,7 +1178,9 @@ unless "asset". Meanings are in the sections that use them.
   (`LampAllowed`): at least `lampSpacing` level distance from every post over every street and
   lights' centres further apart than ranges summed, so the four-mixed-light limit is never
   near. Log `Lamp posts: n (m left out within Xm of another post, or where its light would
-  overlap another's)`. Two Lots 7; Three Levels 17-19 (least post gap 21.4m, light gap 11.5m).
+  overlap another's)`. **`placeLamps` off: posts worked out as usual (same random draws, so
+  building colours don't change) but none placed**; log `Lamp posts: none (Place Lamps is off;
+  n would have been placed)`. Two Lots 7; Three Levels 17-19 (least post gap 21.4m, light gap 11.5m).
 - Report treats `pipe-*` (vents too), `lamp-post`, `grass`, `nettle` as not covering wall ends.
 
 ## Street foliage (`StreetFoliage.cs`)
@@ -1511,7 +1525,7 @@ unless "asset". Meanings are in the sections that use them.
   `Backing`, `Moon Shafts`, `Sound Rooms`, `NavMesh Volumes`, and the `NavMeshSurface`; once
   the proxies are built each building group holds its `LODGroup` and `Proxy`.
 - **Pipeline:** validate (widths, `ResolveLots`) -> `StoreyPlan` -> `StreetGround` ->
-  `FacadeBuilder.Build` -> `MergedColliders` foundations, walkways -> nettles -> `GapFiller` ->
+  `FacadeBuilder.Build` -> `StreetGround.Paint` -> `MergedColliders` foundations, walkways -> nettles -> `GapFiller` ->
   `StreetTest` (own entry, error if invalid; checks merged boxes) -> `VisibilityCull` ->
   `OpenWindowInteriors.CutWalls` -> `RoofEdgeColliders` -> `RunWalls`, `RunRoofs` (after
   pieces/colliders are removed) -> `Backing` (cut clear of the pieces left; no colliders) ->
@@ -1559,11 +1573,21 @@ unless "asset". Meanings are in the sections that use them.
     one-sided difference, so a flight doesn't tilt neighbours); lightmap UVs planar per chunk:
     seamless. Three-streets: 13 regions (5 slopes, 8 levels), 38 chunks, 5348 verts, 8722 tris.
   - **Paint** (`Paint`; shader height-blends): red = cobbles, blue = wet dirt, none = dirt.
-    Cobbles from the nearest street's middle to `groundCobbleShare` of its half-width, edge
-    wobbled by up to `groundPaintWobble` with value noise of `groundPaintScale`
-    (`GroundMesh.Noise`, 2 octaves, integer-hashed from the seed: machine-independent), fading
-    over `groundPaintFade`; dirt gutter beyond; lot rings dirt. Puddles where a second noise of
-    `groundPuddleScale` is in its top `groundPuddleCover`, anywhere.
+    **Painted after `FacadeBuilder.Build`**, never before: `Build` lays every vertex plain dirt
+    and returns the meshes and outlines (`Painting`); `Paint` colours and saves them. **Dirt
+    border of even width out from the foundations actually placed**: `groundDirtBorder` from
+    the nearest foundation footprint (`MergedColliders.Foundations`; per mesh the rectangle
+    round its bounds along its own right/forward, `Footprint`), so it follows columns stepped
+    forward or back, side-wall step foundations and lots; cobbles beyond. Where no foundation
+    stands (gap, open street end) the street edge stands in, set back `columnDepthMax` past
+    the foundation front line (outline `Depth` - `foundationFrontOffset` + `columnDepthMax`; the
+    nearer of the two wins, so a recess never paints all dirt). Border's inner edge wobbled by
+    up to `groundPaintWobble` with value noise of `groundPaintScale` (`GroundMesh.Noise`, 2
+    octaves, integer-hashed from the seed: machine-independent), fading over `groundPaintFade`.
+    Only footprints within border + wobble + fade of a chunk are tested for its vertices.
+    Log `Ground paint: n vertices in m chunk(s), dirt border from k foundation footprint(s)`.
+    Puddles where a second noise of `groundPuddleScale` is in its top `groundPuddleCover`,
+    anywhere.
   - **Colliders: each chunk a `MeshCollider` of its own mesh** + Stone `SurfaceTag`. **Don't
     go back to level and tilted boxes**: a level box where a slope meets it leaves a lip up to
     0.2m the body and NavMesh climb. Only box left (`LayColliders`, `Ground -

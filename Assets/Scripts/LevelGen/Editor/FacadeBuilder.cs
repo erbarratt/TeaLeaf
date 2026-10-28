@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 namespace LevelGen
@@ -82,6 +83,10 @@ namespace LevelGen
         // the window category), set for the length of one Build call (editor
         // code, one call at a time).
         private static readonly List<PieceAnnotation> _inserts = new();
+        // Every unlit insert placed above a building's ground storey, with its
+        // piece: the windows LightWindows may swap for their lit twins once
+        // all are placed. Set the same way.
+        private static readonly List<(GameObject instance, PieceAnnotation piece)> _lightable = new();
         // The usable jetty supports (any style), set the same way.
         private static readonly List<PieceAnnotation> _jetties = new();
         // The usable plain doors for doorways (any style), set the same way.
@@ -146,9 +151,10 @@ namespace LevelGen
             // and EndHeight from there, instead of sloping between them.
             public bool Stepped;
             public float StepAt;
-            // Otherwise, on a street frontage, the level each building on the
-            // run stands at (LevelBuildings): the street's surface may fall
-            // below it beside a slope, the foundations stacking down to it.
+            // On a street frontage, the level each building on the run stands
+            // at (LevelBuildings; beside steps its side's): the street's
+            // surface may fall below it beside a slope or where a corner
+            // raised it, the foundations stacking down to it.
             // Null for a lot's or a dead end's run, which is level.
             public List<RunLevel> Levels;
             // That flight or slope, and how far along its segment the run
@@ -342,6 +348,7 @@ namespace LevelGen
             Transform roofParent, List<string> log)
         {
             _inserts.Clear();
+            _lightable.Clear();
             _jetties.Clear();
             _doors.Clear();
             _throughOpenings.Clear();
@@ -443,6 +450,9 @@ namespace LevelGen
                     deadEnds.Add(built);
                 }
             }
+
+            // Every window is placed unlit: now some are lit, spread evenly.
+            LightWindows(settings, random, log);
 
             // Roofs last, over everything built (the corners have carried the
             // top storeys out to where they meet). They overhang the streets
@@ -1039,7 +1049,8 @@ namespace LevelGen
         /// the street comes under it, and the building it meets at a corner
         /// is raised to it, its foundations stacked down to its own street -
         /// repeated until no joint changes, since a building can end at two.
-        /// A stepped run and a lot keep their own.
+        /// Beside steps too: the corner building rises above its side of the
+        /// flight. A lot and a dead end keep their own.
         /// </summary>
         private static void EqualCornerLevels(List<Joint> joints, GeneratorSettings settings)
         {
@@ -1068,15 +1079,14 @@ namespace LevelGen
         /// <summary>
         /// Raises the level of the stretch of run the module at an end
         /// stands in (its building on that run) to level, if it is lower.
-        /// Returns whether it changed; a stepped run, a lot's or a dead
-        /// end's never does.
+        /// Returns whether it changed; a lot's or a dead end's never does.
         /// </summary>
         private static bool RaiseLevel(RunEnd end, float level, GeneratorSettings settings)
         {
             ModuleSpot spot = end.Frontage.Spots[end.Spot];
             Run run = end.Frontage.Runs[spot.Run];
 
-            if (run.Stepped || run.Levels == null || run.Levels.Count == 0) {
+            if (run.Levels == null || run.Levels.Count == 0) {
                 return false;
             }
 
@@ -3772,7 +3782,7 @@ namespace LevelGen
                 if (wall != null) {
                     spots[k].Reach[storey] = Reach(piece, placer);
                     spots[k].Walls[storey] = piece;
-                    PlaceInserts(piece, wall.transform, windowDrawn && !overrun, settings, random, placer, group);
+                    PlaceInserts(piece, wall.transform, windowDrawn && !overrun, storey > 0, settings, random, placer, group);
                 }
             }
         }
@@ -3781,20 +3791,20 @@ namespace LevelGen
         /// Window inserts in a placed wall's window holes (the catalogue's
         /// window openings): each hole at WindowInsertShare gets one of the
         /// inserts that fit it - at least the hole's width and height, and no
-        /// more than WindowInsertMaxMargin bigger on each side - a lit one
-        /// (marked lit, its panes glowing) at LitWindowShare, else an unlit
-        /// one (either kind when none of the other fits), chosen at random,
+        /// more than WindowInsertMaxMargin bigger on each side - always an
+        /// unlit one (LightWindows lights some later), chosen at random,
         /// never the one before it in this wall. It faces the way the wall
         /// does, its middle on the hole's middle, at the middle of the wall's
-        /// depth moved forward by WindowInsertDepth. All three draws are made
+        /// depth moved forward by WindowInsertDepth. Both draws are made
         /// for every hole, so the sequence doesn't depend on what fits.
         /// A blind window wall (no hole) with a window point in its annotation
         /// gets an insert on its face at that point when faceWindow (the
-        /// module's window draw) is set. Every doorway gets a plain door
-        /// (PlaceDoor).
+        /// module's window draw) is set. Inserts are noted as lightable when
+        /// lightable is set (the wall is above the ground storey). Every
+        /// doorway gets a plain door (PlaceDoor).
         /// </summary>
-        private static void PlaceInserts(PieceAnnotation piece, Transform wall, bool faceWindow, GeneratorSettings settings, System.Random random,
-            PiecePlacer placer, Transform group)
+        private static void PlaceInserts(PieceAnnotation piece, Transform wall, bool faceWindow, bool lightable, GeneratorSettings settings,
+            System.Random random, PiecePlacer placer, Transform group)
         {
             CatalogueEntry entry = placer.Entry(piece);
 
@@ -3817,24 +3827,19 @@ namespace LevelGen
                 }
 
                 bool fill = random.NextDouble() < settings.WindowInsertShare;
-                bool lit = random.NextDouble() < settings.LitWindowShare;
                 Vector3 size = opening.max - opening.min;
                 float holeWidth = Mathf.Abs(Vector3.Dot(size, right));
                 float holeHeight = size.y;
                 List<PieceAnnotation> fitting = new();
 
                 foreach (PieceAnnotation insert in _inserts) {
-                    if (insert.width >= holeWidth && insert.width - holeWidth <= 2f * settings.WindowInsertMaxMargin
+                    if (!insert.lit && insert.width >= holeWidth && insert.width - holeWidth <= 2f * settings.WindowInsertMaxMargin
                         && insert.height >= holeHeight && insert.height - holeHeight <= 2f * settings.WindowInsertMaxMargin) {
                         fitting.Add(insert);
                     }
                 }
 
-                // The kind drawn, lit or unlit, where one of it fits; else
-                // whatever fits, so a hole is never left open for want of
-                // one kind.
-                List<PieceAnnotation> ofKind = fitting.FindAll(insert => insert.lit == lit);
-                PieceAnnotation chosen = PiecePlacer.Pick(ofKind.Count > 0 ? ofKind : fitting, previous, random);
+                PieceAnnotation chosen = PiecePlacer.Pick(fitting, previous, random);
 
                 if (!fill || chosen == null) {
                     continue;
@@ -3852,8 +3857,11 @@ namespace LevelGen
                 Vector3 insertCentre = (insertEntry.renderMin + insertEntry.renderMax) * 0.5f;
                 // Turned as the wall is (its lean included), then to face its way.
                 Quaternion rotation = wall.rotation * Quaternion.Euler(0f, Yaw(front) - Yaw(chosen.fronts[0]), 0f);
+                GameObject placed = placer.PlaceAt(chosen, insertCentre, wall.TransformPoint(local), rotation, Vector3.one, group);
 
-                placer.PlaceAt(chosen, insertCentre, wall.TransformPoint(local), rotation, Vector3.one, group);
+                if (lightable && placed != null) {
+                    _lightable.Add((placed, chosen));
+                }
             }
 
             // A blind window wall has no hole, so the scan gives it no
@@ -3875,9 +3883,7 @@ namespace LevelGen
                     continue;
                 }
 
-                bool lit = random.NextDouble() < settings.LitWindowShare;
-                List<PieceAnnotation> ofKind = _inserts.FindAll(insert => insert.lit == lit);
-                PieceAnnotation chosen = PiecePlacer.Pick(ofKind.Count > 0 ? ofKind : _inserts, previous, random);
+                PieceAnnotation chosen = PiecePlacer.Pick(_inserts.FindAll(insert => !insert.lit), previous, random);
 
                 if (!faceWindow || chosen == null) {
                     continue;
@@ -3889,9 +3895,73 @@ namespace LevelGen
                 Vector3 insertCentre = (insertEntry.renderMin + insertEntry.renderMax) * 0.5f;
                 // Turned as the wall is (its lean included), then to face its way.
                 Quaternion rotation = wall.rotation * Quaternion.Euler(0f, Yaw(front) - Yaw(chosen.fronts[0]), 0f);
+                GameObject placed = placer.PlaceAt(chosen, insertCentre, wall.TransformPoint(local), rotation, Vector3.one, group);
 
-                placer.PlaceAt(chosen, insertCentre, wall.TransformPoint(local), rotation, Vector3.one, group);
+                if (lightable && placed != null) {
+                    _lightable.Add((placed, chosen));
+                }
             }
+        }
+
+        /// <summary>
+        /// Lights windows once every window is placed: the lightable inserts
+        /// (unlit, above a ground storey, with a lit twin - the usable lit
+        /// insert whose prefab is named as its own plus "_Lit") taken in random order, each lit unless
+        /// a window already lit is closer than LitWindowSpacing, so lit
+        /// windows end up spread evenly at about that spacing or a little
+        /// more. A lit window is its insert swapped for the twin: same parent,
+        /// sibling slot and transform (the twin is the same insert, its panes
+        /// glowing, with a Baked spot the placer leaves on).
+        /// </summary>
+        private static void LightWindows(GeneratorSettings settings, System.Random random, List<string> log)
+        {
+            // The lit inserts' prefabs by file name (an annotation's name is
+            // only a copy, so the asset's own is read).
+            Dictionary<string, GameObject> twins = new();
+
+            foreach (PieceAnnotation insert in _inserts) {
+                if (insert.lit) {
+                    GameObject asset = AssetDatabase.LoadAssetAtPath<GameObject>(AssetDatabase.GUIDToAssetPath(insert.guid));
+
+                    if (asset != null) {
+                        twins[asset.name] = asset;
+                    }
+                }
+            }
+
+            // Shuffled (Fisher-Yates), so which windows light doesn't follow
+            // the order the facades were built in.
+            for (int i = _lightable.Count - 1; i > 0; i--) {
+                int j = random.Next(i + 1);
+                (_lightable[i], _lightable[j]) = (_lightable[j], _lightable[i]);
+            }
+
+            List<Vector3> lit = new();
+            float spacingSquared = settings.LitWindowSpacing * settings.LitWindowSpacing;
+
+            foreach ((GameObject window, PieceAnnotation piece) in _lightable) {
+                string name = System.IO.Path.GetFileNameWithoutExtension(AssetDatabase.GUIDToAssetPath(piece.guid));
+
+                if (window == null || !twins.TryGetValue(name + "_Lit", out GameObject twinAsset)) {
+                    continue;
+                }
+
+                Vector3 at = window.transform.position;
+
+                if (lit.Exists(other => (other - at).sqrMagnitude < spacingSquared)) {
+                    continue;
+                }
+
+                Transform old = window.transform;
+                GameObject swapped = (GameObject)PrefabUtility.InstantiatePrefab(twinAsset, old.parent);
+                swapped.transform.SetLocalPositionAndRotation(old.localPosition, old.localRotation);
+                swapped.transform.localScale = old.localScale;
+                swapped.transform.SetSiblingIndex(old.GetSiblingIndex());
+                Object.DestroyImmediate(window);
+                lit.Add(at);
+            }
+
+            log.Add($"Lit windows: {lit.Count} of {_lightable.Count} above the ground storey, at least {settings.LitWindowSpacing:0.#}m apart.");
         }
 
         /// <summary>
@@ -4812,21 +4882,22 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// The level the buildings stand at, at a distance along a run:
-        /// either side of a flight of steps, the level of that side; on a
+        /// The level the buildings stand at, at a distance along a run: on a
         /// street frontage's run, the level of the building standing there
-        /// (LevelBuildings: beside a slope, the highest the street comes
-        /// under it); else the street's surface. The storeys, beams, jetties,
+        /// (LevelBuildings: beside a flight of steps, its side's; beside a
+        /// slope, the highest the street comes under it; either raised at a
+        /// corner); with no buildings, either side of a flight that side's
+        /// level; else the street's surface. The storeys, beams, jetties,
         /// side walls, corners and roofs stand on it.
         /// </summary>
         private static float Height(Run run, float position)
         {
-            if (run.Stepped) {
-                return position < run.StepAt ? run.StartHeight : run.EndHeight;
-            }
-
             if (run.Levels != null && run.Levels.Count > 0) {
                 return run.Levels[StretchAt(run, position)].Level;
+            }
+
+            if (run.Stepped) {
+                return position < run.StepAt ? run.StartHeight : run.EndHeight;
             }
 
             return Mathf.Lerp(run.StartHeight, run.EndHeight, run.Length > 0f ? Mathf.Clamp01(position / run.Length) : 0f);
@@ -4870,25 +4941,25 @@ namespace LevelGen
         }
 
         /// <summary>
-        /// Gives every run that isn't stepped its level stretches, one per
-        /// building on it (a building spanning a bend has one on each run):
-        /// each at the highest the street's surface comes under any of its
-        /// modules there, so the street never rises above a wall's base and
-        /// a building beside a slope stands level, its foundations stacked
-        /// down to the street (StackFoundations). On a level street every
-        /// stretch is at the street's height.
+        /// Gives every run its level stretches, one per building on it (a
+        /// building spanning a bend has one on each run). Beside a flight of
+        /// steps each stands at its side's height (StartHeight before StepAt,
+        /// EndHeight from there; a building across StepAt gets one stretch
+        /// on each side). Otherwise each stands at the highest the street's
+        /// surface comes under any of its modules there, so the street never
+        /// rises above a wall's base and a building beside a slope stands
+        /// level, its foundations stacked down to the street
+        /// (StackFoundations). On a level street every stretch is at the
+        /// street's height. A corner may raise a building's stretch later
+        /// (EqualCornerLevels).
         /// </summary>
         private static void LevelBuildings(List<ModuleSpot> spots, List<Run> runs, List<Building> buildings)
         {
             for (int r = 0; r < runs.Count; r++) {
                 Run run = runs[r];
-
-                if (run.Stepped) {
-                    continue;
-                }
-
                 run.Levels = new List<RunLevel>();
                 int building = -1;
+                bool high = false;
 
                 foreach (ModuleSpot spot in spots) {
                     if (spot.Run != r) {
@@ -4896,6 +4967,21 @@ namespace LevelGen
                     }
 
                     float spacing = Spacing(spot, buildings);
+
+                    if (run.Stepped) {
+                        // StepAt is on a module's end, so a module stands
+                        // wholly on one side.
+                        bool past = spot.Position + spacing * 0.5f >= run.StepAt;
+
+                        if (spot.Building != building || past != high || run.Levels.Count == 0) {
+                            building = spot.Building;
+                            high = past;
+                            run.Levels.Add(new RunLevel { At = spot.Position, Level = past ? run.EndHeight : run.StartHeight });
+                        }
+
+                        continue;
+                    }
+
                     float surface = Mathf.Max(Surface(run, spot.Position), Surface(run, spot.Position + spacing));
 
                     if (spot.Building != building || run.Levels.Count == 0) {

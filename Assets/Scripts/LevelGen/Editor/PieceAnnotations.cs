@@ -144,9 +144,10 @@ namespace LevelGen
         [Tooltip("On: a plain wall that never mixes on a storey with another so marked - each storey draws one, and every plain wall on it (modules, corner fillers, side walls) is that one, e.g. wall-tall's WindowBase and StoneWindowBase. Off: mixes freely.")]
         public bool onePerStorey;
         // A window insert whose panes glow as if lit from behind (a lit
-        // material): put into a share of the window holes filled
-        // (GeneratorSettings.LitWindowShare), the unlit inserts in the rest.
-        [Tooltip("On: a window insert whose panes glow as if lit from behind, put into Lit Window Share of the filled holes, e.g. TL_Window_A_Lit. Off: an unlit insert, used in the rest.")]
+        // material): the twin of an unlit insert (its name + "_Lit"), swapped
+        // in for it at GeneratorSettings.LitWindowSpacing once every window
+        // is placed; the generator places only unlit inserts.
+        [Tooltip("On: a window insert whose panes glow as if lit from behind, the twin of the unlit insert named as it is without _Lit, e.g. TL_Window_A_Lit; swapped in for windows spread Lit Window Spacing apart above the ground storey. Off: an unlit insert, placed in every filled hole.")]
         public bool lit;
         // A plain wall the open window interiors may build their rooms from
         // (OpenWindowInteriors), scaled thin; any style it is tagged with

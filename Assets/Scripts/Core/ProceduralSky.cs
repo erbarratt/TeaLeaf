@@ -135,6 +135,13 @@ namespace Core
         [Tooltip("Turns the cloud layer round the vertical axis, in degrees, e.g. 214 = Thief VR's setting. Change it to move a cloud bank away from (or onto) the moon.")]
         [SerializeField, Range(0f, 360f)] private float cloudRotation = 214f;
 
+        // Keeps the clouds turning round the vertical axis, so they travel
+        // across the sky (and over the moon) rather than only churning in
+        // place. Turned on the GPU from the shader's time; nothing per frame
+        // here.
+        [Tooltip("How fast the cloud layer keeps turning round the vertical axis, in degrees per second, e.g. 0.3 = one full turn every 20 minutes, a cloud taking the best part of a minute to pass over the moon. Higher = clouds sail by faster; negative turns the other way; 0 = clouds stay where Cloud Rotation puts them.")]
+        [SerializeField, Range(-2f, 2f)] private float cloudTurnSpeed = 0.3f;
+
         // How much thick cloud hides the stars and moon behind it: 0 = the
         // clouds only add light, 1 = the thickest cloud hides them.
         [Tooltip("How much thick cloud hides the stars and moon behind it, 0-1, e.g. 1 = the thickest cloud hides them completely. Lower = see-through clouds; 0 = clouds only add light.")]
@@ -169,6 +176,7 @@ namespace Core
         private static readonly int _tintId = Shader.PropertyToID("_Tint");
         private static readonly int _exposureId = Shader.PropertyToID("_Exposure");
         private static readonly int _rotationId = Shader.PropertyToID("_Rotation");
+        private static readonly int _turnSpeedId = Shader.PropertyToID("_TurnSpeed");
         private static readonly int _opacityId = Shader.PropertyToID("_Opacity");
         private static readonly int _windId = Shader.PropertyToID("_Wind");
 
@@ -340,6 +348,7 @@ namespace Core
                 _cloudMaterial.SetVector(_tintId, cloudTint);
                 _cloudMaterial.SetFloat(_exposureId, cloudExposure);
                 _cloudMaterial.SetFloat(_rotationId, cloudRotation);
+                _cloudMaterial.SetFloat(_turnSpeedId, cloudTurnSpeed);
                 _cloudMaterial.SetFloat(_opacityId, cloudOpacity);
                 _cloudMaterial.SetVector(_windId, new Vector4(wind.x, wind.y, flowDistance, flowSpeed));
             }

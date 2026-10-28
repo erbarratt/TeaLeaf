@@ -1925,13 +1925,23 @@ namespace LevelGen
                         continue;
                     }
 
-                    group ??= Group(parent, frontage.Label);
-                    placer.PlaceAt(post, Vector3.zero, position, yaw, group);
+                    // With Place Lamps off every post is still worked out (the
+                    // same random draws, so what comes after - building
+                    // colours - stays as it was), just never placed.
+                    if (settings.PlaceLamps) {
+                        group ??= Group(parent, frontage.Label);
+                        placer.PlaceAt(post, Vector3.zero, position, yaw, group);
+                    }
                     postsPlaced.Add(position);
                     lightsPlaced.Add(lightAt);
                     lightRanges.Add(range);
                     lamps++;
                 }
+            }
+
+            if (!settings.PlaceLamps) {
+                log.Add($"Lamp posts: none (Place Lamps is off; {lamps} would have been placed).");
+                return;
             }
 
             log.Add($"Lamp posts: {lamps} ({tooClose} left out within {settings.LampSpacing}m of another post, or where its light would overlap another's).");

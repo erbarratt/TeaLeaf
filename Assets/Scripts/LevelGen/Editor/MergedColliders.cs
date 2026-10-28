@@ -88,6 +88,17 @@ namespace LevelGen
         }
 
         /// <summary>
+        /// Every foundation piece (annotation category foundation or
+        /// foundation-corner) placed anywhere under root: the pieces
+        /// RunFoundations merges, which StreetGround.Paint measures the dirt
+        /// border from.
+        /// </summary>
+        internal static List<GameObject> Foundations(Transform root, PieceAnnotations annotations)
+        {
+            return PiecesOfCategories(root, annotations, _foundationCategories);
+        }
+
+        /// <summary>
         /// Merges the colliders of the walkway pieces (every piece under a
         /// building's "Walkway" group, FacadeDressing.BuildWalkways) placed
         /// anywhere under root: their flat decks become one box per run,

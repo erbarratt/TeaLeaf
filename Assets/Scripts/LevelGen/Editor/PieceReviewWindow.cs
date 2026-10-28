@@ -681,7 +681,7 @@ namespace LevelGen
                 piece.fillsStorey);
             piece.onePerStorey = EditorGUILayout.Toggle(new GUIContent("One Per Storey", "A plain wall that never mixes on a storey with another so marked: each storey draws one of them and uses it for every plain wall (modules, corner fillers, side walls)."),
                 piece.onePerStorey);
-            piece.lit = EditorGUILayout.Toggle(new GUIContent("Lit", "A window insert whose panes glow as if lit from behind: put into the share of filled window holes the settings' Lit Window Share gives, the unlit inserts in the rest."),
+            piece.lit = EditorGUILayout.Toggle(new GUIContent("Lit", "A window insert whose panes glow as if lit from behind: the twin of the unlit insert named as it is without _Lit, swapped in for windows spread the settings' Lit Window Spacing apart above the ground storey."),
                 piece.lit);
             piece.openWindowInterior = EditorGUILayout.Toggle(new GUIContent("Open Window Interior", "A plain wall the open window interiors build their rooms from (scaled thin), matched to the building's style, else to the \"default\" style. Needs Verified too."),
                 piece.openWindowInterior);

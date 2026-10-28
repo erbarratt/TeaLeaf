@@ -13,9 +13,10 @@ namespace LevelGen
     /// in the street area's own turned frame, every vertex at the height
     /// the street's surface has there (level ground, slopes and the two
     /// levels either side of a flight of steps all come out of the height
-    /// callback, no tilted pieces needed) and painted with a vertex colour
-    /// (red for cobbles, blue for wet dirt, nothing for the dirt underneath)
-    /// that the TeaLeaf/GroundBlend shader turns into cobbles, mud and
+    /// callback, no tilted pieces needed), every vertex plain dirt until
+    /// StreetGround.Paint gives it its vertex colour once the facades stand
+    /// (red for cobbles, blue for wet dirt, nothing for the dirt underneath),
+    /// which the TeaLeaf/GroundBlend shader turns into cobbles, mud and
     /// puddles.
     ///
     /// The ground is one mesh per region: a callback sorts each cell into
@@ -54,6 +55,9 @@ namespace LevelGen
         // occludee, batched (one chunk is one mesh anyway).
         private const StaticEditorFlags Static = StaticEditorFlags.ContributeGI | StaticEditorFlags.OccluderStatic | StaticEditorFlags.OccludeeStatic
             | StaticEditorFlags.BatchingStatic | StaticEditorFlags.ReflectionProbeStatic;
+        // The colour every vertex is built with: plain dirt (no cobbles, not
+        // wet), until StreetGround.Paint paints it.
+        private static readonly Color32 _unpainted = new(0, 0, 0, 255);
 
         /// <summary>
         /// What was built, for the log.
@@ -64,6 +68,8 @@ namespace LevelGen
             public int Chunks;
             public int Vertices;
             public int Triangles;
+            // Every chunk's mesh, for StreetGround.Paint.
+            public List<Mesh> Meshes;
         }
 
         /// <summary>
@@ -94,15 +100,17 @@ namespace LevelGen
         /// regionOf sorts a cell by its four corners and its middle: -1
         /// none, 0 a level, more an explicit region of its own; cuts says
         /// whether two neighbouring level cells (their middles) are kept
-        /// apart; place moves a vertex's ground position; heightAt and
-        /// paintAt give a placed vertex its height and colour. The mesh
-        /// assets are named "sector - area region x_z".
+        /// apart; place moves a vertex's ground position; heightAt gives a
+        /// placed vertex its height. Every vertex is built plain dirt
+        /// (_unpainted); StreetGround.Paint colours the meshes (returned in
+        /// the result) once the facades stand. The mesh assets are named
+        /// "sector - area region x_z".
         /// </summary>
         internal static Result Build(string sector, string area, Frame frame, float cell, System.Func<Vector2[], Vector2, int> regionOf,
             System.Func<Vector2, Vector2, bool> cuts, System.Func<Vector2, Vector2> place, System.Func<Vector2, float> heightAt,
-            System.Func<Vector2, Color32> paintAt, System.Func<int, Vector2, string> nameOf, Transform parent, List<string> log)
+            System.Func<int, Vector2, string> nameOf, Transform parent, List<string> log)
         {
-            Result result = new();
+            Result result = new() { Meshes = new List<Mesh>() };
             cell = Mathf.Max(cell, 0.1f);
             // The grid's cells, one past the extent each way so the last
             // cells' far corners are tested too.
@@ -290,6 +298,7 @@ namespace LevelGen
                             serialized.FindProperty("surface").enumValueIndex = (int)SurfaceType.Stone;
                             serialized.ApplyModifiedPropertiesWithoutUndo();
 
+                            result.Meshes.Add(mesh);
                             result.Chunks++;
                             result.Vertices += vertices.Count;
                             result.Triangles += triangles.Count / 3;
@@ -305,7 +314,9 @@ namespace LevelGen
                                 Vector2 at = place(frame.Point((i0 + vi) * cell, (j0 + vj) * cell));
                                 vertices.Add(new Vector3(at.x, heightAt(at), at.y));
                                 normals.Add(Normal(vi, vj));
-                                colours.Add(paintAt(at));
+                                // Plain dirt until StreetGround.Paint colours it,
+                                // once the facades stand.
+                                colours.Add(_unpainted);
                                 lightmapUV.Add(new Vector2((float)(vi - ci0) / (ci1 - ci0), (float)(vj - cj0) / (cj1 - cj0)));
                                 index[(vi, vj)] = vertices.Count - 1;
                                 return vertices.Count - 1;
