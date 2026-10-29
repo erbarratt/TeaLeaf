@@ -1,5 +1,270 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3303169820659600328
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2741959990649545046}
+  - component: {fileID: 7640125136988459350}
+  m_Layer: 6
+  m_Name: Medieval_PlasterWalls_B_MasonaryWall_Collision Collision (unmirrored)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 87
+  m_IsActive: 1
+--- !u!4 &2741959990649545046
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3303169820659600328}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: -1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8676943856705697360}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &7640125136988459350
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3303169820659600328}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &3851193414086117245
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1274701525863709271}
+  - component: {fileID: 2240513423911980326}
+  m_Layer: 6
+  m_Name: Medieval_Fixtures_WoodenSideSupport_Straight_Collision_2 Collision (unmirrored)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 87
+  m_IsActive: 1
+--- !u!4 &1274701525863709271
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3851193414086117245}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: -1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1015414361636451407}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &2240513423911980326
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3851193414086117245}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &5491124077552394111
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8772154591663002870}
+  - component: {fileID: 2421800834815763820}
+  m_Layer: 6
+  m_Name: Medieval_Fixtures_WoodenSideSupport_Straight_Collision_1 Collision (unmirrored)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 87
+  m_IsActive: 1
+--- !u!4 &8772154591663002870
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5491124077552394111}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: -1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2705058291168542294}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &2421800834815763820
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5491124077552394111}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &8091320613462777652
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2486120873964813476}
+  - component: {fileID: 7537234948497557080}
+  m_Layer: 6
+  m_Name: Medieval_PlasterWalls_A_PlanksMiddle_Collision Collision (unmirrored)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 87
+  m_IsActive: 1
+--- !u!4 &2486120873964813476
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8091320613462777652}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: -1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3484368190076896987}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &7537234948497557080
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8091320613462777652}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &9011795406058337827
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2502194312025833031}
+  - component: {fileID: 5189270157060694331}
+  m_Layer: 6
+  m_Name: Medieval_RoofTiles_MiddleSide_Collision Collision (unmirrored)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 87
+  m_IsActive: 1
+--- !u!4 &2502194312025833031
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9011795406058337827}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: -1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8691824031633661627}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &5189270157060694331
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9011795406058337827}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &329438870155873557
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -628,8 +893,53 @@ PrefabInstance:
       propertyPath: m_ScaleInLightmap
       value: 0.5
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 2473116952315664736, guid: 8823891cf99a87e49bc16d7e526554a2, type: 3}
+    - {fileID: 7143546460365612692, guid: 8823891cf99a87e49bc16d7e526554a2, type: 3}
+    - {fileID: 1330589965203137911, guid: 8823891cf99a87e49bc16d7e526554a2, type: 3}
+    - {fileID: 8325229982540990289, guid: 8823891cf99a87e49bc16d7e526554a2, type: 3}
+    - {fileID: 6599698378459760243, guid: 8823891cf99a87e49bc16d7e526554a2, type: 3}
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 8939057089815417774, guid: 8823891cf99a87e49bc16d7e526554a2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2502194312025833031}
+    - targetCorrespondingSourceObject: {fileID: 9005181235167476549, guid: 8823891cf99a87e49bc16d7e526554a2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2741959990649545046}
+    - targetCorrespondingSourceObject: {fileID: 3803448765867396046, guid: 8823891cf99a87e49bc16d7e526554a2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2486120873964813476}
+    - targetCorrespondingSourceObject: {fileID: 2384703037467505475, guid: 8823891cf99a87e49bc16d7e526554a2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8772154591663002870}
+    - targetCorrespondingSourceObject: {fileID: 758046280020883802, guid: 8823891cf99a87e49bc16d7e526554a2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1274701525863709271}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 8823891cf99a87e49bc16d7e526554a2, type: 3}
+--- !u!4 &1015414361636451407 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 758046280020883802, guid: 8823891cf99a87e49bc16d7e526554a2, type: 3}
+  m_PrefabInstance: {fileID: 329438870155873557}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2705058291168542294 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2384703037467505475, guid: 8823891cf99a87e49bc16d7e526554a2, type: 3}
+  m_PrefabInstance: {fileID: 329438870155873557}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3484368190076896987 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3803448765867396046, guid: 8823891cf99a87e49bc16d7e526554a2, type: 3}
+  m_PrefabInstance: {fileID: 329438870155873557}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8676943856705697360 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 9005181235167476549, guid: 8823891cf99a87e49bc16d7e526554a2, type: 3}
+  m_PrefabInstance: {fileID: 329438870155873557}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8691824031633661627 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8939057089815417774, guid: 8823891cf99a87e49bc16d7e526554a2, type: 3}
+  m_PrefabInstance: {fileID: 329438870155873557}
+  m_PrefabAsset: {fileID: 0}

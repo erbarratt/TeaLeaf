@@ -1,5 +1,164 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &489589947258432842
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 319801114976036272}
+  - component: {fileID: 3172632231886800451}
+  m_Layer: 6
+  m_Name: Medieval_PlasterWalls_A_WindowBase_Collision Collision (unmirrored)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 87
+  m_IsActive: 1
+--- !u!4 &319801114976036272
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 489589947258432842}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: -1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 8147518005094896492}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &3172632231886800451
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 489589947258432842}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &3195560929538733044
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 8384572262522960666}
+  - component: {fileID: 5636311042817696615}
+  m_Layer: 6
+  m_Name: Medieval_RoofTiles_MiddleSide_Collision Collision (unmirrored)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 87
+  m_IsActive: 1
+--- !u!4 &8384572262522960666
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3195560929538733044}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: -1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5064281069196589848}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &5636311042817696615
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3195560929538733044}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+--- !u!1 &4995223365214598260
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6843031976565611633}
+  - component: {fileID: 8367532000129762214}
+  m_Layer: 6
+  m_Name: Medieval_RoofTiles_MiddleSide_Collision Collision (unmirrored)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 87
+  m_IsActive: 1
+--- !u!4 &6843031976565611633
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4995223365214598260}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: -1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 5064281068759140276}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &8367532000129762214
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4995223365214598260}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1001 &7919484770830266349
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1236,8 +1395,35 @@ PrefabInstance:
       propertyPath: m_StaticEditorFlags
       value: 87
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 8502785583786073659, guid: 25cc3436a5eb9ce48a1d80a5e240c20d, type: 3}
+    - {fileID: 8502785583684051607, guid: 25cc3436a5eb9ce48a1d80a5e240c20d, type: 3}
+    - {fileID: 1923315411613592133, guid: 25cc3436a5eb9ce48a1d80a5e240c20d, type: 3}
     m_RemovedGameObjects: []
-    m_AddedGameObjects: []
+    m_AddedGameObjects:
+    - targetCorrespondingSourceObject: {fileID: 3143611205592454389, guid: 25cc3436a5eb9ce48a1d80a5e240c20d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8384572262522960666}
+    - targetCorrespondingSourceObject: {fileID: 3143611205963999321, guid: 25cc3436a5eb9ce48a1d80a5e240c20d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6843031976565611633}
+    - targetCorrespondingSourceObject: {fileID: 2086966553100942465, guid: 25cc3436a5eb9ce48a1d80a5e240c20d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 319801114976036272}
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 25cc3436a5eb9ce48a1d80a5e240c20d, type: 3}
+--- !u!4 &5064281068759140276 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3143611205963999321, guid: 25cc3436a5eb9ce48a1d80a5e240c20d, type: 3}
+  m_PrefabInstance: {fileID: 7919484770830266349}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5064281069196589848 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 3143611205592454389, guid: 25cc3436a5eb9ce48a1d80a5e240c20d, type: 3}
+  m_PrefabInstance: {fileID: 7919484770830266349}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8147518005094896492 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2086966553100942465, guid: 25cc3436a5eb9ce48a1d80a5e240c20d, type: 3}
+  m_PrefabInstance: {fileID: 7919484770830266349}
+  m_PrefabAsset: {fileID: 0}

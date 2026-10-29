@@ -10,7 +10,8 @@
 //
 // Cheap, for Quest: all the lighting is worked out per point of the mesh
 // (per vertex), not per pixel - the shapes are flat-sided, so it looks the
-// same. Only the moon and the scene's ambient light are counted, with no
+// same. Only the moon and the baked light where the point is (the level's
+// probe volume, else the scene's ambient light) are counted, with no
 // shadows, and the result never goes below _MinLight: levels are dark, and a
 // piece nobody could see would be no use. A pixel just copies the colour its
 // three points agreed on.
@@ -87,6 +88,10 @@ Shader "TeaLeaf/LockFade"
             // Single-pass instanced stereo (each eye is an instance).
             #pragma multi_compile_instancing
 
+            // Adaptive Probe Volumes (PROBE_VOLUMES_L1/L2), the baked light
+            // for anything not lightmapped.
+            #include_with_pragmas "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ProbeVolumeVariants.hlsl"
+
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
             struct Attributes
@@ -114,12 +119,30 @@ Shader "TeaLeaf/LockFade"
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
 
                 half3 normalWS = TransformObjectToWorldNormal(input.normalOS);
+                float3 positionWS = TransformObjectToWorld(input.positionOS.xyz);
 
-                // The scene's ambient light on a surface facing this way,
-                // plus the main light (the moon) by how squarely it faces
-                // it. Never less than the least light.
+                // The baked light on a surface facing this way: read from the
+                // probe volume at this point (so a piece carried from moonlight
+                // into an alley darkens across itself), or the scene's ambient
+                // light when the level has no probe volume. The screen position
+                // only jitters per-pixel reads, so per vertex it is zero, as
+                // URP's own per-vertex read does.
+                #if defined(PROBE_VOLUMES_L1) || defined(PROBE_VOLUMES_L2)
+                    float3 baked;
+                    if (_EnableProbeVolumes) {
+                        EvaluateAdaptiveProbeVolume(GetAbsolutePositionWS(positionWS), normalWS,
+                            GetWorldSpaceNormalizeViewDir(positionWS), float2(0, 0), GetMeshRenderingLayer(), baked);
+                    } else {
+                        baked = EvaluateAmbientProbe(normalWS);
+                    }
+                #else
+                    half3 baked = SampleSH(normalWS);
+                #endif
+
+                // Plus the main light (the moon) by how squarely the surface
+                // faces it. Never less than the least light.
                 Light mainLight = GetMainLight();
-                half3 light = SampleSH(normalWS) + mainLight.color * saturate(dot(normalWS, mainLight.direction));
+                half3 light = baked + mainLight.color * saturate(dot(normalWS, mainLight.direction));
                 light = max(light, _MinLight);
 
                 output.positionCS = TransformObjectToHClip(input.positionOS.xyz);

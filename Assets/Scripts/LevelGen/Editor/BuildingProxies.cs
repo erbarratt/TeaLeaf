@@ -48,8 +48,11 @@ namespace LevelGen
         private const string ProxyName = "Proxy";
 
         // The proxies' own Lightmap Parameters (bake settings), made here
-        // when missing; its pushoff is set from the settings each build.
-        private const string ParametersPath = PrefabCatalogueScanner.DataFolder + "/ProxyLightmapParameters.asset";
+        // when missing; its pushoff is set from the settings each build. In
+        // the proxies' folder (git-ignored with them; a fresh clone's first
+        // proxy build makes it). DeleteOld() only takes a sector's own
+        // files, by their name, so it stays.
+        private const string ParametersPath = Folder + "/ProxyLightmapParameters.asset";
 
         // Vertices this close (metres) are one for the lightmap unwrap.
         private const float WeldDistance = 0.001f;

@@ -6,8 +6,8 @@ using UnityEngine.Rendering;
 namespace Core
 {
     /// <summary>
-    /// Keeps deep shadow readable: after every lightmap bake (and from the
-    /// menu, TeaLeaf > Lighting > Apply Shadow Floor) lifts every lightmap
+    /// Keeps deep shadow readable: from the menu (TeaLeaf > Lighting > Apply
+    /// Shadow Floor; never run by itself after a bake) lifts every lightmap
     /// texel and every light probe darker than twice a floor light level,
     /// so no baked surface, and nothing lit by the probes, ever receives
     /// less light than the floor. A lift, not a clamp: black goes to the
@@ -32,12 +32,10 @@ namespace Core
     /// over their EXR files and reimported; the probes get an ambient
     /// term added where their darkest direction is below twice the floor.
     /// Not idempotent: each apply lifts the dark again (towards twice the
-    /// floor), so the menu item is for after a bake that skipped it, not
-    /// for running twice on one bake.
+    /// floor), so it is for once per bake, not for running twice on one.
     ///
     /// In an Editor folder, so it never ends up in a build.
     /// </summary>
-    [InitializeOnLoad]
     public static class ShadowFloor
     {
         // Directions a probe is evaluated in to find its darkest side.
@@ -45,31 +43,13 @@ namespace Core
             Vector3.up, Vector3.down, Vector3.left, Vector3.right, Vector3.forward, Vector3.back
         };
 
-        // Reimporting a lightmap makes Unity raise bakeCompleted again, from
-        // inside the import: while a floor is being applied that event is
-        // ignored, or it would read the half-reloaded texture and write it back.
+        // True while a floor is being applied, so a second apply can't start
+        // inside the first one's lightmap reimports.
         private static bool _applying;
 
-        static ShadowFloor()
-        {
-            Lightmapping.bakeCompleted -= OnBakeCompleted;
-            Lightmapping.bakeCompleted += OnBakeCompleted;
-        }
-
         /// <summary>
-        /// Applies the floor after a real bake, not after its own reimports.
-        /// </summary>
-        private static void OnBakeCompleted()
-        {
-            if (!_applying) {
-                Apply();
-            }
-        }
-
-        /// <summary>
-        /// Lifts the open scene's lightmaps and light probes. Runs by itself
-        /// when a bake completes; the menu item applies it by hand (again
-        /// on the same bake lifts the dark a second time).
+        /// Lifts the open scene's lightmaps and light probes, by hand from
+        /// the menu (again on the same bake lifts the dark a second time).
         /// </summary>
         [MenuItem("TeaLeaf/Lighting/Apply Shadow Floor")]
         internal static void Apply()

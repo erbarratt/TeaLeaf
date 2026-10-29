@@ -783,7 +783,7 @@ Greybox build:
 [ ] Place guards + PatrolRoutes, loot, bolt pickups, objective, exit zone,
     player start.
 Lighting:
-[ ] Baked lighting with light probes for the static environment; torches
+[ ] Baked lighting with Adaptive Probe Volumes for movers; torches
     as a small number of mixed lights (baked lights can't be turned off
     by a water bolt). Keep realtime lights per view low and ranges
     short.
@@ -826,21 +826,25 @@ Lighting:
     [ ] Keep the lights reaching any one object few (URP Forward drops
         the extra ones, and they pop). Keep torch ranges short and don't
         merge the level into a few huge meshes - or test Forward+.
-    [x] Light probes over every floor (TeaLeaf > Lighting > Place Light Probes),
-        and small pieces lit by them rather than lightmapped (TeaLeaf > Lighting >
-        Set Small Pieces To Light Probes). A grid every 1.25m with layers
-        at 0.2, 1 and 2m, so a small thing's centre is never under the
-        lowest layer. A probe-lit piece is never Batching Static (static
-        batching would light it from its batch's centre).
+    [x] Moving things and small pieces lit by Adaptive Probe Volumes: one
+        global Probe Volume, read per pixel (per vertex in LockFade), so
+        light changes across a body; small pieces set to probes rather
+        than lightmapped (TeaLeaf > Lighting > Set Small Pieces To Light
+        Probes).
+    [ ] In the headset: a guard walking from moonlight into shadow
+        darkens across its body; deep shadow readable at gamma 0.
     [x] Lit windows carry a Baked spot light pooling their glow on the
         street; lamp flames flicker (FlameFlicker: the visible light
         only, the LightSource steady).
     [x] Walls baked at twice the texel density and roofs at half
         (Scale In Lightmap 2 and 0.5 on the prefab variants).
-    [x] Shadow floor: after every bake no lightmap texel or light probe
-        is darker than Moonlight.shadowFloor (TeaLeaf > Lighting > Apply Shadow
-        Floor re-applies it), so deep shade keeps its detail without a
-        sky ambient washing out the shade everywhere else.
+    [x] Brightness and gamma settings (Core.DisplaySettings: Color
+        Adjustments Post Exposure and Lift Gamma Gain on one global
+        Volume), post-processing on only while either is away from 0.
+        Bakes are kept as baked (TeaLeaf > Lighting > Apply Shadow Floor
+        by hand only).
+    [ ] Measure DisplaySettings' post pass on the target rig (4x MSAA,
+        2000x2000 per eye), brightness/gamma on against off.
     [ ] One baked reflection probe, or none.
     [ ] A Meta pass for the cobblestone and brick shaders, so a lightmap
         bake can see their colours.

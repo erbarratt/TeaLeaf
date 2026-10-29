@@ -6,6 +6,43 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-29 (Adaptive Probe Volumes; brightness and gamma settings;
+            no shadow floor on bakes; mirrored colliders fixed in 66
+            prefabs; Thief VR lighting report)
+---------------------------------------------------------------------------
+- Research: Assets/Research/ThiefVR_Lighting.txt - how the Thief VR
+  prologue is lit (Bakery bake, 310 baked lights, six Mixed fires,
+  volume-lit movers, fog, sky) and how its brightness/gamma options
+  work (URP Post Exposure and Lift Gamma Gain on a global Volume).
+- Light probes replaced by Adaptive Probe Volumes: both URP assets on
+  APV (L1), one global Probe Volume in Intro (in place of the 7,252
+  probe group), Intro rebaked (baking set ~11 MB of probe data, probe
+  occlusion included for the Mixed moon). LightProbePlacer deleted.
+  Movers are lit where each pixel is, not from one value per object.
+- GroundBlend, DoorLeaf and Burn already took APV (they include URP's
+  ProbeVolumeVariants.hlsl); LockFade now reads the volume per vertex
+  (EvaluateAdaptiveProbeVolume). Test-only shaders (BrickWall,
+  Cobblestone, Water) left alone.
+- Lesson: URP's SampleProbeVolumeVertex returns black unless
+  EVALUATE_SH_VERTEX/MIXED is on; a per-vertex shader calls
+  EvaluateAdaptiveProbeVolume itself.
+- ShadowFloor no longer runs after a bake (menu only): APV has no step
+  after its bake to lift probes in, and lifting only the lightmaps
+  would leave movers darker than the walls behind them.
+- Core.DisplaySettings on the player's Main Camera: brightness (-2 to 2
+  stops, Post Exposure) and gamma (-1 to 1, Lift Gamma Gain), on a
+  runtime profile; camera post-processing on only while either is away
+  from 0. Tested in Play Mode; cost unmeasured.
+- Negative-scale colliders: 854 box colliders on mirrored pieces in 66
+  prefabs (OpenWindowWall, the pack's ready-made buildings and building
+  layers) moved onto a child "<piece> Collision (unmirrored)" whose
+  scale flips the mirror back - same shape, follows the piece. The
+  BoxCollider negative scale warnings in Intro are gone.
+- ProxyLightmapParameters.asset moved into the git-ignored Proxies
+  folder (the proxy build only deletes a sector's own files, and remakes
+  it when missing).
+
+
 2026-10-28 (every street corner hipped with peaked pieces; hip ends
             sheared; corner levels beside steps; ground painted from
             the foundations; lit windows spaced; clouds overhead and

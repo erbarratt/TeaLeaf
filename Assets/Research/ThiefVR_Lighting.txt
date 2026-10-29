@@ -1,0 +1,522 @@
+THIEF VR - PROLOGUE LIGHTING, BRIGHTNESS AND GAMMA
+=================================================
+
+Source: the extracted Thief VR prologue (E:\ThiefVR_Export\Prologue\ExportedProject),
+the game's real ProjectSettings (E:\ThiefVR_Export\Settings\ExportedProject) and
+the IL2CPP metadata in the installed game (Shadow_Data\il2cpp_data\Metadata\
+global-metadata.dat), which holds the names of every class, method and field.
+The game is IL2CPP, so the export has no code: every script is an empty stub and
+every shader is a stub with only its Properties block. Everything here comes from
+serialized data (scenes, prefabs, materials, volume profiles, Bakery components)
+plus those names. The numbers are real; how they combine at runtime is inferred
+and marked "(inferred)" where unsure.
+
+Scenes: the level is four additive scenes. Prologue_Mission_Primary_EnvironmentScene
+holds all level art and nearly all lighting; _GameplayScene holds the
+extinguishable fires, guards, interactables and the settings menu; _AudioScene
+and _DebugScene hold no lights. The player rig is the prefab
+Content\Common\XRRigs\MT_XRRig_Quest (used on every platform despite the name).
+
+
+SUMMARY
+-------
+
+- Lighting is almost entirely baked with Bakery (the third-party GPU
+  lightmapper), not Unity's lightmapper. 310 Bakery point/spot lights, a
+  Bakery directional moon and a Bakery sky light bake into four 4096x4096
+  lightmaps with shadowmasks. Every Unity Light component in the environment
+  scene is disabled: they are authoring stand-ins only.
+- Moving things (guards, hands, props) are lit by one Bakery Volume (a 3D
+  texture of baked light over the whole level), not by light probes. There
+  are no LightProbeGroups anywhere.
+- The only runtime lights are six fires in the gameplay scene (candle groups,
+  a fireplace, two braziers): Mixed point lights, warm orange, short range,
+  flickering, extinguishable. Their realtime shadows are off unless a
+  higher-quality setting turns them on.
+- BRIGHTNESS and GAMMA in the options menu are two sliders driving one global
+  URP post-processing Volume on the player camera: brightness = Color
+  Adjustments "Post Exposure", gamma = the Lift Gamma Gain "Gamma" trackball's
+  luminance (w). Both default to 0 (no change). Details below.
+- Separately from that player setting, an art-directed colour grade
+  (GlobalColorGradingController) pushes shadows towards blue and lifts them,
+  through global shader values with up to three spherical zones (inferred: read
+  in the level shaders, not a post pass).
+- Atmosphere: exponential fog, dark blue-violet, density 0.015; a masked,
+  two-layer cubemap skybox with flowing clouds tinted dark purple; five baked
+  reflection probes; fake god-ray meshes and corona flare billboards on lamps.
+  No real volumetrics, no bloom, no tonemapping override found.
+
+
+1. BRIGHTNESS AND GAMMA OPTION
+------------------------------
+
+The settings UI
+  MazeTheory.Shadow.GraphicsOptions (in the gameplay scene, on the options
+  menu canvas; two pages). Serialized fields:
+    page1, page2
+    brightnessSlider, brightnessDisplay      (slider + text readout)
+    gammaSlider, gammaDisplay
+    aliasingButton, shadowDistanceButton, shadowQualityButton,
+    lodCrossFadeButton, npcQualityButton, renderScaleButton,
+    cullingDistanceButton, particleQualityButton
+
+  Brightness slider (UnityEngine.UI.Slider):
+    min -5, max +5, whole numbers OFF (continuous), default value 0
+    OnValueChanged -> GraphicsOptions.ChangeBrightness
+  Gamma slider:
+    min -1, max +1, whole numbers OFF, default value 0
+    OnValueChanged -> GraphicsOptions.ChangeGamma
+
+  Method and field names from the metadata (no bodies survive):
+    GetData, GetVolumeProfile, GetColorAdj, GetLiftGammaGain,
+    CheckAndSetBrightness, CheckAndSetGamma        (apply saved value at load)
+    UpdateBrightnessSlider, UpdateGammaSlider      (sync UI with saved value)
+    ChangeBrightness, ChangeGamma                  (slider callbacks)
+    ResetToDefaults
+    private fields _vp (VolumeProfile), _colorAdj (ColorAdjustments),
+    _liftGammaGain (LiftGammaGain)
+  So: on load it finds a VolumeProfile, caches its ColorAdjustments and
+  LiftGammaGain overrides, and the sliders write straight into them. The
+  values are saved with the other options (GetData; where they are stored is
+  not visible).
+
+What the sliders drive
+  A global URP Volume on the player rig:
+    MT_XRRig_Quest/PlayerController/CameraRig/FloorOffset/CameraScale/
+      Camera/PlayerVFXHemisphere
+    Volume: Is Global on, priority 0, blend distance 0, weight 1
+    Profile: PC_Brightness, two overrides:
+      ColorAdjustments: active, ONLY postExposure overridden, value 0
+                        (contrast, colour filter, hue shift, saturation not
+                        overridden)
+      LiftGammaGain:    active, ONLY gamma overridden, value (1,1,1,0)
+                        (lift and gain not overridden)
+
+  Brightness -5..+5 -> ColorAdjustments.postExposure (inferred to be the slider
+  value as is). Post Exposure is in EV (photographic stops), applied in linear
+  HDR before grading: each +1 doubles every pixel's value, -1 halves it.
+  +5 = x32, -5 = x1/32; blacks stay black, everything else scales.
+
+  Gamma -1..+1 -> LiftGammaGain.gamma.w (inferred: the range is exactly URP's
+  range for the trackball's luminance offset). The colour stays (1,1,1); only
+  the w offset moves. URP's gamma bends the midtones while leaving black and
+  white points where they are: positive w brightens the darks and mids
+  (lifts shadow detail without washing out bright lamps), negative darkens
+  them.
+
+  So the pair is the usual "brightness + gamma" split: brightness scales the
+  whole image linearly (dark scenes get brighter but lamps clip sooner),
+  gamma reshapes the curve so dark areas become readable without blowing
+  out the lights. For a dark stealth game, gamma is the one that rescues a
+  dim headset; brightness is the cruder one.
+
+Requirements and costs
+  - Needs post-processing on the camera. The rig's main camera has URP
+    "Render Post Processing" ON, HDR ON, MSAA allowed, dithering OFF, stop-NaN
+    OFF, no camera anti-aliasing (MSAA from quality instead). Any active
+    override means URP runs its uber post pass with a colour grading LUT: a
+    full-screen pass every frame, both eyes.
+  - PostProcessController (on the rig; field "cameras" -> the main camera)
+    has SetPostProcessStateBasedOnLevel, SetPostProcessState and
+    usePostProcessing: post can be switched on/off per level. Where it is
+    off, the brightness and gamma sliders would do nothing (inferred).
+
+Other volume profiles found (not the player setting)
+  Prologue_Global_Profile_PSVR2 - on "Environment/High Level Volume/Global
+    Volume" in the environment scene (global, priority 0, weight 1). Both its
+    overrides are switched OFF (active 0), so it does nothing as shipped on
+    PC. What it would do (a console look kept ready, inferred):
+      ColorAdjustments: contrast +15 (postExposure 0.1 present but not
+                        overridden)
+      LiftGammaGain:    lift w +0.059 (not overridden), gamma w -0.117,
+                        gain w +0.191
+    i.e. more contrast, darker mids, brighter highlights.
+  PauseHandler Profile - on Level_Core/PauseHandler/Volume (gameplay scene):
+    ColorAdjustments saturation -100: the world turns grey while paused.
+  GhostCamDoF - a depth of field profile for the ghost/recording camera.
+  No profile anywhere has Tonemapping, Bloom, Vignette, White Balance,
+  Shadows Midtones Highlights or Channel Mixer overrides. Unless the URP
+  asset (not in the export) sets tonemapping, HDR values above 1 simply clip
+  (inferred).
+
+
+2. ART-DIRECTED COLOUR GRADE (NOT A PLAYER SETTING)
+---------------------------------------------------
+
+MazeTheory.Shadow.GlobalColorGradingController, on the same
+PlayerVFXHemisphere object as the brightness Volume:
+  ColorGradingEnabled 1, ColorGradingIntensity 1
+  defaultPreset:
+    ShadowsIntensity     1.8
+    MidtonesIntensity    0.35
+    HighlightsIntensity  0
+    ShadowsColor         (0, 0.231, 1)   strong blue
+    MidtonesColor        white
+    HighlightsColor      white
+    ShadowsTintIntensity 0.2
+    Midtones/HighlightsTintIntensity 0
+    UseZoneGrading 1, FalloffBias 1
+  Zones: three slots (Center, Radius, Intensity, LerpedIntensity), all zero in
+  the prefab (filled at runtime), lerpSpeed 3.5.
+  Methods: ApplyDefaultPreset, ApplyNewPreset, UpdateGradingState,
+  UpdateGradingIntensity, UpdateTintsAndBrightness, UpdateZoneData, SetZone,
+  SetZoneData, GetNextAvailableZoneIndex; cached shader IDs
+  ColorGradingEnabledID, ColorGradingIntensityID, ShadowsIntensityID,
+  MidtonesIntensityID, HighlightsIntensityID, ShadowsColorID, MidtonesColorID,
+  HighlightsColorID, Shadows/Midtones/HighlightsTintIntensityID, UseZoneID,
+  ZoneCountID, FalloffBiasID, TintCenter0-2ID ...
+
+  Reading: it sets global shader values (Shader.SetGlobal...), so the grade is
+  applied inside the level's own shaders, not as a full-screen pass (inferred;
+  the view-hemisphere shader has only vignette and damage properties, and no
+  volume profile does this). Shadows get boosted 1.8x and tinted 20% towards
+  blue; midtones get a mild lift; highlights untouched. This is how the game
+  keeps its darks readable and moonlit-blue without making lamps brighter.
+  Zones let a few spheres (up to three) blend in a different grade locally,
+  lerped as the player moves.
+
+PlayerVFXController (same object): a view vignette (radius 0.8 normal, down
+to 0.5, fade in 1s, out 0.5s), "lightDucking" (buffer 0.75, lerp 0.2) driven
+by the player's light state (_trackedPlayerLightVisState), speed lines and a
+damage overlay, all drawn by a hemisphere mesh around the head (shader
+Unlit/PlayerViewVFXHemisphere), not post. Inferred: the vignette closes in
+when the player is hidden in shadow, as the "you are hidden" cue.
+
+
+3. RENDER PIPELINE AND PROJECT SETTINGS
+---------------------------------------
+
+  Unity 6000.1, URP, Linear colour space, lights use linear intensity and
+  colour temperature (GraphicsSettings). The URP asset itself is not in the
+  export (its reference is a placeholder), so its HDR precision, shadow
+  cascades, additional-light limits and grading mode are unknown.
+
+  One quality level, "Steam":
+    shadows soft (2), shadow resolution Medium (1), shadow distance 40m
+    MSAA 4x
+    anisotropic filtering forced on (2)
+    realtime reflection probes on (none are realtime in the prologue)
+    vSync every frame
+    LOD bias 3.8 (high: keeps detailed LODs far out), maximum LOD level 0
+    pixel light count 2 (built-in setting; URP uses its own per-object limit)
+  Player-facing options (GraphicsOptions): brightness, gamma, aliasing,
+  shadow distance, shadow quality, LOD cross-fade, NPC quality, render
+  scale, culling distance, particle quality.
+
+  Main camera: clear to skybox, background black, near 0.01m, far 2000m,
+  HDR on, MSAA allowed, occlusion culling on, dynamic resolution allowed.
+  Depth and opaque textures "use pipeline setting" (unknown).
+
+
+4. MAIN LIGHT - THE MOON
+------------------------
+
+  Environment/SECTORS/Global/Lighting/Baked/Global/DL_Moon_01
+  Unity Light: Directional, Baked, intensity 0.5, colour (0.59, 0.63, 1.0)
+    (pale blue), soft shadows strength 0.65, bounce 0.5 - component DISABLED.
+  BakeryDirectLight (the one that counts):
+    colour       (0.588, 0.627, 1.0)   pale blue moonlight
+    intensity    0.2
+    shadowSpread 0.03                  (soft-ish edge; angular size)
+    samples      16
+    bakeToIndirect 1, indirectIntensity 0.5 (bounce at half strength)
+    shadowmask   0                     (fully baked, not Mixed)
+    no cloud shadow texture
+  Direction: down 48.5 degrees; it shines from roughly 27 degrees off world
+  +Z towards +X (north-north-east if +Z is north).
+  RenderSettings.m_Sun is empty.
+
+  So there is NO realtime directional light: the moon exists only in the
+  lightmaps and the Bakery Volume. Moving things get moonlight from the
+  volume, never a realtime shadow.
+
+  Intensity 0.2 is very low: the moon is a soft blue fill, not a strong key.
+  The mood comes from the sky light (below), the colour grade and many warm
+  local lights.
+
+
+5. AMBIENT AND ENVIRONMENT LIGHT
+--------------------------------
+
+Bakery Sky Light (baked ambient)
+  .../Lighting/Baked/Global/Skylight
+    colour (0.588, 0.627, 1.0), same blue as the moon
+    intensity 1, samples 32, hemispherical ON (upper half only: no light from
+    below the horizon)
+    sky texture: a cubemap from an HDRI ("BeautifulCorner ... sky")
+    bakeToIndirect 1, indirectIntensity 1
+  This is the main source of "you can still see in the dark": the whole level
+  gets a baked blue sky bounce, stronger than the moon itself.
+
+Unity ambient (RenderSettings, environment scene)
+  Ambient mode Skybox (0), intensity 1. The Trilight colours stored are Unity
+  defaults (sky 0.212,0.227,0.259 / equator 0.114,0.125,0.133 / ground
+  0.047,0.043,0.035), unused in Skybox mode. Reflection source skybox,
+  resolution 128, 1 bounce, intensity 1. Subtractive shadow colour default.
+  With Bakery lightmaps and a Bakery Volume on every lit surface and mover,
+  Unity's ambient SH barely matters (inferred). The other three scenes carry
+  default settings (fog off, default skybox).
+
+Light for movers - Bakery Volume (instead of light probes)
+  .../Lighting/BakeryVolumes/GL_BakeryVolume
+    global volume (isGlobal 1), bounds centre (8, 6, -33), extents
+    (41.5, 10.9, 24.3) = a box 83 x 22 x 48m over the whole level
+    1 voxel per metre: 83 x 21 x 48 voxels
+    three baked 3D textures (L1 spherical harmonics: direction-aware light)
+    plus a shadowmask 3D texture; encoding 0 (uncompressed), no denoise
+  Objects tagged BakeryVolumeUser (6 in the environment scene, 63 in the
+  gameplay scene: guards, props, pickups) sample it. No LightProbeGroups in
+  any scene.
+
+  Material controls on the level shaders (SWG_BakeryURP*VolumeGraph, 115
+  materials):
+    _Bakery_Volume_Amount: 1 on 101 materials; 0.28-0.5 on a few
+    _Bakery_Volume_Clamp_Min_Max: min 0.02 (17), 0.06 (15), 0 (6),
+      0.04-0.07 (others), max 1 - a FLOOR on the volume light, so a mover
+      never goes fully black
+    _Min_Brightness: 0 on 80 materials; 0.01-0.28 on ~22 - a second floor
+    _AO_Override_Multiplier mostly 0
+  These floors are the per-material "keep it readable" trick: dark areas are
+  dark but never pure black on things the player must see.
+
+Reflection probes (all Baked, 128px, HDR, no box projection, blend 1m)
+  RP_Global_01           82 x 34 x 66m, importance 1
+  RP_RightAlley_01       18 x 11 x 18m, importance 1
+  RP_RightAlley_02        8 x 11 x 11m, importance 2
+  RP_LeftAlley_01        29 x 11 x 14m, importance 2
+  RP_RecruitmentCentre_01 15 x 11 x 14m, importance 2
+  Plus one in the gameplay scene's combat tutorial area (18 x 5 x 18m).
+
+
+6. BAKED LOCAL LIGHTS (BAKERY)
+------------------------------
+
+  310 BakeryPointLight components in the environment scene, all enabled
+  except 3. Bakery projMode: 0 = omni (point), 4 = cone (spot). Bakery
+  "cutoff" = range in metres. Most use realisticFalloff (inverse-square) and
+  bake their bounce (bakeToIndirect 1); none use shadowmask (all fully
+  baked). Colours (most common first):
+    (1.00, 0.88, 0.70)  warm white, 54 groups' worth - the default lamp tone
+    (1.00, 0.75, 0.38)  amber
+    (0.84, 0.62, 0.54)  dusky pink-orange fill
+    (0.76, 0.67, 0.54)  dim warm window glow
+    (0.59, 0.63, 1.00), (0.47, 0.50, 0.80), (0.54, 0.92, 0.77),
+    (0.43, 0.80, 1.00)  cool blues and teals: moonlight and sewer fills
+  (Unity stand-in Lights on lamps are colour (1.00, 0.70, 0.27), 38 of them.)
+
+  By group (Environment/SECTORS/Global/Lighting/...):
+
+  GameplayLights/Prologue_LightingPrefab - the visible lamp fittings, one
+  prefab per fixture (wall lamps, ceiling lamps, chandelier, exterior lamps,
+  ~39 fittings) and 21 table lamps:
+    Cone lamps: TWO Bakery lights each -
+      a cone: intensity 5, range 8m, angle 95 deg, soft (shadowSpread 0.5),
+        indirectIntensity 0 (no bounce from the cone itself)
+      a small omni at the bulb: intensity 1, range 2.5m, shadowSpread 0.05,
+        falloffMinRadius 0.3 - lights the fitting and wall right round it
+      (one exterior wall lamp: cone 5 / 8m + omni 2 / 5m; one ceiling lamp:
+      cone 10 / 12m / 106 deg)
+      The Unity stand-in for the cone: Spot, Baked, intensity 5, range 8,
+      outer 95 / inner 59 deg, disabled.
+    Table lamps: one omni, intensity 1.5, range 3m (one 5m),
+      indirectIntensity 0.2.
+    Samples 8. This "cone down + tiny omni at the source" pair is the
+    standard recipe for every lamp.
+
+  Baked/EnvironmentLights/Fill lights - 102 lights. Designer fill: intensity
+    0.3 to 5 (16 different values), range 1.4 to 15m (24 values), mostly
+    omni, some cones (45-95 deg), soft (shadowSpread up to 1),
+    falloffMinRadius 1-5m (big soft blobs), indirectIntensity 0, 1 or 5.
+    These sculpt the darkness: they put light where play needs it rather
+    than where a fitting is.
+  Baked/EnvironmentLights/Window Lights - 57. Very weak warm glows behind/at
+    windows: intensity 0.02 to 1 (typical 0.2), range 1.0 to 3m (typical
+    1.3), warm (0.76, 0.67, 0.54). They make lit windows read as lit without
+    lighting the street.
+  Sewer_MA (15), Sewer_LeftAlley (13), Sewer Lights (4) - sewer fills:
+    intensity 0.1 to 3, range 1.5 to 6.3m, some cones, cool tints;
+    indirectIntensity up to 5 (bounce pushed hard to fill tunnels).
+  Room_Lights (5) / Room Lights (1) - interiors: intensity 0.4 to 12.8,
+    range 3.25 to 12m.
+  Lamp Lights (6) - street lamps: omni intensity 0.2 to 1, range 1.3 to
+    5m, plus a cone at intensity 10, range 10.8m, 112 deg.
+  Brazier Lights (3) - intensity 0.5 / 10 / 15, range 4.4 to 10m.
+  StartingRoom (1) - a cone at intensity 40, range 9m, 89 deg (a strong
+    shaft in the opening room).
+  SetDressing searchlight (1) - cone intensity 80, range 25m, 32 deg,
+    indirect 0 (Unity stand-in: Spot, intensity 100, range 28.6m).
+  MarketAlley (2) - overhead wall lamp cone 10 / 10m / 112 deg + omni.
+
+  Common Bakery settings across all: samples 16 (lamps 8), bitmask 1 (one
+  light layer), legacySampling on, shadowSpread 0.05-0.15 for normal lamps.
+
+  Unity Light stand-ins in the environment scene: 46, all disabled (one,
+  the recruitment-station fireplace, enabled but on an inactive object).
+  Their light-mode is "Baked" for most and "Realtime" for a few, but none
+  render: Bakery reads them (or its own components) when baking, the
+  runtime never draws them.
+
+  Scene sectors: BakerySector components split the bake by area (e.g.
+  Sewer_Prologue_MarketAlley).
+
+
+7. REALTIME AND MIXED LIGHTS
+----------------------------
+
+  Only in the gameplay scene, and only the fires the player can put out
+  (all under pfb_PrologueGameplayCore/= Interactables/+ ArrowTargets&Fire):
+
+    Object                                 Light  I     Range  Shadows
+    StartingHouse  pfb_CandleGroup (1)     Point  1.25  2m     hard
+    StartingHouse  pfb_CandleGroup (2)     Point  1.25  2m     hard
+    RecruitmentHall pfb_CandleGrouphouse   Point  1.5   3m     hard
+    RecruitmentHall Light_Fireplace        Point  0.5   10.7m  soft 0.75
+    market alley   Brazier_pfb (2)         Point  5     5.5m   soft 0.75
+    Back Streets   Brazier_pfb (3)         Point  5     4.4m   soft 0.75
+  All: Mixed, colour (1.00, 0.54, 0.15) deep orange, bounce 0 (candles,
+  fireplace) or 1 (braziers).
+
+  Each also has a BakeryPointLight with bakeToIndirect 0, shadowmask 1,
+  indirectIntensity 0 (one at 1): the light's direct part is drawn in
+  realtime, its shadows from static geometry come from the baked shadowmask,
+  and it leaves NO baked bounce. Put the fire out, disable the light, and the
+  area goes dark with no glow left behind.
+
+  HighLevelLight on each: shadowStrength 0 normally, 0.75 at "high level"
+  (inferred: a higher graphics tier). So realtime shadows from moving things
+  exist only on the higher setting; normally these lights cast no realtime
+  shadow at all.
+
+  MazeCustomLight (1-2 per fire): lightingAttenuationType 1,
+  lightAttenuationExponent 0.7 (4), 0.9 (3), 1.0 (2) - a custom falloff
+  curve (inferred: softer than inverse-square, so a small fire reaches a
+  bit further).
+
+  LightFlickerEffect (6): intensityVariance 0, minimumRangeVariance 0,
+  flicker frequency 0.1-1 Hz, strength 5, moves the light within +/-5cm
+  (movementStrength 0.5) - flicker by moving the light (shadows and
+  highlights shimmer) rather than pulsing brightness.
+
+  CandleGroup: candles [3], lightSource, visibilityVolume;
+  radiusReductionPerLight 0.5, lightIntensityReductionPerLight 0.2,
+  anomalyRadiusReductionPerLight 0.5 - each candle snuffed shrinks the
+  group's light and its gameplay light radius. InteractableFire: LightVolume,
+  VFX, SFX, objects shown/hidden while lit, cooldown 5s, starts lit.
+
+  Combat tutorial: three Realtime point lights (blue 0.31,0.55,0.80 at 20 and
+  40; teal at 5; range 10m; no shadows), inactive in the shipped level.
+
+  Blob shadows: BlobShadowManager/Controller present (max distance 50m) but
+  shadowsEnabled 0, maxShadows 0: off in the prologue. A "Simple Lit - Blob
+  Shadows Receiver" shader exists.
+
+
+8. LIGHTMAPS AND BAKE SETTINGS
+------------------------------
+
+  Bakery (ftLightmapsStorage per scene). Environment scene:
+    4 lightmaps, 4096 x 4096 each (LM0, LMA1, LMA2, LMA3 "_final"), BC6H
+      (HDR, format 24), no mips
+    4 shadowmasks, 4096 x 4096 (BC7, format 25)
+    no directional maps: non-directional lightmaps
+    ~32MB each, ~256MB of lightmaps in total
+  Unity LightingSettings (kept for shadowmask mode and compression only):
+    Baked GI on, realtime GI off, Mixed mode Shadowmask, max lightmap size
+    4096, bake resolution 40 texels/unit, padding 2, compression High (3),
+    albedo boost 1, indirect scale 1, bounce scale 1, AO off.
+
+  Gameplay scene: its own LightingSettings and an empty lightmap set; its
+  fires use the shared Bakery Volume and environment shadowmasks.
+
+
+9. SKYBOX, FOG AND SURROUNDINGS
+-------------------------------
+
+Skybox - material SWG_Skybox_Prologue, shader SWG/Skybox_Masked:
+  _StaticTex  SkyBox_Prologue cubemap (static sky: moon, stars, horizon)
+  _Tex        SkyBox_CloudLayer_BC cubemap (cloud layer)
+  _BlendAmount 1
+  _Exposure   1.1
+  _Rotation   214 deg
+  _Tint       (0.118, 0.102, 0.180)  dark violet on the dynamic layer
+  _TintStatic white
+  _FlowmapParam (0, -0.02, 0.78, 2.27) = opacity 0, strength -0.02, wind
+    direction (0.78, 2.27) - clouds drift by flow-map distortion
+  The tint makes the cloud layer very dark: the sky reads near-black violet
+  with the static sky showing through.
+  SpacewarpSky (gameplay scene, Level_Core): a sky sphere renderer for
+  application spacewarp (Quest), so the sky gets motion vectors (inferred).
+
+Fog (environment scene RenderSettings):
+  on, mode Exponential (2), density 0.015, colour (0.109, 0.104, 0.149)
+  dark blue-violet. Linear start/end (0/300) unused.
+  What that means: fog fraction = 1 - e^(-0.015 d):
+    5m 7%, 10m 14%, 20m 26%, 46m 50%, 100m 78%, 200m 95%.
+  The level's far ends sink into blue-violet dark; this also hides lightmap
+  detail and pop-in at range. Fog shader variants Exp and Exp2 are kept
+  (GraphicsSettings).
+
+Fake god rays - shader Unlit/FakeGodRays (transparent cone/cylinder
+  meshes, no lighting): rim fade, vertical fade, distance fade, scrolling
+  noise and lines, conify. Uses in the level:
+    FakeGodRays_Tavern_Lamp            38 (under lamp fittings)
+    FakeGodRays_Security_SpotLight_02   1 (the searchlight)
+    ...GodRays_NobleManorWindows        5, PrologueWindows 2 + 2 orange
+  Security spotlight example: base colour (0.22, 0.24, 0.27), final alpha
+  0.2, rim power 1.45, distance fade 8m start / 14m length, far fade from
+  40m. All placed geometry: no screen-space or volumetric effect.
+
+Light flares - corona billboards (shader Billboard/CoronaBillboard):
+  Corona_Flare 60, Corona_Smalllamp 19, Corona_Flare_Candle 9,
+  Corona_Flare_Brazier 2, Corona_SecuritySpot 1. Driven by
+  LightVolumeFlareVFX with LightFlareData assets, e.g.
+  LightFlareDataInteriorCovered: transparency 0 to max 0.2, eased by
+  distance (peaks at 60% of its range), fades in over 1s, out over 2s, tint
+  (1.0, 0.98, 0.75). The flare stands in for bloom: bright lamps glow
+  without a post bloom pass.
+  Also emissive "glow" materials: fx_flies_glow 43 (fireflies/moths round
+  lamps), fx_CandleFlame_Glow 9, glow 5.
+
+
+10. GAMEPLAY LIGHT (STEALTH) - HOW "LIT" IS DECIDED
+--------------------------------------------------
+
+  Not from the rendered lighting. Each gameplay light carries a hand-sized
+  trigger volume:
+    LightVisibilityVolume (sphere) - 19 in the environment scene, 6 in
+      gameplay; radii 2m (19), 3.4m (26), 5.5m (15), 6.6m, plus 2.71,
+      2.93, 4.37 for fires
+    LightVisibilityVolumeCone - 42 (the cone lamps)
+    each with lightOrigin, isStatic, IsDarkVolume (a volume can mark dark),
+    a light intensity tween and links to its flare and flicker.
+  LightVisibilityEntity on characters lists body nodes (with
+  isPlayerNode / requiresPlayerToBeGrounded) checked against the volumes;
+  LightVisibilityManager runs it. LightVolumeSaveable (61 + 6) remembers
+  which lights are on. Extinguishing a fire turns its volume off; snuffing
+  candles shrinks the radius (CandleGroup above).
+
+
+TAKEAWAYS FOR TEALEAF
+---------------------
+
+- Their brightness/gamma needs a post pass (URP uber post + LUT) every
+  frame. Under TeaLeaf's rule (never depend on a full-screen effect; an
+  optional, switchable one is allowed once measured) the same two-slider
+  design fits only as an optional setting that turns post on while either
+  slider is away from 0. A no-post route would be global shader values read
+  in TeaLeaf's own level shaders (the way their GlobalColorGradingController
+  grades), but that misses pack URP Lit materials.
+- Their gameplay readability comes from baked layers, not post: a strong
+  blue hemispherical sky light, a weak blue moon (0.2), the shadows x1.8
+  blue grade, light-volume floors (_Bakery_Volume_Clamp min 0.02-0.06,
+  _Min_Brightness) and fog colour matched to the darkness.
+- The extinguishable fire set-up matches TeaLeaf's plan: Mixed, shadowmask,
+  no baked bounce (TeaLeaf's Indirect Multiplier 0); realtime shadow
+  strength only on a higher quality setting.
+- Lamp recipe worth copying: a downward cone (I 5, 8m, 95 deg) plus a tiny
+  omni at the bulb (I 1, 2.5m), a corona billboard and a fake god-ray cone.
+- They lit movers with a Bakery Volume instead of light probes; Unity's
+  Adaptive Probe Volumes would be the closest built-in equivalent, light
+  probes the simplest.
+- Fog: Exponential 0.015, colour (0.109, 0.104, 0.149) as a starting value
+  for a night level.

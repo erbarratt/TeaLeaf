@@ -98,7 +98,7 @@ a closed post, may show, as a corner post.
   Deletable; ground shows nothing until regenerated.
 - `Proxies/*.asset` — buildings' merged meshes (`BuildingProxies`), `<sector> - <owner> Building
   <i>` (proxy), with the sector's atlases and atlas material (`<sector> - Proxy Atlas*`,
-  `ProxyAtlas`); the sector's old ones deleted and rewritten each proxy build. (`ProxyLightmapParameters.asset` beside the folder is kept.) **Git-ignored** (tens of MB, rewritten every run): a fresh clone
+  `ProxyAtlas`); the sector's old ones deleted and rewritten each proxy build. The proxies' `ProxyLightmapParameters.asset` lives here too and is never deleted by a build (not a sector's file). **Git-ignored** (tens of MB, rewritten every run): a fresh clone
   or a deleted folder draws buildings beyond full-detail range as nothing until the proxies
   are rebuilt.
 - `GeneratorSettings.asset` — tunables (Settings).
@@ -973,7 +973,7 @@ unless "asset". Meanings are in the sections that use them.
   (`proxyLightmapScale`; probes off) so far streets show the baked shadows the full detail
   casts in the bake (a lower level receives, doesn't cast into it). No collider (no query,
   NavMesh or sound probe sees it). **Each proxy build needs a rebake.**
-- **Own Lightmap Parameters** (`Assets/Data/LevelGen/ProxyLightmapParameters.asset`, made by
+- **Own Lightmap Parameters** (`Assets/Data/LevelGen/Proxies/ProxyLightmapParameters.asset`, git-ignored with the proxies, made by
   the build when missing, defaults but pushoff = `proxyBakePushoff`; set on the renderer's
   serialized `m_LightmapParameters`): the bake keeps the full detail as solid geometry a few
   mm from the proxy (only the most detailed level is scene geometry), and its relief blocks
@@ -1064,8 +1064,8 @@ unless "asset". Meanings are in the sections that use them.
     floor and ceiling).
   - **Sound**: `Sound Room` (`SoundRoom` over the room, priority 2, reverb Room, no ambience)
     and `Portal Window` in it (`openWindowPortalSize`, probes past both window faces). **No
-    NavMesh** (guards never go in). Light probes from Place Light Probes with the rest of the
-    level (`Core.LightProbePlacer`).
+    NavMesh** (guards never go in). Probe light from the level's Adaptive Probe Volume with the
+    rest of the level.
   - **Light** (`AddLight`): `Room Light`, a **Baked** point light over the room's middle,
     `openWindowLightBelowCeiling` under the ceiling's underside, `openWindowLightColour`,
     `openWindowLightIntensity`, Indirect Multiplier `openWindowLightIndirect`, soft baked shadows
@@ -1080,7 +1080,7 @@ unless "asset". Meanings are in the sections that use them.
     out; warns if a generated wall still
     stands in the window (regenerate first).
 - **Order**: place windows -> generate -> Build Open Window Interiors -> Rebuild Building
-  Proxies -> Place Light Probes -> rebake.
+  Proxies -> rebake.
 
 ## Facade dressing (being built)
 

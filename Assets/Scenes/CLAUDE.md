@@ -23,7 +23,7 @@ Environment
       Lighting
         Baked         bake-only fill lights
         Gameplay Lights   visible lamps/torches
-        Light Probes      the one probe group (TeaLeaf > Lighting > Place Light Probes)
+        Probe Volume      the one Adaptive Probe Volume, Global mode (see Core CLAUDE.md)
       VFX
     <Sector>          cullable as a whole
       Geometry        one group per building
@@ -70,6 +70,7 @@ P_Pr_Barrel_01a   empty root: only object moved/turned/scaled (TeaLeaf: the Asse
 - Thin, small boxes: median thinnest side 7 cm, 95% ≤3 m long - one per wall module, not a slab per wall (safe: slow capsule, swept bolts).
 - Only what the player can reach or see past: none on roof trim, high beams, background buildings.
 - Steps are ramps (`RampCollider`).
+- **No box, sphere or capsule collider under a negative (mirrored) scale** (physics forces it positive and the shape can land wrong; mesh colliders are fine). A mirrored piece's colliders sit on its child `<piece> Collision (unmirrored)`, whose scale flips the mirror back (same layer and static flags; `SurfaceTag` on the piece still applies), so they follow the piece. Every prefab under `Assets/Prefabs` is set up so.
 - Every solid collider has a `SurfaceTag` on it or a parent (one on a building's `Collision` covers it; nearer tags where parts differ). Ref: sound profile (16 kinds) on ~half its colliders.
 
 ## Player blockers
@@ -138,7 +139,7 @@ TeaLeaf: pack pieces carry their own (full to 7%, lowest from 3.5%, culled 1%). 
 
 1. **Roots**: groups above exist; sectors cullable size; nothing loose, no default names.
 2. **Layers**: no collider on `Default`; static pieces `Environment` all the way down; doors/props `Interactable`; climbables `Climbable`.
-3. **Static flags**: all on never-moving renderers, except probe-lit (Receive GI: Light Probes, or not Contribute GI) not Batching Static (`Assets/Scripts/Core/CLAUDE.md`); none on moving things (doors, swaying foliage).
+3. **Static flags**: all on never-moving renderers (probe-lit ones, Receive GI: Light Probes or not Contribute GI, may lack Batching Static: the variants tool clears it, `Assets/Scripts/Core/CLAUDE.md`); none on moving things (doors, swaying foliage).
 4. **Collision**: no render mesh as collider; under `Collision`, one per object; nothing reachable without, nothing unreachable with; steps ramps; no gap a 0.5 m body could wedge into. **Blockers**: upright, `PlayerBlocker`, in `Player Blockers`, round clutter/across gaps; none in open space or holding a mantle landing point or climbable edge.
 5. **Gameplay shadows**: every rendered shadow caster has `Environment`/`Interactable` collision covering its silhouette, no holes in walls/roofs (`SceneLight` reads colliders; a collider-less roof lights the player).
 6. **Surfaces**: non-stone floors have a `SurfaceTag`; bolt-holding surfaces tagged; rope-bolt surfaces marked.
