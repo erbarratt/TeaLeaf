@@ -6,8 +6,8 @@ namespace AI
     /// <summary>
     /// The guard's ragdoll: a Rigidbody and a collider on each main bone
     /// (hips, chest, head, upper and lower arms and legs), joined by
-    /// CharacterJoints, on the Ragdoll layer. Built onto the prefab by
-    /// TeaLeaf > Modify Prefab > Build Guard Ragdoll.
+    /// ConfigurableJoints with soft limits, on the Ragdoll layer. Built
+    /// onto the prefab by TeaLeaf > Modify Prefab > Build Guard Ragdoll.
     ///
     /// Awake, the bodies are kinematic and ride the animated bones, so
     /// their colliders are the guard's hit boxes: a bolt's ray finds the
@@ -16,8 +16,10 @@ namespace AI
     /// the player's body and the agent; nothing but bolts looks at these.
     ///
     /// Knocked out (GoLimp), the Animator stops and the bodies fall
-    /// under physics, carrying on at the speed the guard was moving.
-    /// Woken (StandUp), the root is moved under where the hips lie,
+    /// under physics, carrying on at the speed the guard was moving,
+    /// each joint pulled weakly towards the neutral pose the builder
+    /// gave it (knees, elbows, hips a little bent), so the body falls
+    /// and lies curled like a person, not with straight limbs. Woken (StandUp), the root is moved under where the hips lie,
     /// facing the way the head lies, the bodies are held again and the
     /// Animator restarts; for standUpTime every bone eases from the pose
     /// it lay in to the animated one, so the guard rises without a jump.
@@ -53,6 +55,14 @@ namespace AI
         [Tooltip("Extra forward speed given to the chest and head on going limp, in metres a second, so a standing guard topples over rather than folding onto its knees. e.g. 1.5 = falls face down. Higher = pitches forward harder; 0 = slumps straight down.")]
         [SerializeField] private float topplePush = 1.5f;
 
+        // While limp, how hard each joint pulls towards its neutral pose,
+        // per kg of the limb's body: weak, so gravity and the floor still
+        // win and the pull only curls what is free to move.
+        [Tooltip("While limp, how hard each joint pulls its limb towards the relaxed neutral pose (knees, elbows, hips a little bent), in N m per radian per kg of the limb. e.g. 20 = limbs curl as they fall and lie bent. Higher = stiffer, more posed body that can hold limbs off the floor; 0 = straight, floppy limbs.")]
+        [SerializeField] private float neutralStiffness = 20f;
+        [Tooltip("While limp, how much each joint's pull towards the neutral pose is damped, in N m s per radian per kg of the limb. e.g. 1 = limbs ease into the curl without wobbling. Higher = slower, heavier-feeling limbs; 0 = they spring and swing about it.")]
+        [SerializeField] private float neutralDamping = 1f;
+
         // How far from where the hips lie the root may be put back on the
         // NavMesh, in metres.
         private const float StandUpSampleDistance = 1.5f;
@@ -70,6 +80,10 @@ namespace AI
         // upper body, tipped forwards on going limp.
         private Rigidbody _headBody;
         private Rigidbody _chestBody;
+
+        // Each body's joint to its parent (null for the hips), in the
+        // order of bodies.
+        private ConfigurableJoint[] _joints;
 
         private float _standUpTimer;
 
@@ -108,7 +122,13 @@ namespace AI
             _hips = bodies[0].transform;
             _head = headHitbox.transform;
             _headBody = headHitbox.attachedRigidbody;
-            _chestBody = _head.TryGetComponent(out CharacterJoint neck) ? neck.connectedBody : null;
+            _chestBody = _head.TryGetComponent(out ConfigurableJoint neck) ? neck.connectedBody : null;
+
+            _joints = new ConfigurableJoint[bodies.Length];
+
+            for (int i = 0; i < bodies.Length; i++) {
+                bodies[i].TryGetComponent(out _joints[i]);
+            }
 
             // GetComponentsInChildren lists parents before their children,
             // which the stand-up blend relies on. The Animator's own
@@ -152,7 +172,8 @@ namespace AI
         /// <summary>
         /// Knocked out: the Animator stops where it is and the bodies
         /// fall under physics, moving on at velocity (the guard's own
-        /// speed when it went down), the upper body tipped forwards.
+        /// speed when it went down), the upper body tipped forwards, each
+        /// joint pulling towards its neutral pose.
         /// </summary>
         public void GoLimp(Vector3 velocity)
         {
@@ -163,6 +184,7 @@ namespace AI
 
             animator.enabled = false;
             SetKinematic(false);
+            SetNeutralDrives();
 
             Vector3 topple = velocity + transform.forward * topplePush;
 
@@ -244,6 +266,26 @@ namespace AI
 
             if (_standUpTimer <= 0f) {
                 animator.cullingMode = _cullingMode;
+            }
+        }
+
+        /// <summary>
+        /// Gives each joint's drive towards its neutral pose its strength,
+        /// scaled by the limb's mass. Set on going limp (the drives do
+        /// nothing while the bodies are held), so Play Mode tuning shows
+        /// at the next knock-out.
+        /// </summary>
+        private void SetNeutralDrives()
+        {
+            for (int i = 0; i < _joints.Length; i++) {
+                ConfigurableJoint joint = _joints[i];
+
+                if (joint == null) {
+                    continue;
+                }
+
+                float mass = bodies[i].mass;
+                joint.slerpDrive = new JointDrive { positionSpring = neutralStiffness * mass, positionDamper = neutralDamping * mass, maximumForce = float.MaxValue };
             }
         }
 

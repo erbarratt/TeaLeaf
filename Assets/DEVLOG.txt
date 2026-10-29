@@ -41,6 +41,23 @@ Newest updates are at the top.
 - ProxyLightmapParameters.asset moved into the git-ignored Proxies
   folder (the proxy build only deletes a sector's own files, and remakes
   it when missing).
+- DisplaySettings previews in Edit Mode ([ExecuteAlways]): the profile
+  is made in OnEnable (a script reload never calls Awake again), marked
+  DontSave and given as the Volume's runtime profile, so the Scene view
+  shows both settings and nothing is saved into the scene or prefab;
+  the camera's post-processing switch is only touched in Play Mode.
+- Guard ragdoll joints are ConfigurableJoints with soft limits (spring
+  200 N m/rad and damper 10 per kg of the limb): a limb eases into its
+  limit instead of slamming and jittering. Each joint holds a neutral
+  pose (thighs 35 degrees forward, knees 45 bent, upper arms 30 forward
+  and 20 out, elbows 60 bent, chest 10 and head 15 forward), driven
+  weakly while limp (neutralStiffness 20, neutralDamping 1 per kg), so a
+  knocked-out guard lies curled like a person, not a puppet with
+  straight limbs. Zero-gravity drop test: every joint reaches its
+  target, so the signs are right.
+- Lesson: PhysX's soft limit stops getting stiffer above about 200
+  N m/rad per kg; a knee folded under the body's weight rests ~10
+  degrees past its limit.
 
 
 2026-10-28 (every street corner hipped with peaked pieces; hip ends

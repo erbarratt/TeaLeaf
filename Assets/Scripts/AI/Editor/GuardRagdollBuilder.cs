@@ -7,7 +7,7 @@ namespace AI
     /// <summary>
     /// TeaLeaf > Modify Prefab > Build Guard Ragdoll: puts the ragdoll on
     /// the guard prefab's bones - a Rigidbody, a collider and (but for
-    /// the hips) a CharacterJoint on each of eleven bones, all on the
+    /// the hips) a ConfigurableJoint on each of eleven bones, all on the
     /// Ragdoll layer - and a GuardRagdoll on the root that knows them.
     /// Run again after the model changes: it clears what it made before.
     ///
@@ -21,6 +21,16 @@ namespace AI
     ///
     /// Joint limits are first guesses at a person's range, measured from
     /// the prefab's standing pose: a knee or elbow bends one way only.
+    /// The limits are soft: a limb running into one is slowed by a
+    /// spring and damper over a few degrees instead of stopping dead,
+    /// so it settles there rather than slamming and jittering.
+    ///
+    /// Each joint also holds a neutral pose, the slight curl a body
+    /// hangs in when nothing holds it up (as astronauts float asleep):
+    /// knees and elbows a little bent, thighs and arms a little forward,
+    /// head and chest a little down. GuardRagdoll pulls weakly towards
+    /// it while limp, so a body lies like a person knocked out, not a
+    /// dropped puppet with straight limbs.
     /// </summary>
     public static class GuardRagdollBuilder
     {
@@ -37,6 +47,13 @@ namespace AI
         // hand, as long as this share of the forearm.
         private const float HandShare = 0.7f;
 
+        // Soft limits: the spring pushing a limb back from past its
+        // limit and the damper slowing it there, per kg of the limb's
+        // body (N m per radian, N m s per radian), so a light forearm and
+        // a heavy chest stop over the same few degrees.
+        private const float LimitSpringPerKg = 200f;
+        private const float LimitDamperPerKg = 10f;
+
         private enum Shape { Box, Capsule, Sphere }
 
         // A part with no next bone (the hips, chest and head).
@@ -45,9 +62,11 @@ namespace AI
         /// <summary>
         /// One ragdoll bone: its Humanoid bone, parent body (by index; -1 for
         /// the hips), shape, mass in kg, the next bone along it (for a
-        /// limb's length), and the joint's limits in degrees: bending
-        /// about the body's right (low, high), sideways (swing) and
-        /// twisting along the bone (twist).
+        /// limb's length), the joint's limits in degrees: bending about
+        /// the body's right (low, high), sideways (swing) and twisting
+        /// along the bone (twist); and its neutral pose, in degrees from
+        /// the standing pose: bend (as the limits) and sideways (positive
+        /// tips the far end to the body's left).
         /// </summary>
         private readonly struct Part
         {
@@ -60,8 +79,10 @@ namespace AI
             public readonly float BendHigh;
             public readonly float Swing;
             public readonly float Twist;
+            public readonly float NeutralBend;
+            public readonly float NeutralSwing;
 
-            public Part(HumanBodyBones bone, int parent, Shape shape, float mass, HumanBodyBones next, float bendLow, float bendHigh, float swing, float twist)
+            public Part(HumanBodyBones bone, int parent, Shape shape, float mass, HumanBodyBones next, float bendLow, float bendHigh, float swing, float twist, float neutralBend, float neutralSwing)
             {
                 Bone = bone;
                 Parent = parent;
@@ -72,25 +93,30 @@ namespace AI
                 BendHigh = bendHigh;
                 Swing = swing;
                 Twist = twist;
+                NeutralBend = neutralBend;
+                NeutralSwing = neutralSwing;
             }
         }
 
         // Bend is about the body's right: positive tips the far end
         // backwards (a knee bending, a leg kicked back, the head tipped
-        // back). Hips first; parents before children.
+        // back). Hips first; parents before children. The neutral pose
+        // is a milder take on the body's resting curl: thighs 35 degrees
+        // forward, knees 45 bent, upper arms 30 forward and 20 out,
+        // elbows 60 bent, chest 10 and head 15 forward.
         private static readonly Part[] _parts =
         {
-            new(HumanBodyBones.Hips, -1, Shape.Box, 12f, None, 0f, 0f, 0f, 0f),
-            new(HumanBodyBones.Chest, 0, Shape.Box, 18f, None, -30f, 20f, 15f, 20f),
-            new(HumanBodyBones.Head, 1, Shape.Sphere, 5f, None, -40f, 40f, 30f, 40f),
-            new(HumanBodyBones.LeftUpperLeg, 0, Shape.Capsule, 8f, HumanBodyBones.LeftLowerLeg, -100f, 20f, 30f, 20f),
-            new(HumanBodyBones.LeftLowerLeg, 3, Shape.Capsule, 5f, HumanBodyBones.LeftFoot, 0f, 130f, 0f, 5f),
-            new(HumanBodyBones.RightUpperLeg, 0, Shape.Capsule, 8f, HumanBodyBones.RightLowerLeg, -100f, 20f, 30f, 20f),
-            new(HumanBodyBones.RightLowerLeg, 5, Shape.Capsule, 5f, HumanBodyBones.RightFoot, 0f, 130f, 0f, 5f),
-            new(HumanBodyBones.LeftUpperArm, 1, Shape.Capsule, 3f, HumanBodyBones.LeftLowerArm, -120f, 40f, 70f, 30f),
-            new(HumanBodyBones.LeftLowerArm, 7, Shape.Capsule, 2f, HumanBodyBones.LeftHand, -130f, 0f, 0f, 20f),
-            new(HumanBodyBones.RightUpperArm, 1, Shape.Capsule, 3f, HumanBodyBones.RightLowerArm, -120f, 40f, 70f, 30f),
-            new(HumanBodyBones.RightLowerArm, 9, Shape.Capsule, 2f, HumanBodyBones.RightHand, -130f, 0f, 0f, 20f),
+            new(HumanBodyBones.Hips, -1, Shape.Box, 12f, None, 0f, 0f, 0f, 0f, 0f, 0f),
+            new(HumanBodyBones.Chest, 0, Shape.Box, 18f, None, -30f, 20f, 15f, 20f, -10f, 0f),
+            new(HumanBodyBones.Head, 1, Shape.Sphere, 5f, None, -40f, 40f, 30f, 40f, -15f, 0f),
+            new(HumanBodyBones.LeftUpperLeg, 0, Shape.Capsule, 8f, HumanBodyBones.LeftLowerLeg, -100f, 20f, 30f, 20f, -35f, 0f),
+            new(HumanBodyBones.LeftLowerLeg, 3, Shape.Capsule, 5f, HumanBodyBones.LeftFoot, 0f, 130f, 0f, 5f, 45f, 0f),
+            new(HumanBodyBones.RightUpperLeg, 0, Shape.Capsule, 8f, HumanBodyBones.RightLowerLeg, -100f, 20f, 30f, 20f, -35f, 0f),
+            new(HumanBodyBones.RightLowerLeg, 5, Shape.Capsule, 5f, HumanBodyBones.RightFoot, 0f, 130f, 0f, 5f, 45f, 0f),
+            new(HumanBodyBones.LeftUpperArm, 1, Shape.Capsule, 3f, HumanBodyBones.LeftLowerArm, -120f, 40f, 70f, 30f, -30f, 20f),
+            new(HumanBodyBones.LeftLowerArm, 7, Shape.Capsule, 2f, HumanBodyBones.LeftHand, -130f, 0f, 0f, 20f, -60f, 0f),
+            new(HumanBodyBones.RightUpperArm, 1, Shape.Capsule, 3f, HumanBodyBones.RightLowerArm, -120f, 40f, 70f, 30f, -30f, -20f),
+            new(HumanBodyBones.RightLowerArm, 9, Shape.Capsule, 2f, HumanBodyBones.RightHand, -130f, 0f, 0f, 20f, -60f, 0f),
         };
 
         [MenuItem("TeaLeaf/Modify Prefab/Build Guard Ragdoll")]
@@ -142,7 +168,7 @@ namespace AI
             // Whatever an earlier build left goes first: joints before the
             // bodies they hang on.
             foreach (Transform bone in bones) {
-                foreach (CharacterJoint joint in bone.GetComponents<CharacterJoint>()) {
+                foreach (Joint joint in bone.GetComponents<Joint>()) {
                     Object.DestroyImmediate(joint);
                 }
             }
@@ -388,23 +414,43 @@ namespace AI
         /// rotations, so about the left, positive tips the far end
         /// backwards, as the Part limits are written), its swing axis the
         /// body's forward (bending sideways); twist along the bone is the
-        /// third.
+        /// third. Held in place, turning only within its soft limits; its
+        /// target is the neutral pose, but its drive has no strength until
+        /// GuardRagdoll gives it one on going limp.
         /// </summary>
         private static void AddJoint(Transform bone, Rigidbody parent, Part part, Vector3 right, Vector3 forward)
         {
-            CharacterJoint joint = bone.gameObject.AddComponent<CharacterJoint>();
+            ConfigurableJoint joint = bone.gameObject.AddComponent<ConfigurableJoint>();
             joint.connectedBody = parent;
             joint.autoConfigureConnectedAnchor = true;
             joint.anchor = Vector3.zero;
             joint.axis = bone.InverseTransformDirection(-right);
-            joint.swingAxis = bone.InverseTransformDirection(forward);
+            joint.secondaryAxis = bone.InverseTransformDirection(forward);
             joint.enablePreprocessing = false;
-            joint.enableProjection = true;
+            joint.projectionMode = JointProjectionMode.PositionAndRotation;
 
-            joint.lowTwistLimit = new SoftJointLimit { limit = part.BendLow };
-            joint.highTwistLimit = new SoftJointLimit { limit = part.BendHigh };
-            joint.swing1Limit = new SoftJointLimit { limit = part.Swing };
-            joint.swing2Limit = new SoftJointLimit { limit = part.Twist };
+            joint.xMotion = ConfigurableJointMotion.Locked;
+            joint.yMotion = ConfigurableJointMotion.Locked;
+            joint.zMotion = ConfigurableJointMotion.Locked;
+            joint.angularXMotion = ConfigurableJointMotion.Limited;
+            joint.angularYMotion = ConfigurableJointMotion.Limited;
+            joint.angularZMotion = ConfigurableJointMotion.Limited;
+
+            joint.lowAngularXLimit = new SoftJointLimit { limit = part.BendLow };
+            joint.highAngularXLimit = new SoftJointLimit { limit = part.BendHigh };
+            joint.angularYLimit = new SoftJointLimit { limit = part.Swing };
+            joint.angularZLimit = new SoftJointLimit { limit = part.Twist };
+
+            SoftJointLimitSpring limitSpring = new() { spring = LimitSpringPerKg * part.Mass, damper = LimitDamperPerKg * part.Mass };
+            joint.angularXLimitSpring = limitSpring;
+            joint.angularYZLimitSpring = limitSpring;
+
+            // The neutral pose in the joint's own space (X = the bend
+            // axis, Y = sideways), measured from the standing pose the
+            // joint is made in.
+            joint.rotationDriveMode = RotationDriveMode.Slerp;
+            joint.targetRotation = Quaternion.Euler(part.NeutralBend, part.NeutralSwing, 0f);
+            joint.slerpDrive = new JointDrive { positionSpring = 0f, positionDamper = 0f, maximumForce = float.MaxValue };
         }
 
         private static void SetArray<T>(SerializedProperty property, T[] values) where T : Object
