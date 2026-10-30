@@ -595,9 +595,10 @@ namespace Player
         /// Swings a freed door with the hand. Each frame the hand's
         /// bearing round the hinge is compared with last frame's, and the
         /// difference is added to the angle asked of the door - so the
-        /// door turns exactly as far as the hand went round, however far
-        /// from the hinge the hand is. Moving straight towards or away
-        /// from the hinge changes nothing.
+        /// door is asked to turn exactly as far as the hand went round,
+        /// however far from the hinge the hand is, and chases that angle
+        /// like a heavy door (Door.DriveTo()). Moving straight towards or
+        /// away from the hinge changes nothing.
         ///
         /// The angle asked for is kept even when the door can't follow
         /// (at its limit, or against the player): the hand then has to
@@ -628,7 +629,7 @@ namespace Player
                 door.MaxAngle + SwingOverrun);
             hand.lastBearing = bearing;
 
-            door.SetAngle(hand.swingAngle);
+            door.DriveTo(hand.swingAngle);
         }
 
         /// <summary>

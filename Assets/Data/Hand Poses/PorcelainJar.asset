@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 818e631233dd2a64eb27938ec822a0d9, type: 3}
+  m_Name: PorcelainJar
+  m_EditorClassIdentifier: Assembly-CSharp::Interaction.HandSnapProfile
+  leftPositionOffset: {x: -0.2144, y: 0.0214, z: -0.0603}
+  leftRotationOffset: {x: -75.74, y: 68.29, z: 6.09}
+  rightPositionOffset: {x: -0.2155, y: 0.0214, z: 0.0605}
+  rightRotationOffset: {x: -75.74, y: 111.71, z: -6.09}
+  fingerRotations:
+  - {x: -0.1883827, y: -0.76220226, z: -0.32887602, w: 0.5247859}
+  - {x: 0.30019742, y: -0.0012025811, z: 0.0007234933, w: 0.9538761}
+  - {x: 0.10007526, y: 0, z: 0, w: 0.99497986}
+  - {x: 0.5076436, y: 0, z: 0, w: 0.8615672}
+  - {x: 0.5089863, y: -0.031073455, z: -0.04894313, w: 0.8588201}
+  - {x: 0.5395057, y: 0, z: 0, w: 0.841982}
+  - {x: 0.4916638, y: 0, z: 0, w: 0.8707851}
+  - {x: 0.5699968, y: 0, z: 0, w: 0.8216469}
+  - {x: 0.51951903, y: 0, z: 0, w: 0.8544589}
+  - {x: 0.6877213, y: 0, z: 0, w: 0.72597486}
+  - {x: 0.39278427, y: 0.10977176, z: -0.0274342, w: 0.91264343}
+  - {x: 0.7944146, y: 0, z: 0, w: 0.6073759}
+  - {x: 0.44070584, y: -0.0038459909, z: 0.007833337, w: 0.8976092}
+  - {x: 0.07811224, y: -0.1803575, z: 0.10187353, w: 0.9751879}
+  - {x: 0.09002237, y: -0.0023573164, z: 0.026070567, w: 0.9955957}
+  - {x: 0.40755096, y: 0.014232028, z: -0.03186582, w: 0.91251534}

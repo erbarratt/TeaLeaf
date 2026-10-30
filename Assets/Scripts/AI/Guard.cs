@@ -200,14 +200,19 @@ namespace AI
         // Seconds it looks about at each place, how many places round
         // the first it tries and how far from it, and the longest a
         // search lasts.
-        [Tooltip("Seconds it stands looking about at each place it searches before moving on. e.g. 2.5 = two or three looks each way. Higher = slower, more thorough search.")]
-        [SerializeField] private float searchLookTime = 2.5f;
+        [Tooltip("Seconds it stands looking about at each place it searches before moving on (GuardAnimation plays the wide look-around clip meanwhile, which swings the head and the view with it). e.g. 4 = one sweep of Guard_WideLookAround. Higher = slower, more thorough search.")]
+        [SerializeField] private float searchLookTime = 4f;
         [Tooltip("How many random places round the first it searches before giving up and going back to its patrol. e.g. 3 = the first place, then three more. Higher = longer search; 0 = only the first place.")]
         [SerializeField] private int searchPointCount = 3;
         [Tooltip("How far from the first place the random search places can be, in metres. e.g. 4 = it pokes round the nearby room or alley. Higher = wanders wider; lower = stays close to where the noise was.")]
         [SerializeField] private float searchRadius = 4f;
         [Tooltip("The longest a search lasts, in seconds, before it gives up whatever places are left (times Alerted Search Scale once a body has been found). e.g. 30 = half a minute at most. Higher = searches can run on longer.")]
         [SerializeField] private float searchTimeout = 30f;
+
+        // Giving up a search, it stands shrugging (GuardAnimation plays
+        // the shrug) this long before going back to its patrol.
+        [Tooltip("Seconds a guard stands shrugging on giving up a search (GuardAnimation plays Guard_Shrugging) before it goes back to its patrol. Its senses stay on: seeing or hearing the player meanwhile carries on as in a search. e.g. 2 = the whole shrug. Lower = cuts it short; 0 = no pause.")]
+        [SerializeField] private float shrugTime = 2f;
 
         // How much longer every guard searches once a body has been
         // found.
@@ -222,6 +227,12 @@ namespace AI
         [SerializeField] private float chaseLostTime = 4f;
         [Tooltip("How close, in metres, level and on the same floor, a seen player is caught (the level then fails and restarts). e.g. 1.1 = about arm's length. Higher = caught from further off.")]
         [SerializeField] private float catchRange = 1.1f;
+
+        // Within catch range the guard dives at the player; the level
+        // ends (LevelManager.Caught) this long into the dive, when its
+        // hands reach them. Nothing stops a dive once started.
+        [Tooltip("Seconds from the guard starting its dive at the player (on reaching Catch Range) to the player being caught and the level ending. e.g. 0.7 = when Guard_Dive's hands have reached about 1.2m. Higher = more of the dive seen before the fade; the catch is certain from the start of the dive either way.")]
+        [SerializeField] private float diveCatchDelay = 0.7f;
 
         [Header("Knocking Out")]
 
@@ -239,6 +250,12 @@ namespace AI
         // Seconds a guard spends over a knocked-out guard to wake it.
         [Tooltip("Seconds this guard spends over a knocked-out guard, facing it, before waking it. e.g. 3 = three seconds to blackjack the waker too. Higher = slower to wake bodies.")]
         [SerializeField] private float wakeTime = 3f;
+
+        // A sleep dart taking effect: the guard stands choking and sinks
+        // down (GuardAnimation plays the being-strangled clip) for this
+        // long, then goes limp.
+        [Tooltip("Seconds a guard spends collapsing once a sleep dart takes effect (GuardAnimation plays Guard_BeingStrangled) before it goes limp as a ragdoll. e.g. 10.9 = the whole clip, ending on the ground. Lower = goes limp sooner, part way down.")]
+        [SerializeField] private float collapseTime = 10.9f;
 
         [Header("Sounds")]
 
@@ -288,14 +305,6 @@ namespace AI
 
         // Slower than this, in metres a second, counts as standing.
         public const float StandingSpeed = 0.1f;
-
-        // Looking about during a search: seconds it holds each way it
-        // looks, how far round each new look is, in degrees, and how
-        // close to it counts as there.
-        private const float LookAboutHold = 0.8f;
-        private const float LookAboutMinAngle = 60f;
-        private const float LookAboutMaxAngle = 120f;
-        private const float LookAboutSettledAngle = 0.5f;
 
         // How far a search point may be moved to land on the NavMesh.
         private const float SampleDistance = 2f;
@@ -409,21 +418,32 @@ namespace AI
         private float _searchTimer;
         private bool _isLookingAbout;
 
-        // Looking about: the way it is turning to or holding, seconds
-        // left holding it, and which side it turned last (+1 / -1).
-        private Quaternion _lookAboutRotation;
-        private float _lookAboutHoldTimer;
-        private float _lookAboutSide;
+        // Search given up: standing shrugging, seconds until it goes back
+        // to its patrol.
+        private bool _isGivingUp;
+        private float _giveUpTimer;
+
+        // Patrol: standing where it should be (at a route point or its
+        // post), not walking.
+        private bool _isIdle;
 
         // Chase: seconds since the player was last seen.
         private float _lostTimer;
 
+        // Diving at the player: seconds until its hands reach them.
+        private bool _isDiving;
+        private float _diveTimer;
+
         // Stunned: seconds until it comes round.
         private float _stunTimer;
 
-        // A sleep dart: seconds until it knocks the guard out. 0 = none
-        // in it.
+        // A sleep dart: seconds until it takes effect. 0 = none in it.
         private float _sleepTimer;
+
+        // The dart has taken effect: collapsing, seconds until it goes
+        // limp.
+        private bool _isCollapsing;
+        private float _collapseTimer;
 
         // Footsteps: the last surface found.
         private SurfaceType _lastSurface;
@@ -460,10 +480,31 @@ namespace AI
 
         public bool IsKnockedOut => State == GuardState.KnockedOut;
 
-        // Standing and looking about: turned towards what it noticed
-        // (Suspicious), or at a place in a search. Read by
-        // GuardAnimation for the look-around clip.
-        public bool IsLookingAbout => State == GuardState.Suspicious || (State == GuardState.Search && _isLookingAbout);
+        // Standing looking about at a place in a search. Read by
+        // GuardAnimation for the wide look-around clip.
+        public bool IsLookingAbout => State == GuardState.Search && _isLookingAbout;
+
+        // Has given up a search and stands shrugging before going back
+        // to its patrol. Read by GuardAnimation for the shrug clip.
+        public bool IsShrugging => State == GuardState.Search && _isGivingUp;
+
+        // Standing at its post or a route point on patrol, not turning
+        // to walk off. Read by GuardAnimation for the idle fidgets.
+        public bool IsIdle => State == GuardState.Patrol && _isIdle && !_isTurningToWalk;
+
+        // Diving at the player within catch range: the level ends when
+        // its hands reach them. Read by GuardAnimation for the dive clip.
+        public bool IsDiving => _isDiving;
+
+        // A sleep dart has taken effect and it is sinking down before it
+        // goes limp. Read by GuardAnimation for the being-strangled clip.
+        public bool IsCollapsing => _isCollapsing;
+
+        // How many times it has been stunned, and whether the last stun
+        // bolt came from behind it. GuardAnimation plays a hit clip,
+        // front or back, each time the count changes.
+        public int StunCount { get; private set; }
+        public bool IsStunFromBehind { get; private set; }
 
         /// Where its ears are (INoiseListener).
         public Vector3 EarPosition => eye.position;
@@ -530,7 +571,7 @@ namespace AI
             }
 
             if (knockedOut && !IsKnockedOut) {
-                KnockOut();
+                KnockOut(true);
             } else if (!knockedOut && IsKnockedOut) {
                 WakeUp();
             }
@@ -665,13 +706,31 @@ namespace AI
                 GetUp();
             }
 
+            // Diving at the player: nothing else until its hands reach
+            // them and the level ends.
+            if (_isDiving) {
+                TickDive(deltaTime);
+                return;
+            }
+
+            // Collapsing from a sleep dart: nothing else until it is down.
+            if (_isCollapsing) {
+                _collapseTimer -= deltaTime;
+
+                if (_collapseTimer <= 0f) {
+                    KnockOut(false);
+                }
+
+                return;
+            }
+
             // A sleep dart works whatever the guard is doing, stunned
             // included.
             if (_sleepTimer > 0f) {
                 _sleepTimer -= deltaTime;
 
                 if (_sleepTimer <= 0f) {
-                    KnockOut();
+                    BeginCollapse();
                     return;
                 }
             }
@@ -1019,11 +1078,11 @@ namespace AI
         /// A noise has reached this guard (NoiseSystem): it adds to both
         /// meters by how loud it was here, and is somewhere to look.
         /// Another guard's noises are ignored, and so is everything
-        /// during a chase or while stunned.
+        /// during a chase, a dive, or while stunned or collapsing.
         /// </summary>
         public void OnNoiseHeard(in Noise noise, float loudness, Vector3 heardFrom)
         {
-            if (!detectsPlayer || State == GuardState.Chase || State == GuardState.Stunned || State == GuardState.KnockedOut) {
+            if (!detectsPlayer || _isDiving || _isCollapsing || State == GuardState.Chase || State == GuardState.Stunned || State == GuardState.KnockedOut) {
                 return;
             }
 
@@ -1081,7 +1140,9 @@ namespace AI
 
         private void TickPatrol(float deltaTime)
         {
-            if (!HasArrived()) {
+            _isIdle = HasArrived();
+
+            if (!_isIdle) {
                 return;
             }
 
@@ -1190,11 +1251,23 @@ namespace AI
             _searchOrigin = place;
             _searchPointsDone = 0;
             _isLookingAbout = false;
+            _isGivingUp = false;
             GoTo(place);
         }
 
         private void TickSearch(float deltaTime)
         {
+            // Given up: shrugs, then back to its patrol.
+            if (_isGivingUp) {
+                _giveUpTimer -= deltaTime;
+
+                if (_giveUpTimer <= 0f) {
+                    EnterPatrol();
+                }
+
+                return;
+            }
+
             _searchTimer -= deltaTime;
 
             if (_searchTimer <= 0f) {
@@ -1211,21 +1284,17 @@ namespace AI
                 return;
             }
 
-            // At a place: looks about for a while - stands looking one
-            // way, then turns to look another, alternating sides.
+            // At a place: stands looking about for a while. The looking
+            // is the wide look-around clip's (GuardAnimation): the head,
+            // and the eye and view on it, swing far round both ways.
             if (!_isLookingAbout) {
                 _isLookingAbout = true;
                 _searchLookTimer = searchLookTime;
-                _lookAboutHoldTimer = LookAboutHold;
-                _lookAboutRotation = transform.rotation;
-                _lookAboutSide = Random.value < 0.5f ? -1f : 1f;
             }
 
             _searchLookTimer -= deltaTime;
-            bool isTurning = TickLookAbout(deltaTime);
 
-            // Time up: moves on, but never in the middle of a turn.
-            if (_searchLookTimer > 0f || isTurning) {
+            if (_searchLookTimer > 0f) {
                 return;
             }
 
@@ -1247,33 +1316,6 @@ namespace AI
             if (NavMesh.SamplePosition(candidate, out NavMeshHit hit, SampleDistance, NavMesh.AllAreas)) {
                 GoTo(hit.position);
             }
-        }
-
-        /// <summary>
-        /// One step of looking about at a search place: turns to the
-        /// heading it is looking for with the same eased turn as every
-        /// other turn on the spot (TurnTowards), holds it LookAboutHold
-        /// seconds, then picks the next heading LookAboutMinAngle to
-        /// LookAboutMaxAngle round, the other way from the last. Returns
-        /// whether it is still turning.
-        /// </summary>
-        private bool TickLookAbout(float deltaTime)
-        {
-            if (Quaternion.Angle(transform.rotation, _lookAboutRotation) > LookAboutSettledAngle) {
-                TurnTowards(_lookAboutRotation, deltaTime);
-                return true;
-            }
-
-            _lookAboutHoldTimer -= deltaTime;
-
-            if (_lookAboutHoldTimer <= 0f) {
-                _lookAboutSide = -_lookAboutSide;
-                float angle = _lookAboutSide * Random.Range(LookAboutMinAngle, LookAboutMaxAngle);
-                _lookAboutRotation = transform.rotation * Quaternion.Euler(0f, angle, 0f);
-                _lookAboutHoldTimer = LookAboutHold;
-            }
-
-            return false;
         }
 
         /// <summary>
@@ -1321,11 +1363,21 @@ namespace AI
             }
         }
 
+        /// <summary>
+        /// The search is over (places done, or timed out): it decides it
+        /// was nothing - meters emptied, says so - and stops where it is
+        /// to shrug for shrugTime (TickSearch), still in Search with its
+        /// senses on, so anything seen or heard meanwhile is dealt with
+        /// as in a search (a noise or bolt starts the search again).
+        /// </summary>
         private void GiveUp()
         {
             ClearMeters();
             Bark(gaveUpBark);
-            EnterPatrol();
+            Stop();
+            _isLookingAbout = false;
+            _isGivingUp = true;
+            _giveUpTimer = shrugTime;
         }
 
         // ---- Chase -------------------------------------------------------
@@ -1352,20 +1404,14 @@ namespace AI
             if (_isPlayerSeen) {
                 _lostTimer = 0f;
 
-                // Caught: close enough, on the same floor. Ending the
-                // level is the level manager's business.
+                // Close enough, on the same floor: it dives at them, and
+                // the dive catches them.
                 Vector3 toPlayer = player.FeetPosition - transform.position;
                 float height = Mathf.Abs(toPlayer.y);
                 toPlayer.y = 0f;
 
                 if (toPlayer.sqrMagnitude <= catchRange * catchRange && height <= CatchHeight) {
-                    Stop();
-
-                    LevelManager levelManager = LevelManager.Instance;
-
-                    if (levelManager != null) {
-                        levelManager.Caught();
-                    }
+                    StartDive(toPlayer);
                 }
 
                 return;
@@ -1380,6 +1426,53 @@ namespace AI
                 RaiseToInvestigate();
                 EnterSearch(true);
             }
+        }
+
+        /// <summary>
+        /// Within catch range: stops dead, squares up to the player (the
+        /// level way to them) and dives (GuardAnimation plays the clip,
+        /// whose leap carries the body forward over the still root).
+        /// From here the catch is certain: TickDive ends the level when
+        /// the hands reach them, whatever the player does meanwhile.
+        /// </summary>
+        private void StartDive(Vector3 toPlayer)
+        {
+            Stop();
+
+            if (_agent.isOnNavMesh) {
+                _agent.velocity = Vector3.zero;
+            }
+
+            if (toPlayer.sqrMagnitude > 0.0001f) {
+                transform.rotation = Quaternion.LookRotation(toPlayer);
+            }
+
+            _isDiving = true;
+            _diveTimer = diveCatchDelay;
+        }
+
+        /// <summary>
+        /// The dive under way: once its hands have reached the player,
+        /// caught - ending the level is the level manager's business.
+        /// With no level manager (a test scene) nothing ends: the dive
+        /// is over and it chases on.
+        /// </summary>
+        private void TickDive(float deltaTime)
+        {
+            _diveTimer -= deltaTime;
+
+            if (_diveTimer > 0f) {
+                return;
+            }
+
+            LevelManager levelManager = LevelManager.Instance;
+
+            if (levelManager != null) {
+                levelManager.Caught();
+                return;
+            }
+
+            _isDiving = false;
         }
 
         // ---- Bolts -------------------------------------------------------
@@ -1398,12 +1491,12 @@ namespace AI
         /// a rope bolt, a stun bolt to the body): it knows it was shot
         /// at and roughly where from. On patrol it stops and turns that
         /// way, then goes to search there; already searching, the search
-        /// moves there. Nothing new to a guard that is chasing, stunned
-        /// or down.
+        /// moves there. Nothing new to a guard that is chasing, diving,
+        /// stunned, collapsing or down.
         /// </summary>
         public void HitByBolt(Vector3 shotFrom)
         {
-            if (!detectsPlayer || State == GuardState.Chase || State == GuardState.Stunned || State == GuardState.KnockedOut) {
+            if (!detectsPlayer || _isDiving || _isCollapsing || State == GuardState.Chase || State == GuardState.Stunned || State == GuardState.KnockedOut) {
                 return;
             }
 
@@ -1428,16 +1521,24 @@ namespace AI
         }
 
         /// <summary>
-        /// A stun bolt to the head: the guard stops whatever it was
-        /// doing - a chase included - and stands senseless for this many
-        /// seconds, then searches. Stunned again meanwhile, the wait
-        /// starts again.
+        /// A stun bolt to the head, shot from shotFrom: the guard stops
+        /// whatever it was doing - a chase included - and stands
+        /// senseless for this many seconds, then searches. Stunned again
+        /// meanwhile, the wait starts again (and the hit clip plays
+        /// again). Whether the bolt came from in front or behind picks
+        /// the hit clip. Nothing to a guard diving (the catch is
+        /// certain), collapsing or down.
         /// </summary>
-        public void Stun(float seconds)
+        public void Stun(float seconds, Vector3 shotFrom)
         {
-            if (State == GuardState.KnockedOut) {
+            if (_isDiving || _isCollapsing || State == GuardState.KnockedOut) {
                 return;
             }
+
+            Vector3 toShooter = shotFrom - transform.position;
+            toShooter.y = 0f;
+            IsStunFromBehind = Vector3.Dot(transform.forward, toShooter) < 0f;
+            StunCount++;
 
             SetState(GuardState.Stunned);
             Stop();
@@ -1474,28 +1575,60 @@ namespace AI
 
         /// <summary>
         /// A sleep dart, anywhere on the body: the guard carries on as
-        /// it was, and is knocked out after this many seconds. A second
-        /// dart doesn't start the wait again.
+        /// it was, and after this many seconds it collapses
+        /// (BeginCollapse). A second dart doesn't start the wait again.
         /// </summary>
         public void Sedate(float seconds)
         {
-            if (State != GuardState.KnockedOut && _sleepTimer <= 0f) {
+            if (State != GuardState.KnockedOut && !_isCollapsing && _sleepTimer <= 0f) {
                 _sleepTimer = Mathf.Max(seconds, 0.01f);
             }
+        }
+
+        /// <summary>
+        /// The sleep dart takes effect: the guard stops where it is,
+        /// senses gone (meters emptied, any body it was going to wake let
+        /// go), and sinks down choking - GuardAnimation plays the
+        /// being-strangled clip - for collapseTime, then goes limp where
+        /// the clip has laid it (Update).
+        /// </summary>
+        private void BeginCollapse()
+        {
+            _sleepTimer = 0f;
+            _isCollapsing = true;
+            _collapseTimer = collapseTime;
+
+            Stop();
+
+            if (_agent.isOnNavMesh) {
+                _agent.velocity = Vector3.zero;
+            }
+
+            DropWakeTarget();
+            ClearMeters();
+            _isPlayerSeen = false;
         }
 
         // ---- Knocking out ------------------------------------------------
 
         /// <summary>
         /// A blow to the head from attackerPosition. It knocks the guard
-        /// out if the guard is stunned, or if it isn't already chasing
-        /// and the attacker is behind it; otherwise the guard turns on
-        /// them. Returns whether it went down.
+        /// out if the guard is stunned or collapsing, or if it isn't
+        /// already chasing and the attacker is behind it; otherwise the
+        /// guard turns on them. A diving guard can't be stopped. Returns
+        /// whether it went down.
         /// </summary>
         public bool TryKnockOut(Vector3 attackerPosition)
         {
-            if (State == GuardState.KnockedOut) {
+            if (_isDiving || State == GuardState.KnockedOut) {
                 return false;
+            }
+
+            // Sinking down from a sleep dart, it can't turn on anyone:
+            // it goes down from any side, already low, without a topple.
+            if (_isCollapsing) {
+                KnockOut(false);
+                return true;
             }
 
             // The way from the attacker to the guard, level. If that is
@@ -1508,7 +1641,7 @@ namespace AI
             // A stunned guard can't turn on anyone: it goes down from any
             // side.
             if (State == GuardState.Stunned || (State != GuardState.Chase && isBehind)) {
-                KnockOut();
+                KnockOut(true);
                 return true;
             }
 
@@ -1525,16 +1658,20 @@ namespace AI
         /// the ragdoll falls carrying on at the speed it was moving (or
         /// a greybox visual is laid flat), and the component switches
         /// off - no more looking, hearing or Update() until another
-        /// guard wakes it.
+        /// guard wakes it. topple: the upper body is pushed over forwards
+        /// (a guard knocked out standing); false for one already sinking
+        /// down (a sleep dart's collapse).
         /// </summary>
-        private void KnockOut()
+        private void KnockOut(bool topple)
         {
             SetState(GuardState.KnockedOut);
             ClearMeters();
             _sleepTimer = 0f;
+            _isCollapsing = false;
+            _isDiving = false;
 
             if (_ragdoll != null) {
-                _ragdoll.GoLimp(_agent.enabled ? _agent.velocity : Vector3.zero);
+                _ragdoll.GoLimp(_agent.enabled ? _agent.velocity : Vector3.zero, topple);
             }
 
             _agent.enabled = false;
@@ -1773,6 +1910,8 @@ namespace AI
         {
             DropWakeTarget();
             State = state;
+            _isIdle = false;
+            _isGivingUp = false;
 
             if (stateRenderer == null) {
                 return;

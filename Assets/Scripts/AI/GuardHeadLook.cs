@@ -11,8 +11,9 @@ namespace AI
     /// A list of rules, each naming a state, whether it applies standing,
     /// moving or both, and what the head does then: plays the clip as it
     /// is (Animated), faces straight ahead of the body with no turn to
-    /// the side but the clip's nod kept (Forward), or turns towards
-    /// something (Look At). The first rule that matches wins; a state
+    /// the side but the clip's nod kept (Forward), turns towards
+    /// something (Look At), or looks level ahead and now and then glances
+    /// to one side (Glance). The first rule that matches wins; a state
     /// with no rule plays the clip as it is.
     ///
     /// Play Mode edits to the asset are kept, so it can be tuned while
@@ -25,7 +26,7 @@ namespace AI
         public enum Movement { Any, Standing, Moving }
 
         /// What the head does.
-        public enum Mode { Animated, Forward, LookAt }
+        public enum Mode { Animated, Forward, LookAt, Glance }
 
         /// What a Look At rule turns the head towards.
         public enum Target { Stimulus, Player }
@@ -40,7 +41,7 @@ namespace AI
             public GuardState state;
             [Tooltip("When in that state it applies: Standing = the guard is still (slower than Guard.StandingSpeed, turning on the spot included), Moving = walking or running, Any = both.")]
             public Movement movement;
-            [Tooltip("What the head does: Animated = the clip as it is; Forward = straight ahead of the body, no turn to the side, the clip's nod kept; Look At = turned towards Target, within Max Yaw / Max Pitch.")]
+            [Tooltip("What the head does: Animated = the clip as it is; Forward = straight ahead of the body, no turn to the side, the clip's nod kept; Look At = turned towards Target, within Max Yaw / Max Pitch; Glance = level and straight ahead (whatever the body's bend), now and then glancing to one side (the Glance settings).")]
             public Mode mode;
             [Tooltip("For Look At only: Stimulus = where the player was last seen or a noise last heard from (raised by Look Height); Player = the player's head (with no player, the clip plays as it is).")]
             public Target target;
@@ -79,7 +80,27 @@ namespace AI
         [Tooltip("Metres above the stimulus (a spot on the ground) the head looks at, e.g. 1.5 = about where a standing person's head would be. Lower = looks further down at the spot itself.")]
         [SerializeField] private float lookHeight = 1.5f;
 
+        [Header("Glance")]
+        // Seconds between glances (a random time in this range), how
+        // long each is held, and how far to the side (random in the range,
+        // left or right at random, never past Max Yaw).
+        [Tooltip("Least seconds of looking straight ahead between glances; each wait is random between this and Glance Interval Max. e.g. 2. Lower = glances more often.")]
+        [SerializeField] private float glanceIntervalMin = 2f;
+        [Tooltip("Most seconds of looking straight ahead between glances. e.g. 5. Higher = glances more rarely and less regularly.")]
+        [SerializeField] private float glanceIntervalMax = 5f;
+        [Tooltip("Seconds a glance to the side is held before the head comes back to straight ahead. e.g. 1 = a quick look. Higher = longer looks.")]
+        [SerializeField] private float glanceHold = 1f;
+        [Tooltip("Least degrees to the side a glance turns the gaze. e.g. 30. Higher = every glance looks well round.")]
+        [SerializeField] private float glanceAngleMin = 30f;
+        [Tooltip("Most degrees to the side a glance turns the gaze (never past Max Yaw). e.g. 60. Higher = some glances look nearly sideways.")]
+        [SerializeField] private float glanceAngleMax = 60f;
+
         public float TurnSpeed => turnSpeed;
+        public float GlanceIntervalMin => glanceIntervalMin;
+        public float GlanceIntervalMax => glanceIntervalMax;
+        public float GlanceHold => glanceHold;
+        public float GlanceAngleMin => glanceAngleMin;
+        public float GlanceAngleMax => glanceAngleMax;
         public float NeckShare => neckShare;
         public float MaxYaw => maxYaw;
         public float MaxPitchUp => maxPitchUp;
@@ -110,8 +131,9 @@ namespace AI
 
         /// <summary>
         /// Starting rules: standing on patrol the head faces straight
-        /// ahead, suspicious it looks at the stimulus, chasing at the
-        /// player; everything else plays the clip.
+        /// ahead, suspicious it looks at the stimulus, walking a search it
+        /// glances about, chasing it looks at the player; everything else
+        /// plays the clip.
         /// </summary>
         private void Reset()
         {
@@ -119,8 +141,14 @@ namespace AI
             {
                 new Rule(GuardState.Patrol, Movement.Standing, Mode.Forward),
                 new Rule(GuardState.Suspicious, Movement.Any, Mode.LookAt, Target.Stimulus),
+                new Rule(GuardState.Search, Movement.Moving, Mode.Glance),
                 new Rule(GuardState.Chase, Movement.Any, Mode.LookAt, Target.Player)
             };
+            glanceIntervalMin = 2f;
+            glanceIntervalMax = 5f;
+            glanceHold = 1f;
+            glanceAngleMin = 30f;
+            glanceAngleMax = 60f;
             turnSpeed = 150f;
             neckShare = 0.4f;
             maxYaw = 70f;

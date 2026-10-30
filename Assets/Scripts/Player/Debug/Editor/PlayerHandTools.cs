@@ -11,8 +11,8 @@ namespace Player
     /// missing. Each one's Reset() fills in its own references, and
     /// PlayerController and PlayerHandState find them by themselves when
     /// the game starts. Empty bow models (one per handedness), arrow model, arrow material,
-    /// arrow rope grip, blackjack model and bow, arrow, string and blackjack
-    /// hand profiles are filled in from their assets.
+    /// arrow rope grip, blackjack model, compass prefab and bow, arrow, string,
+    /// blackjack and worn compass hand profiles are filled in from their assets.
     ///
     /// Undone with Ctrl+Z. In an Editor folder, so it never ends up in a
     /// build.
@@ -41,6 +41,11 @@ namespace Player
         // (arrows_3d_model_water.fbx...), and the material they share.
         private const string ArrowModelFolder = "Assets/TripoModels/arrows_3d_model/";
         private const string ArrowMaterialPath = ArrowModelFolder + "Materials/arrows_3d_model.mat";
+
+        // The compass worn on the back of the hand (housing, dial, gem),
+        // and where it sits there (posed with Pose with Hand).
+        private const string CompassPrefabPath = "Assets/Prefabs/Core/Compass.prefab";
+        private const string CompassProfilePath = "Assets/Data/Hand Poses/CompassWorn.asset";
 
         [MenuItem("TeaLeaf/Dev Room/Add Hand Tools To Player")]
         internal static void Add()
@@ -77,6 +82,8 @@ namespace Player
             FillEmpty<Mesh>(arrows, "sleepDart", ArrowModelFolder + "arrows_3d_model_sleep.fbx");
             FillEmpty<Mesh>(arrows, "mossArrow", ArrowModelFolder + "arrows_3d_model_moss.fbx");
             FillEmpty<Material>(arrows, "arrowMaterial", ArrowMaterialPath);
+            FillEmpty<Compass>(hands.GetComponent<PlayerCompass>(), "compassPrefab", CompassPrefabPath);
+            FillEmpty<HandSnapProfile>(hands.GetComponent<PlayerCompass>(), "wornProfile", CompassProfilePath);
 
             Debug.Log($"PlayerHandTools: added {added} component(s) to '{hands.name}'.", hands);
             Selection.activeGameObject = hands.gameObject;

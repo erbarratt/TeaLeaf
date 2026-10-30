@@ -11,12 +11,11 @@ namespace Player
     /// on that hand as the picks are on theirs. It takes no input and
     /// never makes its hand busy.
     ///
+    /// The model is a prefab (Compass, CompassGem), made once at load.
     /// It shows three things:
-    /// - North. The outer rim stays put on the hand; the dial inside it,
-    ///   only slightly smaller, stays turned to the world, with a
-    ///   triangle at each of north, east, south and west (north's is
-    ///   bigger, and red).
-    /// - How well lit the player is: a small gem in the middle, dark in
+    /// - North. The housing stays put on the hand; the dial inside it
+    ///   stays turned to the world, the red point of its star at north.
+    /// - How well lit the player is: the gem in the middle, dark in
     ///   shadow and bright in the light (PlayerVisibility).
     /// - What the player has just heard: a small arrow outside the rim
     ///   for each of the last few sounds, pointing the way it came from,
@@ -29,8 +28,9 @@ namespace Player
     /// from: at the doorway, for one coming through from another room.
     ///
     /// The compass is not a child of the hand visual: it is placed on it
-    /// each frame. The right hand visual is the left one mirrored, and a
-    /// child of it would be drawn mirrored too - east and west swapped.
+    /// each frame, where its worn profile says (posed with Pose with
+    /// Hand). The right hand visual is the left one mirrored, and a child
+    /// of it would be drawn mirrored too - east and west swapped.
     ///
     /// Lives on the Hands object. No Update(): PlayerController calls
     /// Tick() after the hand visuals are placed.
@@ -49,77 +49,26 @@ namespace Player
 
         [Header("Where It Sits")]
 
-        // The middle of the compass in the hand visual's own space: on
-        // the gauntlet's back plate, halfway from the wrist to the
-        // knuckles, its back just clear of the plate (measured from the
-        // gauntlet mesh: the plate is about 4cm out from the hand's middle
-        // line there). The right hand visual is the left one mirrored, so
-        // the same numbers put it on either hand.
-        [Tooltip("Where the compass's middle sits in the hand visual's own space, in metres (wrist at about the origin, fingers along -Y, back of the hand towards -X), e.g. (-0.072, -0.037, 0) = on the gauntlet's back plate halfway to the knuckles. Move it further along the Back Of Hand Tilt's back direction if the hand shows through it. The same numbers work for either hand (the right visual is the left mirrored).")]
-        [SerializeField] private Vector3 onHandPosition = new(-0.072f, -0.037f, 0f);
+        // The hand's offset from the compass's middle, per hand, as for a
+        // held thing (HandSnapProfile.GripFrameInHand()): posed on the
+        // gauntlet's back plate with TeaLeaf > Player > Pose with Hand.
+        // Only the offsets are used; the hand keeps its input curl.
+        [Tooltip("Where the compass sits on the back of the wearing hand: the hand's offset from the compass's middle, per hand (posed with TeaLeaf > Player > Pose with Hand, Compass (on the back of the hand)); its finger pose isn't played. e.g. CompassWorn. Empty = the compass sits on the hand visual's origin.")]
+        [SerializeField] private HandSnapProfile wornProfile;
 
-        // The hand visual's own axes aren't square to the hand: the back
-        // of the hand faces -X turned about Z (towards +Y), the fingers
-        // run down -Y turned the same way. Measured from the gauntlet:
-        // wrist to middle knuckle runs about 27 degrees off -Y.
-        [Tooltip("How far the back of the hand is turned from the hand visual's -X about its Z axis, in degrees, e.g. -27 = the gauntlet's back plate (the compass's face lies flat on it, its top towards the knuckles). Raise towards 0 to tip the face towards the wrist; lower to tip it towards the fingers.")]
-        [SerializeField] private float onHandTilt = -27f;
+        [Header("Model")]
 
-        [Header("North")]
-
-        // Which way north is, in degrees round the world's vertical from
-        // its +Z axis (0 = +Z is north and +X is east, the way a level
-        // is seen from above in the editor).
-        [Tooltip("Which way north is, in degrees round the world's vertical from +Z, e.g. 0 = world +Z is north and +X east; 90 = north turned a quarter round. Changes only where the dial points.")]
-        [SerializeField] private float northAngle;
-
-        [Header("Its Shape (greybox)")]
-
-        // The rim's radius and thickness, in metres. The dial and gem
-        // are sized from them.
-        [Tooltip("The rim's radius, in metres, e.g. 0.05 = a 10cm-wide compass. The dial, gem and marks scale with it. Built once at load.")]
-        [SerializeField] private float radius = 0.05f;
-        [Tooltip("The rim's thickness (how far it stands off the hand), in metres, e.g. 0.01 = 1cm. Built once at load.")]
-        [SerializeField] private float thickness = 0.01f;
-
-        // The dial's radius as a fraction of the rim's ("only slightly
-        // smaller"), and the gem's.
-        [Tooltip("The turning dial's radius as a fraction of Radius, e.g. 0.88 = only slightly smaller than the rim. Lower shows more of the fixed rim.")]
-        [SerializeField] private float dialSize = 0.88f;
-        [Tooltip("The light gem's radius as a fraction of Radius, e.g. 0.3 = a gem about a third of the compass across. Raise it for a bigger, easier-to-read gem.")]
-        [SerializeField] private float gemSize = 0.3f;
-
-        // How big the east, south and west triangles are (the distance
-        // from a triangle's middle to its corners, as a fraction of the
-        // rim's radius), and how much bigger north's is.
-        [Tooltip("Size of the east, south and west triangles on the dial (middle to corner) as a fraction of Radius, e.g. 0.14.")]
-        [SerializeField] private float markSize = 0.14f;
-        [Tooltip("How much bigger the north triangle is than the others, as a multiple of Mark Size, e.g. 1.6 = 60% bigger. 1 = same size.")]
-        [SerializeField] private float northMarkScale = 1.6f;
-
-        [Tooltip("Colour of the fixed outer rim, e.g. a brass brown.")]
-        [SerializeField] private Color rimColor = new(0.45f, 0.36f, 0.2f, 1f);
-        [Tooltip("Colour of the turning dial's face, e.g. an off-white parchment.")]
-        [SerializeField] private Color dialColor = new(0.85f, 0.82f, 0.72f, 1f);
-        [Tooltip("Colour of the east, south and west triangles, e.g. near black.")]
-        [SerializeField] private Color markColor = new(0.2f, 0.2f, 0.22f, 1f);
-        [Tooltip("Colour of the north triangle, e.g. red.")]
-        [SerializeField] private Color northColor = new(0.85f, 0.15f, 0.1f, 1f);
-
-        // The least light the compass is ever shown in, 0-1.
-        [Tooltip("The least light (0-1) the compass is ever drawn in, however dark the spot, e.g. 0.5 = never darker than half lit, so it can be read in shadow. 0 = as dark as the scene; 1 = always fully lit. Set at load.")]
-        [SerializeField] private float minLight = 0.5f;
-
-        [Header("Light Gem")]
-
-        // The gem's colour when the player is hidden and when they're in
-        // plain sight; in between, a mix.
-        [Tooltip("The gem's colour when the player is fully hidden (Visibility 0), e.g. a dark blue-black; it blends towards Gem Light Color as they become visible.")]
-        [SerializeField] private Color gemDarkColor = new(0.05f, 0.07f, 0.12f, 1f);
-        [Tooltip("The gem's colour when the player is in plain sight (Visibility 1), e.g. a warm yellow.")]
-        [SerializeField] private Color gemLightColor = new(1f, 0.95f, 0.6f, 1f);
+        // Made once at load, under this object. Its north, size and gem
+        // colours are set on the prefab.
+        [Tooltip("The compass prefab worn on the hand (a Compass component on its root: housing, turning dial, light gem), made once at load. e.g. Assets/Prefabs/Core/Compass.prefab. Empty = no compass (an error is logged).")]
+        [SerializeField] private Compass compassPrefab;
 
         [Header("Sound Arrows")]
+
+        // Off: no arrows are made, no sounds listened for, nothing placed
+        // per frame. Read at load.
+        [Tooltip("Show arrows round the compass for the footsteps and voices just heard. On = an arrow per recent sound, pointing where it came from; off = none are made and no sounds are listened for. Read at load.")]
+        [SerializeField] private bool showSoundArrows;
 
         // How many sounds can show at once. With all in use, a new sound
         // takes the faintest one's place if it's louder.
@@ -155,17 +104,21 @@ namespace Player
         [Tooltip("A sound heard within this many metres of one already showing counts as the same thing again (e.g. a guard's next footstep), so its arrow is moved and renewed instead of a second shown, e.g. 1.5. 0 = every sound gets its own arrow.")]
         [SerializeField] private float sameSourceDistance = 1.5f;
 
+        [Tooltip("How thick the sound arrows are (how far they stand off the hand), in metres, e.g. 0.004 = 4mm.")]
+        [SerializeField] private float arrowDepth = 0.004f;
+
         [Tooltip("Colour of the sound arrows, e.g. white; they fade out through their own transparency. Set at load.")]
         [SerializeField] private Color arrowColor = new(1f, 1f, 1f, 1f);
 
-        // How far the gem's brightness must change before its colour is
-        // written again.
-        private const float GemStep = 0.02f;
-
-        private static readonly int _baseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly int _alphaId = Shader.PropertyToID("_Alpha");
 
         private bool _hasVisibility;
+        private bool _hasCompass;
+        private bool _hasGem;
+
+        // True once the arrows are made (showSoundArrows on, with a
+        // compass to put them round).
+        private bool _hasArrows;
 
         // The hand that wears it: the one the lockpicks aren't on.
         private bool _isOnLeftHand;
@@ -178,18 +131,11 @@ namespace Player
         // unsubscribed from.
         private SoundPlayer _soundPlayer;
 
-        // The compass (the rim is on it), the dial and the gem.
+        // The compass made from the prefab, and its transform (the
+        // housing's: it rides the hand).
+        private Compass _model;
         private Transform _compass;
-        private Transform _dial;
-        private Mesh _rimMesh;
-        private Mesh _dialMesh;
-        private Mesh _gemMesh;
         private Mesh _arrowMesh;
-        private Material _material;
-        private Material _gemMaterial;
-
-        // The gem's brightness as last written (-1 = never).
-        private float _gemShown = -1f;
 
         // The arrows. For each: its object, its renderer and its own
         // material (so each fades by itself); where its sound came from,
@@ -236,18 +182,31 @@ namespace Player
             // other way round.
             _isOnLeftHand = playerInput.IsLeftHanded;
 
-            BuildCompass();
-            BuildArrows();
+            if (compassPrefab == null) {
+                Debug.LogError($"PlayerCompass '{name}': no Compass Prefab assigned, so no compass is worn.", this);
+                return;
+            }
+
+            MakeCompass();
+
+            if (showSoundArrows) {
+                BuildArrows();
+                _hasArrows = true;
+            }
         }
 
         /// <summary>
         /// Starts listening for sounds. Start() rather than Awake():
         /// SoundPlayer sets Instance in its own Awake(), and every Awake()
         /// has run before the first Start(). A scene with no sound player
-        /// simply shows no arrows.
+        /// simply shows no arrows; with the arrows off, nothing listens.
         /// </summary>
         private void Start()
         {
+            if (!_hasArrows) {
+                return;
+            }
+
             _soundPlayer = SoundPlayer.Instance;
 
             if (_soundPlayer != null) {
@@ -257,15 +216,18 @@ namespace Player
 
         private void OnEnable()
         {
-            // Awake() has always run by now, so the compass exists.
-            _compass.gameObject.SetActive(true);
+            // Awake() has always run by now, so the compass exists unless
+            // there was no prefab.
+            if (_hasCompass) {
+                _compass.gameObject.SetActive(true);
+            }
         }
 
         private void OnDisable()
         {
-            // Null if Awake() hasn't run. And if the scene is being
-            // unloaded (a level restart), everything here is on its way
-            // out and mustn't be touched.
+            // Null if Awake() hasn't run (or there was no prefab). And if
+            // the scene is being unloaded (a level restart), everything
+            // here is on its way out and mustn't be touched.
             if (_compass == null || !gameObject.scene.isLoaded) {
                 return;
             }
@@ -281,13 +243,8 @@ namespace Player
             }
 
             // Meshes and materials made from code aren't cleaned up with
-            // their objects.
-            DestroyAsset(_rimMesh);
-            DestroyAsset(_dialMesh);
-            DestroyAsset(_gemMesh);
+            // their objects. (The compass's own are the prefab's assets.)
             DestroyAsset(_arrowMesh);
-            DestroyAsset(_material);
-            DestroyAsset(_gemMaterial);
 
             if (_arrowMaterials != null) {
                 for (int i = 0; i < _arrowMaterials.Length; i++) {
@@ -304,73 +261,33 @@ namespace Player
         }
 
         /// <summary>
-        /// Makes the compass, once, under this object. Its own axes: Z
-        /// points away from whoever is looking at its face (into the
-        /// hand), Y is up the face and X to the right -
-        /// so on the dial, +Y is north and +X is east. Three stacked
-        /// discs: the rim, the dial on top of it and the gem on top of
-        /// that. No colliders: it's only to look at.
+        /// Makes the compass from its prefab, once, under this object
+        /// (load time: nothing is made during play). Its axes are the
+        /// Compass's: Z into the hand, Y up the face. No colliders: it's
+        /// only to look at.
         /// </summary>
-        private void BuildCompass()
+        private void MakeCompass()
         {
-            _material = LockMeshBuilder.CreateMaterial(false, minLight);
-
-            // The gem is never darkened by the light around it - it is
-            // the reading - so its least light is full light. Its colour
-            // is the material's, written when the reading changes.
-            _gemMaterial = LockMeshBuilder.CreateMaterial(false, 1f);
-
-            float dialRadius = radius * dialSize;
-            float dialDepth = thickness * 0.4f;
-            float markDepth = thickness * 0.3f;
-            float gemDepth = thickness * 0.5f;
-
-            // The rim: the largest disc, at the compass's own middle.
-            LockMeshBuilder rim = new();
-            rim.Cylinder(radius, thickness, 24, rimColor, rimColor);
-            _rimMesh = rim.ToMesh("Compass Rim");
-
-            // The dial: on the rim's face (towards the viewer is -Z),
-            // with the four triangles standing on it near its edge. A
-            // three-sided cylinder is a triangular prism, its first
-            // corner along +X until it's turned: each is turned to point
-            // outwards.
-            float dialZ = -(thickness + dialDepth) * 0.5f;
-            float markZ = dialZ - (dialDepth + markDepth) * 0.5f;
-            float mark = radius * markSize;
-            float northMark = mark * northMarkScale;
-
-            LockMeshBuilder dial = new();
-            dial.Cylinder(dialRadius, dialDepth, 24, dialColor, dialColor, new Vector3(0f, 0f, dialZ));
-            dial.Cylinder(northMark, markDepth, 3, northColor, northColor, new Vector3(0f, dialRadius - northMark, markZ), 90f);
-            dial.Cylinder(mark, markDepth, 3, markColor, markColor, new Vector3(dialRadius - mark, 0f, markZ), 0f);
-            dial.Cylinder(mark, markDepth, 3, markColor, markColor, new Vector3(0f, -(dialRadius - mark), markZ), 270f);
-            dial.Cylinder(mark, markDepth, 3, markColor, markColor, new Vector3(-(dialRadius - mark), 0f, markZ), 180f);
-            _dialMesh = dial.ToMesh("Compass Dial");
-
-            // The gem: a small disc on the middle of the dial.
-            LockMeshBuilder gem = new();
-            gem.Cylinder(radius * gemSize, gemDepth, 16, Color.white, Color.white, new Vector3(0f, 0f, dialZ - (dialDepth + gemDepth) * 0.5f));
-            _gemMesh = gem.ToMesh("Compass Gem");
-
-            _compass = MakePart("Compass", _rimMesh, transform, _material, out _).transform;
-            _dial = MakePart("Dial", _dialMesh, _compass, _material, out _).transform;
-            MakePart("Light Gem", _gemMesh, _dial, _gemMaterial, out _);
+            _model = Instantiate(compassPrefab, transform, false);
+            _model.name = "Compass";
+            _compass = _model.transform;
+            _hasCompass = true;
+            _hasGem = _model.Gem != null;
         }
 
         /// <summary>
         /// Makes the pool of sound arrows, once: each a small triangular
         /// prism pointing along its own +Y, a metre from middle to corner
-        /// (scaled to size when shown), with a see-through material of
-        /// its own so each fades by itself. Children of the compass, all
-        /// hidden until a sound is heard.
+        /// and a metre deep (scaled to size when shown), with a
+        /// see-through material of its own so each fades by itself.
+        /// Children of the compass, all hidden until a sound is heard.
         /// </summary>
         private void BuildArrows()
         {
             int count = Mathf.Max(arrowCount, 1);
 
             LockMeshBuilder builder = new();
-            builder.Cylinder(1f, 0.4f, 3, arrowColor, arrowColor, Vector3.zero, 90f);
+            builder.Cylinder(1f, 1f, 3, arrowColor, arrowColor, Vector3.zero, 90f);
             _arrowMesh = builder.ToMesh("Compass Sound Arrow");
 
             _arrows = new Transform[count];
@@ -492,58 +409,36 @@ namespace Player
         /// </summary>
         public void Tick()
         {
-            Transform visual = _isOnLeftHand ? playerHandVisuals.LeftHandVisual : playerHandVisuals.RightHandVisual;
-            Vector3 position = visual.TransformPoint(onHandPosition);
-
-            // Which way the palm faces, in the world: the hand visual's
-            // own +X turned by the tilt - the way into the hand, for
-            // someone looking at the compass's face. Turned in the
-            // visual's own space first, then TransformVector(), not
-            // TransformDirection(): the right visual is the left one
-            // mirrored, and only TransformVector() takes the mirroring
-            // into account.
-            Quaternion tilt = Quaternion.Euler(0f, 0f, onHandTilt);
-            Vector3 palm = visual.TransformVector(tilt * Vector3.right).normalized;
-
-            // The rim rides the hand: its face out of the back of it
-            // (the compass's own Z points into the hand), its top
-            // towards the fingers (the visual's -Y, turned likewise).
-            Vector3 fingers = Vector3.ProjectOnPlane(visual.TransformVector(tilt * Vector3.down), palm);
-
-            if (fingers.sqrMagnitude > 0.000001f) {
-                _compass.SetPositionAndRotation(position, Quaternion.LookRotation(palm, fingers));
-            } else {
-                _compass.position = position;
-            }
-
-            // The dial stays turned to the world: its top is north, laid
-            // flat onto the compass's face. With the face edge-on to
-            // north there's no such direction, and the dial is left as it
-            // was.
-            Vector3 north = Vector3.ProjectOnPlane(Quaternion.Euler(0f, northAngle, 0f) * Vector3.forward, palm);
-
-            if (north.sqrMagnitude > 0.0001f) {
-                _dial.rotation = Quaternion.LookRotation(palm, north);
-            }
-
-            TickGem();
-            TickArrows(position, palm);
-        }
-
-        /// <summary>
-        /// The gem's colour from how visible the player is - written only
-        /// when the reading has changed enough to see.
-        /// </summary>
-        private void TickGem()
-        {
-            float visibility = _hasVisibility ? playerVisibility.Visibility : 0f;
-
-            if (Mathf.Abs(visibility - _gemShown) < GemStep) {
+            if (!_hasCompass) {
                 return;
             }
 
-            _gemShown = visibility;
-            _gemMaterial.SetColor(_baseColorId, Color.Lerp(gemDarkColor, gemLightColor, visibility));
+            // The housing rides the hand where the worn profile puts it:
+            // the profile holds the hand's offset from the compass, so
+            // GripFrameInHand() works back from the hand to the compass.
+            // It uses the visual's position and rotation, not its scale,
+            // so the compass is never drawn mirrored on the right hand -
+            // each hand has its own offsets.
+            Transform visual = _isOnLeftHand ? playerHandVisuals.LeftHandVisual : playerHandVisuals.RightHandVisual;
+            HandSnapProfile.GripFrameInHand(wornProfile, _isOnLeftHand, visual.position, visual.rotation, out Vector3 position, out Quaternion rotation);
+            _compass.SetPositionAndRotation(position, rotation);
+
+            // The way into the hand (the compass's own Z), for someone
+            // looking at its face.
+            Vector3 palm = rotation * Vector3.forward;
+
+            // The dial stays turned to the world, its top at north.
+            _model.TurnToNorth(palm);
+
+            // The gem shows how well lit the player is (it writes its
+            // colour only when the reading has changed enough to see).
+            if (_hasGem) {
+                _model.Gem.Show(_hasVisibility ? playerVisibility.Visibility : 0f);
+            }
+
+            if (_hasArrows) {
+                TickArrows(position, palm);
+            }
         }
 
         /// <summary>
@@ -585,8 +480,8 @@ namespace Player
                 float size = Mathf.Lerp(arrowMinSize, arrowMaxSize, _arrowLoudness[i]);
                 Transform arrow = _arrows[i];
 
-                arrow.SetPositionAndRotation(position + direction * (radius + arrowGap + size), Quaternion.LookRotation(palm, direction));
-                arrow.localScale = new Vector3(size, size, thickness);
+                arrow.SetPositionAndRotation(position + direction * (_model.Radius + arrowGap + size), Quaternion.LookRotation(palm, direction));
+                arrow.localScale = new Vector3(size, size, arrowDepth);
                 _arrowMaterials[i].SetFloat(_alphaId, strength);
             }
         }

@@ -125,8 +125,10 @@ namespace Core
         // the harbour at night). Empty = silence.
         [Tooltip("The background loop while the player is in no SoundRoom (its first clip), e.g. wind or the harbour at night. Empty = silence outside.")]
         [SerializeField] private SoundCue outsideAmbience;
-        [Tooltip("Multiplies the Outside Ambience cue's volume, 0-1, e.g. 0.5 = half as loud. Lower = quieter; 0 = silent.")]
-        [SerializeField, Range(0f, 1f)] private float outsideAmbienceVolume = 1f;
+        // The one ambience volume: outside, and in every room that
+        // doesn't override it.
+        [Tooltip("Multiplies the ambience cue's volume outside and in every SoundRoom without Override Ambience Volume, 0-1, e.g. 0.5 = all ambience half as loud. Lower = quieter; 0 = silent.")]
+        [SerializeField, FormerlySerializedAs("outsideAmbienceVolume"), Range(0f, 1f)] private float ambienceVolume = 1f;
 
         // How long one room's ambience takes to fade over to the next's,
         // in seconds.
@@ -591,9 +593,9 @@ namespace Core
             }
 
             if (inRoom) {
-                _ambience.Set(room.Ambience, room.AmbienceVolume);
+                _ambience.Set(room.Ambience, room.OverrideAmbienceVolume ? room.AmbienceVolume : ambienceVolume);
             } else {
-                _ambience.Set(outsideAmbience, outsideAmbienceVolume);
+                _ambience.Set(outsideAmbience, ambienceVolume);
             }
         }
 

@@ -158,7 +158,7 @@ Phase 2 - Core stealth framework (Core namespace)
 [ ] Real audio: torch, wind and room tone loops; the impact cue; a
     carpet footstep; rename the cues still called "Placeholder".
 [x] Sound direction indicator: the compass's arrows (Phase 4), fed by
-    SoundPlayer.Heard.
+    SoundPlayer.Heard; switched off (showSoundArrows).
 [x] Visibility, working in the headset.
 
 
@@ -172,6 +172,9 @@ Phase 3 - Interaction framework (Interaction namespace)
 [x] Impact noise.
 [x] Doors: lock kinds, handle, swing, self-closing latch, pushed by
     hands and body, sliding bolt, creak, sound portal.
+[ ] Tune in the headset: a door swung by its handle chasing the hand
+    (Door.holdFollowTime 0.12s) - its weight, and how far the snapped
+    hand trails the controller on fast swings.
 [x] Keyhole view and the lock plate.
 [x] Doors on pack prefabs: a hinge offset from the object's origin, a
     one-way swing, and a door with no handle pushed open from shut.
@@ -184,6 +187,9 @@ Phase 3 - Interaction framework (Interaction namespace)
 [x] The keyhole and the ShabbyDoor, working in the headset.
 [ ] Hold poses for other prop shapes (the test cube and crate are held
     by the middle with the ledge fingers) - as real props need them.
+[x] Dressing props (Prefabs/Dressing: basket, bottle, candle sconce,
+    cloth roll, porcelain bowl/jar/jug/vase, sack, wooden chest):
+    grabbable, LOD0-2 (Make LOD Meshes), each with its own hand pose.
 [x] Door handle hand pose (DoorHandle, a copy of BottleHold), right in
     the headset.
 [ ] Door sounds: real latch, rattle and creak, and a louder latch for a
@@ -226,12 +232,15 @@ Phase 4 - Inventory: the pack, loot and keys (Inventory namespace)
 [ ] Real sounds for putting things in the pack and for the keyed lock.
 [x] The compass (PlayerCompass), the player's readout, always worn on
     the back of the hand without the lockpicks, where the picks sit on
-    the other: a rim, a dial that keeps north (world +Z) with a triangle
-    at each of north, east, south and west, a light gem showing
-    visibility, and arrows for the last few footsteps and voices heard,
-    pointing where each is heard from.
-[ ] Tune in the headset: the compass - where it sits on the hand, its
-    size, the gem's colours, the arrows' sizes and fade time.
+    the other: the Tripo compass model (Compass prefab: fixed housing,
+    a dial that keeps north (world +Z), a light gem glowing with
+    visibility), placed by a worn hand profile posed with Pose with
+    Hand. Arrows for the last few footsteps and voices heard, pointing
+    where each is heard from, built and switched off.
+[x] The compass model working in the headset: lit by the probe volume
+    like the hands, gem glow.
+[ ] Tune in the headset: the compass - where it sits on the hand
+    (Pose with Hand), the gem's glow colours.
 [ ] Showing the arrow counts and the loot's worth (on the compass or
     the pack).
 
@@ -475,21 +484,25 @@ Performance:
 Phase 7 - Animation
 -------------------
 Guard:
-[x] A rigged, textured model: Tripo-generated guard_1 (21k triangles,
-    67 bones, one SkinnedMeshRenderer, URP Lit), imported as Humanoid at
-    scale 1.8 (Mixamo clips retarget onto it); guard scripts find bones
-    through the rig.
+[x] A rigged, textured model: Assets/Art/Models/Guard/Guard.fbx (Tripo-
+    generated, edited in Blender: mesh and rig, no takes; 67 bones, one
+    SkinnedMeshRenderer, URP Lit Guard.mat, 2048 textures), imported as
+    Humanoid at scale 1.8 (Mixamo clips retarget onto it); guard scripts
+    find bones through the rig.
 [x] Blob shadows (GuardShadow, TeaLeaf/BlobShadow) under body and
     feet, stretched away from the moon, under the guard's realtime moon
     shadow.
-[x] Clips: idle, walk, run, look-around, stunned, knocked-out fall
-    (holds its last frame), as project copies with the hips' ground
-    motion frozen so they play in place.
-[ ] Clips still wanted: alert/spot reaction, get-up, dragged pose, idle
-    variety at patrol points (scratch, fold_arms, wait are imported).
-[x] Animator Controller: locomotion blend tree on the agent's speed
-    (idle 0, walk 1.07, run 3.58 - the clips' own speeds), bools for
-    look-around, stunned and knocked out; root motion off. Driven by
+[x] Clips: idle, walk (upright), search walk, run, wide look-around,
+    dive, hit front/back, dizzy, being strangled, push-up get-up,
+    shrug, idle fidgets, as project copies with
+    the hips' ground motion frozen so they play in place.
+[ ] Guard_SearchWalk: the 2.2 degree hip rebuild Guard_Walk had (its
+    hips sit ~2 degrees behind the idle's).
+[ ] Clips still wanted: alert/spot reaction, dragged pose.
+[x] Animator Controller: locomotion blend tree on Speed (idle 0, walk
+    1.07, run 3.58 - the clips' own speeds) blended to the search walk
+    by Searching, look-about and knocked-out bools, action states
+    cross-faded by name (clip per action); root motion off. Driven by
     GuardAnimation, so Guard knows nothing of animation.
 [x] TeaLeaf > Dev Room > Guard Tests: one guard per clip, looping, for
     matching the feet to the speeds.
@@ -499,8 +512,13 @@ Guard:
 [x] Head per state (GuardHeadAim, GuardHeadLook asset): clip, straight
     ahead or looking at stimulus/player, eased; patrol standing looks
     ahead, suspicious at the stimulus, chase at the player.
-[ ] Import the Mixamo clips (Bored, Dizzy Idle, Looking, Talking...)
+[x] Import the Mixamo clips (Bored, Dizzy Idle, Looking, Talking...)
     onto the Humanoid guard.
+[x] Head Glance mode (level gaze, random glances) while searching on
+    the move; head left to the clip during actions and fidgets.
+[x] Foot lock fits each foot to the ground by heel and toe (tilt up to
+    30 degrees) and lowers the hips to reach; off in the dive and the
+    collapse.
 Player hands:
 [x] Finger poses as data on HandSnapProfile (16 finger bone rotations),
     played over the Animator by HandFingerPoser; offsets and fingers

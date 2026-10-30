@@ -179,7 +179,7 @@ unless "asset". Meanings are in the sections that use them.
 - **Jetties:** `jettyShare` 0.3; `jettyInset` 5cm; `jettyStoreyDrop` 10cm. **Lean:**
   `facadeLean` 0-5°, 0.
 - **Columns:** `columnWidthMin`/`Max` 1-2 modules; `columnShare` 0.15; `columnMinRunModules`
-  6; `columnDepthMin`/`Max` 0.3-0.8m; `columnOutShare` 0.5; `columnHeightShare` 0.3;
+  6; `columnDepthMin`/`Max` 0.7-1.41m (`Max` also the NavMesh band's depth); `columnOutShare` 0.5; `columnHeightShare` 0.3;
   `columnStoreyVariation` 1.
 - **Doors:** `doorInsertMargin` 5cm; `doorSideMargin` 0.13m; `doorInsertDepth` 0. **Window
   inserts:** `windowInsertShare` 1; `windowInsertMaxMargin` 0.45m; `windowInsertDepth` 0;
@@ -238,7 +238,7 @@ unless "asset". Meanings are in the sections that use them.
 - **Moon shafts:** `moonShaftStreetMaxWidth` 4.5m (**asset 6m**: every 5m street); `moonShaftSampleSpacing`
   1m; `moonShaftInset` 0.3m; `moonShaftTopClearance` 1m.
 - **Sound rooms:** `soundAlleyMaxWidth` 4.5m; `soundStreetMuffle` 0.15; `soundSkyMuffle` 0.3;
-  `soundRoomMinHeight` 3m; `soundStreetAmbience` / `Volume` (outdoor placeholder wind, 1).
+  `soundRoomMinHeight` 3m; `soundStreetAmbience` (**asset `AmbienceStreets`**, `ambience_loop.ogg`).
 - **Decking:** `deckingOverlap` 3cm; `deckingQuarterTurn` off; `deckingSlideMin`/`Max` 0-0.
 
 ## Stages
@@ -1097,7 +1097,11 @@ unless "asset". Meanings are in the sections that use them.
   straight; `_Corner_Small_Sml_thin`, `_TJunction_Small_thin`, `_Capped_End_Small_thin` 0.3;
   `_Valve_Small_thin` 0.5; 0.33m across; ends copied from the Small pieces, same sources).
   Small/Large unverified, so `pipeLargeShare` inert; `FacadeDressing.SmallPipe` (0.67m) is the
-  diameter compared against.
+  diameter compared against. **Straights (`TL_Pipes_Large_A`, `_Small_A`, `_Small_A_thin`)
+  collide as one `CapsuleCollider`** along the axis, the radius of the pipe body (not the
+  flanges: 0.3 Large, 0.15 Small, before root scale), its round ends standing one radius past
+  each end face so it keeps that diameter the whole length; stretched along the axis only, so
+  the ends stay round.
   - `pipeBuildingShare` of buildings (rolled per building first) get 1..`pipeRunsMax` runs
     totalling at least `pipeMinRunShare` of width, extra runs at `pipeExtraRunShare`. Runs
     vertical, horizontal or L, level/plumb, never over a door/window (`pipeOpeningMargin`),
@@ -1262,7 +1266,8 @@ unless "asset". Meanings are in the sections that use them.
   get none.
 - **Reverb** `Alley` if spec width (own or `streetWidth`) <= `soundAlleyMaxWidth`, else
   `Outdoors`; a junction is Alley only if all its streets are. **Ambience**
-  `soundStreetAmbience` at its volume in every room.
+  `soundStreetAmbience` in every room, volume not overridden (the Sound Player's Ambience
+  Volume sets every street's).
 - **Self-check**: each portal's probes (`ProbeRooms`) must find the two rooms meant; every
   street point (1m grid, 0.3m in from edges, at 0.2m and 1.6m up) must be in a room. Log
   `Sound rooms: n street room(s), m junction room(s), p portal(s) (s to the sky); a portal(s)
@@ -1283,24 +1288,48 @@ unless "asset". Meanings are in the sections that use them.
   surface's layer mask is ignored**). **Must be this way round**: Unity turns Not Walkable
   geometry into nothing no Walkable volume restores (Not Walkable default + Walkable volumes
   bakes empty).
+- **Foundations are Not Walkable**: a `NavMeshModifier` (override area Not Walkable) on
+  `Generated/Foundation Colliders`, the group put on `Environment` (a modifier off the mask is
+  ignored, like a volume). A foundation's top is lower than the agent's step, so as floor the
+  bake would run the NavMesh onto any foundation standing out past the edge boxes (a column
+  brought forward, its side foundation) up to the wall; as an obstacle the street ends at every
+  foundation's front, the agent radius in from it (0.25-0.35m measured).
 - Per segment:
-  - **Edge boxes** (`<street> <from>-<to> left` / `right`), `EdgeReach` 6m deep (beyond
-    `groundEdgeMargin` + a cell, a lot ring's `lotGroundMargin` more), 1m under the lowest
-    surface to 30m over the highest. **Ends** (`CornerReach`) where its edge meets the next
-    street's edge round the point that side (`OthersAt`): **short of the point inside a
-    corner**; **past it outside**, by the reach (covers the corner building's floor); **at the
-    point** where the next street runs straight on within the branch angle (`BranchDot`; a
-    width step leaves a sliver the agent radius eats); **by the reach at a dead end**. At a T
-    all corners are inside (boxes stop at the branch's mouths). **Back-to-back street edges
-    nearer than the reach carve each other's floor**: specs keep them apart.
-  - **Dead-end box** (`... start` / `end`): reach deep past the end, width + reach each side.
+  - **Edge boxes** (`<street> <from>-<to> left` / `right`) from the **band's back**
+    (`columnDepthMax` past the edge, as deep as a column is set back) out to `EdgeReach` 6m
+    (beyond `groundEdgeMargin` + a cell, a lot ring's `lotGroundMargin` more), 1m under the
+    lowest surface to 30m over the highest. **Ends** (`CornerReach`, per box's inset and depth)
+    where its edge meets the next street's edge round the point that side (`OthersAt`):
+    **short of the point inside a corner**, the box behind the band at the other street's
+    band back (the band is that street's to fit), at the nearer of the crossings on the box's
+    near and far faces (the box is square to its street: at a corner off 90° the near crossing
+    alone would put its far corner up to ~1m into the other street; the wedge left lies in the
+    other street's own boxes); **past it outside**, by the reach (covers the corner building's
+    floor); **at the point** where the next street runs straight on within the branch angle
+    (`BranchDot`; a width step leaves a sliver the agent radius eats); **by the reach at a
+    dead end**. At a T all corners are inside (boxes stop at the branch's mouths).
+    **Back-to-back street edges nearer than the reach carve each other's floor**: specs keep
+    them apart.
+  - **Band** (`LayBand`, `... band <n>`), edge to band back, fitted to the foundations every
+    0.25m (`BandStart`: from the band's back, 0.15m over the street surface, a ray in towards
+    the street, `columnDepthMax` past the edge at most, never past the middle): the band's back
+    **inside a foundation** (a column set back) - recess left open; **a foundation's back
+    hit** - carved from there out (floor behind an ordinary front, and the pocket behind a
+    column brought forward, carved from that foundation's back in the street); **none** (a gap
+    between buildings) - carved from the edge. Neighbouring stretches starting within 2cm
+    merge. **The open part in front** gets a box from `streetHeadroom` above the stretch's
+    lowest surface up (`... band <n> over`): walkway decks, jetties and ledges over a recess
+    carve as over the street.
+  - **Dead-end box** (`... start` / `end`): band back to reach past the end, width + reach each
+    side; its band (`... start band <n>`) across the end likewise.
   - **Over boxes** (`... over`): `streetHeadroom` above the surface to 30m, full width, past a
     shared point by the widest half width, so overhanging walkway/jetty decks are no islands.
     Height-changing segments get a chain of level boxes (2m stretches, surface every 0.25m via
     `StreetHeights.SurfaceAt`, equal neighbours merged), each from headroom above its lowest
     surface, never reaching a flight/slope.
-- Low clutter in the street (foundation lip, pipe top, lamp) erodes away under the agent
-  radius; baked edge ~0.3m in from facades; no inset of its own.
+- Low clutter in the street (pipe top, lamp) erodes away under the agent radius; baked edge
+  ~0.3m in from foundation fronts (set back or not) and facades; a recess's side foundations,
+  drainpipes and side walls keep it the radius off too; no inset of its own.
 - **Voxel 0.05m** (`VoxelSize`; default 0.1m bakes slivers up to 0.6m off a flight's treads,
   walked by guards). **`buildHeightMesh` on**; together the surface keeps within a few cm.
 - After `Physics.SyncTransforms()` bakes; saved as `Assets/Scenes/<scene>/NavMesh -
@@ -1308,7 +1337,7 @@ unless "asset". Meanings are in the sections that use them.
   gives the same (re-bake after hand dressing under `Generated`); regeneration replaces
   surface, volumes, asset. Log `NavMesh: n volume(s) carving round m segment(s); baked X x Zm,
   saved to ...`. No doors; a hand-built sector uses its own scene-root surface
-  (`Assets/Scripts/AI/CLAUDE.md`). Three-streets: 1273m², one region, all streets walkable.
+  (`Assets/Scripts/AI/CLAUDE.md`). Three-streets: 1314m², one region, all streets and recesses walkable.
 - **Checking a bake** (`unity command eval_file`): `NavMesh.CalculateTriangulation()` grouped
   by shared vertices = islands; `NavMesh.SamplePosition` at every street point and
   `NavMesh.CalculatePath` between neighbouring middle-line samples find breaks.

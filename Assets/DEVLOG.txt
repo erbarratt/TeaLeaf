@@ -6,6 +6,108 @@ This file tracks development progress on TeaLeaf, a Thief-style VR stealth game
 Newest updates are at the top.
 
 
+2026-10-30 (doors chase the hand; Tripo compass prefab posed with Pose
+            with Hand; guard clip per action, dive catch, new model;
+            shadow floor back on bakes; street ambience; dressing props)
+---------------------------------------------------------------------------
+- Research: Thief VR's doors are HurricaneVR HVRPhysicsDoor - a 10kg
+  dynamic Rigidbody, no gravity, on a joint made at runtime (+-95
+  degrees, damper 10, spring 0), eased shut and latched within 5
+  degrees; the handle a jointed Rigidbody grabbed by a joint-driven
+  physics hand; door layer collides with hands and player, not the
+  level; physics at 50Hz.
+- Door.DriveTo(): a door swung by its handle chases the hand's angle
+  (Mathf.SmoothDamp, holdFollowTime 0.12s, capped at maxPushSpeed)
+  instead of matching it, and swings on at that smooth speed when let
+  go. Hand and body pushes still move it at once (the hand sweep needs
+  the leaf out of the way the same frame). Not yet tried in the
+  headset.
+- Lesson: the feel of Thief VR's doors is mass and damping between hand
+  and door, not PhysX; a spring-damper in code gets it with the door
+  still kinematic and placed in Update().
+- Compass is the Tripo model, split in Blender (Blends/compass_split.
+  blend) into housing, dial and gem (compass_split.fbx, 6.7cm across,
+  face -Z, back at +5mm). Compass prefab (Prefabs/Core): Compass on the
+  root turns the dial to north, CompassGem shows visibility. Made once
+  at load by PlayerCompass; the greybox build and its settings are
+  gone. Old compass_0.fbx and its material deleted.
+- Compass placed by a worn hand profile (CompassWorn, PlayerCompass.
+  wornProfile) through HandSnapProfile.GripFrameInHand(), posed with
+  Pose with Hand (new subject "Compass (on the back of the hand)");
+  started from the old hand-placement numbers (matched exactly on both
+  hands).
+- Compass sound arrows switched off (showSoundArrows; off = none made,
+  no sounds listened for).
+- Compass materials URP Lit, lit by the probe volume like the hands.
+  The gem's reading is its emission (never darkened by shadow).
+  Compass.mat has no metallic map (Metallic 0.5, Smoothness 0.4): the
+  Tripo map was ~0.92 metal and metal takes no diffuse light from the
+  probes, so it went black in shadow; the gauntlet is half metal (its
+  metallic slot holds its mid-grey roughness map). Working in play.
+- Lesson: URP Lit turns _EMISSION off whenever the material's GI flags
+  are None (BaseShaderGUI checks AnyEmissive), whatever the colour; an
+  emissive material set from code needs RealtimeEmissive.
+- Guard model at Assets/Art/Models/Guard (mesh and rig, no takes;
+  Guard.mat, 2048 textures); TripoModels/guard_1 deleted. Shoulder
+  straps weighted to the shoulder bone only. Lesson: export with pose
+  bones at the file's stored default pose, not the rest pose.
+- Guard clip per action: patrol idle fidgets every 20s; a search looks
+  about with one sweep of Guard_WideLookAround (coded turns gone);
+  giving up plays a 2s shrug; catching is a dive (Guard_Dive,
+  LevelManager.Caught() 0.7s in, certain from the start); a stun plays
+  a front or back hit, then dizzy (PlayerArrows passes where the shot
+  came from); a sleep dart starts a 10.9s choking collapse
+  (Guard_BeingStrangled), then knocked out with no topple; getting up
+  plays Guard_PushUpToIdle.
+- GuardAnimation: action states cross-faded by name, search-walk blend
+  (Searching), a 12 degree search stoop spread over the spine with arms
+  and head turned back. Guard.controller: Speed, Searching,
+  IsLookingAbout; action states built by script.
+- Head Glance mode (level gaze, glances of 30-60 degrees every 2-5s)
+  for searching on the move; the head is left to the clip during
+  actions and fidgets.
+- GuardFootLock: knee bends only over the toes, each foot fitted to the
+  ground by heel and toe rays (tilt up to 30 degrees), hips lowered up
+  to 0.3m to reach; off in the dive and the collapse.
+- Guard_Walk rebuilt upright from posed bones (body tilt 7.7 -> 0.7
+  degrees); Guard_SearchWalk made from it by script (look-around arm
+  carriage, half swing) - still needs the walk's 2.2 degree hip
+  rebuild. Guard_PushUpToIdle's end lands on the idle's first frame
+  (_Original kept as the unedited source).
+- Lesson: never bend spine muscles to lean a Humanoid clip - RootQ
+  counter-rotates the hips; change a lean by rebuilding from posed
+  bones.
+- Shadow floor baked in on every bake again: ShadowFloor runs on
+  Lightmapping.bakeCompleted, marking each lightmap's importer userData
+  so it is never lifted twice; ProbeVolumeShadowFloor wraps APV's baker
+  (SetLightingBakerOverride, by reflection) and floors the probes in
+  the same bake, so movers match the walls. Lesson: SH evaluation
+  throws on the bake's worker thread; weight tables are measured on the
+  main thread first.
+- Ambience: one SoundPlayer.ambienceVolume; SoundRoom.
+  overrideAmbienceVolume per room; generated street rooms never
+  override. Street bed AmbienceStreets (ambience_loop.ogg, streaming);
+  AmbienceIndoor plays inside_ambience.mp3 (unused yet). Drone and
+  placeholder ambience deleted.
+- StreetNavMesh: foundations Not Walkable, foundation-fitted band boxes
+  (and over-boxes for decks), corner ends cut at the nearer face
+  crossing; recesses walkable (three streets 1273 -> 1314 m2).
+- Ten dressing props (Prefabs/Dressing: basket, bottle, candle sconce,
+  cloth roll, porcelain bowl/jar/jug/vase, sack, wooden chest):
+  grabbable, 1kg, LOD0-2 from Make LOD Meshes, each with its own hand
+  pose; their Tripo materials on URP Lit.
+- Pipe prefabs collide as capsules (pipe radius); collider fixes on
+  the corner pipe, chimney, small extension window and Window D.
+- Player prefab: ToolBurn duration 0.6s.
+- Intro regenerated and rebaked (lightmaps, probe volume, occlusion,
+  NavMesh).
+- Known loose ends: Sound.prefab's outsideAmbience and
+  PlaceholderSounds still point at the deleted ambience assets;
+  inside_ambience.mp3 imports Decompress On Load (long loops stream);
+  GeneratorSettings code defaults for columnDepthMin/Max (0.3/0.8)
+  differ from the asset (0.7/1.41).
+
+
 2026-10-29 (Adaptive Probe Volumes; brightness and gamma settings;
             no shadow floor on bakes; mirrored colliders fixed in 66
             prefabs; Thief VR lighting report)

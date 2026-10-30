@@ -630,7 +630,7 @@ namespace LevelGen
             serialized.FindProperty("priority").intValue = priority;
             serialized.FindProperty("reverb").boxedValue = alley ? ReverbSettings.Alley : ReverbSettings.Outdoors;
             serialized.FindProperty("ambience").objectReferenceValue = settings.SoundStreetAmbience;
-            serialized.FindProperty("ambienceVolume").floatValue = settings.SoundStreetAmbienceVolume;
+            serialized.FindProperty("overrideAmbienceVolume").boolValue = false;
             serialized.ApplyModifiedPropertiesWithoutUndo();
             return room;
         }

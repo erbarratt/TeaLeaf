@@ -208,16 +208,19 @@ MonoBehaviour:
   lookInterval: 0.15
   farLookInterval: 0.5
   suspiciousTime: 3
-  searchLookTime: 2.5
+  searchLookTime: 4
   searchPointCount: 3
   searchRadius: 4
   searchTimeout: 30
+  shrugTime: 2
   alertedSearchScale: 2
   chaseLostTime: 4
   catchRange: 1.1
+  diveCatchDelay: 0.7
   behindDot: 0.2
   bodyLightThreshold: 0.15
   wakeTime: 3
+  collapseTime: 10.9
   surfaceSounds: {fileID: 11400000, guid: a8fea2e1a30a1b74bb32d021c0eb6be9, type: 2}
   standingStepVolume: 0.35
   footstepNoiseScale: 1
@@ -258,6 +261,11 @@ MonoBehaviour:
   - 0.445
   - 0.685
   - 0.95
+  searchWalkBlendTime: 0.3
+  searchStoopAngle: 12
+  fidgetInterval: 20
+  actionFade: 0.25
+  suddenFade: 0.1
 --- !u!114 &1092821135610948165
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -276,15 +284,22 @@ MonoBehaviour:
   rightUpperLeg: {fileID: 0}
   rightLowerLeg: {fileID: 0}
   rightFoot: {fileID: 0}
+  leftToesEnd: {fileID: 0}
+  rightToesEnd: {fileID: 0}
+  hips: {fileID: 0}
   bodyRenderer: {fileID: 0}
   plantHeight: 0.135
   releaseTime: 0.12
   maxSlip: 0.15
   maxDistance: 50
   stepDistance: 0.12
-  stepAngle: 25
+  stepAngle: 20
   stepTime: 0.25
-  stepHeight: 0.08
+  stepHeight: 0.04
+  groundSearch: 0.4
+  maxFootTilt: 30
+  maxHipsDrop: 0.3
+  hipsSmoothing: 0.15
 --- !u!114 &5694401856782067401
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -323,7 +338,8 @@ MonoBehaviour:
   - {fileID: 8506714711930880570}
   - {fileID: 7845284476741548195}
   headHitbox: {fileID: 8905524189738900097}
-  standUpTime: 0.8
+  standUpTime: 0.4
+  getUpHipsAhead: 0.11
   topplePush: 1.5
   neutralStiffness: 20
   neutralDamping: 1
@@ -486,18 +502,6 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 11
       objectReference: {fileID: 0}
-    - target: {fileID: -6859803428536488069, guid: 67fa2a8bb7d4d5e409744f8cc5946fa4, type: 3}
-      propertyPath: m_Mesh
-      value: 
-      objectReference: {fileID: -944668943935152995, guid: 7829c551ddc9db546ba518753b7a0b4f, type: 3}
-    - target: {fileID: -6859803428536488069, guid: 67fa2a8bb7d4d5e409744f8cc5946fa4, type: 3}
-      propertyPath: m_LightProbeUsage
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: -6859803428536488069, guid: 67fa2a8bb7d4d5e409744f8cc5946fa4, type: 3}
-      propertyPath: m_SkinnedMotionVectors
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: -6820113652099167557, guid: 67fa2a8bb7d4d5e409744f8cc5946fa4, type: 3}
       propertyPath: m_Layer
       value: 11
@@ -523,10 +527,6 @@ PrefabInstance:
       value: 11
       objectReference: {fileID: 0}
     - target: {fileID: -5831001968134529161, guid: 67fa2a8bb7d4d5e409744f8cc5946fa4, type: 3}
-      propertyPath: m_Layer
-      value: 11
-      objectReference: {fileID: 0}
-    - target: {fileID: -5306513761786522520, guid: 67fa2a8bb7d4d5e409744f8cc5946fa4, type: 3}
       propertyPath: m_Layer
       value: 11
       objectReference: {fileID: 0}
@@ -598,6 +598,10 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 11
       objectReference: {fileID: 0}
+    - target: {fileID: 635547659545568360, guid: 67fa2a8bb7d4d5e409744f8cc5946fa4, type: 3}
+      propertyPath: m_Layer
+      value: 11
+      objectReference: {fileID: 0}
     - target: {fileID: 759032077506631019, guid: 67fa2a8bb7d4d5e409744f8cc5946fa4, type: 3}
       propertyPath: m_Layer
       value: 15
@@ -625,6 +629,14 @@ PrefabInstance:
     - target: {fileID: 1421693404573637559, guid: 67fa2a8bb7d4d5e409744f8cc5946fa4, type: 3}
       propertyPath: m_Layer
       value: 11
+      objectReference: {fileID: 0}
+    - target: {fileID: 1630794972795428178, guid: 67fa2a8bb7d4d5e409744f8cc5946fa4, type: 3}
+      propertyPath: m_LightProbeUsage
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1630794972795428178, guid: 67fa2a8bb7d4d5e409744f8cc5946fa4, type: 3}
+      propertyPath: m_SkinnedMotionVectors
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2454007031732215100, guid: 67fa2a8bb7d4d5e409744f8cc5946fa4, type: 3}
       propertyPath: m_Layer

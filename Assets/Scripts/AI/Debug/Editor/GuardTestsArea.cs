@@ -29,7 +29,7 @@ namespace AI
     {
         private const string RootName = "Guard Tests";
         private const string ClipFolder = "Assets/Art/Animations/Guard";
-        private const string ModelPath = "Assets/TripoModels/guard_1/guard_1.fbx";
+        private const string ModelPath = "Assets/Art/Models/Guard/Guard.fbx";
         private const string EnvironmentLayerName = "Environment";
 
         // How far ahead of the camera the near edge of the floor is.

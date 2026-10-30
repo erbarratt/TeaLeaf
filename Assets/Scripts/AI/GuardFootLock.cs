@@ -39,15 +39,32 @@ namespace AI
     /// the agent has moved the root, and only while the model is drawn
     /// and near the camera: with CullUpdateTransforms the Animator
     /// doesn't pose an unseen model, and bending its legs again would
-    /// add up frame on frame. Off while the guard is stunned or knocked
-    /// out (those clips aren't stepping). The foot keeps its animated
-    /// rotation; no rays, so the foot isn't fitted to slopes or steps.
+    /// add up frame on frame. Off while the guard is knocked out or
+    /// GuardAnimation plays an action (a stun, the dive, the collapse):
+    /// those clips place the feet themselves.
+    ///
+    /// The clips are drawn on flat ground at the root's height, so each
+    /// time a foot plants (or a standing step sets off) two rays look
+    /// down for the ground: one under the ankle, which sits over the
+    /// heel, and one under the toe tip. The foot is moved up or down to
+    /// the ground under the heel and tilted to its slope there; if the
+    /// toes would still be under the ground under them (heel in the road,
+    /// toes on a kerb) they are tipped up onto it, and whatever a tilt of
+    /// maxFootTilt can't reach lifts the whole foot. The tilt is laid over
+    /// the animated rotation, so the foot keeps the clip's own roll from
+    /// heel to toe. A foot whose ground is below the root couldn't reach
+    /// it with a straight leg, so the hips are lowered by the lower
+    /// foot's drop (eased over hipsSmoothing). Rays only when a foot
+    /// plants, never per frame: a planted foot doesn't move. A foot in
+    /// the air follows the animation, and stairs are fitted as their
+    /// ramp collider (no collider follows the steps).
     ///
     /// Gizmo (also in the headset): a ball where each locked foot is
     /// held, green while planted, yellow while the lock fades out and
     /// orange while stepping, with a line to where the animation put the
     /// foot - the length of that line is the slide the lock is taking
-    /// out. Standing, a small cyan ball marks each foot's home.
+    /// out. Standing, a small cyan ball marks each foot's home. Magenta
+    /// dots: where each foot's last heel and toe rays found the ground.
     /// </summary>
     [RequireComponent(typeof(Guard))]
     [RequireComponent(typeof(NavMeshAgent))]
@@ -67,10 +84,16 @@ namespace AI
         [SerializeField] private Transform rightLowerLeg;
         [Tooltip("Right foot bone (the ankle): the point held still while planted. Left empty, the Humanoid rig's right foot is found; with none, foot locking logs an error and switches off.")]
         [SerializeField] private Transform rightFoot;
+        [Tooltip("Tip of the left toes, where the left foot's toe ray looks down for the ground. Left empty, the end bone under the Humanoid rig's left toes is found; with none, foot locking logs an error and switches off.")]
+        [SerializeField] private Transform leftToesEnd;
+        [Tooltip("Tip of the right toes, where the right foot's toe ray looks down for the ground. Left empty, the end bone under the Humanoid rig's right toes is found; with none, foot locking logs an error and switches off.")]
+        [SerializeField] private Transform rightToesEnd;
+        [Tooltip("Hips bone, lowered so a foot on ground below the root can reach it. Left empty, the Humanoid rig's hips are found; with none, foot locking logs an error and switches off.")]
+        [SerializeField] private Transform hips;
 
         // The model's skinned mesh: the lock only runs while it is drawn.
         // Found in the children if not assigned.
-        [Tooltip("The model's skinned mesh, e.g. the guard_1 SkinnedMeshRenderer: feet are locked only while it is drawn (a culled model isn't re-posed). Left empty, it is found in the children; with none, foot locking logs an error and switches off.")]
+        [Tooltip("The model's skinned mesh, e.g. the guard model's Body SkinnedMeshRenderer: feet are locked only while it is drawn (a culled model isn't re-posed). Left empty, it is found in the children; with none, foot locking logs an error and switches off.")]
         [SerializeField] private Renderer bodyRenderer;
 
         // An animated ankle lower than this above the root is planted.
@@ -106,11 +129,40 @@ namespace AI
         [Tooltip("How high the ankle lifts at the middle of a standing step, in metres. e.g. 0.08 = a low shuffle. Higher = a more marked step; 0 = the foot slides along the ground.")]
         [SerializeField] private float stepHeight = 0.08f;
 
+        // Ground fitting: how far above and below the root the heel and
+        // toe rays look, the most a foot is tilted, and how far and how
+        // smoothly the hips go down to let a foot reach lower ground.
+        [Tooltip("How far above and below the root, in metres, a foot's heel and toe rays look for the ground. e.g. 0.4 = the NavMesh's step height. Higher = fits taller kerbs and steeper ground (a foot may climb onto a ledge it is beside); lower = more feet left at the root's height.")]
+        [SerializeField] private float groundSearch = 0.4f;
+        [Tooltip("The most a foot is tilted to fit the ground, in degrees; what this can't reach lifts the foot instead. e.g. 30 = steep street slopes. Higher = feet follow steeper ground (ankles bend further); lower = flatter feet, more lifted toes or heels.")]
+        [SerializeField] private float maxFootTilt = 30f;
+        [Tooltip("The most the hips are lowered, in metres, so a foot on ground below the root can reach it. e.g. 0.3 = a kerb or a steep slope. Higher = longer drops reached (the body sinks further); 0 = never lowered (a foot below the root floats on a straight leg).")]
+        [SerializeField] private float maxHipsDrop = 0.3f;
+        [Tooltip("Seconds the hips take to ease most of the way to a new height. e.g. 0.15 = settles within a step. Higher = smoother but feet may float or a knee overbend for a moment; lower = the body bobs with each plant.")]
+        [SerializeField] private float hipsSmoothing = 0.15f;
+
         private class Leg
         {
             public Transform Upper;
             public Transform Lower;
             public Transform Foot;
+            public Transform ToesEnd;
+            // Ankle to toe tip in the foot bone's rotation frame (fixed by
+            // the rig): turned by the foot's held rotation, it says which
+            // way the toes point, and so the knee.
+            public Vector3 ToeDirection;
+            // The ground under the foot from its last plant: how far up
+            // from the clip's ankle height (ground at the root) the ankle
+            // goes, and the tilt laid over its animated rotation. Kept
+            // while the foot is in the air, for the hips.
+            public float GroundOffset;
+            public Quaternion GroundTilt = Quaternion.identity;
+            // Where the last heel and toe rays met the ground, for the
+            // gizmo.
+            public Vector3 HeelGround;
+            public Vector3 ToeGround;
+            public bool HasHeelGround;
+            public bool HasToeGround;
             // Where the foot is held, in world space.
             public Vector3 LockPosition;
             // Standing only: the foot's held rotation (walking, a held
@@ -133,18 +185,20 @@ namespace AI
             public bool CanPlant = true;
         }
 
-        // How far forwards (m) the knee is pushed when finding the plane it
-        // bends in: well above a straight leg's wobble, well below a bent
-        // knee's 5-20cm.
-        private const float KneeForwardBias = 0.02f;
-
         private static readonly Color _plantedColor = new(0.2f, 1f, 0.3f, 1f);
         private static readonly Color _releasingColor = new(1f, 0.9f, 0.2f, 1f);
         private static readonly Color _steppingColor = new(1f, 0.5f, 0.1f, 1f);
         private static readonly Color _homeColor = new(0.2f, 0.9f, 1f, 1f);
+        private static readonly Color _groundColor = new(1f, 0.3f, 1f, 1f);
+
+        // What the heel and toe rays stand a foot on (as GuardShadow's
+        // floor rays): the guard's own capsule and hit boxes aren't in it.
+        private static int _groundLayers;
 
         private Guard _guard;
         private NavMeshAgent _agent;
+        // Optional: without it, only the guard's state turns the lock off.
+        private GuardAnimation _animation;
         private Leg _left;
         private Leg _right;
         private Transform _camera;
@@ -158,11 +212,14 @@ namespace AI
         // When the last standing step sounded, seen or unseen: no two
         // come closer than stepTime, as a stepped foot can't.
         private float _lastStandingStepTime = float.NegativeInfinity;
+        // How far the hips are lowered this frame (0 or below).
+        private float _hipsOffset;
 
         private void Awake()
         {
             _guard = GetComponent<Guard>();
             _agent = GetComponent<NavMeshAgent>();
+            _animation = GetComponent<GuardAnimation>();
 
             if (leftUpperLeg == null) leftUpperLeg = FindBone(HumanBodyBones.LeftUpperLeg);
             if (leftLowerLeg == null) leftLowerLeg = FindBone(HumanBodyBones.LeftLowerLeg);
@@ -170,6 +227,9 @@ namespace AI
             if (rightUpperLeg == null) rightUpperLeg = FindBone(HumanBodyBones.RightUpperLeg);
             if (rightLowerLeg == null) rightLowerLeg = FindBone(HumanBodyBones.RightLowerLeg);
             if (rightFoot == null) rightFoot = FindBone(HumanBodyBones.RightFoot);
+            if (leftToesEnd == null) leftToesEnd = FindToesEnd(HumanBodyBones.LeftToes);
+            if (rightToesEnd == null) rightToesEnd = FindToesEnd(HumanBodyBones.RightToes);
+            if (hips == null) hips = FindBone(HumanBodyBones.Hips);
 
             if (bodyRenderer == null) {
                 bodyRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
@@ -177,6 +237,7 @@ namespace AI
 
             _isValid = leftUpperLeg != null && leftLowerLeg != null && leftFoot != null
                 && rightUpperLeg != null && rightLowerLeg != null && rightFoot != null
+                && leftToesEnd != null && rightToesEnd != null && hips != null
                 && bodyRenderer != null;
 
             if (!_isValid) {
@@ -185,8 +246,14 @@ namespace AI
                 return;
             }
 
-            _left = new Leg { Upper = leftUpperLeg, Lower = leftLowerLeg, Foot = leftFoot };
-            _right = new Leg { Upper = rightUpperLeg, Lower = rightLowerLeg, Foot = rightFoot };
+            if (_groundLayers == 0) {
+                _groundLayers = LayerMask.GetMask("Environment", "Interactable");
+            }
+
+            _left = new Leg { Upper = leftUpperLeg, Lower = leftLowerLeg, Foot = leftFoot, ToesEnd = leftToesEnd };
+            _right = new Leg { Upper = rightUpperLeg, Lower = rightLowerLeg, Foot = rightFoot, ToesEnd = rightToesEnd };
+            _left.ToeDirection = Quaternion.Inverse(leftFoot.rotation) * (leftToesEnd.position - leftFoot.position);
+            _right.ToeDirection = Quaternion.Inverse(rightFoot.rotation) * (rightToesEnd.position - rightFoot.position);
         }
 
         private void OnEnable()
@@ -202,16 +269,21 @@ namespace AI
         private void LateUpdate()
         {
             if (!IsActive()) {
-                // Nothing held across a spell unseen, stunned or down.
+                // Nothing held across a spell unseen, in an action or down.
                 Clear(_left);
                 Clear(_right);
                 _isStanding = false;
+                _hipsOffset = 0f;
                 TickUnseenStandingSteps();
                 return;
             }
 
             _unseenYaw = transform.eulerAngles.y;
             _unseenTurned = 0f;
+
+            // Hips first, so every foot below is posed from the lowered
+            // body (the ground offsets are last plant's: a frame late).
+            LowerHips(Time.deltaTime);
 
             bool isStanding = IsStanding();
 
@@ -244,7 +316,7 @@ namespace AI
         /// (each steps when it is stepAngle out, alternately), but never
         /// more often than once each stepTime: a fast turn (720°/s goes
         /// through half stepAngle in under two frames) would otherwise
-        /// sound a step nearly every frame. Nothing while stunned or down.
+        /// sound a step nearly every frame. Nothing in an action or down.
         /// </summary>
         private void TickUnseenStandingSteps()
         {
@@ -252,9 +324,7 @@ namespace AI
             float turned = Mathf.Abs(Mathf.DeltaAngle(_unseenYaw, yaw));
             _unseenYaw = yaw;
 
-            GuardState state = _guard.State;
-
-            if (state == GuardState.Stunned || state == GuardState.KnockedOut || !IsStanding()) {
+            if (IsOffFeet() || !IsStanding()) {
                 _unseenTurned = 0f;
                 return;
             }
@@ -291,17 +361,22 @@ namespace AI
 
         /// <summary>
         /// Coming to a stand: a foot already held stays where it is, now
-        /// holding its angle too; one that isn't is held where it is drawn
-        /// (a step corrects it if that is far from home).
+        /// holding its angle too; one that isn't is held where it is drawn,
+        /// on the ground there (a step corrects it if that is far from
+        /// home).
         /// </summary>
-        private static void StartStanding(Leg leg)
+        private void StartStanding(Leg leg)
         {
             if (!leg.IsPlanted) {
-                leg.LockPosition = Vector3.Lerp(leg.Foot.position, leg.LockPosition, leg.Weight);
+                Vector3 drawn = leg.Foot.position - Vector3.up * _hipsOffset;
+                FitGround(leg, drawn, leg.ToesEnd.position - Vector3.up * _hipsOffset, out float offset, out Quaternion tilt);
+                leg.LockPosition = Vector3.Lerp(drawn + Vector3.up * offset, leg.LockPosition, leg.Weight);
+                leg.GroundOffset = Mathf.Lerp(offset, leg.GroundOffset, leg.Weight);
+                leg.GroundTilt = Quaternion.Slerp(tilt, leg.GroundTilt, leg.Weight);
                 leg.IsPlanted = true;
             }
 
-            leg.LockRotation = leg.Foot.rotation;
+            leg.LockRotation = leg.GroundTilt * leg.Foot.rotation;
             leg.Weight = 1f;
             leg.IsStepping = false;
         }
@@ -349,27 +424,36 @@ namespace AI
         /// <summary>
         /// How far a held foot is from its home (where the animation draws
         /// it) as a share of what makes it step: over 1 = time to step.
-        /// Whichever is further out, distance along the ground or angle.
+        /// Whichever is further out, distance along the ground or angle
+        /// (measured with the held foot's ground tilt, so a slope alone
+        /// doesn't count).
         /// </summary>
         private float HowFarOut(Leg leg)
         {
             Vector3 offset = leg.AnimatedPosition - leg.LockPosition;
             offset.y = 0f;
             float distance = offset.magnitude / stepDistance;
-            float angle = Quaternion.Angle(leg.LockRotation, leg.Foot.rotation) / stepAngle;
+            float angle = Quaternion.Angle(leg.LockRotation, leg.GroundTilt * leg.Foot.rotation) / stepAngle;
             return Mathf.Max(distance, angle);
         }
 
         /// <summary>
-        /// Lifts a held foot to step it home.
+        /// Lifts a held foot to step it home, finding the ground there as
+        /// the step sets off (home moves on a little as the body turns; the
+        /// ground under it is taken to be the same).
         /// </summary>
-        private static void BeginStep(Leg leg)
+        private void BeginStep(Leg leg)
         {
             leg.IsStepping = true;
             leg.IsPlanted = false;
             leg.StepProgress = 0f;
             leg.StepFromPosition = leg.LockPosition;
             leg.StepFromRotation = leg.LockRotation;
+
+            FitGround(leg, leg.AnimatedPosition - Vector3.up * _hipsOffset,
+                leg.ToesEnd.position - Vector3.up * _hipsOffset, out float offset, out Quaternion tilt);
+            leg.GroundOffset = offset;
+            leg.GroundTilt = tilt;
         }
 
         /// <summary>
@@ -380,8 +464,11 @@ namespace AI
         /// </summary>
         private void PoseStanding(Leg leg, float deltaTime)
         {
-            Vector3 home = leg.AnimatedPosition;
-            Quaternion homeRotation = leg.Foot.rotation;
+            // Home on the ground found as the step set off: the drawn foot
+            // (from the lowered body) taken back up by the hips' drop, then
+            // moved to that ground and tilted to it.
+            Vector3 home = leg.AnimatedPosition + Vector3.up * (leg.GroundOffset - _hipsOffset);
+            Quaternion homeRotation = leg.GroundTilt * leg.Foot.rotation;
             Vector3 target = leg.LockPosition;
             Quaternion rotation = leg.LockRotation;
 
@@ -405,8 +492,23 @@ namespace AI
             }
 
             leg.DrawnPosition = target;
-            SolveTwoBone(leg.Upper, leg.Lower, leg.Foot, target);
+            SolveTwoBone(leg.Upper, leg.Lower, leg.Foot, target, rotation * leg.ToeDirection);
             leg.Foot.rotation = rotation;
+        }
+
+        /// <summary>
+        /// Whether the clip, not stepping, has the feet: stunned, knocked
+        /// out (limp or getting up), or GuardAnimation playing an action
+        /// (the dive, the collapse). Looking about at a search place keeps
+        /// the feet: the wide look-around swings the body round over them,
+        /// so they are held and stepped as in any other turn on the spot.
+        /// </summary>
+        private bool IsOffFeet()
+        {
+            GuardState state = _guard.State;
+
+            return state == GuardState.Stunned || state == GuardState.KnockedOut
+                || (_animation != null && _animation.IsPlayingAction);
         }
 
         /// <summary>
@@ -415,13 +517,7 @@ namespace AI
         /// </summary>
         private bool IsActive()
         {
-            if (!bodyRenderer.isVisible) {
-                return false;
-            }
-
-            GuardState state = _guard.State;
-
-            if (state == GuardState.Stunned || state == GuardState.KnockedOut) {
+            if (!bodyRenderer.isVisible || IsOffFeet()) {
                 return false;
             }
 
@@ -446,16 +542,22 @@ namespace AI
         {
             Vector3 animated = leg.Foot.position;
             leg.AnimatedPosition = animated;
-            bool isDown = animated.y - transform.position.y < plantHeight;
+            // Where the clip draws the ankle, before the hips were lowered:
+            // its height over the root says whether it's down.
+            Vector3 drawn = animated - Vector3.up * _hipsOffset;
+            bool isDown = drawn.y - transform.position.y < plantHeight;
 
             if (!isDown) {
                 leg.CanPlant = true;
             }
 
             if (isDown && leg.CanPlant && !leg.IsPlanted) {
-                // Lock where the foot is drawn now: the animated position,
-                // or part way back from a lock still fading out.
-                leg.LockPosition = Vector3.Lerp(animated, leg.LockPosition, leg.Weight);
+                // Lock where the foot is drawn now, moved onto the ground
+                // under it - or part way back from a lock still fading out.
+                FitGround(leg, drawn, leg.ToesEnd.position - Vector3.up * _hipsOffset, out float offset, out Quaternion tilt);
+                leg.LockPosition = Vector3.Lerp(drawn + Vector3.up * offset, leg.LockPosition, leg.Weight);
+                leg.GroundOffset = Mathf.Lerp(offset, leg.GroundOffset, leg.Weight);
+                leg.GroundTilt = Quaternion.Slerp(tilt, leg.GroundTilt, leg.Weight);
                 leg.Weight = 1f;
                 leg.IsPlanted = true;
             } else if (leg.IsPlanted && !isDown) {
@@ -481,14 +583,15 @@ namespace AI
             }
 
             Vector3 target = Vector3.Lerp(animated, leg.LockPosition, leg.Weight);
-            Quaternion footRotation = leg.Foot.rotation;
-            SolveTwoBone(leg.Upper, leg.Lower, leg.Foot, target);
-            // The foot keeps the angle the animation gave it.
+            // The foot keeps the angle the animation gave it, tilted to the
+            // ground as far as it is locked.
+            Quaternion footRotation = Quaternion.Slerp(Quaternion.identity, leg.GroundTilt, leg.Weight) * leg.Foot.rotation;
+            SolveTwoBone(leg.Upper, leg.Lower, leg.Foot, target, footRotation * leg.ToeDirection);
             leg.Foot.rotation = footRotation;
         }
 
         /// <summary>
-        /// Forgets a foot's lock.
+        /// Forgets a foot's lock and the ground under it.
         /// </summary>
         private static void Clear(Leg leg)
         {
@@ -496,18 +599,136 @@ namespace AI
             leg.CanPlant = true;
             leg.IsStepping = false;
             leg.Weight = 0f;
+            leg.GroundOffset = 0f;
+            leg.GroundTilt = Quaternion.identity;
+            leg.HasHeelGround = false;
+            leg.HasToeGround = false;
+        }
+
+        /// <summary>
+        /// Lowers the hips by the lower foot's ground below the root (up to
+        /// maxHipsDrop), eased: a foot on lower ground couldn't otherwise
+        /// reach it, the leg drawn nearly straight as it plants. Never
+        /// raised: a foot on higher ground just bends its knee. The
+        /// Animator rewrites the hips each frame, so this never adds up.
+        /// </summary>
+        private void LowerHips(float deltaTime)
+        {
+            float wanted = Mathf.Clamp(Mathf.Min(_left.GroundOffset, _right.GroundOffset), -maxHipsDrop, 0f);
+            float ease = hipsSmoothing > 0f ? 1f - Mathf.Exp(-deltaTime / hipsSmoothing) : 1f;
+            _hipsOffset = Mathf.Lerp(_hipsOffset, wanted, ease);
+            hips.position += Vector3.up * _hipsOffset;
+        }
+
+        /// <summary>
+        /// Finds the ground under a foot drawn at ankle (toe tip at toe),
+        /// both as the clip draws them over flat ground at the root's
+        /// height: how far up the ankle moves (offset) and the tilt to lay
+        /// over the foot's animated rotation. The ankle goes onto the
+        /// ground under the heel (the ankle sits over it) and the foot
+        /// tilts to that ground's slope; if the toes would then be under
+        /// the ground under them they tip up onto it, and whatever
+        /// maxFootTilt leaves lifts the foot. No ground under the heel: the
+        /// foot stays as drawn.
+        /// </summary>
+        private void FitGround(Leg leg, Vector3 ankle, Vector3 toe, out float offset, out Quaternion tilt)
+        {
+            float rootHeight = transform.position.y;
+            offset = 0f;
+            tilt = Quaternion.identity;
+            leg.HasToeGround = false;
+            leg.HasHeelGround = CastDown(ankle, rootHeight, out RaycastHit heelHit);
+
+            if (!leg.HasHeelGround) {
+                return;
+            }
+
+            leg.HeelGround = heelHit.point;
+            offset = heelHit.point.y - rootHeight;
+            tilt = Quaternion.RotateTowards(Quaternion.identity,
+                Quaternion.FromToRotation(Vector3.up, heelHit.normal), maxFootTilt);
+
+            leg.HasToeGround = CastDown(toe, rootHeight, out RaycastHit toeHit);
+
+            if (!leg.HasToeGround) {
+                return;
+            }
+
+            leg.ToeGround = toeHit.point;
+            // How far the toe tip, tilted with the foot, is under where it
+            // should be: its drawn height over the ground under it.
+            Vector3 toeOffset = tilt * (toe - ankle);
+            float wantedHeight = toe.y + (toeHit.point.y - rootHeight);
+            float sunk = wantedHeight - (ankle.y + offset + toeOffset.y);
+
+            if (sunk <= 0f) {
+                return;
+            }
+
+            // Tip the toes up about the foot's side, as far as the tilt
+            // left allows (about forward x up: positive raises the toes).
+            Vector3 along = new Vector3(toeOffset.x, 0f, toeOffset.z);
+            float length = along.magnitude;
+
+            if (length > 0.01f) {
+                float tiltLeft = Mathf.Max(0f, maxFootTilt - Quaternion.Angle(Quaternion.identity, tilt));
+                float pitch = Mathf.Min(Mathf.Asin(Mathf.Clamp01(sunk / length)) * Mathf.Rad2Deg, tiltLeft);
+                Quaternion raise = Quaternion.AngleAxis(pitch, Vector3.Cross(along / length, Vector3.up));
+                tilt = raise * tilt;
+                sunk = wantedHeight - (ankle.y + offset + (raise * toeOffset).y);
+            }
+
+            if (sunk > 0f) {
+                offset += sunk;
+            }
+        }
+
+        /// <summary>
+        /// A ray straight down through point, from groundSearch above the
+        /// root to groundSearch below it, onto the ground layers.
+        /// </summary>
+        private bool CastDown(Vector3 point, float rootHeight, out RaycastHit hit)
+        {
+            Vector3 origin = new Vector3(point.x, rootHeight + groundSearch, point.z);
+            return Physics.Raycast(origin, Vector3.down, out hit, groundSearch * 2f, _groundLayers, QueryTriggerInteraction.Ignore);
         }
 
         /// <summary>
         /// Two-bone IK: turns the thigh and the shin so the ankle reaches
-        /// target (or as near as a straight leg gets), keeping the knee
-        /// bending the way the animation bent it.
+        /// target (or as near as a straight leg gets), the knee bending
+        /// only towards the toes (toeDirection, ankle to toe tip of the
+        /// foot as it will be held).
         /// </summary>
-        private void SolveTwoBone(Transform upper, Transform lower, Transform end, Vector3 target)
+        private void SolveTwoBone(Transform upper, Transform lower, Transform end, Vector3 target, Vector3 toeDirection)
         {
             Vector3 a = upper.position;
-            Vector3 b = lower.position;
             Vector3 c = end.position;
+            Vector3 line = (c - a).normalized;
+
+            // The way the knee may point: the toes' direction, square to
+            // the hip-ankle line (a knee goes out over its toes). The
+            // animated knee points where the clip's body faces; with a
+            // foot held while the body turns over it (looking about, a turn
+            // on the spot) that can be well off the toes, and bent that way
+            // the legs bow out. So the thigh is first turned about the
+            // hip-ankle line - the ankle stays put - until the knee lies
+            // over the toes; a straight leg (no knee offset to measure)
+            // just bends that way below.
+            Vector3 kneeForward = toeDirection - Vector3.Dot(toeDirection, line) * line;
+
+            if (kneeForward.sqrMagnitude < 1e-8f) {
+                kneeForward = transform.forward - Vector3.Dot(transform.forward, line) * line;
+            }
+
+            kneeForward.Normalize();
+            Vector3 kneeNow = (lower.position - a) - Vector3.Dot(lower.position - a, line) * line;
+
+            if (kneeNow.sqrMagnitude > 1e-8f) {
+                float twist = Vector3.SignedAngle(kneeNow, kneeForward, line);
+                upper.rotation = Quaternion.AngleAxis(twist, line) * upper.rotation;
+            }
+
+            Vector3 b = lower.position;
 
             float lengthAB = (b - a).magnitude;
             float lengthBC = (c - b).magnitude;
@@ -525,23 +746,13 @@ namespace AI
                 (lengthAB * lengthAB + lengthBC * lengthBC - lengthAT * lengthAT) / (2f * lengthAB * lengthBC), -1f, 1f));
 
             // The axis the knee bends about: across the plane of the hip,
-            // the ankle and the knee pushed a little forwards. The walk
-            // straightens a leg fully at the back of its stride, where the
-            // animated knee wobbles either side of the hip-ankle line by a
-            // fraction of a millimetre; its plane alone would then flip
-            // frame to frame and the knee bend one way, then the other.
-            // The forward push keeps a straight leg bending forwards and
-            // barely moves the plane of a bent one.
-            Vector3 line = (c - a).normalized;
-            Vector3 knee = (b - a) - Vector3.Dot(b - a, line) * line;
-            Vector3 forward = transform.forward - Vector3.Dot(transform.forward, line) * line;
-            Vector3 bendAxis = Vector3.Cross(line, knee + forward * KneeForwardBias);
-
-            if (bendAxis.sqrMagnitude < 1e-8f) {
-                bendAxis = -transform.right;
-            }
-
-            bendAxis.Normalize();
+            // the ankle and the toes' way. Fixed by the toes, not the
+            // animated knee, so it never flips: the walk straightens a leg
+            // fully at the back of its stride, where the animated knee
+            // wobbles either side of the hip-ankle line by a fraction of a
+            // millimetre, and its plane alone would bend the knee one way,
+            // then the other.
+            Vector3 bendAxis = Vector3.Cross(line, kneeForward).normalized;
 
             // Open or close the knee and turn the thigh to match, which
             // leaves the ankle on the same line from the hip...
@@ -587,6 +798,16 @@ namespace AI
         /// </summary>
         private static void DrawLeg(DebugLines lines, Leg leg, bool isStanding)
         {
+            lines.Color = _groundColor;
+
+            if (leg.HasHeelGround) {
+                lines.WireSphere(leg.HeelGround, 0.015f);
+            }
+
+            if (leg.HasToeGround) {
+                lines.WireSphere(leg.ToeGround, 0.015f);
+            }
+
             if (leg.Weight <= 0f) {
                 return;
             }
@@ -617,6 +838,22 @@ namespace AI
         {
             Animator animator = GetComponentInChildren<Animator>(true);
             return animator != null && animator.isHuman ? animator.GetBoneTransform(bone) : null;
+        }
+
+        /// <summary>
+        /// Finds the tip of the toes: the end bone under the Humanoid toe
+        /// bone (a rig has no Humanoid bone for it), or the toe bone itself
+        /// if it has no child.
+        /// </summary>
+        private Transform FindToesEnd(HumanBodyBones toes)
+        {
+            Transform toeBone = FindBone(toes);
+
+            if (toeBone == null) {
+                return null;
+            }
+
+            return toeBone.childCount > 0 ? toeBone.GetChild(0) : toeBone;
         }
     }
 }

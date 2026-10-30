@@ -1287,6 +1287,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5be591f4c207729419e60e74bc70c69f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Core.DisplayGamma
+  brightness: 0
   gamma: 0
 --- !u!1 &4700870229423308722
 GameObject:
@@ -1799,22 +1800,9 @@ MonoBehaviour:
   playerInput: {fileID: 5600711039981055178}
   playerHandVisuals: {fileID: 771281869691341920}
   playerVisibility: {fileID: 4833070662170678539}
-  onHandPosition: {x: -0.072, y: -0.037, z: 0}
-  onHandTilt: -27
-  northAngle: 0
-  radius: 0.05
-  thickness: 0.01
-  dialSize: 0.88
-  gemSize: 0.3
-  markSize: 0.14
-  northMarkScale: 1.6
-  rimColor: {r: 0.45, g: 0.36, b: 0.2, a: 1}
-  dialColor: {r: 0.85, g: 0.82, b: 0.72, a: 1}
-  markColor: {r: 0.2, g: 0.2, b: 0.22, a: 1}
-  northColor: {r: 0.85, g: 0.15, b: 0.1, a: 1}
-  minLight: 0.5
-  gemDarkColor: {r: 0.05, g: 0.07, b: 0.12, a: 1}
-  gemLightColor: {r: 1, g: 0.95, b: 0.6, a: 1}
+  wornProfile: {fileID: 11400000, guid: 393d938cd2decef4c87ec5f4e78dcaa1, type: 2}
+  compassPrefab: {fileID: 4951295034163938076, guid: 0842d859cd7dd0f48b57d1c5d0c5d2ff, type: 3}
+  showSoundArrows: 0
   arrowCount: 4
   arrowHoldTime: 0.5
   arrowFadeTime: 2
@@ -1823,6 +1811,7 @@ MonoBehaviour:
   minLoudness: 0.02
   arrowGap: 0.006
   sameSourceDistance: 1.5
+  arrowDepth: 0.004
   arrowColor: {r: 1, g: 1, b: 1, a: 1}
 --- !u!114 &6389147404194598813
 MonoBehaviour:
@@ -1972,7 +1961,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7bbc82d3f9269e64e88c0e8dce107160, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player.ToolBurn
-  duration: 0.2
+  duration: 0.6
   noiseScale: 12
   charWidth: 0.12
   glowWidth: 0.04
@@ -2957,7 +2946,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7737888782647312783}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5918bc38b794bf347a78ec6c57ab3456, type: 3}
   m_Name: 

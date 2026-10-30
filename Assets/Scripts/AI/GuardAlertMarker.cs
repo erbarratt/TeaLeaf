@@ -163,7 +163,9 @@ namespace AI
                 _isDetected = false;
             }
 
-            if (state == GuardState.Search) {
+            // Full through a search, but not while shrugging it off: the
+            // meters are emptied then, and the mark drains away.
+            if (state == GuardState.Search && !_guard.IsShrugging) {
                 _questionFill = 1f;
                 _isQuestionRed = false;
             } else if (state != GuardState.KnockedOut) {

@@ -1316,7 +1316,7 @@ namespace Player
 
             // The ray found the hit box of the limb it really hit.
             if (kind == BoltType.Stun && guard.IsHead(hitbox)) {
-                guard.Stun(stunTime);
+                guard.Stun(stunTime, _arrowStarts[index]);
             } else {
                 guard.HitByBolt(_arrowStarts[index]);
             }

@@ -440,10 +440,10 @@ namespace LevelGen
         [SerializeField, Range(0f, 1f)] private float soundSkyMuffle = 0.3f;
         [Tooltip("A street room reaches at least this many metres above the highest its street comes, whatever the eaves along it, e.g. 3 = at least 3m tall. Higher = taller rooms.")]
         [SerializeField, Range(2f, 10f)] private float soundRoomMinHeight = 3f;
-        [Tooltip("The background loop heard in every generated street room (the cue's first clip), e.g. the placeholder outdoor wind cue. Left empty, the streets are silent.")]
+        // Street rooms play it at the Sound Player's Ambience Volume (no
+        // override), so one number sets every street's loudness.
+        [Tooltip("The background loop heard in every generated street room (the cue's first clip), played at the Sound Player's Ambience Volume, e.g. the AmbienceStreets cue (ambience_loop.ogg). Left empty, the streets are silent.")]
         [SerializeField] private Core.SoundCue soundStreetAmbience;
-        [Tooltip("The volume, 0-1, of the street rooms' background loop (Sound Street Ambience), e.g. 0.5 = half volume. Higher = louder; 0 = silent.")]
-        [SerializeField, Range(0f, 1f)] private float soundStreetAmbienceVolume = 1f;
 
         [Header("Decking (wooden streets, walkways, bridges)")]
         [Tooltip("How far, in metres, neighbouring decking tiles overlap, along a row and between rows, e.g. 0.03 = 3cm. Higher = more overlap; 0 = edge to edge, cracks may show.")]
@@ -642,7 +642,6 @@ namespace LevelGen
         internal float SoundSkyMuffle => soundSkyMuffle;
         internal float SoundRoomMinHeight => soundRoomMinHeight;
         internal Core.SoundCue SoundStreetAmbience => soundStreetAmbience;
-        internal float SoundStreetAmbienceVolume => soundStreetAmbienceVolume;
         internal float DeckingOverlap => deckingOverlap;
         internal bool DeckingQuarterTurn => deckingQuarterTurn;
         internal float DeckingSlideMin => deckingSlideMin;

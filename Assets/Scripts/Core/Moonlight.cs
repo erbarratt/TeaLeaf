@@ -30,11 +30,12 @@ namespace Core
 
         // The least light any baked surface receives, so deep shadow keeps
         // its detail: a linear light level (not a pixel value - the surface's
-        // own colour still multiplies it), in the moon's blue-grey. Applied
-        // to the lightmaps (and any legacy light probes) only when the
-        // editor's ShadowFloor is run from its menu, which reads it from
-        // here; the rendered look only, the gameplay light above is unaffected.
-        [Tooltip("The least light a baked surface gets when TeaLeaf > Lighting > Apply Shadow Floor is run by hand (linear, before the surface's colour), e.g. (0.045, 0.05, 0.06) = deep shadow stays a faint moon blue-grey instead of black. Never applied by itself after a bake; brighter lifts the darkest shade, black turns it off. Rendered look only, not gameplay light.")]
+        // own colour still multiplies it), in the moon's blue-grey. Baked in
+        // by the editor on every lighting bake - lightmaps (ShadowFloor) and
+        // Adaptive Probe Volumes (ProbeVolumeShadowFloor) alike, so movers
+        // match the walls behind them - read from here; the rendered look
+        // only, the gameplay light above is unaffected.
+        [Tooltip("The least light anything baked gets, lightmaps and probe volumes alike (linear, before the surface's colour), e.g. (0.045, 0.05, 0.06) = deep shadow stays a faint moon blue-grey instead of black. Baked in by every lighting bake; a change needs a rebake. Brighter lifts the darkest shade, black turns it off. Rendered look only, not gameplay light.")]
         [SerializeField, ColorUsage(false, true)] private Color shadowFloor = new Color(0.045f, 0.05f, 0.06f, 1f);
 
         /// The scene's moon, or null if there isn't one (then nothing is

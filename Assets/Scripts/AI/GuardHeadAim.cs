@@ -25,7 +25,10 @@ namespace AI
     /// the turn is worked out from the pose each frame, so on a culled
     /// model (bones not rewritten) it finds the head already aimed and
     /// turns nothing more. Off while knocked out (limp or standing up:
-    /// the ragdoll owns the bones).
+    /// the ragdoll owns the bones). While GuardAnimation plays an action
+    /// or an idle fidget no rule applies: the aim eases back onto the
+    /// clip, whose head is the point of it (looking round, stretching
+    /// the neck, reeling from a hit, the dive).
     /// </summary>
     [RequireComponent(typeof(Guard))]
     [RequireComponent(typeof(NavMeshAgent))]
@@ -50,6 +53,8 @@ namespace AI
         private Guard _guard;
         private NavMeshAgent _agent;
         private Transform _eye;
+        // Optional: without it, rules apply whatever the clip.
+        private GuardAnimation _animation;
 
         // The aim held, as yaw and pitch from the body's facing in
         // degrees, and whether it is being applied at all.
@@ -57,11 +62,22 @@ namespace AI
         private float _aimPitch;
         private bool _isAiming;
 
+        // Glance: the yaw glanced to (0 = straight ahead), and seconds
+        // until the glance ends or, looking ahead, the next one starts.
+        private float _glanceYaw;
+        private float _glanceTimer;
+
         private void Awake()
         {
             _guard = GetComponent<Guard>();
             _agent = GetComponent<NavMeshAgent>();
+            _animation = GetComponent<GuardAnimation>();
             _eye = _guard.Eye;
+
+            // Each guard's first glance comes at its own time.
+            if (look != null) {
+                _glanceTimer = Random.Range(look.GlanceIntervalMin, look.GlanceIntervalMax);
+            }
 
             Animator animator = GetComponentInChildren<Animator>(true);
 
@@ -122,10 +138,15 @@ namespace AI
         /// <summary>
         /// The yaw and pitch this state's rule wants (pitch kept as the
         /// clip's for Forward). False if no rule applies, or a Look At
-        /// has nothing to look at: the clip plays.
+        /// has nothing to look at, or an action or fidget is playing:
+        /// the clip plays.
         /// </summary>
         private bool GetWanted(float clipPitch, ref float yaw, ref float pitch)
         {
+            if (_animation != null && (_animation.IsPlayingAction || _animation.IsFidgeting)) {
+                return false;
+            }
+
             Vector3 velocity = _agent.velocity;
             bool isStanding = velocity.sqrMagnitude < Guard.StandingSpeed * Guard.StandingSpeed;
 
@@ -137,6 +158,12 @@ namespace AI
                 case GuardHeadLook.Mode.Forward:
                     yaw = 0f;
                     pitch = clipPitch;
+                    return true;
+                case GuardHeadLook.Mode.Glance:
+                    // Level whatever the body's bend (the search walk
+                    // stoops), straight ahead or glancing to one side.
+                    yaw = TickGlance();
+                    pitch = 0f;
                     return true;
                 case GuardHeadLook.Mode.LookAt:
                     Vector3 target;
@@ -160,6 +187,34 @@ namespace AI
                 default:
                     return false;
             }
+        }
+
+        /// <summary>
+        /// The glance yaw this frame: straight ahead for a random wait
+        /// between the asset's glance intervals, then a glance to the
+        /// left or right (random side and size, within maxYaw) held for
+        /// glanceHold, then straight ahead again. Ticked only while a
+        /// Glance rule applies, so a glance carries on where it left off.
+        /// The aim's turnSpeed eases the head round to each.
+        /// </summary>
+        private float TickGlance()
+        {
+            _glanceTimer -= Time.deltaTime;
+
+            if (_glanceTimer > 0f) {
+                return _glanceYaw;
+            }
+
+            if (_glanceYaw != 0f) {
+                _glanceYaw = 0f;
+                _glanceTimer = Random.Range(look.GlanceIntervalMin, look.GlanceIntervalMax);
+            } else {
+                float side = Random.value < 0.5f ? -1f : 1f;
+                _glanceYaw = side * Mathf.Min(Random.Range(look.GlanceAngleMin, look.GlanceAngleMax), look.MaxYaw);
+                _glanceTimer = look.GlanceHold;
+            }
+
+            return _glanceYaw;
         }
 
         /// <summary>

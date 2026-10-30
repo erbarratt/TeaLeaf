@@ -19,10 +19,15 @@ namespace AI
     /// under physics, carrying on at the speed the guard was moving,
     /// each joint pulled weakly towards the neutral pose the builder
     /// gave it (knees, elbows, hips a little bent), so the body falls
-    /// and lies curled like a person, not with straight limbs. Woken (StandUp), the root is moved under where the hips lie,
+    /// and lies curled like a person, not with straight limbs. Woken
+    /// (StandUp), the root is moved just behind where the hips lie,
     /// facing the way the head lies, the bodies are held again and the
-    /// Animator restarts; for standUpTime every bone eases from the pose
-    /// it lay in to the animated one, so the guard rises without a jump.
+    /// Animator restarts in the get-up clip (Guard_PushUpToIdle: lying
+    /// face down along the root's forward, hips getUpHipsAhead in front
+    /// of the root, pushing up to standing over the root in the idle's
+    /// first pose); for standUpTime every bone eases from the pose it lay
+    /// in to the clip's, so the guard rises without a jump, and it is
+    /// standing up until the clip has handed over to Locomotion.
     /// Called by Guard, which waits out the stand-up before it does
     /// anything else.
     /// </summary>
@@ -44,10 +49,16 @@ namespace AI
         [Tooltip("The head bone's hit box collider, e.g. the sphere on the Head bone: a stun arrow only stuns when it hits this one. Filled in by Build Guard Ragdoll.")]
         [SerializeField] private Collider headHitbox;
 
-        // Seconds the guard takes to rise from where it lay into the
-        // animated pose.
-        [Tooltip("Seconds the guard takes to rise from where it lay into its standing pose, blending each bone from lying to animated. e.g. 0.8 = a quick scramble up. Higher = slower, gentler rise.")]
-        [SerializeField] private float standUpTime = 0.8f;
+        // Seconds the pose it lay in takes to blend into the get-up
+        // clip, which then plays on to standing.
+        [Tooltip("Seconds each bone takes to blend from the pose the guard lay in into the get-up clip (Guard_PushUpToIdle, which then plays on to standing). e.g. 0.4 = the limbs gather under it as it starts to push up. Higher = softer but the clip's start is hidden longer; 0 = snaps into the clip.")]
+        [SerializeField] private float standUpTime = 0.4f;
+
+        // How far ahead of the root the get-up clip's first frame has the
+        // hips, in metres: the clip ends standing over the root, so it
+        // starts lying this far forward of it. Measured from the clip.
+        [Tooltip("How far ahead of the root the get-up clip (Guard_PushUpToIdle) starts with the hips, in metres; standing up, the root is put this far behind where the hips lie, so the clip starts where the body lies and ends standing over the root. e.g. 0.11 = the clip's own first frame. Wrong = the body slides along the ground as it starts to push up; remeasure if the clip changes.")]
+        [SerializeField] private float getUpHipsAhead = 0.11f;
 
         // Going limp, the chest and head are given this much extra speed
         // forwards, in metres a second, so a guard knocked out standing
@@ -85,7 +96,13 @@ namespace AI
         // order of bodies.
         private ConfigurableJoint[] _joints;
 
+        private static readonly int _getUpState = Animator.StringToHash("Get Up");
+
         private float _standUpTimer;
+
+        // True from StandUp until the get-up clip has handed over to
+        // Locomotion.
+        private bool _isGettingUp;
 
         // The Animator's own culling, put back once standing: while
         // rising it animates even unseen, or a guard woken out of sight
@@ -95,8 +112,9 @@ namespace AI
         /// True while lying under physics.
         public bool IsLimp { get; private set; }
 
-        /// True while rising from where it lay into the animated pose.
-        public bool IsStandingUp => _standUpTimer > 0f;
+        /// True while rising from where it lay: the blend into the get-up
+        /// clip and the clip itself.
+        public bool IsStandingUp => _isGettingUp;
 
         /// The colliders on the bones: the guard's hit boxes.
         public Collider[] Hitboxes => hitboxes;
@@ -172,12 +190,15 @@ namespace AI
         /// <summary>
         /// Knocked out: the Animator stops where it is and the bodies
         /// fall under physics, moving on at velocity (the guard's own
-        /// speed when it went down), the upper body tipped forwards, each
-        /// joint pulling towards its neutral pose.
+        /// speed when it went down), each joint pulling towards its
+        /// neutral pose. topple: the upper body is tipped forwards (a
+        /// guard knocked out standing); false for one the animation has
+        /// already brought down (a sleep dart's collapse).
         /// </summary>
-        public void GoLimp(Vector3 velocity)
+        public void GoLimp(Vector3 velocity, bool topple)
         {
-            if (_standUpTimer > 0f) {
+            if (_isGettingUp) {
+                _isGettingUp = false;
                 _standUpTimer = 0f;
                 animator.cullingMode = _cullingMode;
             }
@@ -186,11 +207,11 @@ namespace AI
             SetKinematic(false);
             SetNeutralDrives();
 
-            Vector3 topple = velocity + transform.forward * topplePush;
+            Vector3 upperBodyVelocity = topple ? velocity + transform.forward * topplePush : velocity;
 
             for (int i = 0; i < bodies.Length; i++) {
                 bool isUpperBody = bodies[i] == _headBody || bodies[i] == _chestBody;
-                bodies[i].linearVelocity = isUpperBody ? topple : velocity;
+                bodies[i].linearVelocity = isUpperBody ? upperBodyVelocity : velocity;
                 bodies[i].angularVelocity = Vector3.zero;
             }
 
@@ -198,11 +219,13 @@ namespace AI
         }
 
         /// <summary>
-        /// Woken: puts the root on the NavMesh under where the hips lie,
-        /// facing from the hips to the head (so it rises along the way it
-        /// lay), holds the bodies again and restarts the Animator. The
-        /// pose it lay in is noted, and LateUpdate eases from it to the
-        /// animated pose over standUpTime.
+        /// Woken: puts the root on the NavMesh getUpHipsAhead behind where
+        /// the hips lie, facing from the hips to the head (so it rises
+        /// along the way it lay - the get-up clip starts lying just so,
+        /// face down, hips that far ahead of the root), holds the bodies again and restarts the
+        /// Animator in the get-up clip. The pose it lay in is noted, and
+        /// LateUpdate eases from it to the clip's over standUpTime. A
+        /// guard lying face up is turned over by that blend.
         /// </summary>
         public void StandUp()
         {
@@ -213,16 +236,19 @@ namespace AI
             // lie is noted first and put back after.
             _hips.GetPositionAndRotation(out Vector3 hipsPosition, out Quaternion hipsRotation);
 
-            Vector3 place = hipsPosition;
-            place.y = transform.position.y;
-
-            if (NavMesh.SamplePosition(hipsPosition, out NavMeshHit hit, StandUpSampleDistance, NavMesh.AllAreas)) {
-                place = hit.position;
-            }
-
             Vector3 along = _head.position - hipsPosition;
             along.y = 0f;
             Quaternion facing = along.sqrMagnitude > 0.0001f ? Quaternion.LookRotation(along) : transform.rotation;
+
+            // The clip starts with the hips a little ahead of the root, so
+            // the root goes that far back from where they lie.
+            Vector3 under = hipsPosition - facing * Vector3.forward * getUpHipsAhead;
+            Vector3 place = under;
+            place.y = transform.position.y;
+
+            if (NavMesh.SamplePosition(under, out NavMeshHit hit, StandUpSampleDistance, NavMesh.AllAreas)) {
+                place = hit.position;
+            }
 
             transform.SetPositionAndRotation(place, facing);
             _hips.SetPositionAndRotation(hipsPosition, hipsRotation);
@@ -235,38 +261,49 @@ namespace AI
 
             _lyingHipsPosition = _hips.localPosition;
 
-            // Re-enabled, the Animator starts again from its default
-            // state: standing.
+            // Re-enabled, the Animator starts from its default state;
+            // it is sent straight to the start of the get-up clip, which
+            // it plays from its update this same frame.
             _cullingMode = animator.cullingMode;
             animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
             animator.enabled = true;
+            animator.Play(_getUpState, 0, 0f);
             _standUpTimer = standUpTime;
+            _isGettingUp = true;
         }
 
         /// <summary>
-        /// After the Animator has posed the bones: while standing up,
+        /// After the Animator has posed the bones: while the blend runs,
         /// each bone is put part way from where it lay to where the
-        /// animation has it, eased in and out.
+        /// get-up clip has it, eased in and out. Then the clip plays on
+        /// alone; once it has handed over to Locomotion (left the Get Up
+        /// state, transition included) the guard is standing.
         /// </summary>
         private void LateUpdate()
         {
-            if (_standUpTimer <= 0f) {
+            if (!_isGettingUp) {
                 return;
             }
 
-            _standUpTimer -= Time.deltaTime;
-            float t = Mathf.SmoothStep(0f, 1f, 1f - Mathf.Max(_standUpTimer, 0f) / standUpTime);
+            if (_standUpTimer > 0f) {
+                _standUpTimer -= Time.deltaTime;
+                float t = standUpTime > 0f ? Mathf.SmoothStep(0f, 1f, 1f - Mathf.Max(_standUpTimer, 0f) / standUpTime) : 1f;
 
-            for (int i = 0; i < _bones.Length; i++) {
-                Transform bone = _bones[i];
-                bone.localRotation = Quaternion.Slerp(_lyingRotations[i], bone.localRotation, t);
+                for (int i = 0; i < _bones.Length; i++) {
+                    Transform bone = _bones[i];
+                    bone.localRotation = Quaternion.Slerp(_lyingRotations[i], bone.localRotation, t);
+                }
+
+                _hips.localPosition = Vector3.Lerp(_lyingHipsPosition, _hips.localPosition, t);
+                return;
             }
 
-            _hips.localPosition = Vector3.Lerp(_lyingHipsPosition, _hips.localPosition, t);
-
-            if (_standUpTimer <= 0f) {
-                animator.cullingMode = _cullingMode;
+            if (animator.GetCurrentAnimatorStateInfo(0).shortNameHash == _getUpState) {
+                return;
             }
+
+            _isGettingUp = false;
+            animator.cullingMode = _cullingMode;
         }
 
         /// <summary>

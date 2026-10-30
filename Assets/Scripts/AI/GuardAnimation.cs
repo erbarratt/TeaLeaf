@@ -10,15 +10,29 @@ namespace AI
     /// guard's logic knowing anything about animation.
     ///
     /// Three parameters in Guard.controller:
-    /// - Speed: the gait, driving a blend tree of idle (the look-around clip), walk and run.
+    /// - Speed: the gait, driving a blend tree of idle, walk and run.
+    /// - Searching: 0-1, in the walk slot, from the plain walk to the
+    ///   search walk (shoulders up, arms out); 1 while in Search.
     ///   Up to walking pace it is the agent's ground speed (idle blended
     ///   into the walk); faster, it is the walk's or the run's own speed,
     ///   and the Animator's playback rate is scaled so the stride covers
-    ///   the ground the agent does. A guard waiting at a patrol point,
-    ///   or stunned reads 0 and idles.
-    /// - IsLookingAbout: standing and looking (Suspicious, or at a
-    ///   place in a Search), playing the look-around clip.
-    /// - IsStunned: the stunned clip.
+    ///   the ground the agent does. A guard waiting at a patrol point
+    ///   reads 0 and idles.
+    /// - IsLookingAbout: standing looking about at a place in a Search,
+    ///   playing the wide look-around clip from its start each time.
+    ///
+    /// The rest are actions, cross-faded to by name (TickActions), each
+    /// state handing back to Locomotion itself or being faded out of
+    /// here when it no longer applies:
+    /// - Fidgets: idle on patrol for fidgetInterval, one of the bored,
+    ///   look-around and neck-stretching clips, once.
+    /// - Stunned: the hit clip for the side the bolt came from (again on
+    ///   each new stun), which hands on to the dizzy loop until it ends.
+    /// - Giving up a search: the shrug, held while the Guard stands
+    ///   shrugging.
+    /// - Diving at the player (the catch), and collapsing from a sleep
+    ///   dart (the being-strangled clip), each held to the end.
+    /// Getting up from a knock-out is GuardRagdoll's (it plays Get Up).
     ///
     /// Knocked out, the guard is a ragdoll (GuardRagdoll), which stops
     /// the Animator; this does nothing while it is stopped.
@@ -84,14 +98,60 @@ namespace AI
         [Tooltip("One entry per heel strike: where in Guard_Run (0-1 through the clip) that heel comes down and a footstep sounds. e.g. 0.445 = a step just before halfway; the clip is two strides, so four entries. Measured from the clip: remeasure if it changes.")]
         [SerializeField] private float[] runFootfalls = { 0.175f, 0.445f, 0.685f, 0.95f };
 
+        // How long the walk takes to blend into the search walk (shoulders
+        // up, arms held out) on starting a search, and back after.
+        [Tooltip("Seconds the walk takes to blend into the search walk (Guard_SearchWalk: shoulders raised, arms held out, as the wide look-around) when a search starts, and back to the plain walk when it ends. e.g. 0.3 = the arms come up over a step or so. Higher = slower change; 0 = snaps.")]
+        [SerializeField] private float searchWalkBlendTime = 0.3f;
+
+        // Walking a search, the spine bends forward this far in all
+        // (shared between the spine, chest and upper chest), turned onto
+        // the bones after the Animator; the head is kept level by
+        // GuardHeadAim's Glance rule.
+        [Tooltip("Degrees the guard stoops forward while walking a search, shared between the spine, chest and upper chest bones and turned on after the Animator (the hips and legs stay as the clip has them). Fades in with the search walk and with walking speed, so standing at a search place he straightens. e.g. 12 = a slight hunch. Higher = bends further over; 0 = upright. The head is kept level by GuardHeadAim (Glance rule).")]
+        [SerializeField] private float searchStoopAngle = 12f;
+
+        // Standing idle on patrol this long, it plays one of its fidgets
+        // once, then idles on.
+        [Tooltip("Seconds a guard stands idle on patrol (at its post, or waiting at a route point) before it plays one of its fidgets once - bored, looking around or stretching its neck, picked at random - then idles on and starts counting again. e.g. 20 = a fidget every twenty seconds of standing. Lower = more restless; walking off resets the count.")]
+        [SerializeField] private float fidgetInterval = 20f;
+
+        // How long a cross-fade into or out of an action takes.
+        [Tooltip("Seconds the cross-fade into or out of an action clip takes (a fidget, a hit, the collapse, back to walking), so the body never snaps. e.g. 0.25 = a quarter-second blend. Higher = softer but mushier changes.")]
+        [SerializeField] private float actionFade = 0.25f;
+
+        // Faster fades for the sudden ones: a bolt to the head, the dive.
+        [Tooltip("Seconds the cross-fade into a sudden action takes: a stun bolt's hit and the dive at the player. e.g. 0.1 = near instant, as a blow should be. Higher = softer but slower to react.")]
+        [SerializeField] private float suddenFade = 0.1f;
+
         // How close to walking pace a damped Speed must come back down
         // (from the run) before it is set undamped again.
         private const float GaitTolerance = 0.01f;
 
         private static readonly int _locomotionState = Animator.StringToHash("Locomotion");
+        private static readonly int _hitFrontState = Animator.StringToHash("Hit On Front");
+        private static readonly int _hitBackState = Animator.StringToHash("Hit On Back Of Head");
+        private static readonly int _diveState = Animator.StringToHash("Dive");
+        private static readonly int _collapseState = Animator.StringToHash("Being Strangled");
+        private static readonly int _shrugState = Animator.StringToHash("Shrug");
+        private static readonly int[] _fidgetStates = {
+            Animator.StringToHash("Fidget Bored"),
+            Animator.StringToHash("Fidget Look Around"),
+            Animator.StringToHash("Fidget Neck Stretching")
+        };
         private static readonly int _speedParam = Animator.StringToHash("Speed");
+        private static readonly int _searchingParam = Animator.StringToHash("Searching");
         private static readonly int _lookingAboutParam = Animator.StringToHash("IsLookingAbout");
-        private static readonly int _stunnedParam = Animator.StringToHash("IsStunned");
+
+        // What the Animator was told to play by name, if anything.
+        private enum Action
+        {
+            None,
+            Fidget,
+            Stunned,
+            Shrug,
+            Dive,
+            Collapse
+        }
 
         private Guard _guard;
         private NavMeshAgent _agent;
@@ -99,7 +159,27 @@ namespace AI
         // What the Animator was last told, so a bool is only set on a
         // change.
         private bool _isLookingAbout;
-        private bool _isStunned;
+
+        // The action playing, the fidget's state if it is one, the stun
+        // whose hit clip was played, and seconds stood idle since the
+        // last fidget.
+        private Action _action;
+        private int _fidgetState;
+        private int _stunCount;
+        private float _idleTime;
+
+        /// <summary>
+        /// Playing a stun, the dive or the collapse: the body leaves its
+        /// standing stance, so GuardFootLock lets the feet be and
+        /// GuardHeadAim leaves the head to the clip.
+        /// </summary>
+        public bool IsPlayingAction => _action == Action.Stunned || _action == Action.Dive || _action == Action.Collapse;
+
+        /// <summary>
+        /// Playing an idle fidget: GuardHeadAim leaves the head to the
+        /// clip (looking round, stretching the neck).
+        /// </summary>
+        public bool IsFidgeting => _action == Action.Fidget;
 
         // The model's own transform (the Animator's), tilted to lean,
         // and its rotation unleaned. Null if the Animator is on the root,
@@ -111,6 +191,21 @@ namespace AI
         // current lean in degrees (positive = back).
         private float _lastSpeed;
         private float _leanAngle;
+
+        // The bones the search stoop bends (UpperChest may be missing from
+        // a rig), and the model's drawn renderer: a culled model's bones
+        // aren't rewritten, so turning them again would add up.
+        private Transform[] _stoopBones;
+        private Renderer _bodyRenderer;
+
+        // The upper arms and the head, turned back by the whole stoop so
+        // the arms still hang (and swing) and the gaze points as the clip
+        // has them.
+        private Transform[] _upperArms;
+        private Transform _head;
+
+        // This frame's ground speed (Update), for the stoop (LateUpdate).
+        private float _groundSpeed;
 
         // Where the Locomotion blend tree was last frame (0-1 through its
         // cycle), for spotting a footfall passed since; -1 = not playing
@@ -139,6 +234,78 @@ namespace AI
                 _model = animator.transform;
                 _modelRotation = _model.localRotation;
             }
+
+            if (animator.isHuman) {
+                var bones = new System.Collections.Generic.List<Transform>(3);
+
+                foreach (HumanBodyBones bone in new[] { HumanBodyBones.Spine, HumanBodyBones.Chest, HumanBodyBones.UpperChest }) {
+                    Transform found = animator.GetBoneTransform(bone);
+
+                    if (found != null) {
+                        bones.Add(found);
+                    }
+                }
+
+                _stoopBones = bones.ToArray();
+                _upperArms = new[] { animator.GetBoneTransform(HumanBodyBones.LeftUpperArm), animator.GetBoneTransform(HumanBodyBones.RightUpperArm) };
+                _head = animator.GetBoneTransform(HumanBodyBones.Head);
+            }
+
+            _bodyRenderer = GetComponentInChildren<SkinnedMeshRenderer>();
+        }
+
+        /// <summary>
+        /// After the Animator has posed the bones (and before GuardHeadAim,
+        /// order 50): walking a search, the spine, chest and upper chest
+        /// are each turned forward their share of searchStoopAngle about
+        /// the body's right, by how far the walk is the search walk
+        /// (Searching) and how near walking pace he is; then each upper arm
+        /// and the head are turned back by the whole bend, so the arms hang
+        /// and the gaze points as the clip draws them (GuardHeadAim then
+        /// levels the gaze anyway).
+        /// Turned on the bones, not keyed into the clip: a Humanoid clip
+        /// keeps the body's overall tilt, so spine muscles bent in a clip
+        /// tip the hips back to match (a clip's lean is changed by
+        /// rebuilding it from posed bones, as Guard_Walk's was). Only while
+        /// drawn: a culled model's bones aren't rewritten each frame, so
+        /// the turn would add up.
+        /// </summary>
+        private void LateUpdate()
+        {
+            if (_stoopBones == null || _stoopBones.Length == 0 || !animator.enabled
+                || _bodyRenderer == null || !_bodyRenderer.isVisible) {
+                return;
+            }
+
+            float stoop = searchStoopAngle * animator.GetFloat(_searchingParam) * Mathf.Clamp01(_groundSpeed / walkSpeed);
+
+            if (stoop < 0.01f) {
+                return;
+            }
+
+            // Positive about the right tips the top forward.
+            Vector3 right = transform.right;
+            Quaternion bend = Quaternion.AngleAxis(stoop / _stoopBones.Length, right);
+
+            foreach (Transform bone in _stoopBones) {
+                bone.rotation = bend * bone.rotation;
+            }
+
+            // The arms hang below the spine's pivot, so the bend swings
+            // them back; turned back by the whole bend, they hang as drawn
+            // and only move forward with the shoulders. The head likewise
+            // keeps the clip's gaze.
+            Quaternion unbend = Quaternion.AngleAxis(-stoop, right);
+
+            foreach (Transform arm in _upperArms) {
+                if (arm != null) {
+                    arm.rotation = unbend * arm.rotation;
+                }
+            }
+
+            if (_head != null) {
+                _head.rotation = unbend * _head.rotation;
+            }
         }
 
         private void Update()
@@ -148,7 +315,8 @@ namespace AI
             // last told is forgotten too.
             if (!animator.enabled) {
                 _isLookingAbout = false;
-                _isStunned = false;
+                _action = Action.None;
+                _idleTime = 0f;
                 _lastPhase = -1f;
                 return;
             }
@@ -169,6 +337,7 @@ namespace AI
             // walk and run (their feet are out of step, so a blend
             // shuffles), and the playback rate is scaled so the stride
             // covers exactly the ground the agent does.
+            _groundSpeed = speed;
             float gaitSpeed = speed;
             float playbackRate = 1f;
 
@@ -192,19 +361,131 @@ namespace AI
 
             animator.speed = playbackRate;
 
+            // Searching, the walk is the search walk; damped, so the arms
+            // come up and down over searchWalkBlendTime. The two walks
+            // share their timing, so the footfalls below hold for both.
+            float searching = _guard.State == GuardState.Search ? 1f : 0f;
+            animator.SetFloat(_searchingParam, searching, searchWalkBlendTime, Time.deltaTime);
+
             TickLean(speed);
             TickFootfalls(speed);
 
-            GuardState state = _guard.State;
             Apply(ref _isLookingAbout, _guard.IsLookingAbout, _lookingAboutParam);
-            Apply(ref _isStunned, state == GuardState.Stunned, _stunnedParam);
+            TickActions();
+        }
+
+        /// <summary>
+        /// Starts, restarts or ends the action clips from what the Guard
+        /// is doing, most pressing first: the dive, the collapse, a stun
+        /// (a new stun plays its hit again), the shrug, then the idle
+        /// fidgets. An
+        /// action that no longer applies fades back to Locomotion. Nothing
+        /// while knocked out: the ragdoll owns the Animator (Get Up
+        /// included).
+        /// </summary>
+        private void TickActions()
+        {
+            if (_guard.IsKnockedOut) {
+                return;
+            }
+
+            if (_guard.IsDiving) {
+                if (_action != Action.Dive) {
+                    Play(Action.Dive, _diveState, suddenFade);
+                }
+
+                return;
+            }
+
+            if (_guard.IsCollapsing) {
+                if (_action != Action.Collapse) {
+                    Play(Action.Collapse, _collapseState, actionFade);
+                }
+
+                return;
+            }
+
+            if (_guard.State == GuardState.Stunned) {
+                if (_action != Action.Stunned || _stunCount != _guard.StunCount) {
+                    _stunCount = _guard.StunCount;
+                    Play(Action.Stunned, _guard.IsStunFromBehind ? _hitBackState : _hitFrontState, suddenFade);
+                }
+
+                return;
+            }
+
+            // Shrugging off a search: in place, so the feet stay locked.
+            if (_guard.IsShrugging) {
+                if (_action != Action.Shrug) {
+                    Play(Action.Shrug, _shrugState, actionFade);
+                }
+
+                return;
+            }
+
+            if (_action != Action.None && _action != Action.Fidget) {
+                Play(Action.None, _locomotionState, actionFade);
+            }
+
+            TickFidgets();
+        }
+
+        /// <summary>
+        /// Idle on patrol: counts the time stood, and every fidgetInterval
+        /// plays one of the fidget clips, picked at random; its state hands
+        /// back to Locomotion when it ends. No longer idle (walking off,
+        /// any other state) cuts a fidget short and starts the count again.
+        /// </summary>
+        private void TickFidgets()
+        {
+            if (!_guard.IsIdle) {
+                _idleTime = 0f;
+
+                if (_action == Action.Fidget) {
+                    Play(Action.None, _locomotionState, actionFade);
+                }
+
+                return;
+            }
+
+            if (_action == Action.Fidget) {
+                // Over once the Animator is neither in the fidget nor
+                // fading into it (it has handed back to Locomotion).
+                if (animator.GetCurrentAnimatorStateInfo(0).shortNameHash != _fidgetState
+                    && animator.GetNextAnimatorStateInfo(0).shortNameHash != _fidgetState) {
+                    _action = Action.None;
+                }
+
+                return;
+            }
+
+            _idleTime += Time.deltaTime;
+
+            if (_idleTime < fidgetInterval) {
+                return;
+            }
+
+            _idleTime = 0f;
+            _fidgetState = _fidgetStates[Random.Range(0, _fidgetStates.Length)];
+            Play(Action.Fidget, _fidgetState, actionFade);
+        }
+
+        /// <summary>
+        /// Cross-fades to a state by name, from the state's start, and
+        /// notes the action it stands for.
+        /// </summary>
+        private void Play(Action action, int state, float fade)
+        {
+            _action = action;
+            animator.CrossFadeInFixedTime(state, fade, 0, 0f);
         }
 
         /// <summary>
         /// Leans the model back while it slows: the target lean is the
         /// deceleration's share of fullLeanDeceleration, scaled by how
         /// near running pace it still is, eased towards over
-        /// leanSmoothing. Speeding up or steady, it eases back upright.
+        /// leanSmoothing. Speeding up, steady, or stopped dead by an
+        /// action, it eases back upright.
         /// The model's root sits between the feet, so the tilt pivots
         /// there and GuardFootLock (after this, in LateUpdate) keeps the
         /// planted feet in place.
@@ -222,7 +503,11 @@ namespace AI
 
             float target = 0f;
 
-            if (deceleration > 0f) {
+            // Stopped dead by a stun, the dive or the collapse: the clip
+            // has the body, so no lean from the sudden stop.
+            bool isStoppedDead = _guard.IsDiving || _guard.IsCollapsing || _guard.State == GuardState.Stunned;
+
+            if (deceleration > 0f && !isStoppedDead) {
                 target = maxLeanAngle * Mathf.Clamp01(deceleration / fullLeanDeceleration) * Mathf.Clamp01(speed / runSpeed);
             }
 

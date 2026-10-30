@@ -92,7 +92,7 @@ namespace Interaction
         /// <summary>
         /// The holds that aren't on a prefab: things a player holds, each
         /// with its profile on a component in the Player prefab (Bow to
-        /// Key), then the shared holds on level fixtures, each with one
+        /// Compass), then the shared holds on level fixtures, each with one
         /// profile asset (Ledge to DoorBolt, IsSharedPose()).
         /// </summary>
         private enum Held
@@ -106,6 +106,7 @@ namespace Interaction
             Lockpicks,
             Lockpick,
             Key,
+            Compass,
             Ledge,
             Ladder,
             Rope,
@@ -935,8 +936,9 @@ namespace Interaction
         /// an arrow nocked at the string's rest (frame: the nock), the
         /// pack's chest with a block where its spaces are (frame: the
         /// pack's origin), the blackjack (frame: its model's origin), the
-        /// lockpicks (frame: their tips, Z to the handles) or the shown
-        /// hand's big lock pick (frame: its grip frame).
+        /// lockpicks (frame: their tips, Z to the handles), the shown
+        /// hand's big lock pick (frame: its grip frame) or the compass
+        /// prefab on PlayerCompass (frame: its middle, Z into the hand).
         /// </summary>
         private void BuildToolPreview(Held tool)
         {
@@ -971,6 +973,22 @@ namespace Interaction
 
             if (tool == Held.Arrow) {
                 _gripPoint = BuildArrowPreview(player, _prop.transform);
+                return;
+            }
+
+            if (tool == Held.Compass) {
+                // The compass prefab with its origin on the frame, as
+                // PlayerCompass places it.
+                PlayerCompass compass = player.GetComponentInChildren<PlayerCompass>(true);
+                // Player's, not UnityEngine's (the device compass).
+                Player.Compass prefab = compass != null ? new SerializedObject(compass).FindProperty("compassPrefab").objectReferenceValue as Player.Compass : null;
+
+                if (prefab == null) {
+                    Debug.LogError($"Pose with Hand: no compass prefab on PlayerCompass in {PlayerPrefabPath}.");
+                    return;
+                }
+
+                Instantiate(prefab.gameObject, _prop.transform, false);
                 return;
             }
 
@@ -1436,6 +1454,7 @@ namespace Interaction
                     Held.Lockpicks => "The picks' tips (Z along them to the handles). The hand without the lockpicks carrying both to a lock.",
                     Held.Lockpick => "The grip frame on this hand's big lock pick (left the hook, right the wrench): Y along the pick away from the keyway, Z into the lock. In play the pick leans out of the lock's face and turns with the hand.",
                     Held.Key => "Where the hand takes the key in a lock, PlayerKeys' grip stand-off out from the lock's face (Z into the door, Y the lock's up). In play the hand turns with the key.",
+                    Held.Compass => "The compass's middle (Z into the hand, Y up the face). The hand wearing it on its back (right-handed: the right). Only where it sits is used: the hand keeps its input curl. In play the dial turns to north.",
                     Held.Ledge => "A ledge's lip, where the hand snaps along it (Z into the wall, Y up). A two-sided edge gripped from behind uses the back lip, turned round.",
                     Held.Ladder => "A rung's centre line, where the hand snaps along it (Z into the ladder, Y up). From behind (climbable from back) it's turned round.",
                     Held.Rope => "The rope's middle, from the player's side (Z into the rope, Y up along it). In play a hanging rope's frame is turned round it towards that hand's shoulder; a strung rope's is from below, Y back towards the player. Rope arrows' ropes too.",
@@ -1490,6 +1509,7 @@ namespace Interaction
                 Held.Blackjack => "PlayerBlackjack",
                 Held.LockpicksWorn or Held.Lockpicks or Held.Lockpick => "PlayerLockpicking",
                 Held.Key => "PlayerKeys",
+                Held.Compass => "PlayerCompass",
                 _ => "PlayerBow"
             };
 
@@ -1511,6 +1531,7 @@ namespace Interaction
                 Held.Lockpicks => "LockpicksCarry",
                 Held.Lockpick => "LockpickHold",
                 Held.Key => "KeyHold",
+                Held.Compass => "CompassWorn",
                 Held.Ledge => "LedgeGrip",
                 Held.Ladder => "LadderRung",
                 Held.Rope => "RopeGrip",
@@ -1562,6 +1583,7 @@ namespace Interaction
                 Held.Lockpicks => "Lockpicks (carried)",
                 Held.Lockpick => "Lockpick (on the big lock)",
                 Held.Key => "Key (in a lock)",
+                Held.Compass => "Compass (on the back of the hand)",
                 Held.Ledge => "Ledge",
                 Held.Ladder => "Ladder Rung",
                 Held.Rope => "Rope",
@@ -1589,6 +1611,7 @@ namespace Interaction
                 Held.Blackjack => player.GetComponentInChildren<PlayerBlackjack>(true),
                 Held.LockpicksWorn or Held.Lockpicks or Held.Lockpick => player.GetComponentInChildren<PlayerLockpicking>(true),
                 Held.Key => player.GetComponentInChildren<PlayerKeys>(true),
+                Held.Compass => player.GetComponentInChildren<PlayerCompass>(true),
                 _ => player.GetComponentInChildren<PlayerBow>(true)
             };
 
@@ -1605,6 +1628,7 @@ namespace Interaction
                 Held.Lockpicks => "carryProfile",
                 Held.Lockpick => "pickProfile",
                 Held.Key => "snapProfile",
+                Held.Compass => "wornProfile",
                 _ => "packProfile"
             };
 

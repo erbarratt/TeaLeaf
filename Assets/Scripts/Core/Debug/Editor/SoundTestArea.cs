@@ -172,9 +172,10 @@ namespace Core
 
         /// <summary>
         /// The same, with the room's reverb and (optionally) its ambience
-        /// set rather than left at the defaults.
+        /// set rather than left at the defaults. A given ambience volume
+        /// overrides the Sound Player's; none leaves the room on it.
         /// </summary>
-        internal static void AddRoom(string name, Transform parent, Vector3 localPosition, Vector3 size, ReverbSettings reverb, SoundCue ambience = null, float ambienceVolume = 1f)
+        internal static void AddRoom(string name, Transform parent, Vector3 localPosition, Vector3 size, ReverbSettings reverb, SoundCue ambience = null, float? ambienceVolume = null)
         {
             AddRoom(name, parent, localPosition, size);
 
@@ -185,7 +186,8 @@ namespace Core
             settings.FindPropertyRelative("damping").floatValue = reverb.Damping;
             settings.FindPropertyRelative("size").floatValue = reverb.Size;
             serialized.FindProperty("ambience").objectReferenceValue = ambience;
-            serialized.FindProperty("ambienceVolume").floatValue = ambienceVolume;
+            serialized.FindProperty("overrideAmbienceVolume").boolValue = ambienceVolume.HasValue;
+            serialized.FindProperty("ambienceVolume").floatValue = ambienceVolume ?? 1f;
             serialized.ApplyModifiedPropertiesWithoutUndo();
         }
 

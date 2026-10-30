@@ -53,7 +53,7 @@ namespace AI
 
         // The model's skinned mesh: patches are moved only while it is
         // drawn. Found in the children if not assigned.
-        [Tooltip("The model's skinned mesh, e.g. the guard_1 SkinnedMeshRenderer: shadows are updated only while it is drawn. Left empty, it is found in the children; with none, the shadows log an error and switch off.")]
+        [Tooltip("The model's skinned mesh, e.g. the guard model's Body SkinnedMeshRenderer: shadows are updated only while it is drawn. Left empty, it is found in the children; with none, the shadows log an error and switch off.")]
         [SerializeField] private Renderer bodyRenderer;
 
         [Header("Body")]

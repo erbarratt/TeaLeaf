@@ -87,10 +87,17 @@ namespace Interaction
         [Tooltip("Slower than this, in degrees a second, a door swinging by itself counts as stopped, and either shuts itself or stays put. e.g. 5 = it stops once it's creeping under 5 degrees a second. Higher = comes to rest sooner; lower = drifts on longer.")]
         [SerializeField] private float minSwingSpeed = 5f;
 
-        [Tooltip("The fastest a hand's or the body's push can turn the door, in degrees a second, so a hand shoved deep into it can't fling it round in one frame. e.g. 360 = at most a full turn a second. Higher = it can be shoved open faster; lower = it always opens slowly.")]
+        [Tooltip("The fastest a hand or the body can turn the door, in degrees a second - pushing the leaf or swinging it by the handle - so a hand shoved deep into it or yanked hard can't fling it round in one frame. e.g. 360 = at most a full turn a second. Higher = it can be moved faster; lower = it always moves slowly.")]
         [SerializeField] private float maxPushSpeed = 360f;
 
         [Header("Handle")]
+
+        // The door doesn't match the hand on its handle exactly: it chases
+        // it, like a heavy door on its hinges, which smooths away the
+        // shake of a real hand and gives it a steady speed to swing on
+        // with when let go - see DriveTo().
+        [Tooltip("How long a door swung by its handle takes to catch up with the hand, in seconds. e.g. 0.12 = most of the way there in about a tenth of a second. Higher = a heavier, lazier door that trails the hand further; lower = it follows the hand more tightly and passes on more of its shake. 0 = it matches the hand exactly.")]
+        [SerializeField] private float holdFollowTime = 0.12f;
 
         [Tooltip("How far the handle has to be turned to free the latch, in degrees, either way. e.g. 60 = turn the wrist 60 degrees before the door can be pulled. Higher = a longer turn; lower = it frees almost at once. Not used by a fixed pull handle (Turns off), which frees on taking hold.")]
         [SerializeField] private float unlatchTwist = 60f;
@@ -155,9 +162,11 @@ namespace Interaction
         private float _creakTravel;
 
         // How fast the door is turning, in degrees a second (signed like
-        // Angle). Measured while a hand moves it, so it carries on from
-        // there when the hand lets go or stops pushing; then it's what
-        // Update() moves the door by, dying away with swingDrag.
+        // Angle). Kept by DriveTo() while a hand swings it by the handle,
+        // measured by Push() while a hand or the body pushes it, so it
+        // carries on from there when the hand lets go or stops pushing;
+        // then it's what Update() moves the door by, dying away with
+        // swingDrag.
         private float _angularVelocity;
 
         // The frame a hand last pushed the door - see Update(). Starts
@@ -565,11 +574,20 @@ namespace Interaction
         }
 
         /// <summary>
-        /// Turns the door to angle (degrees from closed, kept within
-        /// MinAngle and MaxAngle), unless it's latched or the player's
-        /// body is in the way.
+        /// One frame of a hand swinging the door by its handle: the door
+        /// turns towards angle (degrees from closed, kept within MinAngle
+        /// and MaxAngle) rather than straight to it, unless it's latched.
+        ///
+        /// SmoothDamp is a spring with exactly enough damping not to
+        /// overshoot: it speeds the door up towards the angle and slows it
+        /// into it, taking about holdFollowTime to get there, no faster
+        /// than maxPushSpeed. It keeps the door's speed in _angularVelocity
+        /// from frame to frame, so a jerk of the hand only nudges the
+        /// speed, and that speed is what the door swings on with when the
+        /// hand lets go (EndHold()). Stopped by the player's body, the door
+        /// loses its speed and starts again from rest.
         /// </summary>
-        public void SetAngle(float angle)
+        public void DriveTo(float angle)
         {
             float deltaTime = Time.deltaTime;
 
@@ -577,9 +595,12 @@ namespace Interaction
                 return;
             }
 
-            float before = Angle;
-            MoveTo(Mathf.Clamp(angle, MinAngle, MaxAngle));
-            TrackVelocity(before, deltaTime);
+            float target = Mathf.Clamp(angle, MinAngle, MaxAngle);
+            float next = Mathf.SmoothDamp(Angle, target, ref _angularVelocity, holdFollowTime, maxPushSpeed, deltaTime);
+
+            if (!MoveTo(next)) {
+                _angularVelocity = 0f;
+            }
         }
 
         /// <summary>

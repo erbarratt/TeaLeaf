@@ -53,8 +53,14 @@ namespace Core
         [Tooltip("A looping background with no position, heard while the player is in this room (its first clip is used), e.g. a warehouse hum or wind in the rafters. Rooms sharing a cue carry on with the same sound between them. Empty = silence. A sound from somewhere (a torch) is a SoundLoop instead.")]
         [SerializeField] private SoundCue ambience;
 
-        // Multiplies the ambience cue's volume in this room.
-        [Tooltip("Multiplies the Ambience cue's volume in this room, 0-1, e.g. 0.5 = the same hum at half loudness in a side room. Lower = quieter; 0 = silent.")]
+        // Off, the room's ambience plays at the Sound Player's Ambience
+        // Volume, the same everywhere; on, at this room's own volume.
+        [Tooltip("On = this room's ambience plays at its own Ambience Volume below, e.g. a quieter side room. Off = it plays at the Sound Player's Ambience Volume, shared by every room without an override.")]
+        [SerializeField] private bool overrideAmbienceVolume;
+
+        // Multiplies the ambience cue's volume in this room, when
+        // overridden.
+        [Tooltip("Multiplies the Ambience cue's volume in this room, 0-1, used only with Override Ambience Volume on, e.g. 0.5 = the same hum at half loudness in a side room. Lower = quieter; 0 = silent.")]
         [SerializeField, Range(0f, 1f)] private float ambienceVolume = 1f;
 
         // Every enabled room in the scene. Rooms add and remove themselves,
@@ -115,6 +121,7 @@ namespace Core
 
         public ReverbSettings Reverb => reverb;
         public SoundCue Ambience => ambience;
+        public bool OverrideAmbienceVolume => overrideAmbienceVolume;
         public float AmbienceVolume => ambienceVolume;
 
         // Reverb presets, in the menu opened by right-clicking the

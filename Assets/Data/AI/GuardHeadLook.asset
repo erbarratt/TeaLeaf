@@ -21,6 +21,10 @@ MonoBehaviour:
     movement: 0
     mode: 2
     target: 0
+  - state: 2
+    movement: 2
+    mode: 3
+    target: 0
   - state: 3
     movement: 0
     mode: 2
@@ -31,3 +35,8 @@ MonoBehaviour:
   maxPitchUp: 30
   maxPitchDown: 40
   lookHeight: 1.5
+  glanceIntervalMin: 2
+  glanceIntervalMax: 5
+  glanceHold: 1
+  glanceAngleMin: 30
+  glanceAngleMax: 60
